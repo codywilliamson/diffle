@@ -15,13 +15,18 @@ export interface DiffPlan {
   includeUntracked: boolean; // working-tree mode also surfaces untracked files
 }
 
-// runs `git <args>` in cwd and returns raw stdout. throws with stderr on failure.
-export function runGit(args: string[], cwd: string): string {
+// runs `git <args>` in cwd and returns raw stdout bytes. throws with stderr on failure.
+export function runGitBytes(args: string[], cwd: string): Buffer {
   const proc = Bun.spawnSync(["git", ...args], { cwd });
   if (proc.exitCode !== 0) {
     throw new Error(proc.stderr.toString().trim() || `git ${args.join(" ")} failed`);
   }
-  return proc.stdout.toString();
+  return proc.stdout;
+}
+
+// runs `git <args>` in cwd and returns stdout as text.
+export function runGit(args: string[], cwd: string): string {
+  return runGitBytes(args, cwd).toString();
 }
 
 // "owner/repo" from the origin remote, falling back to the working-dir folder name.

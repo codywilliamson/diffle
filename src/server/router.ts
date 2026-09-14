@@ -9,11 +9,9 @@ import {
   handlePostComments,
   handlePostViewed,
   handleGetCompile,
-  handleGetFile,
   handleGetUpdate,
-  serveStatic,
-  notFound,
 } from "./handlers";
+import { handleGetFile, handleGetRaw, serveStatic, notFound } from "./fileHandlers";
 import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleSessionStop } from "./sessionHandlers";
@@ -31,6 +29,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/update") return handleGetUpdate(ctx);
     if (pathname === "/api/state") return handleGetState();
     if (pathname === "/api/file") return handleGetFile(ctx, new URL(req.url));
+    if (pathname === "/api/raw") return handleGetRaw(ctx, new URL(req.url));
     if (pathname === "/api/review") return handleGetReview(new URL(req.url), ctx.reviewId);
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
     if (!pathname.startsWith("/api/")) return serveStatic(ctx, pathname);

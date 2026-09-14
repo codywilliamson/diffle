@@ -1,7 +1,5 @@
 // route handlers + the in-memory server context. all /api responses are json.
 
-import { existsSync, readFileSync } from "node:fs";
-import { join, extname, resolve } from "node:path";
 import type { DiffResult, DiffMeta, ReviewFile, Comment } from "../types";
 import type { SessionHost } from "../core/sessions";
 import { readReview, writeReview } from "../core/reviewStore";
@@ -10,7 +8,7 @@ import { compileReviewPrompt } from "../core/promptCompiler";
 import { parseDiff } from "../core/diffParser";
 import { checkForUpdate } from "../core/updateCheck";
 import { scanProject } from "../core/projectScan";
-import { collectDiff, runGit } from "../utils/git";
+import { collectDiff } from "../utils/git";
 import { apiError, json } from "./respond";
 import { readReviewRecord, updateReviewRecord } from "../core/reviewRecords";
 import { mergeReviewerComments } from "../core/commentMerge";
@@ -140,53 +138,4 @@ export function handleGetCompile(ctx: ServerContext, url: URL): Response {
 // reports whether a newer loupe release exists on origin (best-effort, never throws).
 export function handleGetUpdate(ctx: ServerContext): Response {
   return json(checkForUpdate(ctx.loupeRoot));
-}
-
-// returns the new-side full content of a file (for markdown preview). working tree
-// reads from disk; other modes use `git show <newRef>:<path>`.
-export function handleGetFile(ctx: ServerContext, url: URL): Response {
-  const path = url.searchParams.get("path");
-  if (!path || path.includes("..")) return apiError("invalid path", 400);
-  try {
-    const content =
-      ctx.newRef === null
-        ? readFileSync(join(ctx.cwd, path), "utf8")
-        : runGit(["show", `${ctx.newRef}:${path}`], ctx.cwd);
-    return json({ path, content });
-  } catch {
-    return apiError("file not found", 404);
-  }
-}
-
-const CONTENT_TYPES: Record<string, string> = {
-  ".js": "text/javascript",
-  ".css": "text/css",
-  ".html": "text/html",
-  ".json": "application/json",
-};
-
-function contentTypeFor(path: string): string {
-  return CONTENT_TYPES[extname(path)] ?? "application/octet-stream";
-}
-
-// serve a static asset from clientDir. guards against path traversal.
-export function serveStatic(ctx: ServerContext, pathname: string): Response {
-  const rel = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  if (rel.includes("..")) return apiError("not found", 404);
-
-  // resolve and confirm the asset stays inside clientDir (defense in depth).
-  const root = resolve(ctx.clientDir);
-  const filePath = resolve(root, rel);
-  if (filePath !== root && !filePath.startsWith(root + "\\") && !filePath.startsWith(root + "/")) {
-    return apiError("not found", 404);
-  }
-  if (!existsSync(filePath)) return apiError("not found", 404);
-
-  return new Response(readFileSync(filePath), {
-    headers: { "Content-Type": contentTypeFor(filePath) },
-  });
-}
-
-export function notFound(): Response {
-  return apiError("not found", 404);
 }
