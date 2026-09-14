@@ -55,6 +55,17 @@ export function isMarkdown(path) {
   return /\.(md|markdown)$/i.test(path);
 }
 
+// resolves a link or image target written inside `fromFile` to a repo-relative path,
+// collapsing "./" and "../"; a leading "/" means the repo root (github's convention).
+export function resolveRepoPath(fromFile, target) {
+  const parts = target.startsWith("/") ? [] : fromFile.split("/").slice(0, -1);
+  for (const seg of target.split("/")) {
+    if (seg === "..") parts.pop();
+    else if (seg && seg !== ".") parts.push(seg);
+  }
+  return parts.join("/");
+}
+
 // clamps n into [lo, hi].
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));

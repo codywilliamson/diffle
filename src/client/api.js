@@ -82,3 +82,8 @@ export function saveState(patch) {
 export function getFile(path) {
   return getJson(`/api/file?path=${encodeURIComponent(path)}`);
 }
+
+// url serving a repo file's raw bytes with a media content type (markdown images).
+export function rawUrl(path) {
+  return `/api/raw?path=${encodeURIComponent(path)}`;
+}

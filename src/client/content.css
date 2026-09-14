@@ -15,19 +15,42 @@
 .stale-note { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
 .stale-item { margin-top: 8px; }
 .stale-loc { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 3px; }
-.markdown-body { font-family: var(--font); font-size: 13px; line-height: 1.55; color: var(--text); }
-.markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 16px 0 8px; line-height: 1.25; }
-.markdown-body h1 { font-size: 18px; }
-.markdown-body h2 { font-size: 15px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-.markdown-body h3 { font-size: 13px; }
-.markdown-body p, .markdown-body ul, .markdown-body ol { margin: 8px 0; }
-.markdown-body code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
-.markdown-body pre { background: var(--surface-2); padding: 10px 12px; border-radius: 4px; overflow: auto; }
-.markdown-body pre code { background: none; padding: 0; }
-.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-.markdown-body blockquote { margin: 8px 0; padding-left: 12px; border-left: 1px solid var(--border); color: var(--muted); }
-.markdown-body a { color: var(--accent); }
-.markdown-body table { border-collapse: collapse; }
-.markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 4px 9px; }
-.markdown-body img { max-width: 100%; }
-.md-note { padding: 16px 20px; color: var(--muted); }
+
+/* markdown preview: a readable measure with breathing room, a real heading scale, and
+   bordered code + tables so the proof reads like a document instead of raw text. */
+.markdown-body { max-width: 940px; padding: 20px 24px 28px; font-family: var(--font); font-size: 14px; line-height: 1.6; color: var(--text); overflow-wrap: anywhere; }
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 { margin: 26px 0 10px; line-height: 1.25; font-weight: 600; letter-spacing: -.01em; }
+.markdown-body h1 { font-size: 24px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.markdown-body h2 { font-size: 19px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.markdown-body h3 { font-size: 15.5px; }
+.markdown-body h4, .markdown-body h5, .markdown-body h6 { font-size: 14px; }
+.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body table, .markdown-body pre, .markdown-body blockquote { margin: 0 0 12px; }
+.markdown-body ul, .markdown-body ol { padding-left: 24px; }
+.markdown-body li + li { margin-top: 3px; }
+.markdown-body li > p { margin-bottom: 4px; }
+.markdown-body code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+.markdown-body pre { padding: 12px 14px; font-size: 12px; line-height: 1.55; background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; overflow: auto; }
+.markdown-body pre code { font-size: inherit; background: none; border: 0; padding: 0; }
+.markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.markdown-body blockquote { padding: 2px 0 2px 14px; border-left: 3px solid var(--border); color: var(--muted); }
+.markdown-body a { color: var(--accent); text-underline-offset: 2px; }
+.markdown-body table { display: block; max-width: 100%; overflow: auto; border-collapse: collapse; }
+.markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 5px 11px; text-align: left; vertical-align: top; }
+.markdown-body th { background: var(--surface-2); font-weight: 600; }
+.markdown-body img { max-width: 100%; height: auto; border-radius: 4px; }
+.markdown-body td img { display: block; }
+.md-note { padding: 20px 24px; color: var(--muted); }
+
+/* skeleton loader and reveal (transitions.dev 14): pulsing placeholder bars sit in the
+   content's slot, then both layers cross-fade + cross-blur once the markdown lands. */
+.md-skel { position: relative; min-height: 240px; }
+.md-skel-skeleton { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; gap: 14px; padding: 24px; opacity: 1; filter: blur(0); pointer-events: none; overflow: hidden; transition: opacity var(--duration-slow) var(--ease-in-out), filter var(--duration-slow) var(--ease-in-out); }
+.md-skel-skeleton > span { display: block; height: 12px; border-radius: 4px; background: var(--surface-2); }
+.md-skel-skeleton > span:first-child { height: 22px; margin-bottom: 8px; }
+.md-skel-skeleton.is-pulsing > span { animation: md-skel-pulse 1s ease-in-out infinite; }
+.md-skel-content { position: relative; z-index: 2; opacity: 0; filter: blur(var(--blur-small)); transition: opacity var(--duration-slow) var(--ease-in-out), filter var(--duration-slow) var(--ease-in-out); }
+.md-skel.is-revealed { min-height: 0; }
+.md-skel.is-revealed .md-skel-skeleton { opacity: 0; filter: blur(var(--blur-small)); }
+.md-skel.is-revealed .md-skel-content { opacity: 1; filter: blur(0); }
+@keyframes md-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
