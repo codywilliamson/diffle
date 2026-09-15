@@ -5,9 +5,11 @@ All notable changes to loupe are documented here. This project follows [semantic
 ## [Unreleased]
 
 ### Added
+- **Motion layer** — transitions.dev recipes across the review desk, timed from one motion-token scale in `motion.css`: modals and popovers scale and fade open and close faster than they open on every path, tooltips wait an intent delay, the open-comment badge pops and its digits re-enter on change, labels swap in place (Copy → Copied, Ready → Feedback sent), comment editors, saved cards and reply threads reveal with a cross-blur, a failed send shakes the composer, the sync notice grows in like a toast, tree folders expand as accordions with flipping chevrons, the viewed checkbox draws its check, the theme toggle cross-fades sun and moon, the loading label shimmers, and the mobile file drawer slides in. Everything honors reduced motion.
 - **Session registry and cleanup** — every running Loupe server is recorded under the data directory, `loupe sessions` lists live and stale ones with their review status, `loupe cleanup` removes stale entries and stops finished servers after confirmation, the MCP server stops everything it launched on exit, and `start_review` reports stale sessions so agents can suggest cleanup.
 
 ### Fixed
+- **Markdown preview** — rendered `.md` files had no padding, headings at body size, and broken repo-relative images. The preview now has a readable measure and heading scale, bordered code and tables, images served through `GET /api/raw`, external links that open in a new tab, and a skeleton loader that cross-fades into the content.
 - **Completion-hook review ownership** — agent hooks now deduplicate only the review belonging to the same agent chat, so a review in one chat no longer blocks a new chat using the same repository; human-originated and legacy reviews remain unclaimed until explicitly handed off.
 
 ## [0.14.0] — 2026-09-04
