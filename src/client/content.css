@@ -52,5 +52,6 @@
 .md-skel-content { position: relative; z-index: 2; opacity: 0; filter: blur(var(--blur-small)); transition: opacity var(--duration-slow) var(--ease-in-out), filter var(--duration-slow) var(--ease-in-out); }
 .md-skel.is-revealed { min-height: 0; }
 .md-skel.is-revealed .md-skel-skeleton { opacity: 0; filter: blur(var(--blur-small)); }
+.md-skel.is-revealed .md-skel-skeleton > span { animation: none; }
 .md-skel.is-revealed .md-skel-content { opacity: 1; filter: blur(0); }
 @keyframes md-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }

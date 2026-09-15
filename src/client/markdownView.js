@@ -10,11 +10,17 @@ import { resolveRepoPath } from "/util.js";
 const SKELETON_BARS = [40, 92, 68, 84, 40, 76, 58]; // placeholder line widths (%), first is a title
 const isRelative = (href) => !/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href);
 
+// the repo path inside an image target: no query or fragment, percent-encoding undone
+function targetPath(href) {
+  const bare = href.split(/[?#]/)[0];
+  try { return decodeURIComponent(bare); } catch { return bare; }
+}
+
 // a parser scoped to one file so relative image targets resolve against its folder.
 function parserFor(path) {
   return new Marked({
     walkTokens(token) {
-      if (token.type === "image" && isRelative(token.href)) token.href = rawUrl(resolveRepoPath(path, token.href));
+      if (token.type === "image" && isRelative(token.href)) token.href = rawUrl(resolveRepoPath(path, targetPath(token.href)));
     },
   });
 }
