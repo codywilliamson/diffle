@@ -1,6 +1,6 @@
 // shared helpers for the transitions.dev recipes: token durations that honor reduced
 // motion, a two-phase open/close hook, and a class replay for one-shot animations.
-import { useState, useEffect, useCallback } from "/preact.js";
+import { useState, useEffect, useCallback, useRef } from "/preact.js";
 
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -16,16 +16,19 @@ export function tokenMs(name) {
 export function useOpenClose(onClosed, closeToken) {
   const [entered, setEntered] = useState(false);
   const [closing, setClosing] = useState(false);
+  const onClosedRef = useRef(onClosed); // latest callback, so an old render never fires a stale one
+  onClosedRef.current = onClosed;
+  const timer = useRef(null);
   useEffect(() => {
     void document.body.offsetWidth; // flush the pre-open styles before flipping the class
     setEntered(true);
+    return () => clearTimeout(timer.current); // an unmounted surface must not close its successor
   }, []);
   const requestClose = useCallback(() => {
-    setClosing((already) => {
-      if (!already) setTimeout(onClosed, tokenMs(closeToken));
-      return true;
-    });
-  }, [onClosed, closeToken]);
+    if (timer.current !== null) return;
+    timer.current = setTimeout(() => onClosedRef.current(), tokenMs(closeToken));
+    setClosing(true);
+  }, [closeToken]);
   return { phase: closing ? "is-closing" : entered ? "is-open" : "", requestClose };
 }
 

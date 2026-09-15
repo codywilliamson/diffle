@@ -33,7 +33,9 @@ export function UpdateBadge({ status }) {
   const close = () => closeRef.current?.();
   const onClosed = useCallback(() => setIsOpen(false), []);
   useDismissablePopover({ isOpen, close, panelRef: wrapRef });
-  if (!status || !status.behind) return null;
+  const behind = Boolean(status?.behind);
+  useEffect(() => { if (!behind) setIsOpen(false); }, [behind]); // no ghost dismissal listener once the badge is gone
+  if (!behind) return null;
   return html`<span class="update-wrap" ref=${wrapRef}>
     <button class="update-dot" title=${`loupe ${status.latest} available`} onClick=${() => (isOpen ? close() : setIsOpen(true))}></button>
     ${isOpen &&

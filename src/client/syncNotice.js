@@ -38,5 +38,5 @@ export function SyncNotice({ notice, onRefresh, onDismiss }) {
   if (!notice) return null;
   const lines = noticeLines(notice);
   if (!lines.length) return null;
-  return html`<${NoticeBar} lines=${lines} rereviewRequested=${notice.rereviewRequested} onRefresh=${onRefresh} onDismiss=${onDismiss} />`;
+  return html`<${NoticeBar} key=${lines.join("|")} lines=${lines} rereviewRequested=${notice.rereviewRequested} onRefresh=${onRefresh} onDismiss=${onDismiss} />`;
 }
