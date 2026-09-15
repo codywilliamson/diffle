@@ -1,8 +1,8 @@
 // file-content routes: new-side text for previews, raw bytes for media a markdown file
 // embeds, and the static client assets. every path is checked against traversal.
 
-import { existsSync, readFileSync } from "node:fs";
-import { join, extname, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { join, extname, resolve, posix, win32 } from "node:path";
 import type { ServerContext } from "./handlers";
 import { runGitBytes } from "../utils/git";
 import { apiError, json } from "./respond";
@@ -17,23 +17,37 @@ function contentTypeFor(path: string): string {
   return CONTENT_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream";
 }
 
+// true when the absolute `target` sits at or below the absolute `base`.
+function containsPath(base: string, target: string): boolean {
+  return target === base || target.startsWith(base + "\\") || target.startsWith(base + "/");
+}
+
 // true when `rel` resolves inside `root` (defense in depth beyond the ".." check).
 function insideDir(root: string, rel: string): boolean {
   const base = resolve(root);
-  const target = resolve(base, rel);
-  return target === base || target.startsWith(base + "\\") || target.startsWith(base + "/");
+  return containsPath(base, resolve(base, rel));
 }
+
+// absolute on either platform's rules, so a drive-letter path is refused on posix hosts too.
+const isAbsolutePath = (path: string) => posix.isAbsolute(path) || win32.isAbsolute(path);
 
 // the repo-relative ?path= query, or null when missing or escaping the repo.
 function repoPath(ctx: ServerContext, url: URL): string | null {
   const path = url.searchParams.get("path");
-  if (!path || path.includes("..") || !insideDir(ctx.cwd, path)) return null;
+  if (!path || path.includes("..") || isAbsolutePath(path) || !insideDir(ctx.cwd, path)) return null;
   return path;
+}
+
+// working-tree bytes, refusing a symlink that points outside the repo (throws → 404).
+function readWorkingTree(cwd: string, path: string): Buffer {
+  const real = realpathSync(join(cwd, path));
+  if (!containsPath(realpathSync(cwd), real)) throw new Error("outside repo");
+  return readFileSync(real);
 }
 
 // new-side bytes of a repo file: working tree reads disk, other modes `git show <ref>:<path>`.
 function readNewSide(ctx: ServerContext, path: string): Buffer {
-  return ctx.newRef === null ? readFileSync(join(ctx.cwd, path)) : runGitBytes(["show", `${ctx.newRef}:${path}`], ctx.cwd);
+  return ctx.newRef === null ? readWorkingTree(ctx.cwd, path) : runGitBytes(["show", `${ctx.newRef}:${path}`], ctx.cwd);
 }
 
 // { path, content } — the full text of a file, for the markdown preview.

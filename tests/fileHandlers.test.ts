@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerContext } from "../src/server/handlers";
@@ -11,6 +11,8 @@ const git = (cwd: string, ...args: string[]) =>
   Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd });
 
 let cwd: string;
+let outside: string;
+let hasSymlink = false; // windows needs developer mode or admin to create symlinks
 let workingTree: ServerContext;
 let committed: ServerContext;
 
@@ -22,11 +24,20 @@ beforeAll(() => {
   git(cwd, "init", "-q");
   git(cwd, "add", ".");
   git(cwd, "commit", "-q", "-m", "seed");
+  outside = mkdtempSync(join(tmpdir(), "loupe-outside-"));
+  writeFileSync(join(outside, "secret.png"), PNG_HEADER);
+  try {
+    symlinkSync(join(outside, "secret.png"), join(cwd, "docs", "escape.png"), "file");
+    hasSymlink = true;
+  } catch {}
   workingTree = { cwd, newRef: null } as ServerContext;
   committed = { cwd, newRef: "HEAD" } as ServerContext;
 });
 
-afterAll(() => rmSync(cwd, { recursive: true, force: true }));
+afterAll(() => {
+  rmSync(cwd, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
+});
 
 describe("handleGetRaw", () => {
   it("serves working-tree bytes with an image content type", async () => {
@@ -49,7 +60,13 @@ describe("handleGetRaw", () => {
   it("rejects traversal and absolute paths", () => {
     expect(handleGetRaw(workingTree, url("../escape.png")).status).toBe(400);
     expect(handleGetRaw(workingTree, url("C:/Windows/win.ini")).status).toBe(400);
+    expect(handleGetRaw(workingTree, url("/etc/passwd")).status).toBe(400);
     expect(handleGetRaw(workingTree, new URL("http://loupe/api/raw")).status).toBe(400);
+  });
+
+  it("refuses a symlink that leaves the repo", () => {
+    if (!hasSymlink) return;
+    expect(handleGetRaw(workingTree, url("docs/escape.png")).status).toBe(404);
   });
 
   it("404s a missing file in both modes", () => {
