@@ -1,6 +1,6 @@
 /* motion layer for review feedback: comment cards, editors, replies (transitions.dev recipes).
    alerts (sync notice, error shake) live in motion-feedback-alerts.css; the resolve ↔ reopen
-   label uses the shared text swap (textSwap.js + motion-overlays.css). */
+   label uses the shared text swap (textSwap.js + motion-labels.css). */
 
 /* per-recipe tunables, expressed through the shared motion tokens in motion.css */
 :root {

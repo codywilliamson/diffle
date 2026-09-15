@@ -1,5 +1,5 @@
 /* motion layer for labels: the review trigger's open-comment badge and in-place text swaps
-   (transitions.dev recipes 03, 02, 04). imported by motion-overlays.css. */
+   (transitions.dev recipes 03, 02, 04). */
 
 /* per-recipe tunables, routed through the shared tokens in motion.css wherever the usages match */
 :root {
