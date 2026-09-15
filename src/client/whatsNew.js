@@ -3,6 +3,24 @@
 
 export const WHATS_NEW = [
   {
+    version: "0.15.0",
+    date: "2026-09-15",
+    items: [
+      {
+        title: "Motion with intent",
+        body: "Modals and menus scale in from their trigger and get out of the way faster than they arrive, tooltips wait a beat, the open-comment count pops, folders unfold, the viewed box draws its check, and the phone drawer slides in. Every timing comes from one motion scale and steps aside under reduced motion.",
+      },
+      {
+        title: "Feedback that lands",
+        body: "Comment editors, saved cards, and reply threads reveal in place, agent replies stagger in as they arrive, a failed send shakes the composer instead of failing silently, and the sync notice grows in like a toast.",
+      },
+      {
+        title: "A readable markdown preview",
+        body: "Rendered .md files get breathing room, a real heading scale, bordered code and tables, and their screenshots now load, resolved against the file's folder. A skeleton holds the slot while the file arrives.",
+      },
+    ],
+  },
+  {
     version: "0.14.0",
     date: "2026-09-04",
     items: [
