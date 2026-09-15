@@ -4,6 +4,11 @@ All notable changes to loupe are documented here. This project follows [semantic
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-09-15
+
+### Fixed
+- **Feedback preview code blocks** — the diff context around a commented line rendered as a blockquote of run-together text instead of a code block, because the `> ` markers on commented lines were read as Markdown quoting. The context block is now fenced, so line numbers, `+`/`-` markers, and the `>` highlight render as aligned code.
+
 ## [0.15.0] — 2026-09-15
 
 ### Added
