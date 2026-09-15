@@ -32,7 +32,7 @@
 /* button is ALWAYS in the dom (hidden via opacity) so hovering never resizes the column. */
 .bubble-btn {
   background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer;
-  padding: 1px 3px; display: inline-flex; opacity: 0; transition: opacity .08s;
+  padding: 1px 3px; display: inline-flex; opacity: 0; transition: opacity var(--duration-micro) var(--ease-out);
 }
 .diff-row:hover .bubble-btn, .bubble-btn:focus-visible { opacity: 1; }
 .lineno {

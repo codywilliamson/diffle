@@ -1,0 +1,76 @@
+/* motion for review alerts: the sync notice bar and error shakes (transitions.dev recipes 21, 22, 12). */
+
+/* per-recipe tunables, expressed through the shared motion tokens in motion.css */
+:root {
+  /* 22 toast — sync notice bar (its 21 accordion clock, --acc-*, is shared from motion-shell.css) */
+  --toast-open: var(--duration-medium);
+  --toast-close: var(--duration-fast);
+  --toast-blur: var(--blur-small);
+  --toast-ease: var(--ease-smooth-out);
+  /* 12 error state shake — failed send, empty submit */
+  --shake-distance: var(--distance-small);
+  --shake-overshoot: var(--distance-micro);
+  --shake-dur-a: var(--duration-micro);
+  --shake-dur-b: 60ms;
+  --shake-ease: var(--ease-smooth-out);
+  --revert-dur: 280ms;
+}
+
+/* ── 21 accordion + 22 toast: the sync notice grows open (grid rows) while its panel fades + un-blurs.
+   syncNotice.js puts the useOpenClose phase on the track; padding stays on .sync-notice so the
+   0fr track can close fully ── */
+.sync-notice-track {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
+}
+.sync-notice-track.is-open {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+.sync-notice-panel {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(var(--toast-blur));
+  will-change: opacity, filter;
+  transition:
+    opacity var(--toast-close) var(--toast-ease),
+    filter  var(--toast-close) var(--toast-ease);
+}
+.sync-notice-track.is-open .sync-notice-panel {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--toast-open) var(--toast-ease),
+    filter  var(--toast-open) var(--toast-ease);
+}
+
+/* ── 12 error state shake: the surface jolts (shake.js replays + clears .is-shaking); .is-error on the
+   composer warns the field, and the message fades in once mounted (replyComposer.js) ── */
+.comment-input { transition: border-color var(--duration-quick) var(--ease-out); }
+.reply-composer.is-error .comment-input { border-color: var(--warning); transition: border-color var(--revert-dur) var(--ease-out); }
+.reply-error {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity    var(--revert-dur) var(--ease-out),
+    visibility 0s linear var(--revert-dur);
+}
+.reply-error.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity    var(--revert-dur) var(--ease-out),
+    visibility 0s linear 0s;
+}
+/* %-stops are cumulative leg durations over the 80+80+60+60 = 280ms total */
+.comment-card.is-shaking, .reply-composer.is-shaking {
+  animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
+}
+@keyframes t-input-shake {
+  0%      { transform: translateX(0);                                 animation-timing-function: var(--shake-ease); }
+  28.57%  { transform: translateX(var(--shake-distance));             animation-timing-function: var(--shake-ease); }
+  57.14%  { transform: translateX(calc(var(--shake-distance) * -1)); animation-timing-function: var(--shake-ease); }
+  78.57%  { transform: translateX(var(--shake-overshoot));            animation-timing-function: var(--shake-ease); }
+  100%    { transform: translateX(0); }
+}

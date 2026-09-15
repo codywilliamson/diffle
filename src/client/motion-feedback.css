@@ -1,0 +1,76 @@
+/* motion layer for review feedback: comment cards, editors, replies (transitions.dev recipes).
+   alerts (sync notice, error shake) live in motion-feedback-alerts.css; the resolve ↔ reopen
+   label uses the shared text swap (textSwap.js + motion-overlays.css). */
+
+/* per-recipe tunables, expressed through the shared motion tokens in motion.css */
+:root {
+  /* 07 panel reveal, adapted for inline editors + cards: a short rise on the fast / quick clocks */
+  --editor-open-dur: var(--duration-fast);
+  --editor-close-dur: var(--duration-quick);
+  --editor-translate-y: var(--distance-base);
+  --editor-blur: var(--blur-small);
+  --editor-ease: var(--ease-smooth-out);
+  /* 18 texts reveal — reply threads; the fast clock keeps a short thread settled inside ~300ms */
+  --stagger-dur: var(--duration-fast);
+  --stagger-distance: var(--distance-medium);
+  --stagger-stagger: var(--duration-stagger);
+  --stagger-blur: var(--blur-medium);
+  --stagger-ease: var(--ease-smooth-out);
+}
+
+/* ── 07 panel reveal: editor, reply composer and saved card rise into the thread ──
+   phase classes come from useOpenClose: "" (pre-open) → is-open → is-closing */
+.comment-card, .reply-composer {
+  transform: translateY(var(--editor-translate-y));
+  opacity: 0;
+  filter: blur(var(--editor-blur));
+  pointer-events: none;
+  transition:
+    transform var(--editor-close-dur) var(--editor-ease),
+    opacity   var(--editor-close-dur) var(--editor-ease),
+    filter    var(--editor-close-dur) var(--editor-ease);
+  will-change: transform, opacity, filter;
+}
+.comment-card.is-open, .reply-composer.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+  pointer-events: auto;
+  transition:
+    transform var(--editor-open-dur) var(--editor-ease),
+    opacity   var(--editor-open-dur) var(--editor-ease),
+    filter    var(--editor-open-dur) var(--editor-ease);
+}
+/* once the reveal has settled (comments.js) the card's transition list belongs to its state changes */
+.comment-card.is-open.is-settled {
+  transition:
+    opacity      var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out);
+}
+.comment-card.is-open.resolved { opacity: .6; }
+.comment-text { transition: color var(--duration-quick) var(--ease-smooth-out); }
+/* tag pill fill on/off — ui.css owns the colors, this owns the tween */
+.tag-pill {
+  transition:
+    background-color var(--duration-quick) var(--ease-smooth-out),
+    border-color     var(--duration-quick) var(--ease-smooth-out),
+    color            var(--duration-quick) var(--ease-smooth-out);
+}
+
+/* ── 18 texts reveal: replies rise in staggered. commentReplies.js flips each reply to is-open on
+   mount and sets its transition-delay inline from its stagger step ── */
+.comment-reply {
+  opacity: 0;
+  transform: translateY(var(--stagger-distance));
+  filter: blur(var(--stagger-blur));
+  transition:
+    opacity   var(--stagger-dur) var(--stagger-ease),
+    transform var(--stagger-dur) var(--stagger-ease),
+    filter    var(--stagger-dur) var(--stagger-ease);
+  will-change: transform, opacity, filter;
+}
+.comment-reply.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
