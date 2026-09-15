@@ -2,7 +2,7 @@
 import { html, useState, useRef, useMemo, memo } from "/preact.js";
 import { changeBadge, fileAnchorId, isMarkdown, lineCountOf, estimatedHeight } from "/util.js";
 import { LazyMount } from "/lazySection.js";
-import { ChevronRight, ChevronDown, MessageSquare } from "/icons.js";
+import { Chevron, MessageSquare } from "/icons.js";
 import { UnifiedHunk, SplitHunk } from "/diffLines.js";
 import { CommentThread, CommentEditor } from "/comments.js";
 import { MarkdownView } from "/markdownView.js";
@@ -20,9 +20,7 @@ function isSingleSided(file) {
 function FileHeader({ file, open, split, md, preview, browse, onToggleOpen, onToggleSplit, onTogglePreview, onAddFileComment }) {
   const title = file.oldPath ? `${file.oldPath} → ${file.path}` : file.path;
   return html`<div class="file-head">
-    <button class="file-collapse" onClick=${onToggleOpen}>
-      ${open ? html`<${ChevronDown} />` : html`<${ChevronRight} />`}
-    </button>
+    <button class="file-collapse" aria-expanded=${open} aria-label=${open ? "Collapse file" : "Expand file"} onClick=${onToggleOpen}><${Chevron} /></button>
     ${!browse && html`<span class="badge badge-${file.changeType}">${changeBadge(file.changeType)}</span>`}
     <span class="file-path" title=${title}>${title}</span>
     ${!browse &&

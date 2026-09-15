@@ -13,7 +13,10 @@ const svg = (children, size = 16) => html`<svg
   stroke-linejoin="round"
 >${children}</svg>`;
 
-export const ChevronRight = () => svg(html`<path d="m9 18 6-6-6-6" />`);
+// accordion chevron: a "v" symmetric about the 16-box centre, wrapped so motion-shell.css can
+// flip it with scaleY(-1) while the owning button is aria-expanded (folders, file sections).
+export const Chevron = () =>
+  html`<span class="chevron-flip" aria-hidden="true"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>`;
 export const ChevronDown = () => svg(html`<path d="m6 9 6 6 6-6" />`);
 
 export const Bubble = () =>

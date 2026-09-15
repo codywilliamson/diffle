@@ -7,8 +7,6 @@ import { UpdateBadge } from "/update.js";
 import { ReviewPanel } from "/reviewPanel.js";
 import { OverflowMenu } from "/overflowMenu.js";
 
-const THEME_ICONS = { light: Sun, dark: Moon };
-
 // repo + mode + "source → target" so you know exactly what you're reviewing.
 // browse mode has no source/target pair — just the repo + mode pill.
 function DiffInfo({ meta, refLabel }) {
@@ -58,7 +56,6 @@ export function TopBar({
   const wrapTip = `${wrap ? "No wrap" : "Wrap lines"} (w)`;
   const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
   const themeTip = `Theme: ${THEME_LABELS[theme]} — switch to ${THEME_LABELS[next]} (t)`;
-  const ThemeIcon = THEME_ICONS[theme] ?? Sun;
   return html`<header class="top-bar">
     <div class="top-left">
       <span class="brand-lockup"><${ApertureMark} /><span class="wordmark">loupe</span></span>
@@ -88,7 +85,12 @@ export function TopBar({
         <button class="btn-icon icon-btn ${wrap ? "on" : ""}" data-tip=${wrapTip} aria-label=${wrapTip} onClick=${onToggleWrap}><${WrapText} /></button>
       </span>
       <span class="tool-wash utility-controls" role="group" aria-label="Loupe utilities">
-        <button class="btn-icon icon-btn" data-tip=${themeTip} aria-label=${themeTip} onClick=${onToggleTheme}><${ThemeIcon} /></button>
+        <button class="btn-icon icon-btn" data-tip=${themeTip} aria-label=${themeTip} onClick=${onToggleTheme}>
+          <span class="icon-swap" data-state=${theme}>
+            <span class="icon-slot" data-icon="light"><${Sun} /></span>
+            <span class="icon-slot" data-icon="dark"><${Moon} /></span>
+          </span>
+        </button>
         <button class="btn-icon icon-btn" data-tip="What's new (n)" aria-label="What's new (n)" onClick=${onWhatsNew}><${Sparkles} /></button>
         <button class="btn-icon icon-btn" data-tip="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick=${onHelp}><${HelpCircle} /></button>
       </span>
