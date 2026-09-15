@@ -103,8 +103,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus
 .overflow-item:hover { background: var(--hover); }
 .overflow-item kbd { font-family: var(--mono); font-size: 10px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
 [data-tip] { position: relative; }
-[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%) translateY(-3px); background: var(--text); color: var(--surface); font-size: 11px; white-space: nowrap; padding: 5px 8px; border-radius: 5px; opacity: 0; pointer-events: none; z-index: 70; transition: opacity .12s ease .2s, transform .12s ease .2s; }
-[data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+[data-tip]::after { content: attr(data-tip); position: absolute; top: calc(100% + 7px); left: 50%; translate: -50% 0; background: var(--text); color: var(--surface); font-size: 11px; white-space: nowrap; padding: 5px 8px; border-radius: 5px; opacity: 0; pointer-events: none; z-index: 70; }
+[data-tip]:hover::after, [data-tip]:focus-visible::after { opacity: 1; }
 .icon-btn.spinning .icon { animation: loupe-spin .6s linear infinite; }
 @keyframes loupe-spin { to { transform: rotate(360deg); } }
 .update-wrap { position: relative; display: inline-flex; align-self: center; }

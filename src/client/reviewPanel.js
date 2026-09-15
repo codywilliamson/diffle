@@ -1,11 +1,16 @@
-import { html, useState, useRef, useEffect } from "/preact.js";
+import { html, useState, useRef, useEffect, useCallback } from "/preact.js";
 import { compile, submitReviewOutcome } from "/api.js";
 import { ChevronDown } from "/icons.js";
 import { useDismissablePopover } from "/popover.js";
+import { Popover } from "/popoverSurface.js";
+import { SwapText } from "/textSwap.js";
+import { OpenBadge } from "/reviewBadge.js";
 
 function unresolved(record) { return (record?.comments ?? []).filter((c) => (c.status ?? (c.resolved ? "resolved" : "open")) !== "resolved"); }
 function latestAgentUpdate(record) { return record?.activity?.findLast((item) => item.type === "rereview_requested" && item.actor === "agent" && item.summary)?.summary ?? ""; }
 const STATUS_LABELS = { awaiting_human: "Ready", feedback_ready: "Feedback sent", approved: "Approved", cancelled: "Cancelled" };
+const JSON_LABELS = ["Copy JSON", "Copied"];
+const MD_LABELS = ["Copy Markdown", "Copied"];
 async function copy(text) {
   await navigator.clipboard.writeText(text);
 }
@@ -25,8 +30,11 @@ export function ReviewPanel({ reviewId, record, refreshRecord, comments }) {
   const [summary, setSummary] = useState("");
   const [error, setError] = useState(""); const [copied, setCopied] = useState("");
   const panelRef = useRef(null); const triggerRef = useRef(null); const popoverRef = useRef(null);
+  const closeRef = useRef(null); // the popover's animated close, once it is mounted
 
-  const close = () => { setIsOpen(false); triggerRef.current?.focus(); };
+  // close plays the popover's exit and hands focus back; it unmounts once the exit has finished
+  const close = () => { closeRef.current?.(); triggerRef.current?.focus(); };
+  const onClosed = useCallback(() => setIsOpen(false), []);
 
   useDismissablePopover({ isOpen, close, panelRef });
 
@@ -53,13 +61,14 @@ export function ReviewPanel({ reviewId, record, refreshRecord, comments }) {
 
   return html`<div class="review-panel" ref=${panelRef}>
     <button type="button" class="review-trigger" ref=${triggerRef} aria-haspopup="dialog" aria-expanded=${isOpen}
-      aria-controls="review-popover" aria-label=${triggerLabel} onClick=${() => setIsOpen((v) => !v)}>
+      aria-controls="review-popover" aria-label=${triggerLabel} onClick=${() => (isOpen ? close() : setIsOpen(true))}>
       <span class="review-trigger-label">Review</span>
-      <span class="review-status status-${record.status}">${statusLabel}</span>
-      ${open > 0 && !terminal && html`<span class="badge badge-open">${open}</span>`}
+      <span class="review-status status-${record.status}"><${SwapText} text=${statusLabel} /></span>
+      <${OpenBadge} count=${terminal ? 0 : open} />
       <${ChevronDown} />
     </button>
-    ${isOpen && html`<div id="review-popover" class="review-popover" role="dialog" aria-label="Review outcome" tabindex="-1" ref=${popoverRef}>
+    ${isOpen && html`<${Popover} id="review-popover" class="review-popover" origin="top-right" role="dialog" aria-label="Review outcome" tabindex="-1"
+      surfaceRef=${popoverRef} onClosed=${onClosed} closeRef=${closeRef}>
       <span class="review-status review-status-lg status-${record.status}">${statusLabel}</span>
       <p class="review-guidance">${guidance(record, open)}</p>
       ${agentUpdate && html`<div class="agent-update"><strong>Agent update</strong><p>${agentUpdate}</p></div>`}
@@ -71,10 +80,10 @@ export function ReviewPanel({ reviewId, record, refreshRecord, comments }) {
         <button class="btn-plain" onClick=${() => act("cancelled")} disabled=${terminal}>Cancel</button>
       </div>
       <div class="review-exports">
-        <button class="btn-link" onClick=${() => copyFeedback("json")}>${copied === "json" ? "Copied" : "Copy JSON"}</button>
-        <button class="btn-link" onClick=${() => copyFeedback("md")}>${copied === "md" ? "Copied" : "Copy Markdown"}</button>
+        <button class="btn-link" onClick=${() => copyFeedback("json")}><${SwapText} text=${copied === "json" ? "Copied" : "Copy JSON"} labels=${JSON_LABELS} /></button>
+        <button class="btn-link" onClick=${() => copyFeedback("md")}><${SwapText} text=${copied === "md" ? "Copied" : "Copy Markdown"} labels=${MD_LABELS} /></button>
       </div>
       ${error && html`<div class="review-warning">${error}</div>`}
-    </div>`}
+    <//>`}
   </div>`;
 }

@@ -4,6 +4,11 @@ import { marked } from "https://esm.sh/marked@12";
 import { compile } from "/api.js";
 import { X, Copy } from "/icons.js";
 import { StaleComments } from "/staleComments.js";
+import { Modal } from "/modal.js";
+import { SwapText } from "/textSwap.js";
+
+const VIEW_LABELS = ["Raw", "Rendered"];
+const COPY_LABELS = ["Copy as Markdown", "Copied"];
 
 export function CompileModal({ onClose, comments, diff, onEdit, onDelete, onResolve, onReply }) {
   const [prompt, setPrompt] = useState("");
@@ -41,29 +46,29 @@ export function CompileModal({ onClose, comments, diff, onEdit, onDelete, onReso
     }
   };
 
-  return html`<div class="modal-backdrop" onClick=${onClose}>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="compile-title" onClick=${(e) => e.stopPropagation()}>
-      <header class="modal-head">
+  return html`<${Modal} onClose=${onClose} labelledBy="compile-title">
+    ${(close) => [
+      html`<header class="modal-head">
         <h2 id="compile-title">Feedback preview</h2>
         <div class="modal-head-tools">
           <button class="btn-toggle ${raw ? "" : "on"}" disabled=${loading} onClick=${() => setRaw((v) => !v)}>
-            ${raw ? "Raw" : "Rendered"}
+            <${SwapText} text=${raw ? "Raw" : "Rendered"} labels=${VIEW_LABELS} />
           </button>
-          <button class="btn-icon" aria-label="Close review feedback" onClick=${onClose}><${X} /></button>
+          <button class="btn-icon" aria-label="Close review feedback" onClick=${close}><${X} /></button>
         </div>
-      </header>
-      <${StaleComments} comments=${comments} diff=${diff} onEdit=${onEdit} onDelete=${onDelete} onResolve=${onResolve} onReply=${onReply} />
-      ${raw
+      </header>`,
+      html`<${StaleComments} comments=${comments} diff=${diff} onEdit=${onEdit} onDelete=${onDelete} onResolve=${onResolve} onReply=${onReply} />`,
+      raw
         ? html`<textarea ref=${taRef} class="modal-textarea" readonly value=${loading ? "Compiling…" : prompt}></textarea>`
         : html`<div class="markdown-body modal-rendered">
             ${loading ? "Compiling…" : html`<div dangerouslySetInnerHTML=${{ __html: rendered }}></div>`}
-          </div>`}
-      <footer class="modal-foot">
+          </div>`,
+      html`<footer class="modal-foot">
         <button class="btn-primary" onClick=${copy} disabled=${loading}>
-          <${Copy} /> ${copied ? "Copied" : "Copy as Markdown"}
+          <${Copy} /> <${SwapText} text=${copied ? "Copied" : "Copy as Markdown"} labels=${COPY_LABELS} />
         </button>
-        <button class="btn-plain" onClick=${onClose}>Close</button>
-      </footer>
-    </div>
-  </div>`;
+        <button class="btn-plain" onClick=${close}>Close</button>
+      </footer>`,
+    ]}
+  <//>`;
 }

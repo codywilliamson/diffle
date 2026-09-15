@@ -2,22 +2,26 @@
 import { html } from "/preact.js";
 import { SHORTCUTS } from "/shortcuts.js";
 import { X } from "/icons.js";
+import { Modal } from "/modal.js";
+
+// "?" toggles the help, so while open it closes it — through the animated exit, like escape
+const CLOSE_KEYS = ["Escape", "?"];
 
 export function HelpOverlay({ onClose }) {
-  return html`<div class="modal-backdrop" onClick=${onClose}>
-    <div class="modal help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick=${(e) => e.stopPropagation()}>
-      <header class="modal-head">
+  return html`<${Modal} onClose=${onClose} labelledBy="help-title" class="help-modal" closeKeys=${CLOSE_KEYS}>
+    ${(close) => [
+      html`<header class="modal-head">
         <h2 id="help-title">Keyboard shortcuts</h2>
-        <button class="btn-icon" aria-label="Close keyboard shortcuts" onClick=${onClose}><${X} /></button>
-      </header>
-      <div class="help-grid">
+        <button class="btn-icon" aria-label="Close keyboard shortcuts" onClick=${close}><${X} /></button>
+      </header>`,
+      html`<div class="help-grid">
         ${SHORTCUTS.map(
           ([key, what]) => html`<div class="help-row" key=${key}>
             <kbd>${key}</kbd>
             <span>${what}</span>
           </div>`
         )}
-      </div>
-    </div>
-  </div>`;
+      </div>`,
+    ]}
+  <//>`;
 }

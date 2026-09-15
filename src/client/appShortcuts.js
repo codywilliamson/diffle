@@ -18,11 +18,8 @@ export function useAppShortcuts({
     compile: () => setShowCompile(true),
     whatsNew: wn.reopen,
     toggleHelp: () => setShowHelp((v) => !v),
-    closeOverlays: () => {
-      setShowHelp(false);
-      setShowCompile(false);
-      setAdding(null);
-      wn.close();
-    },
+    // modals and popovers catch escape themselves (popover.js) so their exit can play;
+    // only the comment composer is left for the global handler.
+    closeOverlays: () => setAdding(null),
   });
 }

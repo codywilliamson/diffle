@@ -15,7 +15,7 @@
   color: var(--text); background: var(--surface); border: 0; border-radius: inherit; padding: 6px 11px; cursor: pointer;
 }
 .review-trigger:hover { background: var(--hover); }
-.review-trigger .icon { color: var(--muted); transition: transform .15s ease; }
+.review-trigger .icon { color: var(--muted); transition: transform var(--duration-fast) var(--ease-smooth-out); }
 .review-trigger[aria-expanded="true"] { background: var(--surface-2); }
 .review-trigger[aria-expanded="true"] .icon { transform: rotate(180deg); }
 .review-status {

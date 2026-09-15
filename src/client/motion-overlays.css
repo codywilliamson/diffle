@@ -1,0 +1,95 @@
+/* motion layer for overlay surfaces: modals, popovers, menus, tooltips (transitions.dev recipes).
+   the badge count and text swaps that live on their triggers are in motion-labels.css. */
+
+/* per-recipe tunables, routed through the shared tokens in motion.css wherever the usages match */
+:root {
+  /* 06 modal open / close */
+  --modal-open-dur: var(--duration-fast);
+  --modal-close-dur: var(--duration-quick);
+  --modal-scale: var(--scale-large);
+  --modal-scale-close: var(--scale-large);
+  --modal-ease: var(--ease-smooth-out);
+  /* 05 menu dropdown */
+  --dropdown-open-dur: var(--duration-fast);
+  --dropdown-close-dur: var(--duration-quick);
+  --dropdown-pre-scale: var(--scale-medium);
+  --dropdown-closing-scale: var(--scale-tiny);
+  --dropdown-ease: var(--ease-smooth-out);
+  /* 17 tooltip */
+  --tt-in-dur: var(--duration-quick);
+  --tt-out-dur: 50ms; /* no token carries a 50ms usage */
+  --tt-scale: var(--scale-small);
+  --tt-delay: var(--duration-micro);
+  --tt-in-ease: var(--ease-out);
+  --tt-out-ease: var(--ease-out);
+}
+
+/* ── 06 modal open / close: .modal is the dialog (modal.js), the scrim fades on the same clocks ── */
+.modal-backdrop { opacity: 0; transition: opacity var(--modal-open-dur) var(--modal-ease); will-change: opacity; }
+.modal-backdrop.is-open { opacity: 1; }
+.modal-backdrop.is-closing { opacity: 0; pointer-events: none; transition: opacity var(--modal-close-dur) var(--modal-ease); }
+.modal {
+  transform-origin: center;
+  transform: scale(var(--modal-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity   var(--modal-open-dur) var(--modal-ease);
+  will-change: transform, opacity;
+}
+.modal.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
+.modal.is-closing {
+  transform: scale(var(--modal-scale-close));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-close-dur) var(--modal-ease),
+    opacity   var(--modal-close-dur) var(--modal-ease);
+}
+
+/* ── 05 menu dropdown: .popover (popoverSurface.js) = review popover, overflow menu, update popover ── */
+.popover {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+.popover[data-origin="top-right"] { transform-origin: top right; }
+.popover.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
+.popover.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity   var(--dropdown-close-dur) var(--dropdown-ease);
+}
+/* below 700px these two become edge-to-edge sheets (responsive.css), so they grow from the top middle */
+@media (max-width: 700px) {
+  .popover.review-popover, .popover.overflow-menu { transform-origin: top center; }
+}
+
+/* ── 17 tooltip: loupe's tooltip is the [data-tip]::after pseudo-element hanging below its trigger, so it
+   scales from its top edge. the appear delay lives only on the show rule, so leaving snaps it out. ── */
+[data-tip]::after {
+  scale: var(--tt-scale);
+  transform-origin: 50% 0;
+  transition:
+    opacity var(--tt-out-dur) var(--tt-out-ease),
+    scale   var(--tt-out-dur) var(--tt-out-ease);
+}
+[data-tip]:hover::after, [data-tip]:focus-visible::after {
+  scale: 1;
+  transition:
+    opacity var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay),
+    scale   var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal, .modal-backdrop, .popover, [data-tip]::after { transition: none !important; }
+}

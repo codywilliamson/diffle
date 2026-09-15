@@ -1,0 +1,86 @@
+/* motion layer for labels: the review trigger's open-comment badge and in-place text swaps
+   (transitions.dev recipes 03, 02, 04). imported by motion-overlays.css. */
+
+/* per-recipe tunables, routed through the shared tokens in motion.css wherever the usages match */
+:root {
+  /* 03 notification badge — the dot pop; loupe's badge sits inline in the trigger, so there is no slide */
+  --badge-pop-dur: var(--duration-very-slow);
+  --badge-pop-close-dur: 180ms; /* no token carries a 180ms usage */
+  --badge-fade-dur: var(--duration-slow);
+  --badge-fade-close-dur: 180ms;
+  --badge-blur: var(--blur-small);
+  --badge-pop-ease: var(--ease-bounce);
+  --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* 02 number pop-in */
+  --digit-dur: var(--duration-very-slow);
+  --digit-distance: var(--distance-base);
+  --digit-stagger: var(--duration-micro);
+  --digit-blur: var(--blur-small);
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dir-x: 0;
+  --digit-dir-y: 1;
+  /* 04 text states swap */
+  --text-swap-dur: var(--duration-quick);
+  --text-swap-translate-y: var(--distance-micro);
+  --text-swap-blur: var(--blur-small);
+  --text-swap-ease: var(--ease-in-out);
+}
+
+/* ── 03 notification badge (dot pop): .badge-open (reviewBadge.js) toggles data-open ── */
+.badge-open {
+  transform-origin: center;
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    transform var(--badge-pop-dur)  var(--badge-pop-ease),
+    opacity   var(--badge-fade-dur) var(--badge-pop-ease),
+    filter    var(--badge-pop-dur)  var(--badge-pop-ease);
+  will-change: transform, opacity, filter;
+}
+.badge-open[data-open="false"] {
+  transform: scale(0);
+  opacity: 0;
+  filter: blur(var(--badge-blur));
+  transition:
+    transform var(--badge-pop-close-dur)  var(--badge-close-ease),
+    opacity   var(--badge-fade-close-dur) var(--badge-close-ease),
+    filter    var(--badge-pop-close-dur)  var(--badge-close-ease);
+}
+
+/* ── 02 number pop-in: the count's digits re-enter when it changes; trailing digits ride in staggered ── */
+@keyframes loupe-digit-pop-in {
+  0% {
+    transform: translate(calc(var(--digit-distance) * var(--digit-dir-x)), calc(var(--digit-distance) * var(--digit-dir-y)));
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+}
+.badge-digit { display: inline-block; will-change: transform, opacity, filter; }
+.badge-open.is-animating .badge-digit { animation: loupe-digit-pop-in var(--digit-dur) var(--digit-ease) both; }
+.badge-open.is-animating .badge-digit[data-stagger="1"] { animation-delay: var(--digit-stagger); }
+.badge-open.is-animating .badge-digit[data-stagger="2"] { animation-delay: calc(var(--digit-stagger) * 2); }
+
+/* ── 04 text states swap (textSwap.js): copy → copied, raw ↔ rendered, the review status pill ── */
+.text-swap-slot { display: inline-grid; justify-items: center; }
+.text-swap-slot > * { grid-area: 1 / 1; }
+.text-swap-ghost { visibility: hidden; } /* every label the slot can show, stacked to reserve the width */
+.text-swap {
+  display: inline-block;
+  transform: translateY(0);
+  filter: blur(0);
+  opacity: 1;
+  transition:
+    transform var(--text-swap-dur) var(--text-swap-ease),
+    filter    var(--text-swap-dur) var(--text-swap-ease),
+    opacity   var(--text-swap-dur) var(--text-swap-ease);
+  will-change: transform, filter, opacity;
+}
+.text-swap.is-exit { transform: translateY(calc(var(--text-swap-translate-y) * -1)); filter: blur(var(--text-swap-blur)); opacity: 0; }
+.text-swap.is-enter-start { transform: translateY(var(--text-swap-translate-y)); filter: blur(var(--text-swap-blur)); opacity: 0; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-open, .text-swap { transition: none !important; }
+  .badge-digit { animation: none !important; }
+}
