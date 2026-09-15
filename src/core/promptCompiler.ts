@@ -17,9 +17,10 @@ function markerFor(line: DiffLine): string {
   return " ";
 }
 
-// builds the 4-space-indented context block around the commented range on `side`.
+// builds the fenced context block around the commented range on `side`.
 // window is 2 lines above `start` and 2 below `end`, clamped at file boundaries.
 // every line whose number is in [start, end] is marked with `> `; others are context.
+// the block is fenced so the `> ` markers render as code, not a markdown blockquote.
 function buildContextBlock(file: DiffFile, side: Side, start: number, end: number): string {
   const slice = lineSlice(file, side);
   const startIdx = slice.findIndex((l) => numOn(l, side) === start);
@@ -31,7 +32,7 @@ function buildContextBlock(file: DiffFile, side: Side, start: number, end: numbe
   const window = slice.slice(from, to + 1);
 
   const width = Math.max(...window.map((l) => String(numOn(l, side)).length));
-  return window
+  const lines = window
     .map((l) => {
       const n = numOn(l, side) as number;
       const num = String(n).padStart(width, " ");
@@ -40,6 +41,7 @@ function buildContextBlock(file: DiffFile, side: Side, start: number, end: numbe
       return `    ${num} | ${l.content}`;
     })
     .join("\n");
+  return `\`\`\`\n${lines}\n\`\`\``;
 }
 
 // a comment's reply thread as an indented "author: text" list, in stored order.

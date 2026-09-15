@@ -85,6 +85,20 @@ describe("compileReviewPrompt", () => {
     expect(out).toContain("    12 | row 12");
   });
 
+  it("fences the context block so the > markers render as code, not a markdown blockquote", () => {
+    const out = run([comment({ line: 5 })]);
+    const block = [
+      "```",
+      "    3 | line three",
+      "    4 | line four",
+      "  > 5 |  line five",
+      "    6 | line six",
+      "    7 | line seven",
+      "```",
+    ].join("\n");
+    expect(out).toContain(block);
+  });
+
   it("marks additions with + and context lines with no marker", () => {
     const out = run([comment({ line: 7 })]);
     expect(out).toContain("  > 7 | +line seven"); // commented addition gets > and the + marker
