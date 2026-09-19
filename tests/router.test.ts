@@ -120,6 +120,33 @@ describe("router", () => {
     expect(body.prompt).toContain("## Code Review");
   });
 
+  it("keeps Radar off until explicitly enabled", async () => {
+    const res = await fetch(`${base}/api/radar`);
+    expect(res.status).toBe(200);
+    expect((await res.json() as { status: string }).status).toBe("off");
+  });
+
+  it("serves deterministic Radar units and reconstructs their exact packet", async () => {
+    process.env.LOUPE_RADAR = "1";
+    process.env.LOUPE_RADAR_PROVIDER = "local";
+    try {
+      const analysis = await fetch(`${base}/api/radar`).then((res) => res.json()) as { status: string; units: Array<{ id: string }> };
+      expect(analysis.status).toBe("ready");
+      expect(analysis.units).toHaveLength(1);
+      const packet = await fetch(`${base}/api/radar/packet?id=${analysis.units[0]!.id}`).then((res) => res.json()) as { state: { unit: { patch: string } }; questions: object };
+      expect(packet.state.unit.patch).toContain("+y");
+      expect(packet.questions).toBeObject();
+      const remote = await fetch(`${base}/api/radar`, { method: "POST", headers: { "Content-Type": "application/json", Origin: base }, body: JSON.stringify({ refresh: true }) });
+      expect(remote.status).toBe(200);
+      expect((await remote.json() as { status: string }).status).toBe("ready");
+      const rejected = await fetch(`${base}/api/radar`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://example.com" }, body: "{}" });
+      expect(rejected.status).toBe(403);
+    } finally {
+      delete process.env.LOUPE_RADAR;
+      delete process.env.LOUPE_RADAR_PROVIDER;
+    }
+  });
+
   it("POST /api/state rejects a body with no known field", async () => {
     const res = await fetch(`${base}/api/state`, { method: "POST", body: JSON.stringify({ nope: 1 }) });
     expect(res.status).toBe(400);

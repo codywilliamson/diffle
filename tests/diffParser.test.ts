@@ -63,6 +63,7 @@ describe("parseDiff", () => {
     const f = byPath("src/modified.ts");
     expect(f.hunks[0]!.header).toBe("@@ -1,4 +1,4 @@");
     expect(f.hunks[1]!.header).toBe("@@ -38,7 +38,9 @@");
+    expect(f.hunks[1]!.section).toBe("function tail() {");
   });
 
   it("tracks old/new line numbers correctly across multiple hunks", () => {

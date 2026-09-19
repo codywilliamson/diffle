@@ -97,6 +97,29 @@ When the code moves on and a comment's line or file leaves the current diff, it 
 
 Markdown files open showing their diff; use the per-file **Preview** toggle to render them.
 
+## Radar (experimental)
+
+Radar ranks review units with local Git evidence and optional Jev decisions. It is off by
+default. Enable deterministic-only analysis with:
+
+```text
+LOUPE_RADAR=1
+LOUPE_RADAR_PROVIDER=local
+```
+
+For Jev through OpenRouter, set `LOUPE_RADAR=1` plus `OPENROUTER_API_KEY`; optionally set
+`LOUPE_RADAR_PROVIDER=openrouter`. For Cloudflare Workers AI, set `LOUPE_RADAR=1`,
+`LOUPE_RADAR_PROVIDER=cloudflare`, `CLOUDFLARE_ACCOUNT_ID`, and
+`CLOUDFLARE_API_TOKEN`. Credentials stay in the server process and are never returned to
+the browser.
+
+Remote Radar sends bounded, redacted code packets to the selected provider. Potential
+secrets, binary changes, metadata-only changes, tests, generated material, and oversized
+units remain local. The evidence drawer shows the exact outbound packet. Provider results
+are cached under `~/.loupe/radar/` without storing raw packet code. Set
+`LOUPE_RADAR_ATTENTION_THRESHOLD` to a value from `0` to `1` only when evaluating a tuned
+threshold; the initial default is `0.65` pending corpus calibration.
+
 ## Agent integrations
 
 Loupe ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server. Both need the `loupe` command from [Install](#install) on your PATH.

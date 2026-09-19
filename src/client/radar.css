@@ -1,0 +1,107 @@
+/* loupe radar: review map, lane marks, hunk proof, and the evidence drawer. proof-desk palette —
+   oxide = exact failure, gold = boundary, proof-blue = semantic attention, moss = routine,
+   neutral = noise, hatched oxide = local blocker. every lane also carries a glyph and a label,
+   so color is never the only cue. radar chrome only renders when radar data is present. */
+
+/* lane tones: each sets a fg/bg pair the marks, pills, chips, and counts read. */
+.lane-verified { --lane-fg: var(--del-text); --lane-bg: var(--del-line); }
+.lane-boundary { --lane-fg: var(--mod-text); --lane-bg: var(--mod-bg); }
+.lane-attention { --lane-fg: var(--focus); --lane-bg: color-mix(in srgb, var(--focus) 15%, var(--surface)); }
+.lane-routine { --lane-fg: var(--add-text); --lane-bg: var(--add-line); }
+.lane-noise { --lane-fg: var(--muted); --lane-bg: var(--surface-2); }
+.lane-blocker { --lane-fg: var(--del-text); --lane-bg: var(--del-line); }
+
+/* thin shape-coded mark for the tree + map; hollow = noise, hatched = local blocker. */
+.lane-mark { display: inline-block; width: 5px; height: 15px; flex: none; border-radius: 2px; border: 1px solid var(--lane-fg); background: var(--lane-fg); }
+.lane-mark.shape-hollow { background: transparent; }
+.lane-mark.shape-barred { background: repeating-linear-gradient(135deg, var(--lane-fg) 0 2px, transparent 2px 4px); }
+.lane-pill { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; text-transform: lowercase; color: var(--lane-fg); background: var(--lane-bg); border: 1px solid var(--lane-fg); border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+.lane-glyph { font-weight: 700; }
+.lane-pill-sm { font-size: 9px; padding: 1px 6px; }
+
+/* file-tree additions: a lane mark + a unit count, no extra row height. */
+.tree-units { font-family: var(--mono); font-size: 10px; min-width: 15px; text-align: center; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 3px; }
+
+/* review map */
+.radar-map { flex: none; background: var(--surface); border-bottom: 1px solid var(--border); }
+.radar-map-bar { display: flex; align-items: center; gap: 12px; padding: 8px 18px; flex-wrap: wrap; }
+.radar-map-toggle { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-weight: 650; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+.radar-total { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.radar-live { margin: 0; flex: 1; min-width: 140px; color: var(--muted); font-size: 12px; }
+.radar-map-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.radar-provider, .radar-time { font-family: var(--mono); font-size: 10px; }
+.radar-badge { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--pill-text); background: var(--pill-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; }
+.radar-badge.badge-warn { color: var(--mod-text); background: var(--mod-bg); border-color: var(--mod-text); }
+.radar-retry { font: inherit; font-size: 11px; color: var(--accent); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 10px; cursor: pointer; }
+.radar-state { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.radar-state select { font: inherit; font-size: 11px; text-transform: none; letter-spacing: 0; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 6px; }
+.radar-progress { height: 2px; background: var(--surface-2); overflow: hidden; }
+.radar-progress span { display: block; width: 35%; height: 100%; background: var(--focus); animation: loupe-slide 1.1s ease-in-out infinite; }
+.radar-key { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 8px; }
+.radar-count { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--lane-fg); background: var(--lane-bg); border: 1px solid var(--lane-fg); border-radius: 7px; padding: 2px 8px; }
+.radar-count b { font-family: var(--mono); }
+.radar-map-files { display: flex; overflow-x: auto; border-top: 1px solid var(--border); }
+.radar-seg { flex: 1 0 150px; min-width: 150px; border-right: 1px solid var(--border); padding: 8px 10px; }
+.radar-seg:last-child { border-right: 0; }
+.radar-seg-file { display: flex; align-items: center; gap: 7px; width: 100%; border: 0; background: transparent; color: inherit; font: inherit; padding: 0 0 6px; cursor: pointer; text-align: left; }
+.radar-seg-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; }
+.radar-seg-units { display: flex; flex-wrap: wrap; gap: 4px; }
+.radar-unit { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--lane-fg); border-radius: 5px; background: var(--lane-bg); color: var(--lane-fg); cursor: pointer; }
+.radar-unit .lane-glyph { font-family: var(--mono); font-size: 12px; line-height: 1; }
+.radar-unit.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.radar-map-empty { margin: 0; padding: 10px 18px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+
+/* hunk-attached chips + proof note (rendered inside the diff table) */
+.radar-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 10px; vertical-align: middle; }
+.radar-chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--lane-fg); background: var(--lane-bg); border: 1px solid var(--lane-fg); border-radius: 10px; padding: 1px 7px; cursor: pointer; }
+.radar-chip.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.radar-chip-att { opacity: .85; }
+.radar-chip-flag { text-transform: uppercase; letter-spacing: .04em; font-size: 9px; }
+.radar-proof-row > td { padding: 0; background: var(--surface-3); border-top: 1px solid var(--border); }
+.radar-proof { font-family: var(--font); padding: 10px 12px; border-left: 1px solid var(--lane-fg); background: color-mix(in srgb, var(--lane-bg) 35%, var(--surface-3)); }
+.radar-proof-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.radar-proof-title { font-family: var(--mono); font-size: 12px; flex: 1; min-width: 0; }
+.radar-flag { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--mod-text); background: var(--mod-bg); border-radius: 5px; padding: 1px 6px; }
+.radar-flag.flag-failed, .radar-flag.flag-blocked { color: var(--del-text); background: var(--del-line); }
+.radar-evidence { font: inherit; font-size: 11px; color: var(--focus); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
+.radar-proof-summary { margin: 0 0 6px; color: var(--text); max-width: 80ch; }
+.radar-blocked { margin: 0 0 6px; color: var(--del-text); font-size: 12px; }
+.radar-provenance { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+.radar-provenance li { margin: 2px 0; }
+
+/* evidence drawer: reuse Modal, re-aligned to a right drawer (:has) and sliding in from the right. */
+.modal-backdrop:has(> .evidence-drawer) { align-items: stretch; justify-content: flex-end; }
+.modal.evidence-drawer { width: min(440px, 94vw); max-height: none; height: 100%; border-radius: 0; border-width: 0 0 0 1px; box-shadow: -16px 0 34px rgba(37, 37, 34, .2); transform-origin: right center; transform: translateX(100%); }
+.modal.evidence-drawer.is-open { transform: translateX(0); }
+.modal.evidence-drawer.is-closing { transform: translateX(100%); }
+.evidence-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.evidence-title h2 { margin: 0; font-size: 14px; font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-body { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 16px; }
+.evidence-body section { border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+.evidence-body section:last-child { border-bottom: 0; padding-bottom: 0; }
+.evidence-body h3 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.evidence-chip-line { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.evidence-chip { font-family: var(--mono); font-size: 11px; color: var(--del-text); background: var(--del-line); border: 1px solid var(--del-gutter); border-radius: 5px; padding: 2px 8px; }
+.evidence-suff { font-size: 11px; color: var(--muted); }
+.evidence-dist { margin-bottom: 8px; }
+.evidence-dist label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+.evidence-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.evidence-bar span { display: block; height: 100%; background: var(--focus); }
+.evidence-note { margin: 0; color: var(--muted); font-size: 12px; }
+.evidence-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: 12px; }
+.evidence-facts dt { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.evidence-facts dd { margin: 0; }
+.evidence-packet { margin: 8px 0 0; padding: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 11px; overflow-x: auto; white-space: pre; }
+
+@media (max-width: 700px) {
+  .radar-map-bar { padding: 8px 10px; }
+  .radar-key { padding: 0 10px 8px; }
+  .radar-seg { flex: 0 0 170px; }
+  .radar-unit { width: 44px; height: 44px; }
+  .radar-evidence, .radar-retry, .radar-state select, .radar-map-toggle, .radar-seg-file,
+  .radar-chip, .evidence-body .btn-toggle, .evidence-drawer .btn-icon { min-height: 44px; }
+  .modal.evidence-drawer { width: 100vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-progress span { animation: none; width: 100%; }
+}

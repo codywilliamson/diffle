@@ -41,6 +41,7 @@ export function TopBar({
   onToggleSplit,
   onToggleWrap,
   onCompile,
+  previewDisabled,
   onHelp,
   onWhatsNew,
   reviewId,
@@ -73,7 +74,7 @@ export function TopBar({
     <div class="top-right">
       <span class="review-segment">
         <${ReviewPanel} reviewId=${reviewId} record=${record} refreshRecord=${refreshRecord} comments=${comments} />
-        <button class="btn-preview" onClick=${onCompile}>Preview</button>
+        <button class="btn-preview" disabled=${previewDisabled} title=${previewDisabled ? "Preview uses live review data and is unavailable in the Radar demo" : undefined} onClick=${onCompile}>Preview</button>
       </span>
       <button class="btn-icon icon-btn files-toggle" data-tip="Browse files" aria-label="Browse files" onClick=${onToggleFiles}>
         <${File} /><span class="mobile-action-label">Files</span>
