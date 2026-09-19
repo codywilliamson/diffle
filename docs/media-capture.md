@@ -32,4 +32,13 @@ docs/screenshots/agent-review-walkthrough.png
 
 The GIF is rendered at half speed so each review step remains readable in the README. The MP4 and WebM retain the capture's normal pacing.
 
+## Record the Radar social demo
+
+Set `OPENROUTER_API_KEY` in `.env`, then run `bun run docs:capture-radar-social`. The
+script creates an isolated Git repository and captures the production Radar flow using
+live Jev decisions through OpenRouter; secret-shaped demo code remains local.
+It writes `radar-social.mp4`, `radar-social.webm`, and `radar-social.png` under
+`docs/screenshots/`. The clip is 1920×1080, silent, under 60 seconds, and includes
+text overlays for timeline viewing without audio.
+
 If Chromium is missing, rerun `bunx playwright install chromium`. If port `43127` is occupied, stop the existing process before capturing again. The script never commits the generated demo repository.
