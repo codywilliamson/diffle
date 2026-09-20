@@ -100,7 +100,15 @@ Markdown files open showing their diff; use the per-file **Preview** toggle to r
 ## Radar (experimental)
 
 Radar ranks review units with local Git evidence and optional Jev decisions. It is off by
-default. Enable deterministic-only analysis with:
+default. Choose **Settings → Radar mode** in the app:
+
+- **Off** — no Radar analysis or provider requests.
+- **Local only** — deterministic Git, syntax, path, and secret evidence; no model calls.
+- **Jev** — bounded, redacted packets sent to the configured OpenRouter or Cloudflare provider.
+
+The preference is stored in `~/.loupe/state.json` and applies across repositories. Environment
+variables remain supported as the initial mode until a preference is saved. To start in
+deterministic-only mode, use:
 
 ```text
 LOUPE_RADAR=1

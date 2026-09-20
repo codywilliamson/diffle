@@ -148,8 +148,9 @@ export interface ReviewOutcomeRequest { outcome: "feedback" | "approved" | "canc
 export interface CommentReplyRequest { id: string; commentId: string; text: string; }
 export interface CommentStatusRequest { commentId: string; status: ReviewCommentStatus; }
 export interface LegacyReviewRequest { action: "import" | "remove" | "ignore"; }
-export interface UserState { seenVersion?: string; }
-export interface StateUpdateRequest { seenVersion?: string; }
+export type RadarMode = "off" | "local" | "jev";
+export interface UserState { seenVersion?: string; radarMode?: RadarMode; }
+export interface StateUpdateRequest { seenVersion?: string; radarMode?: RadarMode; }
 
 // GET /api/update — loupe's own release status vs its git origin
 export interface UpdateStatus {

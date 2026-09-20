@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "/preact.js";
 import { getRadar, getRadarPacket } from "/api.js";
 import { fileAnchorId } from "/util.js";
+import { RADAR_MODE_EVENT } from "/settingsModel.js";
 import { buildMap, markOrder, stepMark, laneCounts, prioritizedUnits, unitState, topUnitForFile, unitCountForFile } from "/radar/model.js";
 
 export const isRadarDemo = () => new URLSearchParams(location.search).get("radar-demo") === "1";
@@ -77,6 +78,12 @@ export function useRadar({ setDiff, setComments, setViewed, onSelectFile }) {
       setStatusRaw("ready");
     });
     else void loadLive(false);
+  }, [demo, loadLive]);
+  useEffect(() => {
+    if (demo) return;
+    const reload = () => void loadLive(false);
+    window.addEventListener(RADAR_MODE_EVENT, reload);
+    return () => window.removeEventListener(RADAR_MODE_EVENT, reload);
   }, [demo, loadLive]);
   useEffect(() => { if (demo && source) { setComments(source.comments); setViewed(source.viewed); } }, [demo, source]);
   useEffect(() => { if (demo && source) setDiff(status === "empty" ? { ...source.diff, files: [] } : source.diff); }, [demo, source, status]);

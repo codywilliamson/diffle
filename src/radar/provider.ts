@@ -1,6 +1,6 @@
 // Jev transports. source code stays in the server process; only a redacted RadarPacket is sent.
 
-import type { RadarPacket } from "../types";
+import type { RadarMode, RadarPacket } from "../types";
 
 export type RadarProviderName = "local" | "openrouter" | "cloudflare";
 export interface RadarProviderConfig {
@@ -25,12 +25,22 @@ function threshold(value: string | undefined): number {
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : DEFAULT_THRESHOLD;
 }
 
-export function providerFromEnv(env: NodeJS.ProcessEnv = process.env): RadarProviderConfig | null {
+export function resolveRadarMode(env: NodeJS.ProcessEnv = process.env, preference?: RadarMode): RadarMode {
+  if (preference) return preference;
   const requested = env.LOUPE_RADAR_PROVIDER?.toLowerCase();
-  if (env.LOUPE_RADAR !== "1" && !requested) return null;
-  if (requested && !["local", "openrouter", "cloudflare"].includes(requested)) throw new Error(`unsupported Radar provider: ${requested}`);
+  if (env.LOUPE_RADAR !== "1" && !requested) return "off";
+  if (requested === "local" || (!requested && !env.OPENROUTER_API_KEY
+    && !(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID))) return "local";
+  return "jev";
+}
+
+export function providerFromEnv(env: NodeJS.ProcessEnv = process.env, preference?: RadarMode): RadarProviderConfig | null {
+  const mode = resolveRadarMode(env, preference);
+  if (mode === "off") return null;
+  const requested = env.LOUPE_RADAR_PROVIDER?.toLowerCase();
   const attentionThreshold = threshold(env.LOUPE_RADAR_ATTENTION_THRESHOLD);
-  if (requested === "local") return { provider: "local", model: "none", attentionThreshold };
+  if (mode === "local") return { provider: "local", model: "none", attentionThreshold };
+  if (requested && !["local", "openrouter", "cloudflare"].includes(requested)) throw new Error(`unsupported Radar provider: ${requested}`);
   if (requested === "openrouter") {
     if (!env.OPENROUTER_API_KEY) throw new Error("openrouter Radar credentials are incomplete");
     return { provider: "openrouter", model: env.LOUPE_RADAR_MODEL ?? "typesafe/jev-1.13",
@@ -51,7 +61,7 @@ export function providerFromEnv(env: NodeJS.ProcessEnv = process.env): RadarProv
     return { provider: "cloudflare", model: env.LOUPE_RADAR_MODEL ?? "typesafe/jev", endpoint,
       apiKey: env.CLOUDFLARE_API_TOKEN, attentionThreshold };
   }
-  return { provider: "local", model: "none", attentionThreshold };
+  throw new Error("Jev Radar credentials are incomplete");
 }
 
 function retryable(status: number, body: unknown, provider: RadarProviderName): boolean {

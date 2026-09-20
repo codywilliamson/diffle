@@ -1,6 +1,6 @@
 // orchestrates local evidence, optional Jev enrichment, and result caching for one live diff.
 
-import type { DiffResult, RadarAnalysis, RadarMeta, RadarPacket, RadarUnit } from "../types";
+import type { DiffResult, RadarAnalysis, RadarMeta, RadarMode, RadarPacket, RadarUnit } from "../types";
 import { buildRadarDrafts, type RadarDraft } from "./units";
 import { applyJev } from "./jev";
 import { askJev, providerFromEnv, type RadarProviderConfig, type RetryBudget } from "./provider";
@@ -42,9 +42,9 @@ async function enrich(drafts: RadarDraft[], config: RadarProviderConfig, fetchFn
 }
 
 export async function analyzeRadar(diff: DiffResult, refresh = false, env: NodeJS.ProcessEnv = process.env, fetchFn: typeof fetch = fetch,
-  localOnly = false, contextDiff: DiffResult = diff): Promise<RadarAnalysis> {
+  localOnly = false, contextDiff: DiffResult = diff, mode?: RadarMode): Promise<RadarAnalysis> {
   let config: RadarProviderConfig | null;
-  try { config = providerFromEnv(env); }
+  try { config = providerFromEnv(env, mode); }
   catch (error) { return { status: "failure", units: [], error: error instanceof Error ? error.message : "Radar configuration failed" }; }
   if (!config) return { status: "off", units: [] };
   const drafts = buildRadarDrafts(diff, config.model, contextDiff);
@@ -67,8 +67,9 @@ export async function analyzeRadar(diff: DiffResult, refresh = false, env: NodeJ
   return analysis;
 }
 
-export function radarPacket(diff: DiffResult, id: string, env: NodeJS.ProcessEnv = process.env, contextDiff: DiffResult = diff): RadarPacket | null {
-  const config = providerFromEnv(env);
+export function radarPacket(diff: DiffResult, id: string, env: NodeJS.ProcessEnv = process.env,
+  contextDiff: DiffResult = diff, mode?: RadarMode): RadarPacket | null {
+  const config = providerFromEnv(env, mode);
   if (!config) return null;
   return buildRadarDrafts(diff, config.model, contextDiff).find((draft) => draft.unit.id === id)?.packet ?? null;
 }

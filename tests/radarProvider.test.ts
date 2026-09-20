@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { RadarPacket } from "../src/types";
-import { askJev, providerFromEnv } from "../src/radar/provider";
+import { askJev, providerFromEnv, resolveRadarMode } from "../src/radar/provider";
 
 const packet: RadarPacket = { schemaVersion: 1, questionSetVersion: "radar-q1", model: "jev",
   file: { path: "a.ts", oldPath: null, language: "ts", changeType: "modified", additions: 1, deletions: 1 },
@@ -17,6 +17,15 @@ describe("Radar providers", () => {
     expect(() => providerFromEnv({ LOUPE_RADAR_PROVIDER: "unknown" })).toThrow("unsupported Radar provider");
     expect(() => providerFromEnv({ LOUPE_RADAR_PROVIDER: "openrouter" })).toThrow("openrouter Radar credentials");
     expect(() => providerFromEnv({ LOUPE_RADAR_PROVIDER: "cloudflare" })).toThrow("cloudflare Radar credentials");
+  });
+
+  test("lets the saved privacy mode override provider-bearing environments", () => {
+    const env = { LOUPE_RADAR: "1", OPENROUTER_API_KEY: "secret" };
+    expect(resolveRadarMode(env, "off")).toBe("off");
+    expect(providerFromEnv(env, "off")).toBeNull();
+    expect(providerFromEnv(env, "local")?.provider).toBe("local");
+    expect(providerFromEnv(env, "jev")?.provider).toBe("openrouter");
+    expect(() => providerFromEnv({}, "jev")).toThrow("Jev Radar credentials");
   });
 
   test("sends the OpenRouter decisions protocol", async () => {
