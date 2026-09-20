@@ -28,14 +28,14 @@ function TreeHead({ filter, onFilter, files, viewedSet }) {
   </div>`;
 }
 
-export function FileTree({ files, viewedSet, countFor, activeFile, onSelect, onToggleViewed, width, browse, mobileOpen, onClose }) {
+export function FileTree({ files, viewedSet, countFor, activeFile, onSelect, onToggleViewed, width, browse, radar, mobileOpen, onClose }) {
   const [filter, setFilter] = useState("");
   // the drawer stays mounted (mobile-open) through its close transition; data-open drives the reveal
   const { mounted: drawer, shown: revealed } = useDrawerPhase(mobileOpen, DRAWER_CLOSE_TOKEN);
   const needle = filter.trim().toLowerCase();
   const shown = needle ? files.filter((f) => f.path.toLowerCase().includes(needle)) : files;
   const root = buildTree(shown);
-  const rest = { viewedSet, countFor, activeFile, onSelect, onToggleViewed, browse };
+  const rest = { viewedSet, countFor, activeFile, onSelect, onToggleViewed, browse, radar };
   return html`${drawer && html`<button class="tree-backdrop" data-open=${revealed} aria-label="Close file browser" onClick=${onClose}></button>`}
   <nav class="file-tree ${drawer ? "mobile-open" : ""}" data-open=${revealed} style=${`width:${width}px`} aria-label="Changed files">
     <div class="tree-mobile-head"><strong>Files</strong><button class="btn-icon icon-btn" aria-label="Close file browser" onClick=${onClose}><${X} /></button></div>
@@ -53,6 +53,7 @@ export function FileTree({ files, viewedSet, countFor, activeFile, onSelect, onT
           commentCount=${countFor(f.path)}
           active=${activeFile === f.path}
           browse=${browse}
+          radar=${radar}
           onSelect=${onSelect}
           onToggleViewed=${onToggleViewed}
         />`

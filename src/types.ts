@@ -16,6 +16,7 @@ export interface DiffLine {
 
 export interface DiffHunk {
   header: string; // e.g. "@@ -38,7 +38,9 @@"
+  section?: string; // optional symbol text after the closing @@
   lines: DiffLine[];
 }
 
@@ -89,16 +90,9 @@ export interface ReviewFile {
 export const REVIEW_SCHEMA_VERSION = 1;
 export type ReviewStatus = "awaiting_human" | "feedback_ready" | "approved" | "cancelled";
 export type ReviewPolicy = "required" | "handoff" | "off";
-export type ReviewActivityType =
-  | "review_started"
-  | "feedback_returned"
-  | "rereview_requested"
-  | "comment_replied"
-  | "comment_addressed"
-  | "comment_resolved"
-  | "comment_reopened"
-  | "review_approved"
-  | "review_cancelled";
+export type ReviewActivityType = "review_started" | "feedback_returned" | "rereview_requested"
+  | "comment_replied" | "comment_addressed" | "comment_resolved" | "comment_reopened"
+  | "review_approved" | "review_cancelled";
 
 export interface ReviewTarget {
   cwd: string;
@@ -147,42 +141,16 @@ export interface FeedbackBundle {
 }
 
 // POST /api/comments — full replace of the comments array
-export interface CommentsUpdateRequest {
-  comments: Comment[];
-}
+export interface CommentsUpdateRequest { comments: Comment[]; }
+export interface ViewedUpdateRequest { viewed: string[]; }
 
-export interface ViewedUpdateRequest {
-  viewed: string[];
-}
-
-export interface ReviewOutcomeRequest {
-  outcome: "feedback" | "approved" | "cancelled";
-  summary?: string;
-  acknowledgeUnresolved?: boolean;
-}
-
-export interface CommentReplyRequest {
-  id: string;
-  commentId: string;
-  text: string; // author is not sent — the server always authors this reply as the reviewer
-}
-
-export interface CommentStatusRequest {
-  commentId: string;
-  status: ReviewCommentStatus;
-}
-
-export interface LegacyReviewRequest {
-  action: "import" | "remove" | "ignore";
-}
-
-export interface UserState {
-  seenVersion?: string; // loupe version whose what's-new highlights the user has dismissed
-}
-
-export interface StateUpdateRequest {
-  seenVersion?: string;
-}
+export interface ReviewOutcomeRequest { outcome: "feedback" | "approved" | "cancelled"; summary?: string; acknowledgeUnresolved?: boolean; }
+export interface CommentReplyRequest { id: string; commentId: string; text: string; }
+export interface CommentStatusRequest { commentId: string; status: ReviewCommentStatus; }
+export interface LegacyReviewRequest { action: "import" | "remove" | "ignore"; }
+export type RadarMode = "off" | "local" | "jev";
+export interface UserState { seenVersion?: string; radarMode?: RadarMode; }
+export interface StateUpdateRequest { seenVersion?: string; radarMode?: RadarMode; }
 
 // GET /api/update — loupe's own release status vs its git origin
 export interface UpdateStatus {
@@ -193,6 +161,38 @@ export interface UpdateStatus {
 }
 
 // error envelope returned with any non-2xx status
-export interface ApiError {
-  error: string;
+export interface ApiError { error: string; }
+
+// ── radar ───────────────────────────────────────────────────────────────────
+
+export type RadarLane = "blocker" | "verified" | "boundary" | "attention" | "routine" | "noise";
+export type RadarStatus = "off" | "ready" | "cached" | "partial" | "failure";
+export type RadarSufficiency = "sufficient" | "partial" | "insufficient";
+export interface RadarDistribution { name: string; pct: number; }
+export interface RadarPacketSummary { paths: string[]; bytes: number; lines: number; redactions: number; exclusions: string[]; }
+export interface RadarEvidence {
+  source: "git" | "path-rule" | "syntax" | "secret-scan";
+  kind: string;
+  level: "info" | "attention" | "warning" | "error";
+  message: string;
+  line: number | null;
+}
+export interface RadarUnit {
+  id: string; file: string; hunk: number; line: number; side: "old" | "new"; lane: RadarLane;
+  title: string; chip: string; attention: number | null; remote: boolean; stale?: boolean; providerStatus?: "ready" | "failed";
+  summary: string; blockedReason?: string; provenance: string[];
+  distributions: RadarDistribution[] | null; sufficiency: RadarSufficiency;
+  context: { lines: number; complete: boolean }; truncation: boolean; redaction: boolean;
+  cache: { state: "live" | "cached" | "n/a"; ms: number }; packet: RadarPacketSummary;
+}
+export interface RadarMeta {
+  generatedAt: string; provider: "local" | "openrouter" | "cloudflare";
+  model: string; questionSet: string; totalUnits: number;
+}
+export interface RadarAnalysis { status: RadarStatus; meta?: RadarMeta; units: RadarUnit[]; error?: string; }
+export interface RadarPacket {
+  schemaVersion: 1; questionSetVersion: "radar-q1"; model: string;
+  file: { path: string; oldPath: string | null; language: string | null; changeType: ChangeType; additions: number; deletions: number };
+  unit: { id: string; hunk: number; line: number; side: "old" | "new"; patch: string;
+    contextTruncated: boolean; evidence: RadarEvidence[] };
 }

@@ -4,6 +4,14 @@ import { highlightLine } from "/highlight.js";
 import { Bubble } from "/icons.js";
 import { CommentThread, CommentEditor } from "/comments.js";
 import { pairLines, hunkMarks, markRange } from "/wordDiff.js";
+import { startSelect } from "/dragSelect.js";
+import { HunkChips, ProofNoteRow } from "/radar/hunkProof.js";
+import { withProof } from "/radar/proofRows.js";
+
+// the selected radar unit on this hunk, if any — anchors the compact chips + expanded note.
+function selectedUnit(radar, hunkUnits) {
+  return radar && hunkUnits ? hunkUnits.find((u) => u.id === radar.selectedId) : null;
+}
 
 const SIGN = { addition: "+", deletion: "-", context: " " };
 
@@ -61,43 +69,6 @@ function LineComments({ anchors, threads, variant = "unified" }) {
   });
 }
 
-// press a bubble to comment one line; drag to select a range; shift-click to extend an open one.
-// `side` ("old"/"new") scopes the selection so a drag only spans rows commentable on that side.
-function startSelect(e, side, anchor, threads) {
-  e.preventDefault();
-  if (e.shiftKey) return threads.onExtendAdd(side, anchor);
-  let head = anchor;
-  const section = e.currentTarget.closest(".file-section");
-  const attr = side === "old" ? "oldline" : "newline";
-  threads.onSelectMove(side, anchor, anchor);
-  // rAF-throttle: coalesce mousemove bursts to at most one state update per frame, skip no-ops.
-  let raf = 0;
-  let lastXY = null;
-  const move = (ev) => {
-    lastXY = [ev.clientX, ev.clientY];
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = 0;
-      const row = document.elementFromPoint(lastXY[0], lastXY[1])?.closest("tr.diff-row");
-      const n = row && section.contains(row) ? row.dataset[attr] : "";
-      if (n && Number(n) !== head) {
-        head = Number(n);
-        threads.onSelectMove(side, anchor, head);
-      }
-    });
-  };
-  const stop = () => {
-    document.removeEventListener("mousemove", move);
-    document.removeEventListener("mouseup", stop);
-    document.body.classList.remove("selecting");
-    cancelAnimationFrame(raf); // drop any pending move so a stale frame can't land after commit
-    threads.onSelectCommit(side, Math.min(anchor, head), Math.max(anchor, head));
-  };
-  document.addEventListener("mousemove", move);
-  document.addEventListener("mouseup", stop);
-  document.body.classList.add("selecting");
-}
-
 // one unified row plus its comment region. the bubble is ALWAYS rendered (hidden via
 // css until row hover) so the gutter column never resizes — no layout jump on hover.
 // two root nodes: htm returns them as an array, preact renders them as siblings
@@ -128,17 +99,20 @@ function UnifiedRow({ line, hl, threads, mark, browse }) {
   `;
 }
 
-export function UnifiedHunk({ hunk, path, threads, browse }) {
+export function UnifiedHunk({ hunk, path, threads, browse, radar, hunkUnits }) {
   const marks = useMemo(() => hunkMarks(hunk.lines), [hunk]);
   const hl = useMemo(() => highlightMap(hunk.lines, path), [hunk, path]);
+  const cols = browse ? 3 : 4;
+  const sel = selectedUnit(radar, hunkUnits);
   return html`<tbody>
-    ${hunk.header &&
+    ${(hunk.header || hunkUnits) &&
     html`<tr class="hunk-header">
-      <td colspan=${browse ? 3 : 4}><span class="hunk-pill">${hunk.header}</span></td>
+      <td colspan=${cols}>${hunk.header && html`<span class="hunk-pill">${hunk.header}</span>`}${hunkUnits && html`<${HunkChips} units=${hunkUnits} radar=${radar} />`}</td>
     </tr>`}
-    ${hunk.lines.map(
-      (l, i) => html`<${UnifiedRow} key=${i} line=${l} hl=${hl} threads=${threads} mark=${marks.get(l)} browse=${browse} />`
-    )}
+    ${withProof(hunk.lines, sel,
+      (line, unit) => (unit.side === "old" ? line.oldLine : line.newLine) === unit.line,
+      (l, i) => html`<${UnifiedRow} key=${i} line=${l} hl=${hl} threads=${threads} mark=${marks.get(l)} browse=${browse} />`,
+      (unit) => html`<${ProofNoteRow} unit=${unit} radar=${radar} colSpan=${cols} />`)}
   </tbody>`;
 }
 
@@ -180,17 +154,19 @@ function SplitRow({ left, right, hl, threads, marks }) {
   `;
 }
 
-export function SplitHunk({ hunk, path, threads }) {
+export function SplitHunk({ hunk, path, threads, radar, hunkUnits }) {
   const rows = useMemo(() => pairLines(hunk.lines), [hunk]);
   const marks = useMemo(() => hunkMarks(hunk.lines), [hunk]);
   const hl = useMemo(() => highlightMap(hunk.lines, path), [hunk, path]);
+  const sel = selectedUnit(radar, hunkUnits);
   return html`<tbody>
-    ${hunk.header &&
+    ${(hunk.header || hunkUnits) &&
     html`<tr class="hunk-header">
-      <td colspan="6"><span class="hunk-pill">${hunk.header}</span></td>
+      <td colspan="6">${hunk.header && html`<span class="hunk-pill">${hunk.header}</span>`}${hunkUnits && html`<${HunkChips} units=${hunkUnits} radar=${radar} />`}</td>
     </tr>`}
-    ${rows.map(
-      (r, i) => html`<${SplitRow} key=${i} left=${r.left} right=${r.right} hl=${hl} threads=${threads} marks=${marks} />`
-    )}
+    ${withProof(rows, sel,
+      (row, unit) => (unit.side === "old" ? row.left?.oldLine : row.right?.newLine) === unit.line,
+      (r, i) => html`<${SplitRow} key=${i} left=${r.left} right=${r.right} hl=${hl} threads=${threads} marks=${marks} />`,
+      (unit) => html`<${ProofNoteRow} unit=${unit} radar=${radar} colSpan=${6} />`)}
   </tbody>`;
 }

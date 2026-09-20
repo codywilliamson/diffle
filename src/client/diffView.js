@@ -35,8 +35,14 @@ function FileHeader({ file, open, split, md, preview, browse, onToggleOpen, onTo
   </div>`;
 }
 
-function FileSectionImpl({ file, splitView, browse, wrap, fileComments, adding, selecting, setAdding, setSelecting, onAdd, onEdit, onDelete, onResolve, onReply }) {
+function FileSectionImpl({ file, splitView, browse, wrap, radar, fileComments, adding, selecting, setAdding, setSelecting, onAdd, onEdit, onDelete, onResolve, onReply }) {
   const threads = makeThreads(file, { fileComments, adding, selecting, setAdding, setSelecting, onAdd, onEdit, onDelete, onResolve, onReply });
+  // radar units for this file, grouped by hunk index, so each hunk owns its evidence.
+  const unitsByHunk = useMemo(() => {
+    const m = new Map();
+    for (const u of radar?.unitsByFile.get(file.path) ?? []) (m.get(u.hunk) ?? m.set(u.hunk, []).get(u.hunk)).push(u);
+    return m;
+  }, [radar, file.path]);
   const md = isMarkdown(file.path) && file.changeType !== "deleted";
   const [open, setOpen] = useState(true);
   const tableRef = useRef(null);
@@ -103,7 +109,7 @@ function FileSectionImpl({ file, splitView, browse, wrap, fileComments, adding, 
                     <col class="cg-no" />
                     <col style=${`width: ${((1 - ratio) * 100).toFixed(2)}%`} />
                   </colgroup>
-                  ${file.hunks.map((hunk, i) => html`<${SplitHunk} key=${i} hunk=${hunk} path=${file.path} threads=${threads} />`)}
+                  ${file.hunks.map((hunk, i) => html`<${SplitHunk} key=${i} hunk=${hunk} path=${file.path} threads=${threads} radar=${radar} hunkUnits=${unitsByHunk.get(i)} />`)}
                   ${!wrap &&
                   html`<tbody class="hscroll-row">
                     <tr>
@@ -117,7 +123,7 @@ function FileSectionImpl({ file, splitView, browse, wrap, fileComments, adding, 
                 <${SplitResizer} ratio=${ratio} onRatio=${setRatio} />
               </div>`
             : html`<table class="diff-table">
-                ${file.hunks.map((hunk, i) => html`<${UnifiedHunk} key=${i} hunk=${hunk} path=${file.path} threads=${threads} browse=${browse} />`)}
+                ${file.hunks.map((hunk, i) => html`<${UnifiedHunk} key=${i} hunk=${hunk} path=${file.path} threads=${threads} browse=${browse} radar=${radar} hunkUnits=${unitsByHunk.get(i)} />`)}
               </table>`}
     </${LazyMount}>`}
     </div>`}
@@ -130,7 +136,7 @@ const FileSection = memo(FileSectionImpl);
 
 const EMPTY = [];
 
-export function DiffView({ files, viewMode, activeFile, splitView, browse, wrap, comments, adding, setAdding, selecting, setSelecting, onAdd, onEdit, onDelete, onResolve, onReply }) {
+export function DiffView({ files, viewMode, activeFile, splitView, browse, wrap, radar, comments, adding, setAdding, selecting, setSelecting, onAdd, onEdit, onDelete, onResolve, onReply }) {
   // group once per comments change so untouched files keep an identical array prop.
   const byFile = useMemo(() => {
     const m = new Map();
@@ -150,6 +156,7 @@ export function DiffView({ files, viewMode, activeFile, splitView, browse, wrap,
         splitView=${splitView}
         browse=${browse}
         wrap=${wrap}
+        radar=${radar}
         fileComments=${byFile.get(file.path) ?? EMPTY}
         adding=${adding && adding.file === file.path ? adding : null}
         selecting=${selecting && selecting.file === file.path ? selecting : null}

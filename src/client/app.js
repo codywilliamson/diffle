@@ -13,11 +13,12 @@ import { TopBar } from "/topBar.js";
 import { FileTree } from "/fileTree.js";
 import { Resizer } from "/resizer.js";
 import { DiffView } from "/diffView.js";
-import { CompileModal } from "/compileModal.js";
-import { HelpOverlay } from "/helpOverlay.js";
-import { useWhatsNew, WhatsNewModal } from "/whatsNewModal.js";
+import { AppOverlays } from "/appOverlays.js";
+import { useWhatsNew } from "/whatsNewModal.js";
 import { LoadingScreen } from "/loadingScreen.js";
 import { LegacyReviewPrompt } from "/legacyReviewPrompt.js";
+import { isRadarDemo, useRadar } from "/radar/useRadar.js";
+import { RadarShell } from "/radar/RadarShell.js";
 
 function App() {
   const [diff, setDiff] = useState(null);
@@ -36,12 +37,15 @@ function App() {
   const [filesOpen, setFilesOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const update = useUpdateCheck();
+  const radarDemo = useMemo(isRadarDemo, []);
   const reviewId = new URLSearchParams(location.search).get("review");
-  const { record, refreshRecord, notice, dismissNotice } = useReviewSync(reviewId);
-  const { comments, setComments, onAdd, onEdit, onDelete, onResolve, onReply } = useComments(setError, reviewId, refreshRecord);
+  const liveReviewId = radarDemo ? null : reviewId;
+  const { record, refreshRecord, notice, dismissNotice } = useReviewSync(liveReviewId);
+  const { comments, setComments, onAdd, onEdit, onDelete, onResolve, onReply } = useComments(setError, liveReviewId, refreshRecord, radarDemo);
   const wn = useWhatsNew(update?.current);
 
   useEffect(() => {
+    if (radarDemo) return; // demo mode seeds diff/comments/viewed from the fixture instead
     Promise.all([getDiff(), getComments()])
       .then(([d, review]) => {
         setDiff(d);
@@ -60,21 +64,24 @@ function App() {
     (path) => {
       const next = viewed.includes(path) ? viewed.filter((p) => p !== path) : [...viewed, path];
       setViewed(next);
-      saveViewed(next).catch((e) => setError(String(e)));
+      if (!radarDemo) saveViewed(next).catch((e) => setError(String(e)));
     },
-    [viewed]
+    [viewed, radarDemo]
   );
 
   // selecting tracks the current file in both modes; all-files view also scrolls to it.
   const onSelectFile = useCallback(
-    (path) => {
+    (path, scroll = true) => {
       setActiveFile(path);
       setFilesOpen(false);
-      if (viewMode !== "single")
+      if (scroll && viewMode !== "single")
         document.getElementById(fileAnchorId(path))?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
     [viewMode]
   );
+
+  // radar demo (?radar-demo=1); a no-op returning {active:false} on ordinary launches.
+  const radar = useRadar({ setDiff, setComments, setViewed, onSelectFile });
 
   const onToggleTheme = useCallback(() => setTheme((t) => nextTheme(t)), []);
   const onToggleSplit = useCallback(() => setSplitView((v) => !v), [setSplitView]);
@@ -83,16 +90,18 @@ function App() {
 
   // re-fetch the (server-recomputed) diff in place, preserving comments + open files.
   const onRefresh = useCallback(async () => {
+    if (radar.demo) return radar.refresh();
     setRefreshing(true);
     dismissNotice();
     try {
       setDiff(await getDiff());
+      if (radar.active) await radar.refresh();
     } catch (e) {
       setError(String(e));
     } finally {
       setRefreshing(false);
     }
-  }, [dismissNotice]);
+  }, [dismissNotice, radar.active, radar.demo, radar.refresh]);
 
   const onResize = useCallback((x) => setSidebarWidth(clamp(x, 180, 640)), [setSidebarWidth]);
 
@@ -106,7 +115,7 @@ function App() {
 
   useAppShortcuts({
     diff, activeFile, onSelectFile, onToggleViewed, onToggleSplit, onToggleWrap, onToggleView,
-    onToggleTheme, onRefresh, wn, setShowCompile, setShowHelp, setAdding,
+    onToggleTheme, onRefresh, wn, setShowCompile, setShowHelp, setAdding, radar,
   });
 
   if (error) return html`<div class="fatal">${error}</div>`;
@@ -130,17 +139,19 @@ function App() {
       onToggleView=${onToggleView}
       onToggleSplit=${onToggleSplit}
       onToggleWrap=${onToggleWrap}
-      onCompile=${() => setShowCompile(true)}
+      onCompile=${radarDemo ? null : () => setShowCompile(true)}
+      previewDisabled=${radarDemo}
       onHelp=${() => setShowHelp(true)}
       onWhatsNew=${wn.reopen}
-      reviewId=${reviewId}
+      reviewId=${liveReviewId}
       record=${record}
       refreshRecord=${refreshRecord}
       comments=${comments}
       onToggleFiles=${() => setFilesOpen((open) => !open)}
     />
-    <${LegacyReviewPrompt} reviewId=${reviewId} onImport=${(imported) => { setComments(imported.comments ?? []); setViewed(imported.viewed ?? []); }} />
-    <${SyncNotice} notice=${notice} onRefresh=${onRefresh} onDismiss=${dismissNotice} />
+    ${!radarDemo && html`<${LegacyReviewPrompt} reviewId=${liveReviewId} onImport=${(imported) => { setComments(imported.comments ?? []); setViewed(imported.viewed ?? []); }} />`}
+    ${!radarDemo && html`<${SyncNotice} notice=${notice} onRefresh=${onRefresh} onDismiss=${dismissNotice} />`}
+    ${radar.active && html`<${RadarShell} radar=${radar} />`}
     <div class="body">
       <${FileTree}
         files=${diff.files}
@@ -151,6 +162,7 @@ function App() {
         onToggleViewed=${onToggleViewed}
         width=${sidebarWidth}
         browse=${browse}
+        radar=${radar.active ? radar : null}
         mobileOpen=${filesOpen}
         onClose=${() => setFilesOpen(false)}
       />
@@ -162,6 +174,7 @@ function App() {
         splitView=${splitView && !browse}
         browse=${browse}
         wrap=${wrap}
+        radar=${radar.diffApi}
         comments=${comments}
         adding=${adding}
         setAdding=${setAdding}
@@ -174,18 +187,9 @@ function App() {
         onReply=${onReply}
       />
     </div>
-    ${showCompile &&
-    html`<${CompileModal}
-      onClose=${() => setShowCompile(false)}
-      comments=${comments}
-      diff=${diff}
-      onEdit=${onEdit}
-      onDelete=${onDelete}
-      onResolve=${onResolve}
-      onReply=${onReply}
-    />`}
-    ${showHelp && html`<${HelpOverlay} onClose=${() => setShowHelp(false)} />`}
-    ${wn.open && html`<${WhatsNewModal} entry=${wn.entry} onClose=${wn.close} />`}
+    <${AppOverlays} showCompile=${showCompile} setShowCompile=${setShowCompile} showHelp=${showHelp}
+      setShowHelp=${setShowHelp} wn=${wn} radar=${radar.active} comments=${comments} diff=${diff}
+      onEdit=${onEdit} onDelete=${onDelete} onResolve=${onResolve} onReply=${onReply} />
   </div>`;
 }
 

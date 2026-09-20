@@ -18,11 +18,12 @@ export const SHORTCUTS = [
   ["drag gutter", "Select a line range to comment on"],
   ["Shift-click gutter", "Extend an open comment to another line"],
 ];
+export const shortcutsFor = (radar) => radar ? [...SHORTCUTS, ["[ ]", "Previous / next Radar proof mark"]] : SHORTCUTS;
 
 const isTyping = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
 
 // ctx: { files, activeFile, selectFile, toggleViewed, toggleSplit, toggleWrap, toggleView,
-//        cycleTheme, refresh, compile, whatsNew, toggleHelp, closeOverlays }
+//        cycleTheme, refresh, compile, whatsNew, prevMark, nextMark, toggleHelp, closeOverlays }
 export function useShortcuts(ctx) {
   const ref = useRef(ctx);
   ref.current = ctx;
@@ -50,6 +51,8 @@ export function useShortcuts(ctx) {
       else if (e.key === "r") c.refresh();
       else if (e.key === "c") c.compile();
       else if (e.key === "n") c.whatsNew();
+      else if (e.key === "[" && c.prevMark) c.prevMark();
+      else if (e.key === "]" && c.nextMark) c.nextMark();
       else if (e.key === "?") c.toggleHelp();
       else return;
       e.preventDefault();

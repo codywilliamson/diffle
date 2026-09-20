@@ -11,6 +11,7 @@ function items(ctx) {
     !ctx.browse && { key: "s", label: ctx.splitView ? "Unified (all files)" : "Side-by-side (all files)", onClick: ctx.onToggleSplit },
     { key: "w", label: ctx.wrap ? "No wrap" : "Wrap lines", onClick: ctx.onToggleWrap },
     { key: "t", label: "Toggle theme", onClick: ctx.onToggleTheme },
+    { label: "Settings", onClick: ctx.onSettings },
     { key: "n", label: "What's new", onClick: ctx.onWhatsNew },
     { key: "?", label: "Keyboard shortcuts", onClick: ctx.onHelp },
   ].filter(Boolean);
@@ -30,7 +31,7 @@ export function OverflowMenu(ctx) {
   // focus the first item, not the menu container, so arrow keys work immediately
   useEffect(() => { if (isOpen) menuRef.current?.querySelector('[role="menuitem"]')?.focus(); }, [isOpen]);
 
-  const choose = (onClick) => { onClick(); close(); };
+  const choose = (onClick) => { onClick(triggerRef.current); close(); };
 
   // roving focus: Arrow keys move among items (wrapping), Home/End jump to the ends. Tab is left native.
   const onMenuKeyDown = (e) => {
@@ -53,7 +54,7 @@ export function OverflowMenu(ctx) {
     ${isOpen && html`<${Popover} id="overflow-menu" class="overflow-menu" origin="top-right" role="menu" aria-label="More tools"
       surfaceRef=${menuRef} onKeyDown=${onMenuKeyDown} onClosed=${onClosed} closeRef=${closeRef}>
       ${items(ctx).map((item) => html`<button type="button" role="menuitem" class="overflow-item" onClick=${() => choose(item.onClick)}>
-        <span>${item.label}</span><kbd>${item.key}</kbd>
+        <span>${item.label}</span>${item.key && html`<kbd>${item.key}</kbd>`}
       </button>`)}
     <//>`}
   </span>`;

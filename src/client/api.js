@@ -24,6 +24,14 @@ export function getDiff() {
   return getJson("/api/diff");
 }
 
+export function getRadar({ refresh = false, local = false } = {}) {
+  return local ? getJson("/api/radar") : postJson("/api/radar", { refresh });
+}
+
+export function getRadarPacket(id) {
+  return getJson(`/api/radar/packet?id=${encodeURIComponent(id)}`);
+}
+
 // ReviewFile, normalizing the empty {} into a usable shape.
 export async function getComments() {
   const data = await getJson("/api/comments");

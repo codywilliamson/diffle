@@ -6,10 +6,11 @@ function stripPrefix(path: string): string {
 }
 
 // parses the @@ -old +new @@ portion, returning starts and the stripped header
-function parseHunkHeader(line: string): { oldStart: number; newStart: number; header: string } {
-  const match = /^(@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@)/.exec(line);
+function parseHunkHeader(line: string): { oldStart: number; newStart: number; header: string; section?: string } {
+  const match = /^(@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@)(?:\s*(.*))?$/.exec(line);
   if (!match) return { oldStart: 1, newStart: 1, header: line.trim() };
-  return { oldStart: Number(match[2]), newStart: Number(match[3]), header: match[1] ?? "" };
+  const section = match[4]?.trim();
+  return { oldStart: Number(match[2]), newStart: Number(match[3]), header: match[1] ?? "", ...(section ? { section } : {}) };
 }
 
 // derives the new path from the diff --git line (b-side), falling back to the a-side
@@ -21,7 +22,7 @@ function pathFromGitLine(line: string): string {
 
 // collects the lines of a single hunk, advancing line counters
 function parseHunk(headerLine: string, body: string[]): DiffHunk {
-  const { oldStart, newStart, header } = parseHunkHeader(headerLine);
+  const { oldStart, newStart, header, section } = parseHunkHeader(headerLine);
   let oldLine = oldStart;
   let newLine = newStart;
   const lines: DiffLine[] = [];
@@ -42,7 +43,7 @@ function parseHunk(headerLine: string, body: string[]): DiffHunk {
       newLine++;
     }
   }
-  return { header, lines };
+  return { header, ...(section ? { section } : {}), lines };
 }
 
 // determines change type and old path from a file section's header lines

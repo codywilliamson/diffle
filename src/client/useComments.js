@@ -3,15 +3,15 @@
 import { useState, useCallback } from "/preact.js";
 import { saveComments, resolveReviewComment, replyToReviewComment } from "/api.js";
 
-export function useComments(onError, reviewId = null, onSaved) {
+export function useComments(onError, reviewId = null, onSaved, localOnly = false) {
   const [comments, setComments] = useState([]);
 
   const persist = useCallback(
     (next) => {
       setComments(next);
-      saveComments(next).then(onSaved).catch((e) => onError(String(e)));
+      if (!localOnly) saveComments(next).then(onSaved).catch((e) => onError(String(e)));
     },
-    [onError, onSaved]
+    [onError, onSaved, localOnly]
   );
 
   const onAdd = useCallback(
@@ -33,9 +33,10 @@ export function useComments(onError, reviewId = null, onSaved) {
     const status = (comment.status ?? (comment.resolved ? "resolved" : "open")) === "resolved" ? "open" : "resolved";
     const next = comments.map((c) => (c.id === id ? { ...c, status, resolved: status === "resolved" } : c));
     setComments(next);
+    if (localOnly) return;
     const save = reviewId ? resolveReviewComment(reviewId, id, status) : saveComments(next);
     save.then(onSaved).catch((e) => onError(String(e)));
-  }, [comments, onError, reviewId, onSaved]);
+  }, [comments, onError, reviewId, onSaved, localOnly]);
 
   // reviewer replies only exist against a durable Review Record — legacy `.review` mode has no thread.
   // no setComments here: onSaved refreshes the record, and the record -> comments sync applies it.
@@ -45,5 +46,5 @@ export function useComments(onError, reviewId = null, onSaved) {
     [reviewId, onSaved]
   );
 
-  return { comments, setComments, onAdd, onEdit, onDelete, onResolve, onReply: reviewId ? onReply : null };
+  return { comments, setComments, onAdd, onEdit, onDelete, onResolve, onReply: reviewId && !localOnly ? onReply : null };
 }

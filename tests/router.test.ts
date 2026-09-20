@@ -41,10 +41,13 @@ let server: Server<undefined>;
 let base: string;
 let cwd: string;
 let clientDir: string;
+let dataDir: string;
 
 beforeAll(() => {
   cwd = mkdtempSync(join(tmpdir(), "loupe-cwd-"));
   clientDir = mkdtempSync(join(tmpdir(), "loupe-client-"));
+  dataDir = mkdtempSync(join(tmpdir(), "loupe-data-"));
+  process.env.LOUPE_DATA_DIR = dataDir;
   writeFileSync(join(clientDir, "index.html"), "<!doctype html><title>loupe</title>");
   writeFileSync(join(clientDir, "app.js"), "console.log('loupe');");
   writeFileSync(join(cwd, "readme.md"), "# Hello\n");
@@ -54,8 +57,10 @@ beforeAll(() => {
 
 afterAll(() => {
   server.stop(true);
+  delete process.env.LOUPE_DATA_DIR;
   rmSync(cwd, { recursive: true, force: true });
   rmSync(clientDir, { recursive: true, force: true });
+  rmSync(dataDir, { recursive: true, force: true });
 });
 
 describe("router", () => {
@@ -118,6 +123,33 @@ describe("router", () => {
     const body = (await res.json()) as { prompt: string };
     expect(body.prompt).toBeString();
     expect(body.prompt).toContain("## Code Review");
+  });
+
+  it("keeps Radar off until explicitly enabled", async () => {
+    const res = await fetch(`${base}/api/radar`);
+    expect(res.status).toBe(200);
+    expect((await res.json() as { status: string }).status).toBe("off");
+  });
+
+  it("serves deterministic Radar units and reconstructs their exact packet", async () => {
+    process.env.LOUPE_RADAR = "1";
+    process.env.LOUPE_RADAR_PROVIDER = "local";
+    try {
+      const analysis = await fetch(`${base}/api/radar`).then((res) => res.json()) as { status: string; units: Array<{ id: string }> };
+      expect(analysis.status).toBe("ready");
+      expect(analysis.units).toHaveLength(1);
+      const packet = await fetch(`${base}/api/radar/packet?id=${analysis.units[0]!.id}`).then((res) => res.json()) as { state: { unit: { patch: string } }; questions: object };
+      expect(packet.state.unit.patch).toContain("+y");
+      expect(packet.questions).toBeObject();
+      const remote = await fetch(`${base}/api/radar`, { method: "POST", headers: { "Content-Type": "application/json", Origin: base }, body: JSON.stringify({ refresh: true }) });
+      expect(remote.status).toBe(200);
+      expect((await remote.json() as { status: string }).status).toBe("ready");
+      const rejected = await fetch(`${base}/api/radar`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://example.com" }, body: "{}" });
+      expect(rejected.status).toBe(403);
+    } finally {
+      delete process.env.LOUPE_RADAR;
+      delete process.env.LOUPE_RADAR_PROVIDER;
+    }
   });
 
   it("POST /api/state rejects a body with no known field", async () => {

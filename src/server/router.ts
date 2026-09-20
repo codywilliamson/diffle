@@ -15,6 +15,7 @@ import { handleGetFile, handleGetRaw, serveStatic, notFound } from "./fileHandle
 import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleSessionStop } from "./sessionHandlers";
+import { handleGetRadar, handleGetRadarPacket, handlePostRadar } from "./radarHandlers";
 
 export type { ServerContext } from "./handlers";
 
@@ -32,6 +33,8 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/raw") return handleGetRaw(ctx, new URL(req.url));
     if (pathname === "/api/review") return handleGetReview(new URL(req.url), ctx.reviewId);
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
+    if (pathname === "/api/radar") return handleGetRadar(ctx, new URL(req.url));
+    if (pathname === "/api/radar/packet") return handleGetRadarPacket(ctx, new URL(req.url));
     if (!pathname.startsWith("/api/")) return serveStatic(ctx, pathname);
   }
 
@@ -44,6 +47,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/review/status") return handleReviewStatus(req);
     if (pathname === "/api/review/legacy") return handleLegacyReview(req, ctx.cwd);
     if (pathname === "/api/session/stop") return handleSessionStop(ctx, req);
+    if (pathname === "/api/radar") return handlePostRadar(ctx, req);
   }
 
   return notFound();

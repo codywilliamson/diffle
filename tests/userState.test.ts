@@ -17,9 +17,11 @@ describe("userState", () => {
     expect(readUserState(home)).toEqual({});
   });
 
-  it("creates ~/.loupe and round-trips the seen version", () => {
+  it("creates state.json and round-trips user preferences", () => {
     writeUserState({ seenVersion: "0.9.0" }, home);
     expect(readUserState(home).seenVersion).toBe("0.9.0");
+    writeUserState({ radarMode: "local" }, home);
+    expect(readUserState(home)).toEqual({ seenVersion: "0.9.0", radarMode: "local" });
   });
 
   it("merges patches instead of clobbering the whole file", () => {
@@ -31,8 +33,8 @@ describe("userState", () => {
 
   it("recovers from an unparseable file as empty state", () => {
     const { writeFileSync, mkdirSync } = require("node:fs");
-    mkdirSync(join(home, ".loupe"), { recursive: true });
-    writeFileSync(join(home, ".loupe", "state.json"), "{ not json");
+    mkdirSync(home, { recursive: true });
+    writeFileSync(join(home, "state.json"), "{ not json");
     expect(readUserState(home)).toEqual({});
   });
 });

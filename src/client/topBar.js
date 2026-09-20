@@ -1,11 +1,12 @@
 // top bar: wordmark + diff context + counts on the left; review, preview, view tools and utilities on the right.
-import { html } from "/preact.js";
+import { html, useRef, useState } from "/preact.js";
 import { totalDelta } from "/util.js";
-import { Sun, Moon, Refresh, Columns, File, HelpCircle, Sparkles, WrapText, ApertureMark } from "/icons.js";
+import { Sun, Moon, Refresh, Columns, File, HelpCircle, Settings, Sparkles, WrapText, ApertureMark } from "/icons.js";
 import { THEMES, THEME_LABELS } from "/theme.js";
 import { UpdateBadge } from "/update.js";
 import { ReviewPanel } from "/reviewPanel.js";
 import { OverflowMenu } from "/overflowMenu.js";
+import { SettingsModal } from "/settingsModal.js";
 
 // repo + mode + "source → target" so you know exactly what you're reviewing.
 // browse mode has no source/target pair — just the repo + mode pill.
@@ -41,6 +42,7 @@ export function TopBar({
   onToggleSplit,
   onToggleWrap,
   onCompile,
+  previewDisabled,
   onHelp,
   onWhatsNew,
   reviewId,
@@ -49,6 +51,16 @@ export function TopBar({
   comments,
   onToggleFiles,
 }) {
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsTrigger = useRef(null);
+  const openSettings = (trigger) => {
+    settingsTrigger.current = trigger?.currentTarget ?? trigger;
+    setShowSettings(true);
+  };
+  const closeSettings = () => {
+    setShowSettings(false);
+    requestAnimationFrame(() => settingsTrigger.current?.focus());
+  };
   const { add, del } = totalDelta(files);
   const browse = meta?.mode === "browse";
   const viewTip = `${viewMode === "single" ? "All-files view" : "Single-file view"} (o)`;
@@ -56,7 +68,7 @@ export function TopBar({
   const wrapTip = `${wrap ? "No wrap" : "Wrap lines"} (w)`;
   const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
   const themeTip = `Theme: ${THEME_LABELS[theme]} — switch to ${THEME_LABELS[next]} (t)`;
-  return html`<header class="top-bar">
+  return [html`<header class="top-bar">
     <div class="top-left">
       <span class="brand-lockup"><${ApertureMark} /><span class="wordmark">loupe</span></span>
       <${UpdateBadge} status=${update} />
@@ -73,7 +85,7 @@ export function TopBar({
     <div class="top-right">
       <span class="review-segment">
         <${ReviewPanel} reviewId=${reviewId} record=${record} refreshRecord=${refreshRecord} comments=${comments} />
-        <button class="btn-preview" onClick=${onCompile}>Preview</button>
+        <button class="btn-preview" disabled=${previewDisabled} title=${previewDisabled ? "Preview uses live review data and is unavailable in the Radar demo" : undefined} onClick=${onCompile}>Preview</button>
       </span>
       <button class="btn-icon icon-btn files-toggle" data-tip="Browse files" aria-label="Browse files" onClick=${onToggleFiles}>
         <${File} /><span class="mobile-action-label">Files</span>
@@ -91,12 +103,13 @@ export function TopBar({
             <span class="icon-slot" data-icon="dark"><${Moon} /></span>
           </span>
         </button>
+        <button class="btn-icon icon-btn" data-tip="Settings" aria-label="Settings" onClick=${openSettings}><${Settings} /></button>
         <button class="btn-icon icon-btn" data-tip="What's new (n)" aria-label="What's new (n)" onClick=${onWhatsNew}><${Sparkles} /></button>
         <button class="btn-icon icon-btn" data-tip="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick=${onHelp}><${HelpCircle} /></button>
       </span>
       <${OverflowMenu} browse=${browse} viewMode=${viewMode} splitView=${splitView} wrap=${wrap} theme=${theme}
         onRefresh=${onRefresh} onToggleView=${onToggleView} onToggleSplit=${onToggleSplit} onToggleWrap=${onToggleWrap}
-        onToggleTheme=${onToggleTheme} onWhatsNew=${onWhatsNew} onHelp=${onHelp} />
+        onToggleTheme=${onToggleTheme} onSettings=${openSettings} onWhatsNew=${onWhatsNew} onHelp=${onHelp} />
     </div>
-  </header>`;
+  </header>`, showSettings && html`<${SettingsModal} onClose=${closeSettings} />`];
 }
