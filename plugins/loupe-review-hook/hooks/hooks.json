@@ -1,7 +1,0 @@
-{
-  "hooks": {
-    "Stop": [
-      { "hooks": [{ "type": "command", "command": "loupe hook stop --agent codex", "timeout": 15, "statusMessage": "Opening Loupe review" }] }
-    ]
-  }
-}

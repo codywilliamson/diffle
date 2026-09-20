@@ -1,17 +1,19 @@
 {
   "name": "loupe-local",
-  "interface": { "displayName": "Loupe" },
+  "interface": {
+    "displayName": "Loupe"
+  },
   "plugins": [
     {
       "name": "loupe-review",
-      "source": { "source": "local", "path": "./plugins/loupe-review" },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
-      "category": "Productivity"
-    },
-    {
-      "name": "loupe-review-hook",
-      "source": { "source": "local", "path": "./plugins/loupe-review-hook" },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "source": {
+        "source": "local",
+        "path": "./plugins/loupe-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
       "category": "Productivity"
     }
   ]

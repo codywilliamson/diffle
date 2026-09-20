@@ -2,9 +2,15 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "loupe-local",
   "description": "Local Loupe review integrations",
-  "owner": { "name": "Cody Williamson" },
+  "owner": {
+    "name": "Cody Williamson"
+  },
   "plugins": [
-    { "name": "loupe-review", "description": "Explicit Loupe review skill and MCP server.", "source": "./integrations/claude-code/loupe-review", "category": "development" },
-    { "name": "loupe-review-hook", "description": "Optional completion hook for Loupe review.", "source": "./integrations/claude-code/loupe-review-hook", "category": "development" }
+    {
+      "name": "loupe-review",
+      "description": "Explicit Loupe review skill and MCP server.",
+      "source": "./integrations/claude-code/loupe-review",
+      "category": "development"
+    }
   ]
 }

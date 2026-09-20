@@ -1,8 +1,0 @@
-{
-  "name": "loupe-review-hook",
-  "version": "0.1.0",
-  "description": "Optionally open Loupe when Claude Code finishes work.",
-  "author": { "name": "Cody Williamson" },
-  "homepage": "https://codywilliamson.github.io/loupe/",
-  "repository": "https://github.com/codywilliamson/loupe"
-}
