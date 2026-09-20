@@ -34,11 +34,25 @@ The GIF is rendered at half speed so each review step remains readable in the RE
 
 ## Record the Radar social demo
 
-Set `OPENROUTER_API_KEY` in `.env`, then run `bun run docs:capture-radar-social`. The
-script creates an isolated Git repository and captures the production Radar flow using
-live Jev decisions through OpenRouter; secret-shaped demo code remains local.
-It writes `radar-social.mp4`, `radar-social.webm`, and `radar-social.png` under
-`docs/screenshots/`. The clip is 1920×1080, silent, under 60 seconds, and includes
-text overlays for timeline viewing without audio.
+Set `OPENROUTER_API_KEY` in `.env`, then run `bun run docs:capture-radar-social`. It seeds an
+isolated Git repository with a six-file agent change (one file carries a secret-shaped literal),
+serves the production Radar flow, and records it live through OpenRouter with `typesafe/jev-1.13`.
+Secret-shaped demo code is blocked locally and never transmitted, and the outbound packet never
+contains the API key.
 
-If Chromium is missing, rerun `bunx playwright install chromium`. If port `43127` is occupied, stop the existing process before capturing again. The script never commits the generated demo repository.
+This is a **Playwright → Remotion** pipeline (record a clean flow, composite the polish in post):
+
+- `bun run demo:record` drives real interactions and logs a motion timeline, writing a clean
+  screencast to `remotion/public/radar.mp4` and `out/product-demo/timeline.json`.
+- `bun run demo:render` composites the studio backdrop, floating window, zoom camera, vector
+  cursor, and captions with Remotion, delivering `radar-social.mp4` (H.264, yuv420p, 30 fps,
+  fast-start), `radar-social.webm` (VP9), and `radar-social.png` (poster) under `docs/screenshots/`.
+
+The full architecture, how to add a flow, and requirements live in
+[`docs/agents/product-demo.md`](agents/product-demo.md). The clip is 1920×1080, dark, silent, and
+about 22–30 seconds — a deliberate product demo, not an automated test run. The recording carries
+no overlays, so product UI and accessibility behavior are untouched.
+
+If Chromium is missing, rerun `bunx playwright install chromium`. Remotion downloads a headless
+Chrome shell on first render; set `DEMO_GL=swiftshader` if GPU rendering fails. If port `43128` is
+occupied, stop the existing process before capturing again. The scripts never commit the demo repo.

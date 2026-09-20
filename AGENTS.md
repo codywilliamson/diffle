@@ -16,6 +16,11 @@ Loupe uses the default Matt Pocock skill label vocabulary. See `docs/agents/tria
 
 Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 
+### Product demo capture
+
+Polished demo videos come from a Playwright → Remotion pipeline (record clean, composite in post).
+See `docs/agents/product-demo.md`.
+
 ## Stack & hard constraints
 
 - **Bun is everything**: server (`Bun.serve`), tests (`bun test`), TypeScript executed directly. No build step, no bundler, no transpile.

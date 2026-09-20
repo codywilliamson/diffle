@@ -17,12 +17,22 @@
     "mcpb:validate": "bun run mcpb:stage && mcpb validate mcpb/manifest.json",
     "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/loupe.mcpb",
     "docs:capture-agent-walkthrough": "node scripts/capture-agent-walkthrough.mjs",
-    "docs:capture-radar-social": "node --env-file=.env scripts/capture-radar-social.mjs"
+    "demo:record": "node --env-file=.env scripts/demo-record.mjs",
+    "demo:render": "node scripts/demo-render.mjs",
+    "docs:capture-radar-social": "node --env-file=.env scripts/demo-record.mjs && node scripts/demo-render.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
+    "@remotion/bundler": "^4.0.526",
+    "@remotion/motion-blur": "^4.0.526",
+    "@remotion/renderer": "^4.0.526",
     "@types/bun": "latest",
-    "playwright": "1.62.1"
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "playwright": "1.62.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "^4.0.526"
   },
   "peerDependencies": {
     "typescript": "^5"
