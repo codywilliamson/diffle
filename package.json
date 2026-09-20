@@ -15,8 +15,7 @@
     "mcp:serve": "bun src/mcp/index.ts",
     "mcpb:stage": "bun run build:binary && bun scripts/stage-mcpb.ts",
     "mcpb:validate": "bun run mcpb:stage && mcpb validate mcpb/manifest.json",
-    "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/loupe.mcpb",
-    "docs:capture-agent-walkthrough": "node scripts/capture-agent-walkthrough.mjs"
+    "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/loupe.mcpb"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
