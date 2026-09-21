@@ -3,21 +3,22 @@
 // back into the review store, so the two compose without a shared global.
 
 import type { Comment, DiffResult } from "$types";
-import { saveComments, type CommentsResponse } from "$lib/api/comments";
+import { saveComments, saveViewed, type CommentsResponse } from "$lib/api/comments";
 import { resolveReviewComment, replyToReviewComment } from "$lib/api/review";
 import { partitionComments } from "$lib/anchor";
-import { isRecord, commentsOf, errorMessage } from "./reviewRecord";
+import { isRecord, isResolved, commentsOf, errorMessage } from "./reviewRecord";
 import type { ReviewStore } from "./review.svelte";
 
 const EMPTY_DIFF: DiffResult = { ref: "", files: [] };
 
 export interface CommentsDeps {
   saveComments: (comments: Comment[], signal?: AbortSignal) => Promise<CommentsResponse>;
+  saveViewed: (viewed: string[], signal?: AbortSignal) => Promise<CommentsResponse>;
   resolveReviewComment: typeof resolveReviewComment;
   replyToReviewComment: typeof replyToReviewComment;
 }
 
-const realDeps: CommentsDeps = { saveComments, resolveReviewComment, replyToReviewComment };
+const realDeps: CommentsDeps = { saveComments, saveViewed, resolveReviewComment, replyToReviewComment };
 
 export function createCommentsStore(
   review: ReviewStore,
@@ -27,12 +28,29 @@ export function createCommentsStore(
   let error = $state<string | null>(null);
 
   const comments = (): Comment[] => commentsOf(review.record);
+  const viewed = (): string[] => {
+    const r = review.record;
+    return r ? r.viewed : [];
+  };
 
   // save the full comments array and adopt whatever record the server returns.
   async function persist(next: Comment[]): Promise<void> {
     error = null;
     try {
       review.adopt(await deps.saveComments(next));
+    } catch (e) {
+      error = errorMessage(e);
+    }
+  }
+
+  // toggle a file's viewed mark, saving the full viewed array and adopting the returned record.
+  async function toggleViewed(path: string): Promise<void> {
+    const set = new Set(viewed());
+    if (set.has(path)) set.delete(path);
+    else set.add(path);
+    error = null;
+    try {
+      review.adopt(await deps.saveViewed([...set]));
     } catch (e) {
       error = errorMessage(e);
     }
@@ -71,6 +89,14 @@ export function createCommentsStore(
     get error(): string | null {
       return error;
     },
+    get viewedSet(): Set<string> {
+      return new Set(viewed());
+    },
+    // unresolved comment count for a file, for the index badge.
+    countFor(path: string): number {
+      return comments().filter((c) => c.file === path && !isResolved(c)).length;
+    },
+    toggleViewed,
     add: (comment: Comment) => persist([...comments(), comment]),
     edit: (id: string, patch: Partial<Comment>) =>
       persist(comments().map((c) => (c.id === id ? { ...c, ...patch } : c))),

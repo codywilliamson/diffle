@@ -37,6 +37,7 @@ const diff = (paths: string[]): DiffResult => ({ ref: "", files: paths.map(dfile
 
 const cdeps = (over: Partial<CommentsDeps> = {}): CommentsDeps => ({
   saveComments: async (comments) => rec({ comments }),
+  saveViewed: async (viewed) => rec({ viewed }),
   resolveReviewComment: async () => rec(),
   replyToReviewComment: async () => rec(),
   ...over,
@@ -98,6 +99,27 @@ describe("comments store — legacy mode", () => {
     expect(store.error).toBe("not available on a legacy review");
     await store.reply("1", "x");
     expect(store.error).toBe("not available on a legacy review");
+  });
+});
+
+describe("comments store — viewed + counts", () => {
+  it("toggles a file's viewed mark through saveViewed and adopts the record", async () => {
+    const review = seeded(rec({ viewed: [] }));
+    let saved: string[] = [];
+    const store = createCommentsStore(review, () => null, cdeps({ saveViewed: async (v) => { saved = v; return rec({ viewed: v }); } }));
+    await store.toggleViewed("a.ts");
+    expect(saved).toEqual(["a.ts"]);
+    expect([...store.viewedSet]).toEqual(["a.ts"]);
+    await store.toggleViewed("a.ts");
+    expect([...store.viewedSet]).toEqual([]);
+  });
+
+  it("counts only unresolved comments per file", () => {
+    const review = seeded(rec({ comments: [cmt("1", { file: "a.ts" }), cmt("2", { file: "a.ts", status: "resolved" }), cmt("3", { file: "b.ts" })] }));
+    const store = createCommentsStore(review, () => null, cdeps());
+    expect(store.countFor("a.ts")).toBe(1);
+    expect(store.countFor("b.ts")).toBe(1);
+    expect(store.countFor("c.ts")).toBe(0);
   });
 });
 

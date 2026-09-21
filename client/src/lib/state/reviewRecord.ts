@@ -21,7 +21,7 @@ export function commentsOf(r: ReviewData | null): Comment[] {
 }
 
 // resolved comments are kept for the record but drop out of open counts.
-const isResolved = (c: Comment): boolean => c.resolved === true || c.status === "resolved";
+export const isResolved = (c: Comment): boolean => c.resolved === true || c.status === "resolved";
 
 export function countUnresolved(comments: Comment[]): number {
   return comments.filter((c) => !isResolved(c)).length;
