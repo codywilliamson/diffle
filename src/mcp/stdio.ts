@@ -1,5 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createMcpServer } from "./server";
+import { productEnv } from "../utils/env";
 import type { McpRootProvider, ReviewOperations } from "./operations";
 
 // stops every server this process launched exactly once, however the process ends
@@ -24,5 +25,6 @@ export async function serveMcp(operations: ReviewOperations, roots: McpRootProvi
 }
 
 export function configuredRoots(fallback: string): McpRootProvider {
-  return { getRoots: async () => (process.env.LOUPE_ROOT ? [process.env.LOUPE_ROOT] : [fallback]) };
+  const root = productEnv("ROOT");
+  return { getRoots: async () => (root ? [root] : [fallback]) };
 }

@@ -60,7 +60,7 @@ function pipeAndWatch(child: ChildProcess, pattern: RegExp, label: string): Prom
 
 const backend = spawn("bun", [join(ROOT, "src", "index.ts"), "--no-open", ...process.argv.slice(2)], {
   cwd: process.cwd(),
-  env: { ...process.env, LOUPE_SESSION_HOST: "cli" },
+  env: { ...process.env, DIFFLE_SESSION_HOST: "cli" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 children.push(backend);
