@@ -95,3 +95,37 @@ export const COMMENT_FILE = "src/server.ts";
 export const COMMENT_LINE = 10; // the `x-forwarded-for` line
 export const COMMENT_TEXT = "prefer a trusted proxy header — x-forwarded-for is spoofable";
 export const REVIEW_SUMMARY = "Solid limiter. One nit on the client-IP source before we ship.";
+
+// a multi-line range comment (lines 10–12 of server.ts: the whole rate-limit check).
+export const RANGE_START = 10;
+export const RANGE_END = 12;
+export const RANGE_TEXT = "gate this whole block behind a config flag so we can disable it in dev";
+
+// a bigger, nested diff so the file-tree take actually shows filtering + scrolling.
+const mod = (path: string, base: string, work: string): FixtureFile => ({ path, base, work });
+const add = (path: string, work: string): FixtureFile => ({ path, work });
+
+export const BIG_FIXTURE: FixtureFile[] = [
+  mod("src/server.ts", "export function serve() {}\n", "import { limit } from './rateLimiter';\nexport function serve() { return limit; }\n"),
+  add("src/rateLimiter.ts", "export const limit = 20;\n"),
+  mod("src/router.ts", "export const routes = [];\n", "export const routes = ['/health', '/users'];\n"),
+  mod("src/routes/health.ts", "export const health = () => 'ok';\n", "export const health = () => ({ ok: true });\n"),
+  add("src/routes/users.ts", "export const users = () => [];\n"),
+  mod("src/routes/auth.ts", "export const auth = false;\n", "export const auth = true;\n"),
+  add("src/routes/session.ts", "export const session = {};\n"),
+  mod("src/db/client.ts", "export const db = null;\n", "export const db = connect();\n"),
+  add("src/db/migrations/001_init.sql", "create table users (id int);\n"),
+  add("src/db/migrations/002_sessions.sql", "create table sessions (id int);\n"),
+  add("src/middleware/logger.ts", "export const logger = () => {};\n"),
+  mod("src/middleware/cors.ts", "export const cors = '*';\n", "export const cors = 'https://app.example.com';\n"),
+  mod("src/utils/env.ts", "export const env = 'dev';\n", "export const env = process.env.NODE_ENV;\n"),
+  add("src/utils/time.ts", "export const now = () => Date.now();\n"),
+  mod("src/config.ts", "export const port = 3000;\n", "export const port = Number(process.env.PORT) || 3000;\n"),
+  mod("tests/router.test.ts", "test('routes', () => {});\n", "test('routes', () => { expect(routes).toHaveLength(2); });\n"),
+  add("tests/rateLimiter.test.ts", "test('limit', () => {});\n"),
+  add("tests/users.test.ts", "test('users', () => {});\n"),
+  mod("package.json", '{\n  "name": "api"\n}\n', '{\n  "name": "api",\n  "version": "0.2.0"\n}\n'),
+  mod("README.md", "# api\n", "# api\n\nA tiny HTTP service with rate limiting.\n"),
+  add(".github/workflows/ci.yml", "name: ci\non: push\n"),
+  mod("tsconfig.json", '{ "strict": false }\n', '{ "strict": true }\n'),
+];
