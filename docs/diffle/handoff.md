@@ -1,6 +1,6 @@
-# diffle — implementation handoff (Phases 0–6 done → Phase 7)
+# diffle — implementation handoff (Phases 0–7 done → Phase 8)
 
-> Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), and the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please). Phases 0–6 are committed and verified. What remains (Phases 7–9) is the docs site, demos, and the release-readiness pass. **The externally-gated actions have NOT been done — no domain registered, repo not renamed, nothing tagged/released/deployed; those are the user's calls.** This doc lets a fresh session pick up **Phase 7** without re-deriving the state.
+> Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please), and an **Astro Starlight docs site** (`web/`, at diffle.dev) is built. The domain **diffle.dev is registered** (Cloudflare) and the **GitHub repo is renamed to `codywilliamson/diffle`** — in-repo URLs are flipped accordingly. Phases 0–7 are committed and verified. What remains (Phases 8–9) is demos and the release-readiness pass. **Still not done (user's calls): connect the CF Pages project + map diffle.dev, cut the first GitHub release, and retire the old `site/` + `pages.yml` once the new site is live.** This doc lets a fresh session pick up **Phase 8** without re-deriving the state.
 
 ## Status — what's done
 
@@ -56,38 +56,43 @@ Out-of-scope items found while dogfooding — deferred, not lost:
 
 Committed on `evolve`. Rebrand: `83ae184` (product config + command), `1dde07a` (env + data dir), `60b91be` (labels + MCP name), `e573c21` (binary/MCPB names + docs-url removal). Release channel: `40c236d` (update check), `f139c75` (`diffle update`), `03885c4` (cross-target build), `c34eabc` (installers + workflow). Verified: `bun test` 215 · `tsc` 0 · Vitest 83 · svelte-check 0 · Playwright 7 · standalone `dist/diffle.exe` from a temp dir (version, review under both `DIFFLE_*` and legacy `LOUPE_*`, `mcp serve` name `diffle`, `diffle update`) · MCPB validate (host + target-aware) · cross-compile of linux-x64 + windows-x64 + windows-arm64 with checksums.
 
-### Gated actions still pending (the user's, deliberately not done)
-1. **Register the domain** and host `install`/`install.ps1` on it (the scripts install from GitHub Releases and need no domain to *download* — the domain is only the `curl … | sh` convenience host).
-2. **Rename the GitHub repo** loupe→diffle, then flip `PRODUCT.repository` (and the badge/plugin/installer `codywilliamson/loupe` URLs) — GitHub redirects cover the interim.
-3. **Cut the first release**: merge the Release Please PR (which tags + drafts), let `.github/workflows/release.yml` build/upload, and publish. The release must include `diffle-<target>` binaries + `checksums.txt` or `diffle update`/installers have nothing to fetch. **Nothing has been tagged, released, or deployed.**
+## Phase 7 — done (docs site)
+
+Committed on `evolve`: `42f04c1` (Astro Starlight site) + `chore: point repo urls at codywilliamson/diffle` + `feat(build): set diffle.dev as the product homepage`. The site is a **separate `web/` package** (Astro 7 + Starlight 0.42, build-only deps isolated from the app) themed with the D5 tokens: `getting-started/` (installation, quickstart), `guides/` (reviewing-changes, inline-comments, agent-feedback, migrating-from-loupe), `reference/` (cli, configuration, mcp-tools). `bun run build` copies the root `install.sh`/`install.ps1` into `web/public/` so the built site serves them at `/install` + `/install.ps1`. Verified: `bun run build` → 11 pages, browser-checked landing + a content page (D5 dark theme, sidebar order, Tabs/Steps/Aside render).
+
+### Gated actions still pending (the user's)
+1. **Connect Cloudflare Pages** to the repo and map `diffle.dev` — exact settings in [`web/README.md`](../../web/README.md) (Git integration = zero secrets in the repo). This makes `diffle.dev` + `diffle.dev/install` live.
+2. **Cut the first release**: merge the Release Please PR (tags + drafts), let `.github/workflows/release.yml` build/upload the per-target binaries + `checksums.txt`, then publish. Until a release exists, `diffle update` and the installers have nothing to fetch. **Nothing has been tagged, released, or deployed.**
+3. **Retire the old `site/` + `.github/workflows/pages.yml`** once the new CF site is confirmed live (the plan defers this until then; `pages.yml` is dormant meanwhile since nothing touches `site/`).
 4. GitHub repo **description + README** (the user is handling these).
 
-**Phase 7 is the next phase.** Paste the block below into a fresh session at the repo root; do not touch the gated actions above.
+Done since the last handoff: domain `diffle.dev` registered; repo renamed to `codywilliamson/diffle` and in-repo URLs flipped; `diffle.dev` wired as `PRODUCT.site` + manifest/plugin homepage.
+
+**Phase 8 is the next phase.** Paste the block below into a fresh session at the repo root; do not touch the gated actions above.
 
 ```
-diffle Phase 7 — documentation site
+diffle Phase 8 — product demos
 
-You are continuing the diffle build on branch `evolve`. Phases 0–6 are complete (see
-docs/diffle/handoff.md and docs/diffle/plan.md). Do the stateful build + verification
-directly. Execute, verify, commit each concern with Conventional Commits, then report.
+You are continuing the diffle build on branch `evolve`. Phases 0–7 are complete (see
+docs/diffle/handoff.md and docs/diffle/plan.md). Execute, verify, commit each concern with
+Conventional Commits, then report.
 
-Read first: docs/diffle/plan.md (Phase 7), docs/diffle/design.md + DESIGN.md (D5 tokens),
-site/ and .github/workflows/pages.yml (the old Pages site to retire), README.md.
+Read first: docs/diffle/plan.md (Phase 8), e2e/harness.ts (Playwright fixture that launches a
+review), the web/ docs site, docs/screenshots/ (existing captures).
 
-Build an Astro Starlight docs site (Getting Started tutorials, task Guides, Reference)
-themed with the D5 tokens. Document the installed-binary install path, the loupe→diffle
-compatibility window, and the MCP/plugin setup. Do NOT deploy or register a domain, and do
-NOT retire site/ or the Pages workflow until the new site is confirmed building. `src/types.ts`
-stays the only shared contract; keep the runtime deps narrow (docs tooling is dev-only).
-Report commits, verification, and the handoff for Phase 8.
+Build a Remotion project isolated under demos/ (React is a build-only demo dependency, NOT an app
+dep — its own package.json, like web/). Drive a deterministic temp repo through Playwright to
+capture real product states, then composite those captures into short demo clips. Do NOT
+hand-author UI footage that can drift from the product. Consume outputs from the docs site and
+README without committing heavy intermediate media. Keep the app's runtime deps narrow.
+Report commits, verification, and the handoff for Phase 9.
 ```
 
-## Phases 8–9 (after Phase 7)
+## Phase 9 (after Phase 8)
 
 All detailed in [`plan.md`](plan.md); each externally-visible action is separately gated:
 
-- **8 — Demos:** Remotion under `demos/` driven by Playwright captures.
-- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias once the compatibility window closes), refresh all docs, run the full matrix from a clean checkout.
+- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias once the compatibility window closes) and the retired `site/`, refresh all docs, run the full matrix from a clean checkout.
 
 Stop before any domain registration, repo rename, deploy, tag, or release unless explicitly approved.
 
