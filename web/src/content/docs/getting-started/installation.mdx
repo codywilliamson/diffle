@@ -64,10 +64,20 @@ diffle update
 
 Remove the binary, and optionally your data directory:
 
-```sh
-rm ~/.diffle/bin/diffle      # the binary
-rm -rf ~/.diffle             # also removes review records + settings
-```
+<Tabs syncKey="os">
+  <TabItem label="macOS / Linux" icon="apple">
+    ```sh
+    rm ~/.diffle/bin/diffle      # the binary
+    rm -rf ~/.diffle             # also removes review records + settings
+    ```
+  </TabItem>
+  <TabItem label="Windows" icon="seti:powershell">
+    ```powershell
+    Remove-Item ~/.diffle/bin/diffle.exe      # the binary
+    Remove-Item -Recurse -Force ~/.diffle     # also removes review records + settings
+    ```
+  </TabItem>
+</Tabs>
 
 ## From source (contributors)
 
