@@ -78,7 +78,7 @@
       <WrapText size={16} />
     </button>
     <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="Re-run the diff" title="Re-run the diff" onclick={() => diff.refresh()}>
-      <RefreshCw size={16} />
+      <RefreshCw size={16} class={diff.refreshing ? "animate-spin" : ""} />
     </button>
     <button
       class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text"

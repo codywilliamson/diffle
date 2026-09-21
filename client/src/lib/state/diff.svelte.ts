@@ -20,6 +20,7 @@ const messageOf = (err: unknown): string =>
 export function createDiffStore(deps: Deps = { getDiff }) {
   let state = $state<DiffState>({ status: "idle" });
   let refreshFailed = $state(false);
+  let refreshing = $state(false);
   let inflight: AbortController | null = null;
 
   const ready = $derived(state.status === "ready" ? state.diff : undefined);
@@ -50,6 +51,9 @@ export function createDiffStore(deps: Deps = { getDiff }) {
     get refreshFailed(): boolean {
       return refreshFailed;
     },
+    get refreshing(): boolean {
+      return refreshing;
+    },
     async load(): Promise<void> {
       const signal = begin();
       state = { status: "loading" };
@@ -64,6 +68,7 @@ export function createDiffStore(deps: Deps = { getDiff }) {
     // re-fetch; adopt on success, otherwise keep the last good diff if we have one.
     async refresh(): Promise<void> {
       const signal = begin();
+      refreshing = true;
       try {
         state = { status: "ready", diff: await deps.getDiff(signal) };
         refreshFailed = false;
@@ -74,6 +79,8 @@ export function createDiffStore(deps: Deps = { getDiff }) {
           return;
         }
         state = { status: "error", message: messageOf(err) };
+      } finally {
+        refreshing = false;
       }
     },
   };
