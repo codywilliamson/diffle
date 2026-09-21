@@ -1,5 +1,6 @@
-// stages the native Loupe binary and a platform-specific MCPB manifest.
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+// stages the self-contained Loupe binary and a platform-specific MCPB manifest.
+// the binary embeds the client, so no separate client tree or package.json is copied here.
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
@@ -8,20 +9,13 @@ const extension = process.platform === "win32" ? ".exe" : "";
 const source = join(root, "dist", `loupe${extension}`);
 if (!existsSync(source)) throw new Error(`compiled Loupe binary not found: ${source}`);
 
-const serverDir = join(root, "mcpb", "server");
+const mcpbDir = join(root, "mcpb");
+const serverDir = join(mcpbDir, "server");
 const binary = `loupe-mcp${extension}`;
-rmSync(serverDir, { recursive: true, force: true });
+// sweep legacy staging outputs so `mcpb pack` never bundles a second client tree.
+for (const stale of ["server", "src", "dist", "package.json"]) rmSync(join(mcpbDir, stale), { recursive: true, force: true });
 mkdirSync(serverDir, { recursive: true });
 copyFileSync(source, join(serverDir, binary));
-// stage the built svelte client next to the binary (phase 4 will embed it in the executable).
-const builtClient = join(root, "dist", "client");
-const mcpbDist = join(root, "mcpb", "dist");
-rmSync(mcpbDist, { recursive: true, force: true });
-if (existsSync(builtClient)) {
-  mkdirSync(mcpbDist, { recursive: true });
-  cpSync(builtClient, join(mcpbDist, "client"), { recursive: true });
-}
-copyFileSync(join(root, "package.json"), join(root, "mcpb", "package.json"));
 
 const manifest = {
   $schema: "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
