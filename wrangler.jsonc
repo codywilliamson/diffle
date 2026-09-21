@@ -1,0 +1,8 @@
+{
+  // Cloudflare Workers static-assets deploy for the diffle.dev docs site.
+  // Build command (in the CF project): cd web && bun install && bun run build  → web/dist
+  // Deploy command: npx wrangler deploy  → uploads web/dist as static assets (no Worker script).
+  "name": "diffle",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./web/dist" }
+}
