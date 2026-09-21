@@ -136,7 +136,7 @@ export function handleGetCompile(ctx: ServerContext, url: URL): Response {
   return json({ prompt: compileReviewPrompt(ctx.diff, review, summary) } satisfies CompilePromptResponse);
 }
 
-// reports whether a newer loupe release exists on origin (best-effort, never throws).
-export function handleGetUpdate(ctx: ServerContext): Response {
-  return json(checkForUpdate(ctx.loupeRoot));
+// reports whether a newer diffle release is published (best-effort, never throws).
+export async function handleGetUpdate(ctx: ServerContext): Promise<Response> {
+  return json(await checkForUpdate(ctx.loupeRoot));
 }

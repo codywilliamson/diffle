@@ -1,22 +1,24 @@
-// checks loupe's own repo for a newer release tag on origin. throttled git fetch,
-// pure semver comparison. used by GET /api/update; the ui shows pull instructions.
+// checks the GitHub Releases channel for a newer diffle than the one running. best-effort and
+// throttled; any network failure reports "up to date" so the ui never blocks or errors offline.
+// the installed version is the build-time constant (standalone binary) or package.json (source).
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { UpdateStatus } from "../types";
-import { runGit } from "../utils/git";
+import { PRODUCT } from "./product";
 import { injectedVersion } from "./standalone";
 
-const FETCH_INTERVAL_MS = 10 * 60 * 1000; // throttle the network fetch to once per 10 min
-let lastFetch = 0;
+const CACHE_MS = 10 * 60 * 1000; // reuse a result for 10 min to stay under the API rate limit
+const FETCH_TIMEOUT_MS = 3000;
+let cache: { at: number; status: UpdateStatus } | null = null;
+
+type Semver = [number, number, number];
 
 // parse "1.2.3" or "v1.2.3" into [major, minor, patch]; non-semver tags ⇒ null.
 function parseSemver(tag: string): Semver | null {
   const m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag.trim());
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 }
-
-type Semver = [number, number, number];
 
 function cmp(a: Semver, b: Semver): number {
   return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
@@ -36,8 +38,7 @@ export function latestVersion(current: string, tags: string[]): string {
   return best;
 }
 
-// installed version (also used by the cli banner): the build-time constant in the standalone
-// binary, else loupe's own package.json in a source checkout.
+// installed version: the build-time constant in the standalone binary, else package.json.
 export function currentVersion(loupeRoot: string): string {
   const injected = injectedVersion();
   if (injected) return injected;
@@ -49,27 +50,43 @@ export function currentVersion(loupeRoot: string): string {
   }
 }
 
-// fetches origin tags (throttled, best-effort) and compares them to the installed version.
-export function checkForUpdate(loupeRoot: string): UpdateStatus {
+// owner/repo from the configured repository url → the releases api endpoint.
+export function releasesApiUrl(): string {
+  const m = /github\.com\/([^/]+)\/([^/.]+)/.exec(PRODUCT.repository);
+  const [, owner = "", repo = ""] = m ?? [];
+  return `https://api.github.com/repos/${owner}/${repo}/releases?per_page=20`;
+}
+
+// published (non-draft, non-prerelease) release tags; [] on any network/parse failure.
+async function fetchReleaseTags(): Promise<string[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(releasesApiUrl(), {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": PRODUCT.name },
+      signal: controller.signal,
+    });
+    if (!res.ok) return [];
+    const releases = (await res.json()) as Array<{ tag_name?: string; draft?: boolean; prerelease?: boolean }>;
+    return releases.filter((r) => !r.draft && !r.prerelease && r.tag_name).map((r) => r.tag_name as string);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// current install vs the newest published release. `fetchTags` is injectable for tests.
+export async function checkForUpdate(loupeRoot: string, fetchTags: () => Promise<string[]> = fetchReleaseTags): Promise<UpdateStatus> {
   const current = currentVersion(loupeRoot);
   const now = Date.now();
-  if (now - lastFetch > FETCH_INTERVAL_MS) {
-    lastFetch = now;
-    try {
-      runGit(["fetch", "--tags", "--quiet"], loupeRoot);
-    } catch {
-      // offline or no remote: fall back to whatever tags are already local
-    }
-  }
-  let tags: string[] = [];
-  try {
-    tags = runGit(["tag", "--list"], loupeRoot)
-      .split("\n")
-      .map((t) => t.trim())
-      .filter(Boolean);
-  } catch {
-    // not a git checkout: report up to date
-  }
-  const latest = latestVersion(current, tags);
-  return { behind: latest !== current, current, latest, repoPath: loupeRoot };
+  if (cache && now - cache.at < CACHE_MS && cache.status.current === current) return cache.status;
+  const latest = latestVersion(current, await fetchTags());
+  const status: UpdateStatus = { behind: latest !== current, current, latest };
+  cache = { at: now, status };
+  return status;
+}
+
+export function resetUpdateCache(): void {
+  cache = null;
 }
