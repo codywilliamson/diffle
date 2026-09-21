@@ -1,0 +1,28 @@
+{
+  "name": "diffle-demos",
+  "type": "module",
+  "private": true,
+  "description": "Playwright-captured, Remotion-composited product demos for diffle (build-only, isolated from the app)",
+  "scripts": {
+    "capture": "tsx src/capture.ts",
+    "studio": "remotion studio",
+    "render:mp4": "remotion render src/index.ts ReviewWalkthrough out/walkthrough.mp4 --crf=28 --log=error",
+    "render:gif": "remotion render src/index.ts ReviewWalkthrough out/walkthrough.gif --codec=gif --scale=0.4 --every-nth-frame=5 --log=error",
+    "render": "npm run render:mp4 && npm run render:gif",
+    "publish-media": "tsx scripts/publish-media.mjs",
+    "build": "npm run capture && npm run render && npm run publish-media"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "playwright": "^1.62.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
