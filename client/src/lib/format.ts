@@ -32,6 +32,17 @@ export function isMarkdown(path: string): boolean {
   return /\.(md|markdown)$/i.test(path);
 }
 
+// resolve a link/image target written inside `fromFile` to a repo-relative path, collapsing
+// ./ and ../; a leading "/" means the repo root (github's convention).
+export function resolveRepoPath(fromFile: string, target: string): string {
+  const parts = target.startsWith("/") ? [] : fromFile.split("/").slice(0, -1);
+  for (const seg of target.split("/")) {
+    if (seg === "..") parts.pop();
+    else if (seg && seg !== ".") parts.push(seg);
+  }
+  return parts.join("/");
+}
+
 // relative timestamp like "5m ago", "2h ago", "3d ago".
 const UNITS: [string, number][] = [["y", 31536000], ["mo", 2592000], ["d", 86400], ["h", 3600], ["m", 60]];
 export function relativeTime(iso: string): string {

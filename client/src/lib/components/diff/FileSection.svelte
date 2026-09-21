@@ -3,25 +3,33 @@
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
   import type { DiffFile } from "$types";
   import { getAppState } from "$lib/state/context";
-  import { changeBadge } from "$lib/format";
+  import { changeBadge, isMarkdown } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
   import { fileComments, newComment } from "$lib/diff/threads";
   import { lineCountOf, estimatedHeight, GIANT_FILE_LINES } from "$lib/diff/metrics";
   import { nearViewport } from "$lib/actions";
   import UnifiedDiff from "./UnifiedDiff.svelte";
+  import SplitDiff from "./SplitDiff.svelte";
+  import MarkdownPreview from "./MarkdownPreview.svelte";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file }: { file: DiffFile } = $props();
-  const { ui, comments } = getAppState();
+  const { ui, comments, prefs, diff } = getAppState();
   let collapsed = $state(false);
   let loaded = $state(false); // giant-file manual gate
   let mounted = $state(false); // near-viewport lazy mount
+  let preview = $state(false); // markdown: rendered preview vs diff
+
+  const isMd = $derived(isMarkdown(file.path) && !file.binary);
 
   const badge = $derived(changeBadge(file.changeType));
   const fileLevel = $derived(fileComments(comments.comments.filter((c) => c.file === file.path)));
   const addingFile = $derived(ui.adding?.file === file.path && ui.adding.line == null);
   const giant = $derived(lineCountOf(file) > GIANT_FILE_LINES);
+  // single-sided files (added/deleted) and browse mode force the unified view.
+  const singleSided = $derived(file.changeType === "added" || file.changeType === "deleted");
+  const useSplit = $derived(prefs.split && !singleSided && diff.meta?.mode !== "browse");
 </script>
 
 <section id={fileAnchorId(file.path)} class="file-section mb-4 overflow-hidden rounded-lg border border-border bg-surface">
@@ -43,6 +51,15 @@
     <span class="ml-auto flex shrink-0 items-center gap-2 font-mono text-xs">
       {#if file.additions}<span class="text-add-text">+{file.additions}</span>{/if}
       {#if file.deletions}<span class="text-del-text">−{file.deletions}</span>{/if}
+      {#if isMd}
+        <button
+          class="rounded border border-border px-1.5 py-0.5 text-[10px] {preview ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
+          aria-label="Toggle rendered preview"
+          aria-pressed={preview}
+          title="Toggle rendered preview"
+          onclick={() => (preview = !preview)}
+        >{preview ? "Preview" : "Diff"}</button>
+      {/if}
       <button class="rounded p-1 text-muted hover:bg-surface hover:text-text" aria-label="Comment on {file.path}" title="Comment on this file" onclick={() => ui.startFileAdd(file.path)}>
         <MessagePlus size={14} />
       </button>
@@ -50,7 +67,9 @@
   </header>
 
   {#if !collapsed}
-    {#if file.binary}
+    {#if isMd && preview}
+      <MarkdownPreview {file} />
+    {:else if file.binary}
       <p class="px-4 py-3 text-sm text-muted">Binary file — no textual diff.</p>
     {:else if file.hunks.length === 0}
       <p class="px-4 py-3 text-sm text-dim">No changes to display.</p>
@@ -62,7 +81,9 @@
     {:else if !giant && !mounted}
       <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
-      <div class="overflow-x-auto"><UnifiedDiff {file} /></div>
+      <div class="overflow-x-auto {prefs.wrap ? 'wrap' : ''}">
+        {#if useSplit}<SplitDiff {file} />{:else}<UnifiedDiff {file} />{/if}
+      </div>
     {/if}
 
     {#if fileLevel.length > 0 || addingFile}
