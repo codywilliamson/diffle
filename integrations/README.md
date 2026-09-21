@@ -16,10 +16,10 @@ active Review Record prevents duplicate launches.
 Register the marketplace, then install the explicit review plugin:
 
 ```text
-codex plugin marketplace add codywilliamson/loupe
+codex plugin marketplace add codywilliamson/diffle
 codex plugin add loupe-review@loupe-local
 
-claude plugin marketplace add codywilliamson/loupe
+claude plugin marketplace add codywilliamson/diffle
 claude plugin install loupe-review@loupe-local --scope user
 ```
 

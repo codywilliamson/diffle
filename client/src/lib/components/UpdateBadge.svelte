@@ -26,7 +26,7 @@
 {#if status?.behind}
   <a
     class="rounded-full bg-mod-badge-bg px-2 py-0.5 text-xs text-mod-badge-text hover:opacity-90"
-    href="https://github.com/codywilliamson/loupe/releases"
+    href="https://github.com/codywilliamson/diffle/releases"
     target="_blank"
     rel="noopener"
     title="A newer release ({status.latest}) is available"

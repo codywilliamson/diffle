@@ -14,6 +14,5 @@ export const PRODUCT = {
   accent: "38;5;105", // diffle indigo (ansi 256)
   author: { name: "Cody Williamson", url: "https://github.com/codywilliamson" },
   site: "https://diffle.dev", // docs site + the `curl https://diffle.dev/install | sh` host
-  // the repo has not been renamed yet — flip this at the rename gate.
-  repository: "https://github.com/codywilliamson/loupe",
+  repository: "https://github.com/codywilliamson/diffle",
 } as const;
