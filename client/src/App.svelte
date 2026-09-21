@@ -3,6 +3,7 @@
   import { createAppState, setAppState } from "$lib/state/context";
   import TopBar from "$lib/components/TopBar.svelte";
   import FileIndex from "$lib/components/FileIndex.svelte";
+  import DiffView from "$lib/components/diff/DiffView.svelte";
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
@@ -26,13 +27,8 @@
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
-      <section class="min-w-0 flex-1 overflow-auto p-6">
-        {#if ui.activeFile}
-          <p class="font-mono text-sm text-muted">Selected: <span class="text-text">{ui.activeFile}</span></p>
-          <p class="mt-2 text-sm text-dim">The diff view arrives in the next slice.</p>
-        {:else}
-          <p class="text-sm text-muted">Select a file to review.</p>
-        {/if}
+      <section class="min-w-0 flex-1 overflow-auto">
+        <DiffView />
       </section>
     </div>
   {:else}
