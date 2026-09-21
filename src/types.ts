@@ -192,6 +192,17 @@ export interface UpdateStatus {
   repoPath: string; // loupe's install dir, for the "cd … && git pull" hint
 }
 
+// GET /api/compile — the compiled review prompt
+export interface CompilePromptResponse {
+  prompt: string;
+}
+
+// GET /api/file — new-side full text of a repo file, for the markdown preview
+export interface FileContentResponse {
+  path: string;
+  content: string;
+}
+
 // error envelope returned with any non-2xx status
 export interface ApiError {
   error: string;
