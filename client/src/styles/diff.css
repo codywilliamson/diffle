@@ -61,6 +61,51 @@
   border-bottom: 1px solid var(--divider);
 }
 
+/* comment layer: bubble gutter, range highlights, comment rows */
+.diff-table .bubble-gutter {
+  width: 1%;
+  padding: 0 2px;
+  vertical-align: top;
+  text-align: center;
+}
+.bubble-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 4px;
+  color: var(--accent);
+  background: var(--surface-2);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.diff-row:hover .bubble-btn,
+.bubble-btn:focus-visible {
+  opacity: 1;
+}
+.lineno.sel {
+  cursor: pointer;
+}
+.range-selected .code,
+.range-selected .lineno {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.in-range .code {
+  box-shadow: inset 3px 0 0 var(--focus);
+}
+.comment-row td {
+  background: var(--surface);
+}
+.comment-row .comment-cell {
+  padding: 4px 12px 8px 4px;
+}
+body.selecting {
+  user-select: none;
+  cursor: ns-resize;
+}
+
 /* intra-line word-change marks (markRange wraps the changed range) */
 .wd {
   border-radius: 3px;

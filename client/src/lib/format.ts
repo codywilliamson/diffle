@@ -31,3 +31,15 @@ export function langFor(path: string): string | null {
 export function isMarkdown(path: string): boolean {
   return /\.(md|markdown)$/i.test(path);
 }
+
+// relative timestamp like "5m ago", "2h ago", "3d ago".
+const UNITS: [string, number][] = [["y", 31536000], ["mo", 2592000], ["d", 86400], ["h", 3600], ["m", 60]];
+export function relativeTime(iso: string): string {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 45) return "just now";
+  for (const [label, span] of UNITS) {
+    const n = Math.floor(secs / span);
+    if (n >= 1) return `${n}${label} ago`;
+  }
+  return "just now";
+}
