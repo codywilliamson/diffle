@@ -1,4 +1,6 @@
-// cli argument parsing for the loupe entry point. pure — no io, fully unit-tested.
+// cli argument parsing for the diffle entry point. pure — no io, fully unit-tested.
+
+import { PRODUCT } from "../core/product";
 
 export interface CliOptions {
   command: "review" | "mcp" | "hook" | "sessions" | "cleanup";
@@ -14,14 +16,16 @@ export interface CliOptions {
   version: boolean;
 }
 
-export const USAGE = `loupe — local git diff review with inline comments and LLM prompt export
+export const USAGE = `${PRODUCT.name} — local git diff review with inline comments and LLM prompt export
 
 Usage
-  loupe [ref] [options]
-  loupe mcp serve
-  loupe hook stop --agent <codex|claude-code>
-  loupe sessions
-  loupe cleanup [--yes] [--all]
+  ${PRODUCT.name} [ref] [options]
+  ${PRODUCT.name} mcp serve
+  ${PRODUCT.name} hook stop --agent <codex|claude-code>
+  ${PRODUCT.name} sessions
+  ${PRODUCT.name} cleanup [--yes] [--all]
+
+  (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
 
 Refs
   (none)            working tree vs HEAD, untracked files included
@@ -31,7 +35,7 @@ Refs
   browse [path]     review the whole codebase (optionally scoped to a path)
 
 Session commands
-  sessions          list running loupe sessions (host, port, age, live/stale)
+  sessions          list running ${PRODUCT.name} sessions (host, port, age, live/stale)
   cleanup           stop stale sessions and finished reviews
       --yes         skip the confirmation prompt
       --all         also stop active (not just finished/stale) sessions

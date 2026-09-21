@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// loupe cli entry point: launch a browser review or run the local MCP server.
+// diffle cli entry point: launch a browser review or run the local MCP server.
 
 import { join } from "node:path";
 import { parseCliArgs, USAGE } from "./utils/cli";
@@ -11,16 +11,19 @@ import { runCompletionHook } from "./core/completionHook";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
+import { PRODUCT } from "./core/product";
+import { productEnv } from "./utils/env";
 
 // ansi styling, skipped when stdout isn't a terminal.
 const tty = process.stdout.isTTY === true;
 const paint = (code: string) => (s: string) => (tty ? `\x1b[${code}m${s}\x1b[0m` : s);
-const accent = paint("38;5;167"); // loupe vermilion
+const accent = paint(PRODUCT.accent);
 const bold = paint("1");
 const dim = paint("2");
+const tag = `[${PRODUCT.name}]`;
 
 function fail(message: string): never {
-  console.error(`${accent("[loupe]")} ${message}`);
+  console.error(`${accent(tag)} ${message}`);
   process.exit(1);
 }
 
@@ -35,7 +38,7 @@ export async function main(): Promise<void> {
     fail(err instanceof Error ? err.message : String(err));
   }
   if (opts.help) return console.log(USAGE);
-  if (opts.version) return console.log(`loupe v${currentVersion(loupeRoot)}`);
+  if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(loupeRoot)}`);
   if (opts.command === "mcp") return runMcpServer(cwd);
   if (opts.command === "hook") {
     if (!opts.agent) fail("hook stop requires --agent codex or claude-code");
@@ -44,7 +47,7 @@ export async function main(): Promise<void> {
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
 
-  const host = process.env.LOUPE_SESSION_HOST === "hook" ? "hook" : "cli";
+  const host = productEnv("SESSION_HOST") === "hook" ? "hook" : "cli";
   let launch;
   try {
     launch = launchReview({
@@ -64,7 +67,7 @@ export async function main(): Promise<void> {
 
   const files = launch.diff.files.length;
   const changed = launch.diff.meta?.mode === "browse" ? "" : " changed";
-  console.log(`${accent("[loupe]")} ${dim(`v${currentVersion(loupeRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
+  console.log(`${accent(tag)} ${dim(`v${currentVersion(loupeRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
   console.log(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
 
   const { stale, live } = await classifySessions();
@@ -74,7 +77,7 @@ export async function main(): Promise<void> {
   });
   const staleCount = stale.length + finished.length;
   if (staleCount > 0) {
-    console.log(`${accent("[loupe]")} ${dim(`${staleCount} stale session${staleCount === 1 ? "" : "s"} — run loupe cleanup`)}`);
+    console.log(`${accent(tag)} ${dim(`${staleCount} stale session${staleCount === 1 ? "" : "s"} — run ${PRODUCT.name} cleanup`)}`);
   }
 }
 
