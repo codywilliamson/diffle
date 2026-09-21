@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to loupe are documented here. This project follows [semantic versioning](https://semver.org).
+All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
 ## [Unreleased]
 
