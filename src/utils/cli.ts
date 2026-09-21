@@ -3,7 +3,7 @@
 import { PRODUCT } from "../core/product";
 
 export interface CliOptions {
-  command: "review" | "mcp" | "hook" | "sessions" | "cleanup";
+  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update";
   agent: "codex" | "claude-code" | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
   scope: string | undefined; // path scope for `browse`; ignored otherwise
@@ -24,6 +24,7 @@ Usage
   ${PRODUCT.name} hook stop --agent <codex|claude-code>
   ${PRODUCT.name} sessions
   ${PRODUCT.name} cleanup [--yes] [--all]
+  ${PRODUCT.name} update
 
   (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
 
@@ -60,13 +61,14 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "mcp" ? "mcp" :
     args[0] === "hook" ? "hook" :
     args[0] === "sessions" ? "sessions" :
-    args[0] === "cleanup" ? "cleanup" : "review";
+    args[0] === "cleanup" ? "cleanup" :
+    args[0] === "update" ? "update" : "review";
   if (command === "mcp" || command === "hook") {
     args.shift();
     const subcommand = args.shift();
     if (command === "mcp" && subcommand !== "serve") throw new Error("mcp requires the serve command");
     if (command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
-  } else if (command === "sessions" || command === "cleanup") {
+  } else if (command === "sessions" || command === "cleanup" || command === "update") {
     args.shift();
   }
   const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, help: false, version: false };
