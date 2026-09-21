@@ -10,23 +10,25 @@
 
 - `src/types.ts` remains the single source for diff JSON, Review Records, legacy `.review`, and API/MCP bodies. Client code imports these types; it does not shadow them.
 - The durable Review Record remains authoritative. Local mutations adopt the returned record, poll responses older than the current `updatedAt` are ignored, and a `reviewId` change invalidates in-flight requests.
-- The old client remains the default until the new client passes [parity.md](parity.md). Phase 0 adds an explicit new-client dev/preview path; it does not replace a working UI with a scaffold.
+- The Svelte client becomes the default in Phase 0. The branch does not preserve a runnable Preact fallback or dual-client switch. `src/client` remains only as read-only parity evidence until Phase 3 removes it.
+- Work test-first in vertical slices. The agreed seams are core/server interfaces (`bun test`), pure client and typed HTTP behavior (Vitest), Svelte user interactions (Testing Library), and real launch/review workflows (Playwright). Write one failing behavior test, add only enough implementation to pass, then continue; review and refactor after the slice is green.
 - D5 semantic CSS variables in [design.md](design.md) are the color source of truth. Tailwind and shadcn-svelte alias those variables instead of creating another palette.
 - Machine-consumed identity comes from one product config used by runtime and manifest-generation scripts. Human docs are updated deliberately; they are not generated from code.
 - Local phases do not register domains, create organizations, rename the GitHub repository, deploy, tag, or release. Those externally visible actions require a separate go-ahead at the relevant gate.
 - Preserve unrelated work. Keep each phase reviewable and use Conventional Commits with one concern per commit.
 
-## Phase 0 — Baseline and parallel scaffold
+## Phase 0 — Baseline and Svelte scaffold
 
 - Capture a clean baseline: `git status`, `bun test`, `bun x tsc --noEmit`, current binary/MCPB validation, and browser screenshots at desktop and phone widths.
 - Inventory browser routes and current behavior against [parity.md](parity.md). Record a missing behavior before coding instead of silently dropping it.
 - Add Svelte 5, Vite, Tailwind v4, shadcn-svelte, Vitest, Testing Library, and Playwright configuration. Keep runtime dependencies pinned and justify each new production dependency.
-- Create `client/` → `dist/client`, D5 light/dark tokens, base typography, themed browser surfaces, and a minimal shell.
-- Add one documented `bun run dev` path that starts a review backend and Vite together, proxies `/api` to that exact backend, preserves the `?review=` query, and opens the Vite URL. Add a production-preview command that serves the built client through Bun.
-- Keep `bun start` on `src/client` during the migration. Pass an internal client-directory override from the dev/preview launcher rather than adding a public CLI flag.
+- Drive the typed `/api/diff` adapter with Vitest, the loading/success/error shell with Testing Library, and the real production-preview launch with a failing Playwright tracer bullet before implementing each slice.
+- Create `client/` → `dist/client`, D5 light/dark tokens, base typography, themed browser surfaces, and the minimal shell required by those tests.
+- Make the Playwright tracer bullet drive one documented `bun run dev` path that starts a review backend and Vite together, proxies `/api` to that exact backend, preserves the `?review=` query, and opens the Vite URL. Add a production-preview command that serves the built client through Bun.
+- Repoint `bun start` and production preview to `dist/client`. The Vite dev launcher proxies to the same Bun API server; do not add a fallback, feature flag, public CLI option, or dual-client routing.
 - Replace root `DESIGN.md` with a pointer to [design.md](design.md). Update `AGENTS.md` after the scaffold exists: remove buildless/htm rules and the blanket client line cap, retain the server/core constraints that still apply. `CLAUDE.md` already includes `AGENTS.md` and needs no duplicate edit.
 
-**Exit:** old client still works by default; new shell loads through the dev and production-preview paths; Bun tests, typecheck, Vitest, and one Playwright shell smoke are green.
+**Exit:** `bun start`, the dev launcher, and production preview all use the Svelte shell; Bun tests, typecheck, Vitest, and one Playwright shell smoke are green. The branch makes no claim that the old client still runs.
 
 ## Phase 1 — Typed client modules and state ownership
 
@@ -48,14 +50,16 @@ Migrate complete user slices instead of recreating the old file graph component 
 
 Use shadcn-svelte only where a primitive earns its dependency. Restyle primitives with D5 tokens and preserve keyboard/focus behavior. Verify each slice in a real browser in both themes and at desktop and phone widths.
 
+For each numbered slice, start with one failing Playwright behavior at the public browser seam, then use Vitest or Testing Library for the narrower behaviors needed to make that tracer pass. Do not write the whole phase's tests up front or assert private rune-store/component implementation details.
+
 **Exit:** every item in [parity.md](parity.md) is implemented or recorded as an intentional product change; component tests and the full Playwright review smoke are green.
 
-## Phase 3 — Motion, accessibility, and default switch
+## Phase 3 — Motion, accessibility, and parity cleanup
 
 - Add state-driven Svelte motion, transitions, FLIP reordering, NumberFlow counts, and feature-detected View Transitions only after the relevant behavior is stable. Use GSAP only for a sequence that Svelte cannot express cleanly.
 - Gate Svelte/WAAPI/GSAP motion in code for `prefers-reduced-motion`; CSS overrides alone are not sufficient. Clear timers and animation callbacks on close, route/review change, and unmount.
 - Run keyboard, screen-reader-name, focus-return, contrast, reduced-motion, and responsive checks. Confirm only the active overlay handles Escape.
-- Switch the default server client directory from `src/client` to `dist/client` only after the parity and accessibility gates pass. Then remove the retired Preact/htm/CDN client and buildless-only docs.
+- Remove the retired Preact/htm/CDN client and buildless-only docs after the parity and accessibility gates pass. No runtime switch is needed because Svelte has been the branch default since Phase 0.
 
 **Exit:** `bun start` serves the Svelte client, the old client is gone, all automated checks pass, and a human browser pass signs off the acceptance checklist.
 
@@ -80,7 +84,8 @@ Use shadcn-svelte only where a primitive earns its dependency. Restyle primitive
 
 ## Phase 6 — Release and installer channel
 
-- Build an explicit GitHub Actions matrix for `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `darwin-x64`, and `darwin-arm64`. Publish one executable and MCPB per target plus a signed or release-attested checksum manifest.
+- Configure `googleapis/release-please-action` in manifest mode with the Node release strategy, `draft: true`, and forced tag creation. It owns Conventional Commit analysis, the release PR, `package.json`/manifest version updates, `CHANGELOG.md`, the `vX.Y.Z` tag, and draft GitHub Release creation. Merging the release PR is the explicit release action.
+- In the same workflow, gate an explicit `windows-x64`, `windows-arm64`, `linux-x64`, `linux-arm64`, `darwin-x64`, and `darwin-arm64` matrix on Release Please's `release_created` output. Upload one executable and MCPB per target plus a signed or release-attested checksum manifest into the draft, then publish only after every required job succeeds. Do not depend on a separate tag/release-triggered workflow fired by the built-in `GITHUB_TOKEN`.
 - Host `install` and `install.ps1` on the approved Cloudflare domain. Detect OS/architecture, download the exact release asset and checksum manifest, verify SHA-256 before replacement, and install into a user-writable directory with clear PATH guidance.
 - Make `diffle update` use the same verified installer path. Use an after-exit helper on Windows; refuse self-update for package-manager installs and print the exact manager command instead.
 - Replace the clone/origin-based update check with the release channel and an embedded current version. Treat network failure as non-fatal.
