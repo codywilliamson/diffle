@@ -28,7 +28,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 
 ## Engineering standards (enforced)
 
-- **File size**: soft 150 lines, **hard 200** for server/core/MCP modules — split before you hit the cap. The Svelte client is not under a blanket line cap; Svelte components and client `.ts` modules split by responsibility (SRP). The D5 token/theme CSS is exempt.
+- **File size**: soft 150 lines, **hard 200** for server/core/MCP modules — split before you hit the cap. The Svelte client is not under a blanket line cap; Svelte components and client `.ts` modules split by responsibility (SRP). Exempt: the D5 token/theme CSS, and `src/types.ts` (the single-source contract — splitting it would break the one-import-surface invariant, which outranks the cap).
 - **DRY** — extract anything used twice. Shared helpers in `src/utils/` (server) or `client/src/lib/` (client).
 - **SRP** — one job per module. If describing a file needs "and", split it.
 - **KISS / YAGNI** — build exactly what's asked. Keep agent adapters thin and avoid speculative extension points.
@@ -48,6 +48,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 - `src/utils/` — `git.ts` (`runGit`, `resolveRef`), `env.ts` (`productEnv`: DIFFLE_* then LOUPE_*), `installRoot.ts` (`isProductBinary`), `pathWithin.ts` (containment guards).
 - `client/` — Svelte 5 SPA (Vite root). `client/src/lib/` typed API adapters + state stores + diff transforms, `client/src/lib/components/` the UI, `client/src/styles/` D5 tokens/theme. Built to `dist/client`.
 - `scripts/` — `dev.ts` (`bun run dev` launcher), `generateStandaloneEntry.ts` + `build-binary.ts` (host binary), `build-release.ts` (cross-target + checksums), `stage-mcpb.ts` (per-target MCPB).
+- `demos/` — **separate build-only package** (npm, React + Remotion, isolated like `web/`). Playwright drives the real backend through one review and screenshots each scene (`src/scenes.ts` is the single source of truth); Remotion composites the captures into `docs/screenshots/walkthrough.{mp4,gif}` + stills, published to `docs/screenshots/` and `web/public/media/`. Never hand-author UI footage. See [`demos/README.md`](demos/README.md).
 - `install.sh` / `install.ps1` — the `curl … | sh` installers (served from `diffle.dev/install`). `wrangler.jsonc` — Cloudflare static-assets deploy of `web/dist`.
 - `web/` — Astro Starlight docs site (separate package) → `diffle.dev`. Themed with the D5 tokens; the build copies the root installers into `web/public/`.
 - `vite.config.ts` / `vitest.config.ts` / `playwright.config.ts` — client build, unit/component tests, e2e.
