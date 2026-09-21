@@ -1,30 +1,40 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createAppState, setAppState } from "$lib/state/context";
+  import TopBar from "$lib/components/TopBar.svelte";
+  import FileIndex from "$lib/components/FileIndex.svelte";
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const diff = app.diff;
+  const { diff, ui } = app;
 
   onMount(() => {
     void diff.load();
     void app.review.load();
   });
-
-  const fileCount = (n: number): string => `${n} ${n === 1 ? "file" : "files"}`;
 </script>
 
-<main class="min-h-dvh bg-bg font-sans text-text">
+<main class="flex h-dvh flex-col bg-bg font-sans text-text">
   {#if diff.state.status === "error"}
     <p role="alert" class="m-6 rounded-md border border-border bg-surface p-4 text-destructive">
       {diff.state.message}
     </p>
   {:else if diff.state.status === "ready"}
-    <header class="flex items-baseline gap-3 border-b border-divider bg-surface px-6 py-4">
-      <h1 class="font-serif text-2xl text-accent">diffle</h1>
-      <p class="font-mono text-sm text-muted">{diff.ref}</p>
-      <p class="ml-auto font-mono text-sm text-dim">{fileCount(diff.files.length)}</p>
-    </header>
+    <TopBar />
+    <div class="relative flex min-h-0 flex-1">
+      {#if ui.drawerOpen}
+        <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
+      {/if}
+      <FileIndex />
+      <section class="min-w-0 flex-1 overflow-auto p-6">
+        {#if ui.activeFile}
+          <p class="font-mono text-sm text-muted">Selected: <span class="text-text">{ui.activeFile}</span></p>
+          <p class="mt-2 text-sm text-dim">The diff view arrives in the next slice.</p>
+        {:else}
+          <p class="text-sm text-muted">Select a file to review.</p>
+        {/if}
+      </section>
+    </div>
   {:else}
     <p role="status" class="p-6 font-mono text-sm text-muted">Loading the diff…</p>
   {/if}
