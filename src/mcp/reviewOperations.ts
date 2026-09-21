@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { productEnv } from "../utils/env";
 import { launchReview, type ReviewLaunch } from "../core/reviewLaunch";
 import { classifySessions } from "../core/sessions";
 import {
@@ -19,7 +20,7 @@ export function createReviewOperations(loupeRoot: string): ReviewOperations {
     async startReview(input) {
       const launch = launchReview({
         cwd: resolve(input.cwd), loupeRoot, spec: input.ref, policy: input.policy ?? "required",
-        open: process.env.LOUPE_NO_OPEN !== "1", requireChanges: true, host: "mcp",
+        open: productEnv("NO_OPEN") !== "1", requireChanges: true, host: "mcp",
         ...(input.origin ? { origin: input.origin } : {}),
       });
       launches.set(launch.review.id, launch);
