@@ -1,6 +1,7 @@
 <script lang="ts">
   import X from "@lucide/svelte/icons/x";
   import type { Snippet } from "svelte";
+  import { fade, scale } from "$lib/motion";
 
   let { title, onClose, children }: { title: string; onClose: () => void; children: Snippet } = $props();
 
@@ -46,9 +47,10 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="fixed inset-0 z-50 grid place-items-center p-4">
-  <button class="absolute inset-0 bg-black/50" aria-label="Close" tabindex="-1" onclick={onClose}></button>
+  <button class="absolute inset-0 bg-black/50" aria-label="Close" tabindex="-1" onclick={onClose} transition:fade></button>
   <div
     bind:this={dialog}
+    transition:scale
     class="relative z-10 max-h-[85vh] w-full max-w-lg overflow-auto rounded-lg border border-border bg-surface p-4 shadow-xl"
     role="dialog"
     aria-modal="true"
