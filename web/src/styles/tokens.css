@@ -1,0 +1,103 @@
+/* D5 blended-indigo semantic tokens — mirrored from the app's client/src/styles/tokens.css so the
+   marketing landing and the product read as one system. If the app palette changes, change it there
+   and re-mirror here. dark is the default; light applies on an explicit data-theme or the OS
+   preference when unforced. */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #0b0e16;
+  --surface: #141826;
+  --surface-2: #1b2133;
+  --border: #29304a;
+  --divider: #1c2233;
+  --text: #e4e7f0;
+  --muted: #8c93ab;
+  --dim: #5c6480;
+  --accent: #6f82f0;
+  --accent-hover: #8496f4;
+  --focus: #93a2f5;
+  --on-accent: #ffffff;
+
+  --add-bg: #14271f;
+  --add-gutter: #1e4234;
+  --add-text: #74dba6;
+  --add-inline: #2c6349;
+  --del-bg: #2a1a20;
+  --del-gutter: #46242c;
+  --del-text: #ef8e8e;
+  --del-inline: #46242c;
+  --mod-badge-bg: #33301a;
+  --mod-badge-text: #e4c55e;
+  --ren-badge-bg: #26304a;
+  --ren-badge-text: #98a6f0;
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f7fc;
+  --surface: #ffffff;
+  --surface-2: #eceffa;
+  --border: #cbd1e4;
+  --divider: #e0e4f0;
+  --text: #171b2c;
+  --muted: #5e667f;
+  --dim: #626b85;
+  --accent: #4e63d9;
+  --accent-hover: #4053c1;
+  --focus: #4e63d9;
+  --on-accent: #ffffff;
+
+  --add-bg: #e8f7ef;
+  --add-gutter: #caead8;
+  --add-text: #1f6b45;
+  --add-inline: #a9dabd;
+  --del-bg: #fbeaec;
+  --del-gutter: #f1cdd2;
+  --del-text: #9a3544;
+  --del-inline: #e8b1ba;
+  --mod-badge-bg: #f7f0ce;
+  --mod-badge-text: #6e5a13;
+  --ren-badge-bg: #e9edfc;
+  --ren-badge-text: #4456b1;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f6f7fc;
+    --surface: #ffffff;
+    --surface-2: #eceffa;
+    --border: #cbd1e4;
+    --divider: #e0e4f0;
+    --text: #171b2c;
+    --muted: #5e667f;
+    --dim: #626b85;
+    --accent: #4e63d9;
+    --accent-hover: #4053c1;
+    --focus: #4e63d9;
+    --on-accent: #ffffff;
+
+    --add-bg: #e8f7ef;
+    --add-gutter: #caead8;
+    --add-text: #1f6b45;
+    --add-inline: #a9dabd;
+    --del-bg: #fbeaec;
+    --del-gutter: #f1cdd2;
+    --del-text: #9a3544;
+    --del-inline: #e8b1ba;
+    --mod-badge-bg: #f7f0ce;
+    --mod-badge-text: #6e5a13;
+    --ren-badge-bg: #e9edfc;
+    --ren-badge-text: #4456b1;
+  }
+}
+
+:root {
+  /* serif reads, sans controls, mono coordinates (docs/diffle/design.md) */
+  --ff-serif: "Source Serif 4", ui-serif, Georgia, serif;
+  --ff-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --ff-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --radius: 7px;
+
+  /* landing layout scale */
+  --maxw: 1140px;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+}
