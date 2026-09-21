@@ -5,12 +5,13 @@
 // mcp-hosted server just tears down its Bun.serve, since the agent's process keeps running.
 
 import type { ServerContext } from "./handlers";
+import { PRODUCT } from "../core/product";
 import { apiError, json } from "./respond";
 
 const SHUTDOWN_DELAY_MS = 50;
 
 export async function handleSessionStop(ctx: ServerContext, req: Request): Promise<Response> {
-  // browser fetches send an Origin header; the CLI's own fetch (loupe cleanup) sends none.
+  // browser fetches send an Origin header; the CLI's own fetch (diffle cleanup) sends none.
   const requestOrigin = req.headers.get("origin");
   const selfOrigin = new URL(req.url).origin;
   if (requestOrigin !== null && requestOrigin !== selfOrigin) return apiError("origin mismatch", 403);
@@ -29,8 +30,8 @@ export async function handleSessionStop(ctx: ServerContext, req: Request): Promi
     try {
       await ctx.shutdown?.();
     } catch (error) {
-      // stop failed partway — the registry entry is left in place so `loupe cleanup` can retry.
-      console.error(`[loupe] session stop failed: ${error instanceof Error ? error.message : String(error)}`);
+      // stop failed partway — the registry entry is left in place so `diffle cleanup` can retry.
+      console.error(`[${PRODUCT.name}] session stop failed: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }
     if (ctx.host === "cli" || ctx.host === "hook") process.exit(0);

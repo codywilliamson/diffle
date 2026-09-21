@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ReviewPolicy } from "../types";
 import type { McpRootProvider, ReviewOperationResult, ReviewOperations } from "./operations";
+import { PRODUCT } from "../core/product";
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
@@ -19,12 +20,12 @@ function result(value: ReviewOperationResult) {
 }
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "Loupe operation failed";
+  const message = error instanceof Error ? error.message : `${PRODUCT.displayName} operation failed`;
   return { isError: true, content: [{ type: "text" as const, text: message }] };
 }
 
 export function createMcpServer(operations: ReviewOperations, roots: McpRootProvider, version = "0.0.0") {
-  const server = new McpServer({ name: "loupe", version });
+  const server = new McpServer({ name: PRODUCT.name, version });
   const guarded = async (cwd: string) => {
     const rootList = await roots.getRoots();
     if (rootList.length === 0) throw new Error("No approved MCP root is available");
