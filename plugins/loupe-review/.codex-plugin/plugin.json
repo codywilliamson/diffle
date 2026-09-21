@@ -1,21 +1,19 @@
 {
   "name": "loupe-review",
   "version": "0.1.1",
-  "description": "Review local Git changes in Loupe and return structured feedback to Codex.",
+  "description": "Review local Git changes in diffle and return structured feedback to Codex.",
   "author": { "name": "Cody Williamson", "url": "https://github.com/codywilliamson" },
-  "homepage": "https://codywilliamson.github.io/loupe/",
   "repository": "https://github.com/codywilliamson/loupe",
   "keywords": ["code-review", "git", "mcp"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Loupe Review",
+    "displayName": "Diffle Review",
     "shortDescription": "Review local Git changes with structured feedback.",
-    "longDescription": "Launch Loupe from Codex, review an explicit Git comparison in the browser, and return structured comments to the agent.",
+    "longDescription": "Launch diffle from Codex, review an explicit Git comparison in the browser, and return structured comments to the agent.",
     "developerName": "Cody Williamson",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
-    "websiteURL": "https://codywilliamson.github.io/loupe/",
-    "defaultPrompt": ["Review my current changes with Loupe."]
+    "defaultPrompt": ["Review my current changes with diffle."]
   }
 }

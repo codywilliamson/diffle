@@ -5,6 +5,7 @@
 
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { PRODUCT } from "../src/core/product";
 
 const root = join(import.meta.dir, "..");
 const clientDir = join(root, "dist", "client");
@@ -52,7 +53,7 @@ mkdirSync(generatedDir, { recursive: true });
 writeFileSync(entryFile, source);
 
 // 4. compile the standalone binary (Bun appends .exe on Windows)
-const outfile = join(root, "dist", "loupe");
+const outfile = join(root, "dist", PRODUCT.name);
 const compile = Bun.spawnSync(["bun", "build", entryFile, "--compile", "--outfile", outfile], { cwd: root, stdout: "inherit", stderr: "inherit" });
 if (compile.exitCode !== 0) throw new Error("bun compile failed");
 console.log(`compiled ${outfile} (v${version}, ${assets.length} embedded assets)`);
