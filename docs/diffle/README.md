@@ -8,7 +8,7 @@ The `evolve` branch turns loupe into **diffle**: a frontend rewrite, a rebrand, 
 
 - **Name:** loupe → **diffle** — "loupe" is badly collided (npm, an active competitor, GNOME's image viewer). See [ADR 0004](../adr/0004-rename-loupe-to-diffle.md).
 - **Stack:** drop buildless; **Svelte 5 + Vite + Tailwind v4 + shadcn-svelte**, keeping **Bun** as the runtime + binary compiler. See [ADR 0005](../adr/0005-svelte-vite-drop-buildless.md).
-- **Distribution:** install script + self-contained executables on GitHub Releases; self-contained MCPBs; package managers after the primary path is proven. See [ADR 0006](../adr/0006-distribution-binaries-install-script.md).
+- **Distribution:** Release Please orchestrates versioning and GitHub Releases; project workflows build the self-contained executables, MCPBs, checksums, and installer channel. Package managers follow after the primary path is proven. See [ADR 0006](../adr/0006-distribution-binaries-install-script.md).
 - **Brand:** dark-first, single indigo accent ("D5"). See [design.md](design.md).
 - **Docs:** GitHub Pages → **Astro Starlight** on Cloudflare. **Demos:** **Remotion**. (In [plan.md](plan.md).)
 
@@ -22,7 +22,7 @@ The `evolve` branch turns loupe into **diffle**: a frontend rewrite, a rebrand, 
 
 ## Preserved
 
-The server (`Bun.serve` router/handlers, git/diff/review-record core, stdio MCP mode) and the `src/types.ts` contract are kept. The Svelte client is developed beside the current client and becomes the default only after the parity gate.
+The server (`Bun.serve` router/handlers, git/diff/review-record core, stdio MCP mode) and the `src/types.ts` contract are kept. On `evolve`, the Svelte client becomes the default in Phase 0. The Preact source is retained only as parity evidence until the replacement covers it.
 
 ## Public-release gates
 

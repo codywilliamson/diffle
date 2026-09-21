@@ -38,6 +38,7 @@ The Svelte client may change the presentation, but it does not ship until these 
 
 ## Required evidence
 
+- Every behavior is implemented through a red → green vertical slice at an agreed public seam. Playwright provides the browser tracer; Vitest and Testing Library cover narrower behavior without testing private implementation details.
 - Pure state and formatting behavior has Vitest coverage; Svelte interactions use Testing Library.
 - Playwright covers launch, initial diff, add/edit/resolve feedback, Return Feedback, agent update/rereview simulation, refresh, and approval against a temporary Git fixture.
-- Before the default client switches, compare the old and new clients against this checklist in a real browser at desktop and phone widths. Record any intentional difference in the changelog or an ADR when it changes a durable contract.
+- Before deleting the old source, compare the captured Preact baseline and the Svelte client against this checklist at desktop and phone widths. Record any intentional difference in the changelog or an ADR when it changes a durable contract.

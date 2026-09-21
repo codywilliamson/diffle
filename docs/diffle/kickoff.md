@@ -3,7 +3,7 @@
 Paste the block below into a fresh Claude UltraCode session opened at the repository root. It deliberately executes only Phase 0. Review that checkpoint before starting Phase 1; do not turn the entire rewrite into one workflow.
 
 ```
-diffle Phase 0 — baseline and parallel Svelte scaffold
+diffle Phase 0 — baseline and Svelte scaffold
 
 You are implementing the planned evolution of loupe into diffle. Use Workflow
 orchestration for this bounded phase, parallelizing only independent work. Do not stop
@@ -35,8 +35,9 @@ Product and architecture decisions are locked for this phase:
 - New source lives under `client/`; Vite output is `dist/client`.
 - D5 light and dark semantic variables in `docs/diffle/design.md` are canonical.
   Tailwind and shadcn variables must alias them instead of creating a parallel palette.
-- The existing Preact client remains the default through Phase 0. Do not repoint
-  `bun start`, delete `src/client`, rename the product, or begin broad component migration.
+- This is a rewrite branch: make the Svelte shell the default in Phase 0. Do not build a
+  Preact fallback, feature flag, or dual-client router. Keep `src/client` only as read-only
+  parity evidence for later phases; it does not need to remain runnable.
 - A later standalone build will generate static `with { type: "file" }` imports for every
   Vite asset and embed them in the executable. The current Bun 1.3.14 does not expose the
   newer `compile.assets`/`--asset` interface, so do not build around it, sidecar assets, or
@@ -60,40 +61,45 @@ Execute Phase 0 from `docs/diffle/plan.md`:
    Playwright setup. Keep packages in devDependencies unless runtime code genuinely imports
    them. Do not add GSAP, NumberFlow, Astro, or Remotion yet; those belong to later phases.
 
-4. Create the minimal Svelte shell under `client/` with:
+4. Work red → green through these agreed public seams, one vertical slice at a time:
+   - Vitest: first write a failing behavior test for the typed `/api/diff` request and
+     server error text, then implement only the adapter needed to pass it.
+   - Testing Library: first write a failing user-facing test for loading, successful diff
+     context, and API-error states, then implement the smallest Svelte shell needed to pass.
+   - Playwright: first write a failing tracer bullet that launches a production preview
+     against a temporary Git fixture and receives a real diff, then implement the runtime
+     wiring needed to pass it.
+   Observe and record each red state before implementation. Do not test private rune-store
+   or component internals, and do not write all tests before starting the first slice.
+
+5. As those tests drive the shell, add under `client/`:
    - D5 semantic variables for both themes
    - Tailwind `@theme inline` and shadcn aliases backed by those variables
    - typography and themed selection/caret/scrollbar/focus surfaces
-   - a loading shell and a small typed fetch of `/api/diff` proving the contract path
    This is scaffold evidence, not a partial visual rewrite.
 
-5. Add one cross-platform `bun run dev` entry that launches a real review backend and
-   Vite together, proxies `/api` to that exact backend, preserves the generated `?review=`
-   query, opens the Vite URL, and tears both processes down cleanly. Add a production-preview
-   command that builds the client and serves `dist/client` through Bun. Use an internal
-   client-directory override in the launcher; do not add a public CLI option.
-
-6. Add the smallest meaningful tests:
-   - Vitest proves the typed client request/error path.
-   - Testing Library proves the shell renders loading, success, and API-error states.
-   - Playwright launches the production preview and proves the shell receives a real diff.
-   Use a temporary Git fixture; do not depend on this checkout having uncommitted changes.
+6. As the Playwright tracer drives runtime wiring, repoint `bun start` and production
+   preview to `dist/client`. Add one cross-platform `bun run dev` entry that launches a
+   real review backend and Vite together, proxies `/api` to that exact backend, preserves
+   the generated `?review=` query, opens the Vite URL, and tears both processes down
+   cleanly. Do not add a public CLI option, fallback, or alternate legacy-client path.
 
 7. Make root `DESIGN.md` a short pointer to `docs/diffle/design.md`; do not duplicate the
    palette. Update `AGENTS.md` only after the scaffold exists: remove buildless/htm rules
-   and the blanket client line cap, document the transitional old/new client paths, and
-   retain server/core rules that remain true. `CLAUDE.md` is only `@AGENTS.md`; do not
+   and the blanket client line cap, document Svelte source/output plus the read-only legacy
+   reference, and retain server/core rules that remain true. `CLAUDE.md` is only
+   `@AGENTS.md`; do not
    duplicate or replace it.
 
 Verification and scope controls:
-- Keep `bun start` serving the old client and confirm it still works after all changes.
-- Verify the new dev path and production-preview path in a real browser at desktop and
-  phone widths, in light and dark modes, including reduced motion.
+- Verify `bun start`, the dev path, and production-preview path with the Svelte shell in a
+  real browser at desktop and phone widths, in light and dark modes, including reduced motion.
 - Finish with `bun test`, `bun x tsc --noEmit`, the new client test command, Playwright
   smoke, production client build, current binary build, and MCPB validation all green.
 - Do not register a domain, create a GitHub org, rename the repository, deploy, tag, release,
   or change package/binary/plugin identity in this phase.
-- Do not start Phase 1. Do not delete the old client. Do not make unrelated cleanup edits.
+- Do not start Phase 1 or make unrelated cleanup edits. Leave the old source available as
+  reference; no old-client runtime path is required.
 
 At the end, report:
 - commits created
