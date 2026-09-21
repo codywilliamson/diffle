@@ -1,13 +1,17 @@
-/* D5 (diffle) theme for Starlight — dark-first indigo, mirroring the app's tokens.css so the
-   docs and the product read as one system. Starlight derives most surfaces from the accent trio
-   plus a gray ramp; we remap those to D5 values. */
+/* D5 (diffle) theme for Starlight — dark-first indigo, sharing the app + landing tokens so the
+   product, marketing page, and docs read as one system. We pull the D5 semantic tokens from
+   tokens.css, remap Starlight's own variables onto them, then layer the galley craft + a motion
+   pass on top. */
 
+@import "./tokens.css";
+
+/* ---- map Starlight's variables onto the D5 palette ---- */
 :root {
   --sl-color-accent-low: #1c2340;
   --sl-color-accent: #6f82f0;
   --sl-color-accent-high: #c3ccf9;
 
-  --sl-color-white: #e4e7f0; /* D5 --text */
+  --sl-color-white: #e4e7f0; /* --text */
   --sl-color-gray-1: #d2d7e6;
   --sl-color-gray-2: #b3bacf;
   --sl-color-gray-3: #8c93ab; /* --muted */
@@ -17,9 +21,21 @@
   --sl-color-black: #0b0e16; /* --bg */
 
   --sl-color-bg: #0b0e16;
-  --sl-color-bg-nav: #141826;
-  --sl-color-bg-sidebar: #141826;
+  --sl-color-bg-nav: rgba(20, 24, 38, 0.72);
+  --sl-color-bg-sidebar: #0e121e;
+  --sl-color-bg-inline-code: #1b2133;
   --sl-color-hairline-shade: #1c2233; /* --divider */
+  --sl-color-hairline: #1c2233;
+
+  /* fonts — serif reads, sans controls, mono coordinates */
+  --sl-font: var(--ff-sans);
+  --sl-font-mono: var(--ff-mono);
+
+  /* aside accents per variant (D5) */
+  --aside-note: var(--accent);
+  --aside-tip: #74dba6;
+  --aside-caution: #e4c55e;
+  --aside-danger: #ef8e8e;
 }
 
 :root[data-theme="light"] {
@@ -27,22 +43,263 @@
   --sl-color-accent: #4e63d9;
   --sl-color-accent-high: #2b3a86;
 
-  --sl-color-white: #171b2c; /* darkest text in light mode */
+  --sl-color-white: #171b2c;
   --sl-color-gray-1: #2a2f45;
   --sl-color-gray-2: #40465f;
-  --sl-color-gray-3: #5e667f; /* --muted */
+  --sl-color-gray-3: #5e667f;
   --sl-color-gray-4: #8891a8;
-  --sl-color-gray-5: #cbd1e4; /* --border */
-  --sl-color-gray-6: #eceffa; /* --surface-2 */
+  --sl-color-gray-5: #cbd1e4;
+  --sl-color-gray-6: #eceffa;
   --sl-color-gray-7: #f6f7fc;
   --sl-color-black: #ffffff;
 
   --sl-color-bg: #f6f7fc;
-  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-nav: rgba(255, 255, 255, 0.78);
   --sl-color-bg-sidebar: #ffffff;
+  --sl-color-bg-inline-code: #eceffa;
   --sl-color-hairline-shade: #e0e4f0;
+  --sl-color-hairline: #e0e4f0;
+
+  --aside-note: var(--accent);
+  --aside-tip: #1f6b45;
+  --aside-caution: #6e5a13;
+  --aside-danger: #9a3544;
 }
 
-/* keep inline code and the site title on-brand */
-.site-title { letter-spacing: -0.01em; }
-:root { --sl-color-text-accent: var(--sl-color-accent); }
+/* ---- typography: serif headings with the app's tracking floor ---- */
+.sl-markdown-content :is(h1, h2, h3, h4, h5),
+.content-panel h1,
+h1#_top {
+  font-family: var(--ff-serif);
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+.sl-markdown-content h1,
+.content-panel h1 {
+  letter-spacing: -0.045em;
+}
+.sl-markdown-content :is(h2, h3) {
+  text-wrap: balance;
+}
+
+/* section headings sit on a hairline — editorial galley rhythm */
+.sl-markdown-content h2 {
+  margin-top: 2.75rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+
+/* ---- browser surfaces: the cheapest built-not-assembled signal ---- */
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--sl-color-white);
+}
+:root {
+  --sl-color-text-accent: var(--sl-color-accent);
+  caret-color: var(--accent);
+  scrollbar-color: var(--border) transparent;
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sl-color-gray-5);
+  border: 3px solid var(--sl-color-bg);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sl-color-gray-4);
+}
+
+/* ---- header: hairline + blur, matching the landing ---- */
+.site-title {
+  letter-spacing: -0.01em;
+}
+header.header {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  backdrop-filter: saturate(1.2) blur(10px);
+}
+
+/* ---- unify with the landing: on wide screens the fixed sidebars + content sit in a
+   centered frame instead of sprawling full-bleed. Starlight's rails are position:fixed,
+   so we push them inward by the frame gutter rather than capping the flow. ---- */
+@media (min-width: 90rem) {
+  :root {
+    --docs-frame: 88rem;
+    --docs-gutter: calc((100vw - var(--docs-frame)) / 2);
+  }
+  header.header {
+    padding-inline: var(--docs-gutter);
+  }
+  .sidebar-pane {
+    inset-inline-start: var(--docs-gutter);
+  }
+  .main-frame {
+    margin-inline-start: var(--docs-gutter);
+    margin-inline-end: var(--docs-gutter);
+  }
+}
+
+/* ---- sidebar: accent the current page, quiet hover ---- */
+.sidebar-content a[aria-current="page"] {
+  color: var(--sl-color-white);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 6px;
+  font-weight: 600;
+}
+.sidebar-content a:hover {
+  color: var(--sl-color-white);
+}
+summary .group-label .large {
+  font-family: var(--ff-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-4);
+}
+
+/* ---- links: animated underline in body copy ---- */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--sl-color-text-accent);
+  text-decoration: none;
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  background-size: 100% 1px;
+}
+
+/* ---- code blocks (expressive-code): squared galley chrome ---- */
+.expressive-code .frame {
+  border-radius: 8px;
+}
+.expressive-code .frame pre {
+  border: 1px solid var(--sl-color-hairline);
+  background: var(--surface) !important;
+}
+:root[data-theme="light"] .expressive-code .frame pre {
+  background: var(--surface) !important;
+}
+.sl-markdown-content :not(pre) > code {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 5px;
+  padding: 0.1em 0.4em;
+  font-size: 0.88em;
+  color: var(--sl-color-white);
+}
+
+/* ---- asides / callouts: craft floor — 1px full border, tinted fill, icon (no thick left bar) ---- */
+.starlight-aside {
+  border: 1px solid color-mix(in srgb, var(--aside, var(--accent)) 45%, var(--sl-color-hairline));
+  border-inline-start-width: 1px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--aside, var(--accent)) 9%, var(--sl-color-bg));
+  padding: 1rem 1.15rem;
+}
+.starlight-aside--note {
+  --aside: var(--aside-note);
+}
+.starlight-aside--tip {
+  --aside: var(--aside-tip);
+}
+.starlight-aside--caution {
+  --aside: var(--aside-caution);
+}
+.starlight-aside--danger {
+  --aside: var(--aside-danger);
+}
+.starlight-aside__title {
+  color: color-mix(in srgb, var(--aside) 70%, var(--sl-color-white));
+  font-family: var(--ff-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.starlight-aside__content a {
+  color: color-mix(in srgb, var(--aside) 70%, var(--sl-color-white)) !important;
+}
+
+/* ---- tables: hairline galley grid ---- */
+.sl-markdown-content table {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 8px;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+.sl-markdown-content :is(th, td) {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  border-inline-end: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content th {
+  background: var(--sl-color-gray-6);
+  font-family: var(--ff-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-3);
+}
+.sl-markdown-content tr :is(th, td):last-child {
+  border-inline-end: none;
+}
+.sl-markdown-content tbody tr:last-child :is(th, td) {
+  border-bottom: none;
+}
+
+/* ---- OS tabs: quiet, on-brand ---- */
+.starlight-tabs .tab [role="tab"][aria-selected="true"] {
+  border-color: var(--accent);
+  color: var(--sl-color-white);
+}
+
+/* =========================================================
+   MOTION PASS (docs) — CSS-only, MPA-safe, reduced-motion gated
+   ========================================================= */
+
+/* each page settles in on load */
+@keyframes doc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.content-panel {
+  animation: doc-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.content-panel + .content-panel {
+  animation-delay: 0.06s;
+}
+
+/* scroll-driven heading reveals where supported (progressive enhancement) */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .sl-markdown-content > :is(h2, h3, table, .expressive-code, .starlight-aside, .sl-steps) {
+      animation: doc-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 26%;
+    }
+  }
+}
+
+/* smooth anchor jumps */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .content-panel,
+  .sl-markdown-content > * {
+    animation: none !important;
+  }
+}
