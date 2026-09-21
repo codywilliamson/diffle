@@ -16,7 +16,11 @@
     onDone();
   }
   function onKeydown(e: KeyboardEvent): void {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      onDone();
+    } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       void submit();
     }

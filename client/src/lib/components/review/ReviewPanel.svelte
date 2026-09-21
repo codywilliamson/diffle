@@ -81,7 +81,9 @@
         class="absolute right-0 z-40 mt-1 w-80 rounded-lg border border-border bg-surface p-3 shadow-xl"
         role="dialog"
         aria-label="Review outcome"
+        tabindex="-1"
         use:clickOutside={close}
+        onkeydown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}
       >
         <div class="mb-1 text-sm font-medium status-{status}">{STATUS[status ?? ""]}</div>
         <p class="mb-2 text-xs text-muted">{guidance()}</p>
