@@ -10,6 +10,8 @@
   },
   "scripts": {
     "start": "bun src/index.ts",
+    "dev": "bun scripts/dev.ts",
+    "preview": "bun run client:build && bun src/index.ts",
     "test": "bun test",
     "client:build": "vite build",
     "client:test": "vitest run",

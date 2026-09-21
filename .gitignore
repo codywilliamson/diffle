@@ -7,6 +7,11 @@ node_modules
 # output
 out
 dist
+
+# playwright e2e artifacts
+test-results
+playwright-report
+.playwright
 mcpb/server/
 mcpb/src/
 mcpb/package.json
