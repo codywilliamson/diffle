@@ -1,0 +1,56 @@
+name: release
+
+# Release Please owns version analysis, the release PR, CHANGELOG, the vX.Y.Z tag, and a DRAFT
+# GitHub Release. Merging its release PR is the release action. Downstream jobs build every
+# target's binary + MCPB, upload them into that draft, and publish it — all in one workflow so we
+# never depend on a release-triggered event that the built-in GITHUB_TOKEN suppresses.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  assets:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      # cross-compiles all six targets to dist/release/* and writes checksums.txt
+      - name: Build target binaries + checksum manifest
+        run: bun scripts/build-release.ts
+      # one self-contained MCPB per target (the binary already embeds the client)
+      - name: Pack per-target MCPBs
+        run: |
+          for t in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64 windows-arm64; do
+            bun scripts/stage-mcpb.ts "$t"
+            bun x mcpb pack mcpb "dist/release/diffle-$t.mcpb"
+          done
+      - name: Upload assets into the draft release
+        run: gh release upload "$TAG" dist/release/* --clobber
+      # publish only after every asset uploaded successfully
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false
