@@ -19,6 +19,7 @@
     "client:check": "cd client && svelte-check --tsconfig ./tsconfig.json",
     "test:e2e": "playwright test",
     "build:binary": "bun scripts/build-binary.ts",
+    "build:release": "bun scripts/build-release.ts",
     "mcp:serve": "bun src/mcp/index.ts",
     "mcpb:stage": "bun run build:binary && bun scripts/stage-mcpb.ts",
     "mcpb:validate": "bun run mcpb:stage && mcpb validate mcpb/manifest.json",
