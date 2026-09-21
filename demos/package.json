@@ -5,6 +5,7 @@
   "description": "Playwright-captured, Remotion-composited product demos for diffle (build-only, isolated from the app)",
   "scripts": {
     "capture": "tsx src/capture.ts",
+    "shots": "tsx src/screenshots.ts",
     "record": "tsx src/record.ts",
     "studio": "remotion studio",
     "render": "tsx scripts/render.mjs",
