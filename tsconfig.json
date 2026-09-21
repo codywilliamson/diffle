@@ -26,5 +26,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["node_modules", "client", "e2e", "dist", "mcpb", "out"]
+  "exclude": ["node_modules", "client", "e2e", "dist", "mcpb", "out", "src/generated"]
 }
