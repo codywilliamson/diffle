@@ -1,0 +1,7 @@
+# Sanitize the markdown preview
+
+The retired loupe client rendered its markdown preview by feeding `marked@12` output straight into the DOM. `marked` removed its built-in sanitizer years ago, so raw HTML in a reviewed `.md` file — including `<script>` and event-handler attributes — rendered and executed unescaped. Reviewed content is repository content and file reads stay scoped to the review root, so the exposure was bounded, but a review tool must not execute markup drawn from the very change under review. A malicious or compromised `.md` in a diff could run script in the reviewer's session.
+
+diffle sanitizes rendered markdown before it is inserted. The rendered HTML passes through an allowlist sanitizer (DOMPurify) that strips scripts, event-handler attributes, and dangerous URL schemes while preserving the formatting a review needs — headings, lists, tables, code, emphasis, links, and images. Relative images continue to resolve through `/api/raw`, which enforces repository containment. The sanitize step is a pure, unit-tested transform so its allowlist and stripping behavior are covered without a browser.
+
+DOMPurify becomes a client build-time dependency (bundled by Vite into `dist/client`, not a server runtime dependency). It is added when the markdown preview slice lands in Phase 2; until then no markdown preview ships. This resolves the parity contradiction that the checklist promised a "sanitized rendered preview" the retired client did not provide.
