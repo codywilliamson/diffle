@@ -11,6 +11,13 @@ dist
 # generated standalone-binary entry (scripts/build-binary.ts)
 src/generated/
 
+# docs site (web/) build artifacts + generated installer copies
+web/node_modules/
+web/dist/
+web/.astro/
+web/public/install
+web/public/install.ps1
+
 # playwright e2e artifacts
 test-results
 playwright-report

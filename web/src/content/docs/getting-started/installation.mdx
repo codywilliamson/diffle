@@ -1,0 +1,85 @@
+---
+title: Installation
+description: Install diffle with a single command on macOS, Linux, or Windows — no checkout or Node required.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem, Steps, Aside } from "@astrojs/starlight/components";
+
+diffle ships as a single self-contained binary: it embeds its own web client and needs no checkout, no Node, and no sidecar files. It does need **`git`** on your `PATH` — that's the only prerequisite.
+
+## Install
+
+<Tabs syncKey="os">
+  <TabItem label="macOS / Linux" icon="apple">
+    ```sh
+    curl -fsSL https://diffle.dev/install | sh
+    ```
+  </TabItem>
+  <TabItem label="Windows" icon="seti:powershell">
+    ```powershell
+    irm https://diffle.dev/install.ps1 | iex
+    ```
+  </TabItem>
+</Tabs>
+
+The installer downloads the binary for your OS and architecture, verifies its SHA-256 against the published checksum manifest, and installs it to `~/.diffle/bin`. If that directory isn't on your `PATH`, the script prints the exact line to add.
+
+<Aside type="tip" title="Custom location">
+  Set `DIFFLE_INSTALL_DIR` before running the installer to choose a different directory.
+</Aside>
+
+## Verify
+
+<Steps>
+
+1. Open a new terminal so `PATH` changes take effect.
+
+2. Check the version:
+
+   ```sh
+   diffle --version
+   ```
+
+3. From any git repository, start a review:
+
+   ```sh
+   diffle
+   ```
+
+   diffle prints a `http://localhost:<port>` URL and opens it in your browser.
+
+</Steps>
+
+## Keep it current
+
+```sh
+diffle update
+```
+
+`diffle update` downloads the latest release, verifies its checksum, and swaps the binary in place (on Windows the swap completes as the process exits). If a package manager installed diffle, it prints that manager's upgrade command instead.
+
+## Uninstall
+
+Remove the binary, and optionally your data directory:
+
+```sh
+rm ~/.diffle/bin/diffle      # the binary
+rm -rf ~/.diffle             # also removes review records + settings
+```
+
+## From source (contributors)
+
+diffle's server, CLI, and MCP runtime run on [Bun](https://bun.sh); the client is a built Svelte SPA.
+
+```sh
+git clone https://github.com/codywilliamson/diffle
+cd diffle
+bun install
+bun run dev        # backend + Vite with /api proxied
+```
+
+<Aside title="Upgrading from loupe">
+  diffle was previously **loupe**. The `loupe` command, `LOUPE_*` environment variables, and an existing `~/.loupe` data directory keep working for one release — see [Migrating from loupe](/guides/migrating-from-loupe/).
+</Aside>

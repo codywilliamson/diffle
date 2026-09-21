@@ -1,0 +1,50 @@
+---
+title: Quickstart
+description: Run your first diffle review — open a diff, leave an inline comment, and export structured feedback.
+sidebar:
+  order: 2
+---
+
+import { Steps, Aside } from "@astrojs/starlight/components";
+
+This walks through a first review of your own uncommitted changes. It assumes diffle is [installed](/getting-started/installation/) and on your `PATH`.
+
+<Steps>
+
+1. **Make a change**, then from that git repository run:
+
+   ```sh
+   diffle
+   ```
+
+   With no argument, diffle compares your working tree against `HEAD` (untracked files included) and opens the review in your browser.
+
+2. **Read the diff.** Use the file tree on the left to move between files, or press `j` / `k`. Toggle side-by-side with `s` and line wrapping from the toolbar. Press `v` to mark a file viewed.
+
+3. **Leave a comment.** Hover a line and click the comment bubble, or click a line number. Drag across line numbers (or shift-click a second line) to comment on a range. Type your note and save.
+
+4. **Export the feedback.** Press `c` (or open the review panel) to preview the compiled feedback, then copy it — paste it to any agent, or use the [MCP integration](/guides/agent-feedback/) to return it automatically.
+
+</Steps>
+
+## Review something specific
+
+```sh
+diffle staged            # staged changes only
+diffle main              # current branch vs main
+diffle v1.0..v1.1        # a commit range
+diffle browse            # the whole codebase
+diffle browse src/       # scoped to a subtree
+```
+
+See the [CLI reference](/reference/cli/) for every command and flag.
+
+<Aside type="tip">
+  Comments are saved to durable Review Records under your data directory — they survive restarts and re-runs. Press `r` to re-run the diff after the code changes.
+</Aside>
+
+## Next steps
+
+- [Reviewing changes](/guides/reviewing-changes/) — reading modes, viewed state, and re-running.
+- [Inline comments](/guides/inline-comments/) — ranges, threads, resolve/reopen, and orphaned comments.
+- [Agent feedback](/guides/agent-feedback/) — close the loop with Claude Code or Codex over MCP.

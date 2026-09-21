@@ -1,0 +1,48 @@
+/* D5 (diffle) theme for Starlight — dark-first indigo, mirroring the app's tokens.css so the
+   docs and the product read as one system. Starlight derives most surfaces from the accent trio
+   plus a gray ramp; we remap those to D5 values. */
+
+:root {
+  --sl-color-accent-low: #1c2340;
+  --sl-color-accent: #6f82f0;
+  --sl-color-accent-high: #c3ccf9;
+
+  --sl-color-white: #e4e7f0; /* D5 --text */
+  --sl-color-gray-1: #d2d7e6;
+  --sl-color-gray-2: #b3bacf;
+  --sl-color-gray-3: #8c93ab; /* --muted */
+  --sl-color-gray-4: #5c6480; /* --dim */
+  --sl-color-gray-5: #29304a; /* --border */
+  --sl-color-gray-6: #1b2133; /* --surface-2 */
+  --sl-color-black: #0b0e16; /* --bg */
+
+  --sl-color-bg: #0b0e16;
+  --sl-color-bg-nav: #141826;
+  --sl-color-bg-sidebar: #141826;
+  --sl-color-hairline-shade: #1c2233; /* --divider */
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #dfe4fb;
+  --sl-color-accent: #4e63d9;
+  --sl-color-accent-high: #2b3a86;
+
+  --sl-color-white: #171b2c; /* darkest text in light mode */
+  --sl-color-gray-1: #2a2f45;
+  --sl-color-gray-2: #40465f;
+  --sl-color-gray-3: #5e667f; /* --muted */
+  --sl-color-gray-4: #8891a8;
+  --sl-color-gray-5: #cbd1e4; /* --border */
+  --sl-color-gray-6: #eceffa; /* --surface-2 */
+  --sl-color-gray-7: #f6f7fc;
+  --sl-color-black: #ffffff;
+
+  --sl-color-bg: #f6f7fc;
+  --sl-color-bg-nav: #ffffff;
+  --sl-color-bg-sidebar: #ffffff;
+  --sl-color-hairline-shade: #e0e4f0;
+}
+
+/* keep inline code and the site title on-brand */
+.site-title { letter-spacing: -0.01em; }
+:root { --sl-color-text-accent: var(--sl-color-accent); }
