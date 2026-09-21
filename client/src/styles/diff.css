@@ -1,0 +1,161 @@
+/* diff canvas details that live outside utility classes: word-diff marks injected into
+   highlighted html, a compact D5 syntax theme, and the code cell's whitespace. */
+
+.code-inner {
+  white-space: pre;
+}
+.wrap .code-inner {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* unified diff table */
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.diff-table .lineno {
+  user-select: none;
+  text-align: right;
+  vertical-align: top;
+  padding: 0 8px;
+  width: 1%;
+  white-space: nowrap;
+  color: var(--dim);
+  border-right: 1px solid var(--divider);
+}
+.diff-table .code {
+  vertical-align: top;
+  padding: 0 12px 0 4px;
+  color: var(--text);
+}
+.diff-table .sign {
+  user-select: none;
+  color: var(--dim);
+  padding-right: 4px;
+}
+.row-addition {
+  background: var(--add-bg);
+}
+.row-addition .lineno {
+  background: var(--add-gutter);
+  color: var(--add-text);
+}
+.row-deletion {
+  background: var(--del-bg);
+}
+.row-deletion .lineno {
+  background: var(--del-gutter);
+  color: var(--del-text);
+}
+.hunk-header td {
+  user-select: none;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--dim);
+  background: var(--surface-2);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* intra-line word-change marks (markRange wraps the changed range) */
+.wd {
+  border-radius: 3px;
+}
+.wd-addition {
+  background: var(--add-inline);
+}
+.wd-deletion {
+  background: var(--del-inline);
+}
+
+/* syntax palette — indigo-leaning, tuned to the D5 surfaces */
+:root,
+:root[data-theme="dark"] {
+  --syn-keyword: #9aa8f6;
+  --syn-string: #86d6ac;
+  --syn-number: #e4c55e;
+  --syn-comment: #616a86;
+  --syn-func: #8fb8f2;
+  --syn-attr: #93a2f5;
+  --syn-type: #6fc7cf;
+  --syn-tag: #ef9aa0;
+  --syn-meta: #8c93ab;
+}
+:root[data-theme="light"] {
+  --syn-keyword: #4e63d9;
+  --syn-string: #1f6b45;
+  --syn-number: #8a5a13;
+  --syn-comment: #8b90a3;
+  --syn-func: #3a52c0;
+  --syn-attr: #4456b1;
+  --syn-type: #1f6f7a;
+  --syn-tag: #9a3544;
+  --syn-meta: #5e667f;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --syn-keyword: #4e63d9;
+    --syn-string: #1f6b45;
+    --syn-number: #8a5a13;
+    --syn-comment: #8b90a3;
+    --syn-func: #3a52c0;
+    --syn-attr: #4456b1;
+    --syn-type: #1f6f7a;
+    --syn-tag: #9a3544;
+    --syn-meta: #5e667f;
+  }
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: var(--syn-keyword);
+}
+.hljs-string,
+.hljs-regexp {
+  color: var(--syn-string);
+}
+.hljs-number,
+.hljs-literal {
+  color: var(--syn-number);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-title.function_ {
+  color: var(--syn-func);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--syn-attr);
+}
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: var(--syn-type);
+}
+.hljs-tag,
+.hljs-name {
+  color: var(--syn-tag);
+}
+.hljs-meta,
+.hljs-doctag {
+  color: var(--syn-meta);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 600;
+}

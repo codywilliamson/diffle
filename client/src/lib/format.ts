@@ -11,3 +11,23 @@ const BADGE: Record<ChangeType, { letter: string; label: string; cls: string }> 
 export function changeBadge(type: ChangeType): { letter: string; label: string; cls: string } {
   return BADGE[type] ?? { letter: "?", label: "Unknown", cls: "bg-surface-2 text-muted" };
 }
+
+// file extension → highlight.js language hint.
+const LANGS: Record<string, string> = {
+  ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript", mjs: "javascript",
+  cjs: "javascript", json: "json", css: "css", scss: "scss", less: "less", html: "xml", xml: "xml",
+  svg: "xml", svelte: "xml", md: "markdown", markdown: "markdown", py: "python", rb: "ruby", go: "go",
+  rs: "rust", java: "java", c: "c", h: "c", cpp: "cpp", hpp: "cpp", cs: "csharp", php: "php", sh: "bash",
+  bash: "bash", zsh: "bash", yml: "yaml", yaml: "yaml", sql: "sql", swift: "swift", kt: "kotlin",
+  toml: "ini", ps1: "powershell", psm1: "powershell", psd1: "powershell",
+};
+
+export function langFor(path: string): string | null {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  return LANGS[ext] ?? null;
+}
+
+// files rendered as markdown by default.
+export function isMarkdown(path: string): boolean {
+  return /\.(md|markdown)$/i.test(path);
+}
