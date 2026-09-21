@@ -1,6 +1,6 @@
-# diffle — implementation handoff (Phases 0–4 done → Phase 5)
+# diffle — implementation handoff (Phases 0–6 done → Phase 7)
 
-> Branch: `evolve`. The frontend rewrite is **functionally complete and refined through a dogfooding review pass** (diffle reviewing diffle), and the binary is now **self-contained** — the compiled executable embeds the built client and its version, so it runs anywhere with no checkout, `package.json`, or `dist/client` sidecar. Phases 0–4 are committed and verified. What remains (Phases 5–9) is the user-facing rebrand, release, docs, and demos — mostly gated on external go-aheads. This doc lets a fresh session pick up **Phase 5** without re-deriving the state.
+> Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), and the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please). Phases 0–6 are committed and verified. What remains (Phases 7–9) is the docs site, demos, and the release-readiness pass. **The externally-gated actions have NOT been done — no domain registered, repo not renamed, nothing tagged/released/deployed; those are the user's calls.** This doc lets a fresh session pick up **Phase 7** without re-deriving the state.
 
 ## Status — what's done
 
@@ -11,6 +11,10 @@
 | 2 | Full UI: shell, file index, unified + side-by-side diff, syntax + word highlighting, inline/range/file comments, large-file gate, wrap/single-file, sanitized markdown preview, stale comments, review panel + outcomes + feedback copy, sync notice + polling, help, What's New, update badge, legacy prompt, shortcuts |
 | 3 | Reduced-motion-gated transitions, focus-trapping modal + Escape handling, svelte-check a11y clean, **removed `src/client`** |
 | 4 | Self-contained binary: static serving behind an `AssetSource` seam (directory adapter for source/preview, embedded-import map for the binary); `scripts/build-binary.ts` vite-builds, embeds `dist/client` via generated `with { type: "file" }` imports, injects the version; MCPB staged from that one binary (no second client tree) |
+| 5 | Rebrand loupe→diffle through one product config (`src/core/product.ts`): `diffle` command + package + binary, `loupe` kept as a deprecated bin alias; `productEnv()` reads `DIFFLE_*` then legacy `LOUPE_*`; `~/.diffle` for new users, existing `~/.loupe` kept in place (`homeDataDir`); `isProductBinary` recognizes both names; runtime labels + MCP server name + What's-New flipped; client prefs `diffle-*`/`loupe-*` migration was already wired in Phase 0. **loupe compatibility is load-bearing — keep it through the next release.** |
+| 6 | Release + installer channel (code only; nothing released): update check via the GitHub Releases API + embedded version (`updateCheck.ts`, non-fatal offline); `diffle update` self-installs the latest asset with sha-256 verification + a Windows after-exit swap (`core/update.ts`, `core/updateTarget.ts`); `scripts/build-release.ts` cross-compiles all six targets + `checksums.txt`; `scripts/stage-mcpb.ts` is target-aware; `install.sh`/`install.ps1`; Release Please (`release-please-config.json`, `.release-please-manifest.json` at 0.16.0) + `.github/workflows/release.yml` (draft → build/upload per-target binary+MCPB → publish). |
+
+**Phase 5/6 decisions worth knowing:** internal `loupeRoot` variable/param names were intentionally left as-is (not user-facing — renaming them is pure churn). The `github.io/loupe` docs URL was removed everywhere (new site pending) but `github.com/codywilliamson/loupe` repository URLs were kept (they work now and GitHub redirects after the rename). `package.json` was bumped to `0.16.0` and `.release-please-manifest.json` bootstraps Release Please there. Version bumped but **not tagged/released**.
 
 The three parity contradictions from the Phase 0 audit are all **implemented** (not just decided): sanitized markdown preview (ADR 0007), focus-trapping dialogs, and empty/no-diff states.
 
@@ -48,59 +52,43 @@ Out-of-scope items found while dogfooding — deferred, not lost:
 - **Intentional simplifications** vs old loupe (all tracked as `evolve` issues, see backlog above): side-by-side is a single `table-layout: fixed` table — panes stay 50/50 and long lines scroll per-cell, but true per-pane scroll + a draggable split divider are not implemented (**#24**). Motion shipped the foundational transitions + FLIP + theme crossfade; NumberFlow/GSAP/staggered reveals are deferred (**#25**). `.svelte` files highlight as `xml` (**#23**). What's-New uses a placeholder version constant `0.16.0` in `client/src/lib/whatsNew.ts` (real versioning is Phase 6). User-level What's-New "seen" state persists to `~/.loupe/state.json` via `homedir()` — **not** `LOUPE_DATA_DIR` (which only moves review records).
 - Git shows `LF will be replaced by CRLF` on commits — normal on Windows, ignore.
 
-## Phase 4 — done (self-contained packaging)
+## Phases 5–6 — done (rebrand + release channel)
 
-Committed on `evolve`: `98468ac` (asset-source seam), `c123327` (build-binary + version inject), `326838d` (MCPB from the one binary). What landed, so Phase 5 doesn't relitigate it:
+Committed on `evolve`. Rebrand: `83ae184` (product config + command), `1dde07a` (env + data dir), `60b91be` (labels + MCP name), `e573c21` (binary/MCPB names + docs-url removal). Release channel: `40c236d` (update check), `f139c75` (`diffle update`), `03885c4` (cross-target build), `c34eabc` (installers + workflow). Verified: `bun test` 215 · `tsc` 0 · Vitest 83 · svelte-check 0 · Playwright 7 · standalone `dist/diffle.exe` from a temp dir (version, review under both `DIFFLE_*` and legacy `LOUPE_*`, `mcp serve` name `diffle`, `diffle update`) · MCPB validate (host + target-aware) · cross-compile of linux-x64 + windows-x64 + windows-arm64 with checksums.
 
-- **`AssetSource` seam** (`src/server/assetSource.ts`): `serveStatic(assets, pathname)` takes the source instead of reading `ctx.clientDir`. `ServerContext.clientDir` → `ServerContext.assets`. Path-containment guards extracted to `src/utils/pathWithin.ts`.
-- **Build injection** (`src/core/standalone.ts`): `useStandaloneBuild({version, assets})` is called once by the generated entry; `resolveClientAssets`/`injectedVersion` default to the directory adapter + `package.json` in every other mode. `currentVersion` now tolerates a missing `package.json`.
-- **`scripts/build-binary.ts`**: vite build → walk `dist/client` (sorted) → generate `src/generated/standalone.ts` (one `with { type: "file" }` import per asset + version literal, then `await main()`) → `bun build --compile`. `src/index.ts` auto-runs only under `import.meta.main`.
-- **`scripts/stage-mcpb.ts`**: copies only the binary; sweeps legacy `mcpb/{src,dist,package.json}` so `mcpb pack` can't bundle a stale client tree.
+### Gated actions still pending (the user's, deliberately not done)
+1. **Register the domain** and host `install`/`install.ps1` on it (the scripts install from GitHub Releases and need no domain to *download* — the domain is only the `curl … | sh` convenience host).
+2. **Rename the GitHub repo** loupe→diffle, then flip `PRODUCT.repository` (and the badge/plugin/installer `codywilliamson/loupe` URLs) — GitHub redirects cover the interim.
+3. **Cut the first release**: merge the Release Please PR (which tags + drafts), let `.github/workflows/release.yml` build/upload, and publish. The release must include `diffle-<target>` binaries + `checksums.txt` or `diffle update`/installers have nothing to fetch. **Nothing has been tagged, released, or deployed.**
+4. GitHub repo **description + README** (the user is handling these).
 
-**Phase 5 is the next phase.** It is the first phase with an external gate (identity). Paste the block below into a fresh session at the repo root; do not start Phase 6.
+**Phase 7 is the next phase.** Paste the block below into a fresh session at the repo root; do not touch the gated actions above.
 
 ```
-diffle Phase 5 — rebrand with compatibility
+diffle Phase 7 — documentation site
 
-You are continuing the diffle build on branch `evolve`. Phases 0–4 are complete (see
-docs/diffle/handoff.md and docs/diffle/plan.md). Use Workflow orchestration only for
-genuinely independent work; do the stateful edits + verification directly. Do not start
-a plan and stop — execute, verify, commit each concern with Conventional Commits, then
-report.
+You are continuing the diffle build on branch `evolve`. Phases 0–6 are complete (see
+docs/diffle/handoff.md and docs/diffle/plan.md). Do the stateful build + verification
+directly. Execute, verify, commit each concern with Conventional Commits, then report.
 
-Read first: docs/diffle/plan.md (Phase 5), docs/adr/0004-rename-loupe-to-diffle.md,
-docs/diffle/handoff.md, src/index.ts, src/utils/cli.ts, src/utils/installRoot.ts,
-src/core/updateCheck.ts, scripts/stage-mcpb.ts, client/src/lib/state/prefs (the
-diffle-*/loupe-* key handling), client/src/lib/whatsNew.ts.
+Read first: docs/diffle/plan.md (Phase 7), docs/diffle/design.md + DESIGN.md (D5 tokens),
+site/ and .github/workflows/pages.yml (the old Pages site to retire), README.md.
 
-Locked constraints:
-- Flip user-facing identity loupe→diffle through ONE product config used by both the
-  runtime and the manifest/build scripts. Human docs are updated deliberately, not generated.
-- Keep a deprecated `loupe` command alias and honor `LOUPE_*` env for one minor release
-  alongside the new `DIFFLE_*`. Prefer `~/.diffle`; if `~/.loupe` exists and `~/.diffle`
-  does not, keep using the legacy dir without copying or deleting it — one resolver for all
-  state/session/review-record code. Migrate `loupe-*` browser pref keys → `diffle-*` on first read.
-- `src/types.ts` remains the only shared contract. Do NOT rename the repo or publish the
-  identity — the domain/trademark/org gate is not yet cleared.
-
-Do Phase 5 from docs/diffle/plan.md (product config + generators, command alias, env + data-dir
-resolver, prefs key migration, UI strings, whatsNew real version). Verify: bun test,
-bun x tsc --noEmit, client:test, client:check, test:e2e, the standalone binary from a temp dir,
-and MCPB validation — all green, plus new tests for the upgrade path (old records discoverable,
-both command names work, no destructive migration). Stop before any domain registration, repo
-rename, deploy, tag, or release. Report commits, exact verification commands + results, and the
-handoff for Phase 6.
+Build an Astro Starlight docs site (Getting Started tutorials, task Guides, Reference)
+themed with the D5 tokens. Document the installed-binary install path, the loupe→diffle
+compatibility window, and the MCP/plugin setup. Do NOT deploy or register a domain, and do
+NOT retire site/ or the Pages workflow until the new site is confirmed building. `src/types.ts`
+stays the only shared contract; keep the runtime deps narrow (docs tooling is dev-only).
+Report commits, verification, and the handoff for Phase 8.
 ```
 
-## Phases 6–9 (after Phase 5)
+## Phases 8–9 (after Phase 7)
 
 All detailed in [`plan.md`](plan.md); each externally-visible action is separately gated:
 
-- **6 — Release + installer:** Release Please (manifest mode, draft, forced tags) + a gated per-OS binary/MCPB matrix; `install`/`install.ps1` on the approved Cloudflare domain with SHA-256 verification; `diffle update` on the same path.
-- **7 — Docs site:** Astro Starlight with D5 tokens; retire `site/` + the Pages workflow.
 - **8 — Demos:** Remotion under `demos/` driven by Playwright captures.
-- **9 — Release-readiness:** remove transitional flags/dead assets, refresh all docs, run the full matrix from a clean checkout.
+- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias once the compatibility window closes), refresh all docs, run the full matrix from a clean checkout.
 
-Nothing in 5–9 has started. Stop before any domain registration, repo rename, deploy, tag, or release unless explicitly approved.
+Stop before any domain registration, repo rename, deploy, tag, or release unless explicitly approved.
 
-> Note: Phases 5, 6, and 9 still use the placeholder version constant `0.16.0` in `client/src/lib/whatsNew.ts`; Phase 5 wires the real version. User-level What's-New "seen" state persists to `~/.loupe/state.json` via `homedir()` (moves to the resolver in Phase 5).
+> Note: `client/src/lib/whatsNew.ts` and `package.json` are at `0.16.0`; Release Please owns the next bump. `loupe`/`LOUPE_*`/`~/.loupe` compatibility is load-bearing until the first diffle release ships — Phase 9 removes it. User-level What's-New "seen" state persists to `<data dir>/state.json` (diffle-preferred, loupe-fallback) via `homeDataDir()`, not `DIFFLE_DATA_DIR`.
