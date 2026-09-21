@@ -1,9 +1,10 @@
 import type { Server } from "bun";
 import { randomUUID } from "node:crypto";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { DiffResult, ReviewOrigin, ReviewPolicy, ReviewRecord } from "../types";
 import { openBrowser } from "../utils/browser";
 import { createServer, type ServerContext } from "../server/router";
+import { resolveClientAssets } from "./standalone";
 import { createReviewRecord, readReviewRecord } from "./reviewRecords";
 import { loadReviewTarget } from "./reviewTarget";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
@@ -43,9 +44,9 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
     target: { cwd, ref: loaded.diff.ref, ...(spec ? { spec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
     policy: input.policy ?? "handoff", ...(input.origin ? { origin: input.origin } : {}),
   });
-  const clientDir = join(input.loupeRoot, "dist", "client");
+  const assets = resolveClientAssets(input.loupeRoot);
   const sessionId = randomUUID();
-  const ctx: ServerContext = { ...loaded, cwd, clientDir, loupeRoot: input.loupeRoot, served: false, reviewId: review.id, host: input.host, sessionId };
+  const ctx: ServerContext = { ...loaded, cwd, assets, loupeRoot: input.loupeRoot, served: false, reviewId: review.id, host: input.host, sessionId };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
   const origin = `http://localhost:${port}`;

@@ -1,6 +1,7 @@
 // route handlers + the in-memory server context. all /api responses are json.
 
 import type { DiffResult, DiffMeta, ReviewFile, Comment, CompilePromptResponse } from "../types";
+import type { AssetSource } from "./assetSource";
 import type { SessionHost } from "../core/sessions";
 import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
@@ -16,7 +17,7 @@ import { mergeReviewerComments } from "../core/commentMerge";
 export interface ServerContext {
   diff: DiffResult; // seeded at launch, re-run on each GET /api/diff for live review
   cwd: string; // directory where the .review file lives
-  clientDir: string; // directory containing index.html + client assets
+  assets: AssetSource; // source for the built client (index.html + assets)
   loupeRoot: string; // loupe's own repo root, for the release-update check
   newRef: string | null; // ref for new-side file content; null = read working tree from disk
   diffArgs: string[]; // git args to re-run the diff on demand (refresh)

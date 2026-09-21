@@ -32,7 +32,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/raw") return handleGetRaw(ctx, new URL(req.url));
     if (pathname === "/api/review") return handleGetReview(new URL(req.url), ctx.reviewId);
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
-    if (!pathname.startsWith("/api/")) return serveStatic(ctx, pathname);
+    if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 
   if (method === "POST") {

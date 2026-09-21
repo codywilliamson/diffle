@@ -1,12 +1,14 @@
 // file-content routes: new-side text for previews, raw bytes for media a markdown file
 // embeds, and the static client assets. every path is checked against traversal.
 
-import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { join, extname, resolve, posix, win32 } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { join, extname } from "node:path";
 import type { ServerContext } from "./handlers";
+import type { AssetSource } from "./assetSource";
 import type { FileContentResponse } from "../types";
 import { runGitBytes } from "../utils/git";
 import { apiError, json } from "./respond";
+import { containsPath, insideDir, isAbsolutePath } from "../utils/pathWithin";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".json": "application/json",
@@ -17,20 +19,6 @@ const CONTENT_TYPES: Record<string, string> = {
 function contentTypeFor(path: string): string {
   return CONTENT_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream";
 }
-
-// true when the absolute `target` sits at or below the absolute `base`.
-function containsPath(base: string, target: string): boolean {
-  return target === base || target.startsWith(base + "\\") || target.startsWith(base + "/");
-}
-
-// true when `rel` resolves inside `root` (defense in depth beyond the ".." check).
-function insideDir(root: string, rel: string): boolean {
-  const base = resolve(root);
-  return containsPath(base, resolve(base, rel));
-}
-
-// absolute on either platform's rules, so a drive-letter path is refused on posix hosts too.
-const isAbsolutePath = (path: string) => posix.isAbsolute(path) || win32.isAbsolute(path);
 
 // the repo-relative ?path= query, or null when missing or escaping the repo.
 function repoPath(ctx: ServerContext, url: URL): string | null {
@@ -73,13 +61,13 @@ export function handleGetRaw(ctx: ServerContext, url: URL): Response {
   }
 }
 
-// serve a static asset from clientDir.
-export function serveStatic(ctx: ServerContext, pathname: string): Response {
+// serve a static client asset through the given source (directory in dev, embedded in the binary).
+export function serveStatic(assets: AssetSource, pathname: string): Response {
   const rel = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  if (rel.includes("..") || !insideDir(ctx.clientDir, rel)) return apiError("not found", 404);
-  const filePath = resolve(ctx.clientDir, rel);
-  if (!existsSync(filePath)) return apiError("not found", 404);
-  return new Response(readFileSync(filePath), { headers: { "Content-Type": contentTypeFor(filePath) } });
+  if (rel.includes("..")) return apiError("not found", 404);
+  const bytes = assets.read(rel);
+  if (!bytes) return apiError("not found", 404);
+  return new Response(bytes, { headers: { "Content-Type": contentTypeFor(rel) } });
 }
 
 export function notFound(): Response {
