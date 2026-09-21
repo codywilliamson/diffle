@@ -1,6 +1,6 @@
 // route handlers + the in-memory server context. all /api responses are json.
 
-import type { DiffResult, DiffMeta, ReviewFile, Comment } from "../types";
+import type { DiffResult, DiffMeta, ReviewFile, Comment, CompilePromptResponse } from "../types";
 import type { SessionHost } from "../core/sessions";
 import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
@@ -132,7 +132,7 @@ export function handleGetCompile(ctx: ServerContext, url: URL): Response {
   const review = currentReview(ctx);
   const querySummary = url.searchParams.get("summary");
   const summary = querySummary?.trim() ? querySummary : ctx.reviewId ? readReviewRecord(ctx.reviewId)?.summary : undefined;
-  return json({ prompt: compileReviewPrompt(ctx.diff, review, summary) });
+  return json({ prompt: compileReviewPrompt(ctx.diff, review, summary) } satisfies CompilePromptResponse);
 }
 
 // reports whether a newer loupe release exists on origin (best-effort, never throws).

@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, extname, resolve, posix, win32 } from "node:path";
 import type { ServerContext } from "./handlers";
+import type { FileContentResponse } from "../types";
 import { runGitBytes } from "../utils/git";
 import { apiError, json } from "./respond";
 
@@ -55,7 +56,7 @@ export function handleGetFile(ctx: ServerContext, url: URL): Response {
   const path = repoPath(ctx, url);
   if (!path) return apiError("invalid path", 400);
   try {
-    return json({ path, content: readNewSide(ctx, path).toString("utf8") });
+    return json({ path, content: readNewSide(ctx, path).toString("utf8") } satisfies FileContentResponse);
   } catch {
     return apiError("file not found", 404);
   }
