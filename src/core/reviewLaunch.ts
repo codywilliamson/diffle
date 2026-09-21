@@ -43,7 +43,7 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
     target: { cwd, ref: loaded.diff.ref, ...(spec ? { spec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
     policy: input.policy ?? "handoff", ...(input.origin ? { origin: input.origin } : {}),
   });
-  const clientDir = join(input.loupeRoot, "src", "client");
+  const clientDir = join(input.loupeRoot, "dist", "client");
   const sessionId = randomUUID();
   const ctx: ServerContext = { ...loaded, cwd, clientDir, loupeRoot: input.loupeRoot, served: false, reviewId: review.id, host: input.host, sessionId };
   const server = createServer(ctx, input.port ?? 0);
