@@ -9,6 +9,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import { getAppState } from "$lib/state/context";
+  import { withViewTransition } from "$lib/viewTransition";
   import ReviewPanel from "./review/ReviewPanel.svelte";
   import UpdateBadge from "./UpdateBadge.svelte";
 
@@ -83,7 +84,7 @@
       class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text"
       aria-label="Theme: {prefs.theme} — switch"
       title="Toggle theme"
-      onclick={() => prefs.toggleTheme()}
+      onclick={() => withViewTransition(() => prefs.toggleTheme())}
     >
       {#if prefs.theme === "dark"}<Sun size={16} />{:else}<Moon size={16} />{/if}
     </button>

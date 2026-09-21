@@ -63,6 +63,13 @@ pre {
   border-radius: 2px;
 }
 
+/* gentle theme-swap crossfade for the View Transitions API (see viewTransition.ts) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -71,5 +78,10 @@ pre {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }

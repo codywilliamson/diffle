@@ -3,6 +3,7 @@
   import type { TreeNode } from "$lib/diff/tree";
   import Self from "./Folder.svelte";
   import FileRow from "./FileRow.svelte";
+  import { slide } from "$lib/motion";
 
   let { node, depth = 0 }: { node: TreeNode; depth?: number } = $props();
   let open = $state(true);
@@ -22,7 +23,7 @@
     <span class="truncate font-mono">{node.name}</span>
   </button>
   {#if open}
-    <div>
+    <div transition:slide>
       {#each subdirs as dir (dir.path)}
         <Self node={dir} depth={depth + 1} />
       {/each}
