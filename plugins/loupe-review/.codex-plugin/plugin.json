@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "description": "Review local Git changes in diffle and return structured feedback to Codex.",
   "author": { "name": "Cody Williamson", "url": "https://github.com/codywilliamson" },
+  "homepage": "https://diffle.dev",
   "repository": "https://github.com/codywilliamson/loupe",
   "keywords": ["code-review", "git", "mcp"],
   "skills": "./skills/",
@@ -14,6 +15,7 @@
     "developerName": "Cody Williamson",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://diffle.dev",
     "defaultPrompt": ["Review my current changes with diffle."]
   }
 }

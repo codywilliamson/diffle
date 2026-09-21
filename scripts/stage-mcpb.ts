@@ -30,6 +30,7 @@ const manifest = {
   manifest_version: "0.4", name: PRODUCT.name, display_name: PRODUCT.displayName, version: packageJson.version,
   description: "Review local Git changes and return structured feedback to coding agents.",
   author: { name: PRODUCT.author.name, url: PRODUCT.author.url },
+  homepage: PRODUCT.site,
   repository: { type: "git", url: `${PRODUCT.repository}.git` },
   server: { type: "binary", entry_point: `server/${binary}`, mcp_config: { command: `\${__dirname}/server/${binary}`, args: ["mcp", "serve"] } },
   compatibility: { claude_desktop: ">=1.0.0", platforms: [nodePlatform] },
