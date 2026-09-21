@@ -7,6 +7,7 @@
   import WrapText from "@lucide/svelte/icons/wrap-text";
   import Rows3 from "@lucide/svelte/icons/rows-3";
   import { getAppState } from "$lib/state/context";
+  import ReviewPanel from "./review/ReviewPanel.svelte";
 
   const { diff, prefs, ui } = getAppState();
 
@@ -42,7 +43,8 @@
     <span class="text-del-text">−{delta.del}</span>
   </span>
 
-  <div class="flex shrink-0 items-center gap-0.5">
+  <div class="flex shrink-0 items-center gap-1">
+    <ReviewPanel />
     <button
       class="rounded p-1.5 hover:bg-surface-2 {prefs.fileView === 'single' ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
       aria-label="Single-file view"
