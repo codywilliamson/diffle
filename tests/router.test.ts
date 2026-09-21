@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Server } from "bun";
 import type { DiffResult, ReviewFile, Comment } from "../src/types";
 import { createServer } from "../src/server/router";
+import { directoryAssets } from "../src/server/assetSource";
 
 const diff: DiffResult = {
   ref: "working tree",
@@ -48,7 +49,7 @@ beforeAll(() => {
   writeFileSync(join(clientDir, "index.html"), "<!doctype html><title>loupe</title>");
   writeFileSync(join(clientDir, "app.js"), "console.log('loupe');");
   writeFileSync(join(cwd, "readme.md"), "# Hello\n");
-  server = createServer({ diff, cwd, clientDir, loupeRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: false, served: false, host: "cli" });
+  server = createServer({ diff, cwd, assets: directoryAssets(clientDir), loupeRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: false, served: false, host: "cli" });
   base = `http://localhost:${server.port}`;
 });
 

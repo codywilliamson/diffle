@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { UpdateStatus } from "../types";
 import { runGit } from "../utils/git";
+import { injectedVersion } from "./standalone";
 
 const FETCH_INTERVAL_MS = 10 * 60 * 1000; // throttle the network fetch to once per 10 min
 let lastFetch = 0;
@@ -35,10 +36,17 @@ export function latestVersion(current: string, tags: string[]): string {
   return best;
 }
 
-// installed version from loupe's own package.json (also used by the cli banner).
+// installed version (also used by the cli banner): the build-time constant in the standalone
+// binary, else loupe's own package.json in a source checkout.
 export function currentVersion(loupeRoot: string): string {
-  const pkg = JSON.parse(readFileSync(join(loupeRoot, "package.json"), "utf8"));
-  return String(pkg.version ?? "0.0.0");
+  const injected = injectedVersion();
+  if (injected) return injected;
+  try {
+    const pkg = JSON.parse(readFileSync(join(loupeRoot, "package.json"), "utf8"));
+    return String(pkg.version ?? "0.0.0");
+  } catch {
+    return "0.0.0";
+  }
 }
 
 // fetches origin tags (throttled, best-effort) and compares them to the installed version.
