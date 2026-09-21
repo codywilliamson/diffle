@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
   import type { DiffFile } from "$types";
@@ -8,6 +9,7 @@
   import { fileComments, newComment } from "$lib/diff/threads";
   import { lineCountOf, estimatedHeight, GIANT_FILE_LINES } from "$lib/diff/metrics";
   import { nearViewport } from "$lib/actions";
+  import { fade } from "$lib/motion";
   import UnifiedDiff from "./UnifiedDiff.svelte";
   import SplitDiff from "./SplitDiff.svelte";
   import MarkdownPreview from "./MarkdownPreview.svelte";
@@ -16,7 +18,8 @@
 
   let { file }: { file: DiffFile } = $props();
   const { ui, comments, prefs, diff } = getAppState();
-  let collapsed = $state(false);
+  // deleted files collapse by default (github-style) — the removal is rarely re-read line by line.
+  let collapsed = $state(untrack(() => file.changeType === "deleted"));
   let loaded = $state(false); // giant-file manual gate
   let mounted = $state(false); // near-viewport lazy mount
   let preview = $state(false); // markdown: rendered preview vs diff
@@ -32,8 +35,8 @@
   const useSplit = $derived(prefs.split && !singleSided && diff.meta?.mode !== "browse");
 </script>
 
-<section id={fileAnchorId(file.path)} class="file-section mb-4 overflow-hidden rounded-lg border border-border bg-surface">
-  <header class="sticky top-0 z-10 flex items-center gap-2 border-b border-divider bg-surface-2 px-3 py-2">
+<section id={fileAnchorId(file.path)} class="file-section mb-4 rounded-lg border border-border bg-surface">
+  <header class="sticky top-0 z-10 flex items-center gap-2 rounded-t-lg border-b border-divider bg-surface-2 px-3 py-2">
     <button
       type="button"
       class="rounded p-0.5 text-muted hover:text-text"
@@ -81,7 +84,7 @@
     {:else if !giant && !mounted}
       <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
-      <div class="overflow-x-auto {prefs.wrap ? 'wrap' : ''}">
+      <div class="overflow-x-auto {prefs.wrap ? 'wrap' : ''}" in:fade>
         {#if useSplit}<SplitDiff {file} />{:else}<UnifiedDiff {file} />{/if}
       </div>
     {/if}
