@@ -9,6 +9,11 @@
   const { diff, ui, prefs, comments } = getAppState();
   let filter = $state("");
 
+  // live width during a drag (in-memory, no localStorage); committed to prefs on release.
+  let dragWidth = $state<number | null>(null);
+  const width = $derived(dragWidth ?? prefs.sidebarWidth);
+  const clampWidth = (x: number) => Math.round(Math.max(180, Math.min(640, x)));
+
   const shown = $derived.by(() => {
     const needle = filter.trim().toLowerCase();
     return needle ? diff.files.filter((f) => f.path.toLowerCase().includes(needle)) : diff.files;
@@ -21,7 +26,7 @@
 
 <nav
   class="relative shrink-0 flex-col border-r border-border bg-surface {ui.drawerOpen ? 'fixed inset-y-0 left-0 z-30 flex w-72 shadow-xl' : 'hidden lg:flex'}"
-  style={ui.drawerOpen ? "" : `width:${prefs.sidebarWidth}px`}
+  style={ui.drawerOpen ? "" : `width:${width}px`}
   aria-label="Changed files"
 >
   <div class="flex items-center gap-2 border-b border-divider p-2 lg:hidden">
@@ -59,6 +64,12 @@
   </div>
 
   {#if !ui.drawerOpen}
-    <Resizer onResize={(x) => prefs.setSidebarWidth(Math.max(180, Math.min(640, x)))} />
+    <Resizer
+      onResize={(x) => (dragWidth = clampWidth(x))}
+      onCommit={() => {
+        if (dragWidth != null) prefs.setSidebarWidth(dragWidth);
+        dragWidth = null;
+      }}
+    />
   {/if}
 </nav>
