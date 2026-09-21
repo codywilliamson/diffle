@@ -5,12 +5,11 @@
   "description": "Playwright-captured, Remotion-composited product demos for diffle (build-only, isolated from the app)",
   "scripts": {
     "capture": "tsx src/capture.ts",
+    "record": "tsx src/record.ts",
     "studio": "remotion studio",
-    "render:mp4": "remotion render src/index.ts ReviewWalkthrough out/walkthrough.mp4 --crf=28 --log=error",
-    "render:gif": "remotion render src/index.ts ReviewWalkthrough out/walkthrough.gif --codec=gif --scale=0.4 --every-nth-frame=5 --log=error",
-    "render": "npm run render:mp4 && npm run render:gif",
+    "render": "tsx scripts/render.mjs",
     "publish-media": "tsx scripts/publish-media.mjs",
-    "build": "npm run capture && npm run render && npm run publish-media"
+    "build": "npm run capture && npm run record && npm run render && npm run publish-media"
   },
   "devDependencies": {
     "@remotion/bundler": "^4.0.0",
