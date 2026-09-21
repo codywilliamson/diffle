@@ -199,6 +199,20 @@ body.selecting {
   margin: 1em 0;
 }
 
+/* review status colors */
+.status-awaiting_human {
+  color: var(--accent);
+}
+.status-feedback_ready {
+  color: var(--mod-badge-text);
+}
+.status-approved {
+  color: var(--add-text);
+}
+.status-cancelled {
+  color: var(--muted);
+}
+
 /* intra-line word-change marks (markRange wraps the changed range) */
 .wd {
   border-radius: 3px;

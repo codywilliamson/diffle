@@ -4,6 +4,7 @@
   import TopBar from "$lib/components/TopBar.svelte";
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
+  import SyncNotice from "$lib/components/review/SyncNotice.svelte";
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
@@ -12,6 +13,8 @@
   onMount(() => {
     void diff.load();
     void app.review.load();
+    app.review.startPolling();
+    return () => app.review.stopPolling();
   });
 </script>
 
@@ -22,6 +25,7 @@
     </p>
   {:else if diff.state.status === "ready"}
     <TopBar />
+    <SyncNotice />
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
