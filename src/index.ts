@@ -8,6 +8,7 @@ import { currentVersion } from "./core/updateCheck";
 import { runMcpServer } from "./mcp";
 import { installationRoot } from "./utils/installRoot";
 import { runCompletionHook } from "./core/completionHook";
+import { runUpdate } from "./core/update";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
@@ -46,6 +47,10 @@ export async function main(): Promise<void> {
   }
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
+  if (opts.command === "update") {
+    try { return await runUpdate(loupeRoot); }
+    catch (err) { fail(err instanceof Error ? err.message : String(err)); }
+  }
 
   const host = productEnv("SESSION_HOST") === "hook" ? "hook" : "cli";
   let launch;

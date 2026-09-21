@@ -101,10 +101,16 @@ describe("parseCliArgs", () => {
     expect(() => parseCliArgs(["hook", "stop", "--agent", "codex", "--yes"])).toThrow("unexpected argument: --yes (hook accepts options only)");
   });
 
-  test("usage documents sessions and cleanup", () => {
+  test("usage documents sessions, cleanup, and update", () => {
     expect(USAGE).toContain("diffle sessions");
     expect(USAGE).toContain("diffle cleanup");
+    expect(USAGE).toContain("diffle update");
     expect(USAGE).toContain("--yes");
     expect(USAGE).toContain("--all");
+  });
+
+  test("update is a bare command", () => {
+    expect(parseCliArgs(["update"]).command).toBe("update");
+    expect(() => parseCliArgs(["update", "--yes"])).toThrow("unexpected argument: --yes (update accepts options only)");
   });
 });
