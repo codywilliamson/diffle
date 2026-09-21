@@ -2,7 +2,7 @@
 # installs it to ~\.diffle\bin. Usage:  irm https://<host>/install.ps1 | iex
 $ErrorActionPreference = 'Stop'
 
-$Repo = 'codywilliamson/loupe'   # repo not yet renamed; GitHub redirects the old path afterwards
+$Repo = 'codywilliamson/diffle'
 $Name = 'diffle'
 $BinDir = if ($env:DIFFLE_INSTALL_DIR) { $env:DIFFLE_INSTALL_DIR } else { Join-Path $HOME '.diffle\bin' }
 $Arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }

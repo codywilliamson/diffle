@@ -3,7 +3,7 @@
 # to ~/.diffle/bin. Usage:  curl -fsSL https://<host>/install | sh
 set -eu
 
-REPO="codywilliamson/loupe"   # repo not yet renamed; GitHub redirects the old path afterwards
+REPO="codywilliamson/diffle"
 NAME="diffle"
 BIN_DIR="${DIFFLE_INSTALL_DIR:-$HOME/.diffle/bin}"
 
