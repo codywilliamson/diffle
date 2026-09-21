@@ -101,8 +101,9 @@
 .comment-row .comment-cell {
   padding: 4px 12px 8px 4px;
 }
-/* pin the comment box to the left of the horizontal scroll so a wide (unwrapped)
-   diff table never drags the editor/thread off-screen with it */
+/* unified: pin the comment box to the left of the horizontal scroll so a wide (unwrapped)
+   diff table never drags the editor/thread off-screen with it. split overrides this below —
+   there the box must stay inside its own side, not stick to the pane's left edge. */
 .comment-box {
   position: sticky;
   left: 0;
@@ -114,20 +115,24 @@ body.selecting {
   cursor: ns-resize;
 }
 
-/* side-by-side: fixed layout keeps both panes locked at 50/50 no matter how long a line is;
-   each code cell scrolls its own long line horizontally instead of widening the whole table. */
+/* side-by-side: one horizontal scrollbar for the whole diff (the file wrapper's), never one per
+   line. table-layout: fixed + a width sized to the longest line keeps both panes locked at 50/50
+   while a long line widens the table into that single scroller. --split-maxch is the file's
+   longest line length (0 while wrapping); 148px covers the four gutter columns. */
 .split-table {
   table-layout: fixed;
+  width: max(100%, calc(148px + var(--split-maxch, 0) * 2ch));
 }
 .split-table .code {
-  padding: 0;
-}
-.split-scroll {
-  overflow-x: auto;
   padding: 0 8px 0 4px;
 }
-.wrap .split-scroll {
-  overflow-x: visible;
+.wrap .split-table {
+  width: 100%;
+}
+/* the thread anchors to one side via colspan; keep it inside that side rather than sticking to
+   the pane's left edge, which would drag a new-side comment across into the old pane on scroll. */
+.split-table .comment-box {
+  position: static;
 }
 .code-addition {
   background: var(--add-bg);
