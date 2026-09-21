@@ -4,6 +4,11 @@ description: Local git diff review with inline comments and structured feedback 
 template: splash
 hero:
   tagline: Review a diff, leave inline comments, and hand structured feedback back to your agent — locally, in your browser.
+  image:
+    html: |
+      <video autoplay loop muted playsinline poster="/media/walkthrough-poster.png" aria-label="A diffle review, start to finish" style="width:100%;border-radius:12px;border:1px solid var(--sl-color-gray-5);box-shadow:0 24px 60px rgba(0,0,0,.45)">
+        <source src="/media/walkthrough.mp4" type="video/mp4" />
+      </video>
   actions:
     - text: Get started
       link: /getting-started/installation/
@@ -30,3 +35,9 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
     Install with a single command — no checkout, no Node, no sidecar assets. `diffle update` keeps it current.
   </Card>
 </CardGrid>
+
+## See it in action
+
+A unified or side-by-side diff with a file tree, syntax highlighting, inline comments, and a structured feedback bundle you can hand straight to an agent.
+
+[![diffle showing a unified diff with a file tree and an inline comment](/media/overview.png)](/media/overview.png)

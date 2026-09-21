@@ -25,6 +25,8 @@ Comments support **threaded replies**, so a discussion stays attached to its lin
 
 **Resolve** a comment when it's handled. Resolving keeps it on the record but drops it from returned feedback and from open-comment counts. Reopen a resolved comment any time.
 
+![A saved inline comment thread anchored to a line, with resolve, edit, reply, and delete actions](/media/thread.png)
+
 ## Orphaned comments
 
 When a comment's line or file leaves the current diff — because the code changed and you [re-ran the diff](/guides/reviewing-changes/) — the comment isn't lost. It stays saved but **unanchored**.
