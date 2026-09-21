@@ -45,7 +45,7 @@ export interface DiffResult {
 
 // ── review / comments ────────────────────────────────────────────────────────
 
-// legacy comment file; current Review Records live under the user's Loupe data directory.
+// legacy comment file; current Review Records live under the user's diffle data directory.
 export const REVIEW_FILE = ".review";
 
 // optional severity/intent label; the compiled prompt prefixes the text with [tag]

@@ -1,8 +1,11 @@
-// `loupe sessions` and `loupe cleanup` — list and reclaim orphaned/finished review servers.
+// `diffle sessions` and `diffle cleanup` — list and reclaim orphaned/finished review servers.
 
 import { createInterface } from "node:readline/promises";
 import { classifySessions, stopSession, unregisterSession, type SessionEntry } from "../core/sessions";
 import { readReviewRecord } from "../core/reviewRecords";
+import { PRODUCT } from "../core/product";
+
+const NO_SESSIONS = `no ${PRODUCT.name} sessions`;
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -28,7 +31,7 @@ function printTable(rows: string[][]): void {
 export async function runSessionsCommand(): Promise<void> {
   const { live, stale } = await classifySessions();
   const all = [...live.map((entry) => ({ entry, state: "live" })), ...stale.map((entry) => ({ entry, state: "stale" }))];
-  if (all.length === 0) return console.log("no loupe sessions");
+  if (all.length === 0) return console.log(NO_SESSIONS);
   printTable([
     ["REVIEW", "STATUS", "HOST", "PORT", "AGE", "STATE"],
     ...all.map(({ entry, state }) => [entry.reviewId, recordStatus(entry.reviewId), entry.host, String(entry.port), ageOf(entry.startedAt), state]),
@@ -75,7 +78,7 @@ async function confirm(): Promise<boolean> {
 export async function runCleanupCommand(opts: CleanupOptions): Promise<void> {
   const { live, stale } = await classifySessions();
   const plan = buildCleanupPlan(live, stale, opts);
-  if (plan.toDelete.length === 0 && plan.toStop.length === 0) return console.log("no loupe sessions");
+  if (plan.toDelete.length === 0 && plan.toStop.length === 0) return console.log(NO_SESSIONS);
 
   console.log("plan:");
   for (const entry of plan.toDelete) console.log(`  delete stale entry ${entry.reviewId} (${entry.host}, pid ${entry.pid})`);

@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { REVIEW_FILE, type ReviewFile } from "../types";
+import { PRODUCT } from "./product";
 import { gitExcludePath, isIgnored } from "../utils/git";
 
 // reads <dir>/.review; null if absent or unparseable.
@@ -38,5 +39,5 @@ function appendToGitExclude(dir: string): void {
   const separator = content.length > 0 && !content.endsWith("\n") ? "\n" : "";
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${content}${separator}${REVIEW_FILE}\n`);
-  console.log(`[loupe] Added ${REVIEW_FILE} to .git/info/exclude`);
+  console.log(`[${PRODUCT.name}] Added ${REVIEW_FILE} to .git/info/exclude`);
 }
