@@ -101,6 +101,14 @@
 .comment-row .comment-cell {
   padding: 4px 12px 8px 4px;
 }
+/* pin the comment box to the left of the horizontal scroll so a wide (unwrapped)
+   diff table never drags the editor/thread off-screen with it */
+.comment-box {
+  position: sticky;
+  left: 0;
+  width: min(46rem, 100%);
+  box-sizing: border-box;
+}
 body.selecting {
   user-select: none;
   cursor: ns-resize;

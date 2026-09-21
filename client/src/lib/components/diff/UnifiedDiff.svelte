@@ -76,10 +76,12 @@
             <tr class="comment-row">
               <td colspan="3"></td>
               <td class="comment-cell">
-                {#if list.length > 0}<CommentThread comments={list} />{/if}
-                {#if adding}
-                  <CommentEditor onSave={(text, tag) => saveAdd(a.side, line, text, tag)} onCancel={() => ui.cancelAdd()} />
-                {/if}
+                <div class="comment-box">
+                  {#if list.length > 0}<CommentThread comments={list} />{/if}
+                  {#if adding}
+                    <CommentEditor onSave={(text, tag) => saveAdd(a.side, line, text, tag)} onCancel={() => ui.cancelAdd()} />
+                  {/if}
+                </div>
               </td>
             </tr>
           {/if}

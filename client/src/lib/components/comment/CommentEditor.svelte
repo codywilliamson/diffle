@@ -46,7 +46,7 @@
   }
 </script>
 
-<div class="rounded-md border border-focus bg-surface p-2">
+<div class="rounded-md border border-focus bg-surface p-3">
   <textarea
     bind:this={ta}
     bind:value={text}
@@ -55,14 +55,14 @@
     placeholder="Leave a comment…"
     class="min-h-[2.5rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
   ></textarea>
-  <div class="mt-2 flex flex-wrap items-center gap-2">
-    <button class="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim()}>Save</button>
-    <button class="rounded px-2 py-1 text-xs text-muted hover:text-text" onclick={onCancel}>Cancel</button>
-    <div class="ml-auto flex gap-1">
+  <div class="mt-3 flex flex-wrap items-center gap-2">
+    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim()}>Save</button>
+    <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onCancel}>Cancel</button>
+    <div class="ml-auto flex gap-1.5">
       {#each TAGS as t (t)}
         <button
           type="button"
-          class="rounded-full border px-1.5 text-[10px] {tag === t ? 'border-accent text-accent' : 'border-border text-dim hover:text-muted'}"
+          class="rounded-full border px-2 py-0.5 text-[10px] {tag === t ? 'border-accent bg-accent/10 text-accent' : 'border-border text-muted hover:border-focus hover:text-text'}"
           onclick={() => (tag = tag === t ? undefined : t)}
         >{t}</button>
       {/each}
