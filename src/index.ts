@@ -24,7 +24,7 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const cwd = process.cwd();
   const loupeRoot = installationRoot(join(import.meta.dir, ".."));
 
@@ -78,4 +78,6 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+// run when invoked directly (`bun src/index.ts` or the compiled binary's entry does it explicitly);
+// the standalone build imports main after injecting its embedded assets + version first.
+if (import.meta.main) await main();
