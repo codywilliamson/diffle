@@ -92,10 +92,16 @@ Report commits, verification, and the handoff for Phase 9.
 
 ## Phase 9 (after Phase 8)
 
-All detailed in [`plan.md`](plan.md); each externally-visible action is separately gated:
-
-- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias once the compatibility window closes) and the retired `site/`, refresh all docs, run the full matrix from a clean checkout.
+- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias + `LOUPE_*`/`~/.loupe` fallbacks once the compatibility window closes) and the retired `site/` + `pages.yml`; **polish the docs site** (`web/`) — the current landing page + copy are a rough first pass, iterate once Phase 8 produces real demos + screenshots; refresh `README.md`; run the full test/build/package matrix from a clean checkout.
 
 Stop before any domain registration, repo rename, deploy, tag, or release unless explicitly approved.
+
+### Doc state (for a fresh session)
+- **`AGENTS.md`** — refreshed for diffle (identity via `src/core/product.ts`, self-contained binary, release channel, `web/`, current layout). Current.
+- **`docs/diffle/handoff.md`** (this file) — the living status doc; keep it current each phase.
+- **`docs/diffle/plan.md`** — the original phase plan; still the roadmap for phases 8–9. Retire or fold into README/handoff in Phase 9.
+- **`README.md`** — still loupe/clone-install; **owned by the user**, do not edit. Refresh is Phase 9.
+- **`web/`** docs site — live at diffle.dev but intentionally rough; polish in Phase 9 with real assets.
+- Explicitly **out of scope** (dropped by the user): install scripts detecting/cleaning old `~/.loupe` dirs — not worth it for a tiny user base.
 
 > Note: `client/src/lib/whatsNew.ts` and `package.json` are at `0.16.0`; Release Please owns the next bump. `loupe`/`LOUPE_*`/`~/.loupe` compatibility is load-bearing until the first diffle release ships — Phase 9 removes it. User-level What's-New "seen" state persists to `<data dir>/state.json` (diffle-preferred, loupe-fallback) via `homeDataDir()`, not `DIFFLE_DATA_DIR`.
