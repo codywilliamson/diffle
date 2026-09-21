@@ -15,7 +15,7 @@ diffle ships explicit review skills for **Codex** and **Claude Code** that drive
   <TabItem label="Claude Code">
     ```sh
     claude plugin marketplace add codywilliamson/diffle
-    claude plugin install loupe-review@loupe-local --scope user
+    claude plugin install diffle-review@diffle-local --scope user
     ```
 
     Then start a new Claude Code session (or run `/reload-plugins`).
@@ -23,16 +23,12 @@ diffle ships explicit review skills for **Codex** and **Claude Code** that drive
   <TabItem label="Codex">
     ```sh
     codex plugin marketplace add codywilliamson/diffle
-    codex plugin add loupe-review@loupe-local
+    codex plugin add diffle-review@diffle-local
     ```
 
     Then start a new Codex task — existing tasks don't reload newly installed skills/MCP servers.
   </TabItem>
 </Tabs>
-
-<Aside>
-  The plugin is still named `loupe-review` during the compatibility window.
-</Aside>
 
 ## The review loop
 

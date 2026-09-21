@@ -1,5 +1,5 @@
 {
-  "name": "loupe-review",
+  "name": "diffle-review",
   "version": "0.1.1",
   "description": "Review local Git changes in diffle and return structured feedback to Claude Code.",
   "author": {

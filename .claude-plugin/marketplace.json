@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "loupe-local",
-  "description": "Local Loupe review integrations",
+  "name": "diffle-local",
+  "description": "Local Diffle review integrations",
   "owner": {
     "name": "Cody Williamson"
   },
   "plugins": [
     {
-      "name": "loupe-review",
-      "description": "Explicit Loupe review skill and MCP server.",
-      "source": "./integrations/claude-code/loupe-review",
+      "name": "diffle-review",
+      "description": "Explicit Diffle review skill and MCP server.",
+      "source": "./integrations/claude-code/diffle-review",
       "category": "development"
     }
   ]

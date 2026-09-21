@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "loupe": {
-      "command": "loupe",
+    "diffle": {
+      "command": "diffle",
       "args": ["mcp", "serve"]
     }
   }
