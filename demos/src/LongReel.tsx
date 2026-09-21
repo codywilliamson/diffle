@@ -1,6 +1,10 @@
-// the long UI reel: branded intro, every take stitched in order, branded outro. each take plays
-// its own footage (with its zooms + captions) inside a Sequence at its recorded duration.
-import { AbsoluteFill, Sequence } from "remotion";
+// the long UI reel: branded intro, every take, branded outro — stitched with crossfades between
+// each segment (not hard cuts) so it reads as one cohesive piece. each take plays its own footage
+// (with its zooms + captions) at its recorded duration.
+import type { ReactNode } from "react";
+import { AbsoluteFill } from "remotion";
+import { TransitionSeries, linearTiming } from "@remotion/transitions";
+import { fade } from "@remotion/transitions/fade";
 import { TAKES } from "./takeList";
 import { Take } from "./takes/Take";
 import { TitleCard } from "./components/TitleCard";
@@ -10,42 +14,44 @@ import { THEME } from "./theme";
 const introFrames = Math.round(INTRO_SECONDS * FPS);
 const outroFrames = Math.round(OUTRO_SECONDS * FPS);
 const takeFrames = TAKES.map((t) => Math.round(t.durationSec * FPS));
+const CROSSFADE = 18; // frames of crossfade at each boundary (~0.6s)
 
-export const REEL_FRAMES = introFrames + takeFrames.reduce((a, b) => a + b, 0) + outroFrames;
+// transitions overlap adjacent segments, so the reel is shorter than the raw sum by one crossfade
+// per boundary (intro + N takes + outro ⇒ N+1 boundaries).
+const segmentFrames = [introFrames, ...takeFrames, outroFrames];
+export const REEL_FRAMES = segmentFrames.reduce((a, b) => a + b, 0) - CROSSFADE * (segmentFrames.length - 1);
 
 export function LongReel() {
-  const blocks: { from: number; duration: number; node: React.ReactNode }[] = [];
-  let offset = 0;
+  const children: ReactNode[] = [];
+  const transition = (key: string) => (
+    <TransitionSeries.Transition key={key} presentation={fade()} timing={linearTiming({ durationInFrames: CROSSFADE })} />
+  );
 
-  blocks.push({
-    from: 0,
-    duration: introFrames,
-    node: <TitleCard title="a local git diff viewer" subtitle="review, comment, hand off to your agent" durationInFrames={introFrames} />,
-  });
-  offset += introFrames;
+  children.push(
+    <TransitionSeries.Sequence key="intro" durationInFrames={introFrames}>
+      <TitleCard title="a local git diff viewer" subtitle="review, comment, hand off to your agent" durationInFrames={introFrames} />
+    </TransitionSeries.Sequence>,
+  );
 
   TAKES.forEach((t, i) => {
-    blocks.push({
-      from: offset,
-      duration: takeFrames[i],
-      node: <Take src={`footage/${t.id}.webm`} zooms={t.zooms} captions={t.captions} />,
-    });
-    offset += takeFrames[i];
+    children.push(transition(`x-${t.id}`));
+    children.push(
+      <TransitionSeries.Sequence key={t.id} durationInFrames={takeFrames[i]}>
+        <Take src={`footage/${t.id}.webm`} zooms={t.zooms} captions={t.captions} />
+      </TransitionSeries.Sequence>,
+    );
   });
 
-  blocks.push({
-    from: offset,
-    duration: outroFrames,
-    node: <TitleCard title="diffle.dev" subtitle="one self-contained binary" durationInFrames={outroFrames} />,
-  });
+  children.push(transition("x-outro"));
+  children.push(
+    <TransitionSeries.Sequence key="outro" durationInFrames={outroFrames}>
+      <TitleCard title="diffle.dev" subtitle="one self-contained binary" durationInFrames={outroFrames} />
+    </TransitionSeries.Sequence>,
+  );
 
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg }}>
-      {blocks.map((b, i) => (
-        <Sequence key={i} from={b.from} durationInFrames={b.duration}>
-          {b.node}
-        </Sequence>
-      ))}
+      <TransitionSeries>{children}</TransitionSeries>
     </AbsoluteFill>
   );
 }

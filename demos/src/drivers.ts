@@ -2,7 +2,11 @@
 // captions (timed from t0, measured via ctx.since). record.ts runs each in its own recording.
 import type { Page, Locator } from "playwright";
 import type { ZoomSegment, Caption, Rect } from "./meta";
-import { COMMENT_FILE, COMMENT_LINE, COMMENT_TEXT, REVIEW_SUMMARY } from "./lib/fixture";
+import type { FixtureFile } from "./lib/backend";
+import {
+  COMMENT_FILE, COMMENT_LINE, COMMENT_TEXT, REVIEW_SUMMARY,
+  RANGE_START, RANGE_END, RANGE_TEXT, BIG_FIXTURE,
+} from "./lib/fixture";
 
 export interface DriverCtx {
   page: Page;
@@ -19,6 +23,7 @@ export interface DriverResult {
 
 export interface Driver {
   id: string;
+  fixture?: FixtureFile[]; // defaults to the focused rate-limiter FIXTURE in record.ts
   run: (ctx: DriverCtx) => Promise<DriverResult>;
 }
 
@@ -60,6 +65,45 @@ export const DRIVERS: Driver[] = [
       await beat(1400);
       captions[0].toSec = since();
       return { zooms: [{ rect: pad(rect, 6), inSec, outSec }], captions };
+    },
+  },
+  {
+    id: "range",
+    run: async (ctx) => {
+      const { page, since, glideTo, beat } = ctx;
+      const captions: Caption[] = [{ text: "Comment on a range — drag across the line numbers", fromSec: 0.6, toSec: 0 }];
+      const section = serverSection(page);
+      const startBubble = section.getByRole("button", { name: new RegExp(`Comment on line ${RANGE_START}`) }).first();
+      const endBubble = section.getByRole("button", { name: new RegExp(`Comment on line ${RANGE_END}`) }).first();
+      const a = (await startBubble.boundingBox()) as Rect;
+      const b = (await endBubble.boundingBox()) as Rect;
+
+      const inSec = since();
+      // press on the first line's gutter and drag down across the range, then release to open the composer
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2, { steps: 20 });
+      await beat(450);
+      await page.mouse.down();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 26 });
+      await beat(350);
+      await page.mouse.up();
+
+      const editor = page.getByRole("textbox", { name: "Comment text" });
+      await editor.waitFor();
+      const e = (await editor.boundingBox()) as Rect;
+      await glideTo(editor);
+      await editor.click();
+      await beat(200);
+      await editor.pressSequentially(RANGE_TEXT, { delay: 34 });
+      await beat(500);
+      await page.getByRole("button", { name: "Save" }).click();
+      await page.getByText(RANGE_TEXT).waitFor();
+      const outSec = since();
+      await beat(1400);
+      captions[0].toSec = since();
+
+      // zoom to span the selected lines through the composer
+      const rect: Rect = { x: e.x, y: a.y - 8, width: e.width, height: e.y + e.height - a.y + 16 };
+      return { zooms: [{ rect, inSec, outSec, scale: 1.5 }], captions };
     },
   },
   {
@@ -131,32 +175,46 @@ export const DRIVERS: Driver[] = [
   },
   {
     id: "filetree",
+    fixture: BIG_FIXTURE,
     run: async (ctx) => {
       const { page, since, glideTo, beat } = ctx;
       const nav = page.getByRole("navigation", { name: "Changed files" });
       const filter = nav.getByRole("searchbox", { name: /filter/i });
-      const captions: Caption[] = [{ text: "Filter and jump around large diffs", fromSec: 0.5, toSec: 0 }];
+      const captions: Caption[] = [{ text: "Filter and scroll large diffs — jump to any file", fromSec: 0.6, toSec: 0 }];
 
       const rect = (await nav.boundingBox()) as Rect;
       const zoomIn = since();
       await glideTo(filter);
       await beat(300);
       await filter.click();
-      await filter.pressSequentially("rate", { delay: 90 });
-      await beat(1100);
+      await filter.pressSequentially("route", { delay: 95 }); // narrows to src/routes/*
+      await beat(1300);
       await filter.fill("");
       await beat(600);
+
+      // scroll down through the long tree, then back up
+      await nav.hover();
+      for (let i = 0; i < 3; i++) {
+        await page.mouse.wheel(0, 260);
+        await beat(360);
+      }
+      await beat(350);
+      for (let i = 0; i < 2; i++) {
+        await page.mouse.wheel(0, -320);
+        await beat(320);
+      }
       const zoomOut = since();
 
-      const readme = nav.getByRole("button", { name: /README\.md/ });
-      await glideTo(readme);
+      // jump to a file and mark it viewed
+      const file = nav.getByRole("button", { name: /users\.ts/ }).first();
+      await glideTo(file);
       await beat(200);
-      await readme.click();
+      await file.click();
       await beat(500);
       await page.keyboard.press("v"); // mark viewed
-      await beat(1100);
+      await beat(1000);
       captions[0].toSec = since();
-      return { zooms: [{ rect: { x: rect.x, y: rect.y, width: rect.width, height: Math.min(rect.height, 360) }, inSec: zoomIn, outSec: zoomOut, scale: 1.9 }], captions };
+      return { zooms: [{ rect: { x: rect.x, y: rect.y, width: rect.width, height: Math.min(rect.height, 520) }, inSec: zoomIn, outSec: zoomOut, scale: 1.7 }], captions };
     },
   },
 ];

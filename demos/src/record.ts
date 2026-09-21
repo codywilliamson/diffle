@@ -29,7 +29,7 @@ const CURSOR = `(() => {
 })();`;
 
 async function recordTake(browser: Browser, driver: Driver): Promise<void> {
-  const fixture = makeFixture(FIXTURE);
+  const fixture = makeFixture(driver.fixture ?? FIXTURE);
   const { server, url } = startBackend(fixture);
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
