@@ -1,6 +1,6 @@
-# diffle — implementation handoff (Phases 0–7 done → Phase 8)
+# diffle — implementation handoff (Phases 0–9 done → gated release actions)
 
-> Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please), and an **Astro Starlight docs site** (`web/`, at diffle.dev) is built. The domain **diffle.dev is registered** (Cloudflare) and the **GitHub repo is renamed to `codywilliamson/diffle`** — in-repo URLs are flipped accordingly. Phases 0–7 are committed and verified. What remains (Phases 8–9) is demos and the release-readiness pass. **Still not done (user's calls): connect the CF Pages project + map diffle.dev, cut the first GitHub release, and retire the old `site/` + `pages.yml` once the new site is live.** This doc lets a fresh session pick up **Phase 8** without re-deriving the state.
+> Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please), an **Astro Starlight docs site** (`web/`, live at diffle.dev via Cloudflare) is built + polished with real demo media, and **Phase 8 product demos** ship a Playwright-capture + Remotion pipeline under `demos/`. The domain **diffle.dev is registered** and the **GitHub repo is `codywilliamson/diffle`**. Phases 0–9 are committed and verified. **All that remains are the user's gated external actions: cut the first GitHub release, and — only once that ships — remove the loupe/`LOUPE_*`/`~/.loupe` compatibility layer.** This doc lets a fresh session confirm state without re-deriving it.
 
 ## Status — what's done
 
@@ -70,29 +70,24 @@ Committed on `evolve`: `42f04c1` (Astro Starlight site) + `chore: point repo url
 
 Done since the last handoff: domain `diffle.dev` registered; repo renamed to `codywilliamson/diffle`, in-repo URLs flipped; `diffle.dev` wired as `PRODUCT.site` + manifest/plugin homepage; Cloudflare deploy live (`wrangler.jsonc`); `evolve` pushed to origin.
 
-**Phase 8 is the next phase.** Paste the block below into a fresh session at the repo root; do not touch the gated actions above.
+## Phase 8 — done (product demos)
 
-```
-diffle Phase 8 — product demos
+Committed on `evolve`: `feat(demos): playwright-captured, remotion-composited product walkthrough`. A **separate build-only `demos/` package** (npm, React + Remotion, isolated like `web/` — app runtime deps untouched):
+- `demos/src/lib/backend.ts` launches the **real** diffle backend against a throwaway git fixture (mirrors `e2e/harness.ts`); `demos/src/lib/fixture.ts` is the deterministic diff (a token-bucket rate-limiter change, nested under a clean `api/` folder so the top bar reads "api").
+- `demos/src/capture.ts` (Playwright, **node/tsx not bun**) drives one review — overview → inline comment → thread → side-by-side → summary → feedback preview — and screenshots each into `public/captures/` (gitignored). `demos/src/scenes.ts` is the single source of truth for scene ids/captions/timing, shared by capture and composition.
+- Remotion (`Root.tsx`/`ReviewWalkthrough.tsx`/`components/`) composites the captures (ken-burns + captions + bookends + progress bar) into `out/walkthrough.mp4` (crf 28, ~1.6 MB) + `walkthrough.gif` (scale 0.4, every-5th-frame, ~4.4 MB). `scripts/publish-media.mjs` copies the mp4/gif/poster + six stills into `docs/screenshots/` (README) and `web/public/media/` (site). Raw captures + `out/` stay gitignored; only the published copies are committed.
+- Verified: all six captures browser-checked (real diffle UI, dark brand, correct file/line scoping), mp4/gif rendered, demos `tsc --noEmit` clean.
 
-You are continuing the diffle build on branch `evolve`. Phases 0–7 are complete (see
-docs/diffle/handoff.md and docs/diffle/plan.md). Execute, verify, commit each concern with
-Conventional Commits, then report.
+## Phase 9 — done (release-readiness), except gated release actions
 
-Read first: docs/diffle/plan.md (Phase 8), e2e/harness.ts (Playwright fixture that launches a
-review), the web/ docs site, docs/screenshots/ (existing captures).
+Committed on `evolve`: retire legacy pages site (`chore: retire legacy github pages site` — dropped `site/`, `pages.yml`, its gitignore rule); `chore(build): drop unused dev dependencies` (`tailwind-variants`, `@testing-library/user-event`); `docs: correct stale product docs for the svelte rewrite + rebrand` (`PRODUCT.md`/`CONTEXT.md`/`mcpb/README.md`); `docs: rewrite README for diffle + retire loupe-era media` (curl/irm install, `diffle` command, `~/.diffle`, refreshed Phase-8 screenshots; deleted the loupe-era numbered stills + `agent-review-walkthrough.*` + the superseded `docs/agent-review-walkthrough.md` and `docs/media-capture.md`); `feat(docs): embed the product walkthrough + screenshots on the site` (hero video + showcase + per-guide screenshots, browser-verified both pages).
 
-Build a Remotion project isolated under demos/ (React is a build-only demo dependency, NOT an app
-dep — its own package.json, like web/). Drive a deterministic temp repo through Playwright to
-capture real product states, then composite those captures into short demo clips. Do NOT
-hand-author UI footage that can drift from the product. Consume outputs from the docs site and
-README without committing heavy intermediate media. Keep the app's runtime deps narrow.
-Report commits, verification, and the handoff for Phase 9.
-```
+**Kept intentionally (still gated):** the `loupe` bin alias, `LOUPE_*`, `~/.loupe`, and all migration docs — load-bearing until the first diffle release ships. `src/types.ts` (208 lines) is **consciously exempt** from the 200-line cap (splitting the contract would break the one-import-surface invariant) — recorded in `AGENTS.md`. `CHANGELOG.md`'s historical `github.io/loupe` entry left untouched (Release Please owns it).
 
-## Phase 9 (after Phase 8)
-
-- **9 — Release-readiness:** remove transitional flags/dead assets (incl. the deprecated `loupe` alias + `LOUPE_*`/`~/.loupe` fallbacks once the compatibility window closes) and the retired `site/` + `pages.yml`; **polish the docs site** (`web/`) — the current landing page + copy are a rough first pass, iterate once Phase 8 produces real demos + screenshots; refresh `README.md`; run the full test/build/package matrix from a clean checkout.
+### Gated actions still pending (the user's — do NOT do these without explicit approval)
+1. **Cut the first release**: merge the Release Please PR (tags + drafts), let `.github/workflows/release.yml` build/upload per-target binaries + `checksums.txt`, then publish. Until then `diffle update` + installers resolve no asset.
+2. **After the release ships**, remove the loupe/`LOUPE_*`/`~/.loupe` compatibility layer (the last transitional debt).
+3. GitHub repo **description + README-on-GitHub** rendering (user's call).
 
 Stop before any domain registration, repo rename, deploy, tag, or release unless explicitly approved.
 
@@ -100,8 +95,8 @@ Stop before any domain registration, repo rename, deploy, tag, or release unless
 - **`AGENTS.md`** — refreshed for diffle (identity via `src/core/product.ts`, self-contained binary, release channel, `web/`, current layout). Current.
 - **`docs/diffle/handoff.md`** (this file) — the living status doc; keep it current each phase.
 - **`docs/diffle/plan.md`** — the original phase plan; still the roadmap for phases 8–9. Retire or fold into README/handoff in Phase 9.
-- **`README.md`** — still loupe/clone-install; **owned by the user**, do not edit. Refresh is Phase 9.
-- **`web/`** docs site — live at diffle.dev but intentionally rough; polish in Phase 9 with real assets.
+- **`README.md`** — refreshed for diffle in Phase 9 (curl/irm install, `diffle` command, `~/.diffle`, Phase-8 media). Current.
+- **`web/`** docs site — live at diffle.dev, polished in Phase 9 with the Phase-8 hero video + screenshots. Current.
 - Explicitly **out of scope** (dropped by the user): install scripts detecting/cleaning old `~/.loupe` dirs — not worth it for a tiny user base.
 
-> Note: `client/src/lib/whatsNew.ts` and `package.json` are at `0.16.0`; Release Please owns the next bump. `loupe`/`LOUPE_*`/`~/.loupe` compatibility is load-bearing until the first diffle release ships — Phase 9 removes it. User-level What's-New "seen" state persists to `<data dir>/state.json` (diffle-preferred, loupe-fallback) via `homeDataDir()`, not `DIFFLE_DATA_DIR`.
+> Note: `client/src/lib/whatsNew.ts` and `package.json` are at `0.16.0`; Release Please owns the next bump. `loupe`/`LOUPE_*`/`~/.loupe` compatibility is load-bearing until the first diffle release ships — remove it only after that release (deliberately deferred past Phase 9). User-level What's-New "seen" state persists to `<data dir>/state.json` (diffle-preferred, loupe-fallback) via `homeDataDir()`, not `DIFFLE_DATA_DIR`.
