@@ -1,3 +1,0 @@
-{
-  "mcpServers": { "loupe": { "command": "loupe", "args": ["mcp", "serve"] } }
-}

@@ -100,16 +100,16 @@ diffle ships explicit review skills for Codex and Claude Code that drive a revie
 ```sh
 # Claude Code
 claude plugin marketplace add codywilliamson/diffle
-claude plugin install loupe-review@loupe-local --scope user
+claude plugin install diffle-review@diffle-local --scope user
 
 # Codex
 codex plugin marketplace add codywilliamson/diffle
-codex plugin add loupe-review@loupe-local
+codex plugin add diffle-review@diffle-local
 ```
 
 Start a fresh agent session after installing (or run `/reload-plugins` in Claude Code), then ask
-`Review my current changes with diffle.` The plugin is named `loupe-review` during the
-compatibility window. Package sources and maintenance notes live in [`integrations/`](integrations/README.md); see the [agent feedback guide](https://diffle.dev/guides/agent-feedback/) for the full loop.
+`Review my current changes with diffle.` The plugin is named `diffle-review`. Package sources and
+maintenance notes live in [`integrations/`](integrations/README.md); see the [agent feedback guide](https://diffle.dev/guides/agent-feedback/) for the full loop.
 
 ## Upgrading from loupe
 

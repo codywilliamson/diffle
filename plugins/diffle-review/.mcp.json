@@ -1,0 +1,3 @@
+{
+  "mcpServers": { "diffle": { "command": "diffle", "args": ["mcp", "serve"] } }
+}

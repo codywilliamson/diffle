@@ -1,14 +1,14 @@
 {
-  "name": "loupe-local",
+  "name": "diffle-local",
   "interface": {
-    "displayName": "Loupe"
+    "displayName": "Diffle"
   },
   "plugins": [
     {
-      "name": "loupe-review",
+      "name": "diffle-review",
       "source": {
         "source": "local",
-        "path": "./plugins/loupe-review"
+        "path": "./plugins/diffle-review"
       },
       "policy": {
         "installation": "AVAILABLE",
