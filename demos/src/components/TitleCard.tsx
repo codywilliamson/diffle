@@ -45,9 +45,11 @@ export function TitleCard({
           diffle
           <span style={{ color: THEME.accent }}>.</span>
         </div>
-        <div style={{ marginTop: 14, fontSize: 30, color: THEME.muted, fontWeight: 500 }}>
-          {subtitle}
-        </div>
+        {subtitle && (
+          <div style={{ marginTop: 14, fontSize: 30, color: THEME.muted, fontWeight: 500 }}>
+            {subtitle}
+          </div>
+        )}
         <div
           style={{
             marginTop: 40,
@@ -57,9 +59,11 @@ export function TitleCard({
             background: `linear-gradient(90deg, transparent, ${THEME.accent}, transparent)`,
           }}
         />
-        <div style={{ marginTop: 22, fontSize: 22, color: THEME.muted, fontFamily: THEME.monoFamily }}>
-          {title}
-        </div>
+        {title && (
+          <div style={{ marginTop: 22, fontSize: 22, color: THEME.muted, fontFamily: THEME.monoFamily }}>
+            {title}
+          </div>
+        )}
       </div>
     </AbsoluteFill>
   );

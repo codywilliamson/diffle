@@ -45,7 +45,7 @@ export function LongReel() {
   children.push(transition("x-outro"));
   children.push(
     <TransitionSeries.Sequence key="outro" durationInFrames={outroFrames}>
-      <TitleCard title="diffle.dev" subtitle="one self-contained binary" durationInFrames={outroFrames} />
+      <TitleCard title="diffle.dev" subtitle="" durationInFrames={outroFrames} />
     </TransitionSeries.Sequence>,
   );
 
