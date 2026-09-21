@@ -5,8 +5,9 @@
   import { isRecord } from "$lib/state/reviewRecord";
   import { compile } from "$lib/api/meta";
   import { clickOutside } from "$lib/actions";
+  import { scale } from "$lib/motion";
 
-  const { review, comments } = getAppState();
+  const { review, comments, ui } = getAppState();
 
   let open = $state(false);
   let summary = $state("");
@@ -82,6 +83,8 @@
         role="dialog"
         aria-label="Review outcome"
         tabindex="-1"
+        style="transform-origin: top right"
+        transition:scale={{ start: 0.96 }}
         use:clickOutside={close}
         onkeydown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}
       >
@@ -108,6 +111,7 @@
         <div class="mt-2 flex gap-3 text-xs text-muted">
           <button class="hover:text-text" onclick={() => copyFeedback("json")}>{copied === "json" ? "Copied" : "Copy JSON"}</button>
           <button class="hover:text-text" onclick={() => copyFeedback("md")}>{copied === "md" ? "Copied" : "Copy Markdown"}</button>
+          <button class="hover:text-text" onclick={() => { close(); ui.openOverlay("compile"); }}>Preview feedback</button>
         </div>
         {#if review.error}<div class="mt-2 text-xs text-destructive">{review.error}</div>{/if}
       </div>
