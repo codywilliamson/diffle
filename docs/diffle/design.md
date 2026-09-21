@@ -1,10 +1,10 @@
-# bodkin — brand & design system
+# diffle — brand & design system
 
 > Supersedes the root `DESIGN.md` (the retired "proof desk" system). That palette was retired because its warm ivory + terracotta read as Claude/Anthropic's own brand. This document is the source of truth for the new look; the root `DESIGN.md` is rewritten from this at build time. Live mockups: the design-directions canvas (app + landing + docs, all in D5).
 
 ## North star
 
-bodkin keeps loupe's thesis — **close, exact inspection of a change before it ships**, the way a printer proofs a page — but in a new, **dark-first** visual world named for the tool itself: a bodkin, the fine pointed awl for precise close work. Dark is the default because the audience lives in terminals and editors; a light theme is a secondary variant, not the primary.
+diffle keeps loupe's thesis — **close, exact inspection of a change before it ships**, the way a printer proofs a page — but in a new, **dark-first** visual world. The name is deliberately goofy — it's a diff tool, literally, called *diffle* — worn under a deadpan-serious backronym: the **Deterministic Inspection & Feedback Framework for Language-model Engineering**. Dark is the default because the audience lives in terminals and editors; a light theme is a secondary variant, not the primary.
 
 ## Palette — "D5 blended indigo" (dark, default)
 
@@ -65,4 +65,4 @@ Native-first, one heavyweight for the hard part (see [ADR notes in plan](plan.md
 
 ## Mark
 
-Current mark is loupe's split-aperture lens, recolored to indigo. TODO: evolve toward a fine-point / awl motif to suit the bodkin name.
+Current mark is loupe's split-aperture lens, recolored to indigo. TODO: evolve the mark to suit diffle — a split-aperture or diff/merge motif.
