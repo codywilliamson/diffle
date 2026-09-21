@@ -1,6 +1,6 @@
 # diffle — brand & design system
 
-> Supersedes the root `DESIGN.md` (the retired "proof desk" system). That palette was retired because its warm ivory + terracotta read as Claude/Anthropic's own brand. This document is the source of truth for the new look; the root `DESIGN.md` is rewritten from this at build time. Live mockups: the design-directions canvas (app + landing + docs, all in D5).
+> Supersedes the root `DESIGN.md` (the retired "proof desk" system). That palette was retired because its warm ivory + terracotta read as Claude/Anthropic's own brand. This document is the source of truth for the new look. During Phase 0, root `DESIGN.md` becomes a short pointer here instead of a second copy that can drift. Live mockups: the design-directions canvas (app + landing + docs, all in D5).
 
 ## North star
 
@@ -28,7 +28,30 @@ Single indigo accent, deliberately away from Claude's warm palette. Diff washes 
 | Modified badge — bg / text | | `#33301A` / `#E4C55E` |
 | Renamed badge — bg / text | | `#26304A` / `#98A6F0` |
 
-**One-accent rule:** `--accent` carries every action (primary button, active file, the mark, links); `--focus` (a lighter tint of the same hue) carries keyboard focus and comment borders so focus stays legible without a second brand color. A light theme is TODO — map the same semantic roles to light values; never introduce a third hue.
+**One-accent rule:** `--accent` carries every action (primary button, active file, the mark, links); `--focus` (a lighter tint of the same hue) carries keyboard focus and comment borders so focus stays legible without a second brand color.
+
+## Palette — D5 light
+
+Light mode is part of existing loupe parity, so the rewrite must not invent it during component work. It uses the same semantic roles and indigo identity:
+
+| Role | Token | Hex |
+|---|---|---|
+| Base / page | `--bg` | `#F6F7FC` |
+| Surface (panels, diff canvas) | `--surface` | `#FFFFFF` |
+| Surface-2 (gutters, pills, index) | `--surface-2` | `#ECEFFA` |
+| Border | `--border` | `#CBD1E4` |
+| Subtle divider | `--divider` | `#E0E4F0` |
+| Text | `--text` | `#171B2C` |
+| Muted text | `--muted` | `#5E667F` |
+| Dim (line numbers) | `--dim` | `#626B85` |
+| Accent — action / focus | `--accent`, `--focus` | `#4E63D9` |
+| Accent hover | `--accent-hover` | `#4053C1` |
+| Add — bg / gutter / text / inline | | `#E8F7EF` / `#CAEAD8` / `#1F6B45` / `#A9DABD` |
+| Del — bg / gutter / text / inline | | `#FBEAEC` / `#F1CDD2` / `#9A3544` / `#E8B1BA` |
+| Modified badge — bg / text | | `#F7F0CE` / `#6E5A13` |
+| Renamed badge — bg / text | | `#E9EDFC` / `#4456B1` |
+
+These semantic CSS variables are canonical. Tailwind v4 maps them through `@theme inline`; shadcn-svelte variables alias them rather than creating a parallel palette. Status colors remain reserved for diff/status meaning. There is no third theme.
 
 ## Typography (kept from loupe)
 
@@ -51,7 +74,7 @@ Native-first, one heavyweight for the hard part (see [ADR notes in plan](plan.md
 - **`svelte/transition` + `animate:flip`** — enter/exit, staggered diff-line reveals, FLIP reordering of files/comments.
 - **GSAP** (now free) — orchestration only: sequenced timelines, SplitText, ScrollTrigger.
 - **NumberFlow** — animated counts (diff ±, unresolved-comment badges).
-- **View Transitions API** — theme swap, file→diff morph (feature-detected).
+- **View Transitions API** — theme swap and file→diff morph (feature-detected, with an immediate fallback).
 - **Reduced motion must be gated in code** — Svelte transitions run on WAAPI, so a CSS media query alone won't disable them.
 
 ## Craft floor (enforced, from the impeccable pass)
