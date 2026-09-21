@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeFixture, startPreview, stop, cleanup } from "./harness";
+import { makeFixture, startPreview, stop, cleanup, gotoApp } from "./harness";
 
 test("file index lists, filters, and selects changed files", async ({ page }) => {
   const fixture = makeFixture([
@@ -8,7 +8,7 @@ test("file index lists, filters, and selects changed files", async ({ page }) =>
   ]);
   const { server, url } = startPreview(fixture);
   try {
-    await page.goto(await url);
+    await gotoApp(page, await url);
     const index = page.getByRole("navigation", { name: "Changed files" });
     await expect(index).toBeVisible();
     await expect(index.getByText("alpha.ts")).toBeVisible();

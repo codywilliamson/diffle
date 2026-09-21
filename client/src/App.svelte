@@ -5,18 +5,48 @@
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
+  import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
+  import HelpOverlay from "$lib/components/HelpOverlay.svelte";
+  import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
+  import { getState } from "$lib/api/meta";
+  import { WHATS_NEW } from "$lib/whatsNew";
+  import { isEditable } from "$lib/shortcuts";
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui } = app;
+  const { diff, ui, prefs } = app;
+
+  // global shortcuts, ignored while typing in a field.
+  function onKeydown(e: KeyboardEvent): void {
+    if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {
+      case "t": prefs.toggleTheme(); break;
+      case "s": prefs.toggleSplit(); break;
+      case "w": prefs.toggleWrap(); break;
+      case "o": prefs.setFileView(prefs.fileView === "single" ? "all" : "single"); break;
+      case "r": void diff.refresh(); break;
+      case "n": ui.toggleOverlay("whatsNew"); break;
+      case "?": ui.toggleOverlay("help"); break;
+      default: return;
+    }
+    e.preventDefault();
+  }
 
   onMount(() => {
     void diff.load();
     void app.review.load();
     app.review.startPolling();
+    // auto-open what's new once per unseen version.
+    getState()
+      .then((s) => {
+        if (s.seenVersion !== WHATS_NEW.version) ui.openOverlay("whatsNew");
+      })
+      .catch(() => {});
     return () => app.review.stopPolling();
   });
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <main class="flex h-dvh flex-col bg-bg font-sans text-text">
   {#if diff.state.status === "error"}
@@ -26,6 +56,7 @@
   {:else if diff.state.status === "ready"}
     <TopBar />
     <SyncNotice />
+    <LegacyPrompt />
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
@@ -38,4 +69,7 @@
   {:else}
     <p role="status" class="p-6 font-mono text-sm text-muted">Loading the diff…</p>
   {/if}
+
+  {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
+  {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
 </main>

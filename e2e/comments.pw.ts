@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeFixture, startPreview, stop, cleanup } from "./harness";
+import { makeFixture, startPreview, stop, cleanup, gotoApp } from "./harness";
 
 test("add, edit, and resolve a line comment", async ({ page }) => {
   const fixture = makeFixture([
@@ -7,7 +7,7 @@ test("add, edit, and resolve a line comment", async ({ page }) => {
   ]);
   const { server, url } = startPreview(fixture);
   try {
-    await page.goto(await url);
+    await gotoApp(page, await url);
 
     // a click on the bubble commits a single-line selection and opens the editor
     await page.getByRole("button", { name: /Comment on line 1/ }).first().click();
@@ -23,9 +23,9 @@ test("add, edit, and resolve a line comment", async ({ page }) => {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("actually looks fine")).toBeVisible();
 
-    // resolve it
-    await page.getByRole("button", { name: "Resolve" }).click();
-    await expect(page.getByText("Resolved")).toBeVisible();
+    // resolve it (exact — "unresolved" in the review trigger would otherwise collide)
+    await page.getByRole("button", { name: "Resolve", exact: true }).click();
+    await expect(page.getByText("Resolved", { exact: true })).toBeVisible();
   } finally {
     await stop(server);
     cleanup(fixture);
