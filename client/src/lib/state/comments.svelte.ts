@@ -1,0 +1,84 @@
+// reviewer comment commands, derived from the review store's record + the current diff.
+// every mutation treats the server response as the next authoritative record and adopts it
+// back into the review store, so the two compose without a shared global.
+
+import type { Comment, DiffResult } from "$types";
+import { saveComments, type CommentsResponse } from "$lib/api/comments";
+import { resolveReviewComment, replyToReviewComment } from "$lib/api/review";
+import { partitionComments } from "$lib/anchor";
+import { isRecord, commentsOf, errorMessage } from "./reviewRecord";
+import type { ReviewStore } from "./review.svelte";
+
+const EMPTY_DIFF: DiffResult = { ref: "", files: [] };
+
+export interface CommentsDeps {
+  saveComments: (comments: Comment[], signal?: AbortSignal) => Promise<CommentsResponse>;
+  resolveReviewComment: typeof resolveReviewComment;
+  replyToReviewComment: typeof replyToReviewComment;
+}
+
+const realDeps: CommentsDeps = { saveComments, resolveReviewComment, replyToReviewComment };
+
+export function createCommentsStore(
+  review: ReviewStore,
+  getCurrentDiff: () => DiffResult | null,
+  deps: CommentsDeps = realDeps,
+) {
+  let error = $state<string | null>(null);
+
+  const comments = (): Comment[] => commentsOf(review.record);
+
+  // save the full comments array and adopt whatever record the server returns.
+  async function persist(next: Comment[]): Promise<void> {
+    error = null;
+    try {
+      review.adopt(await deps.saveComments(next));
+    } catch (e) {
+      error = errorMessage(e);
+    }
+  }
+
+  // the record id, or null for a legacy file (which has no reply/resolve affordance).
+  function recordId(): string | null {
+    const r = review.record;
+    return isRecord(r) ? r.id : null;
+  }
+
+  async function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<void> {
+    const id = recordId();
+    if (id == null) {
+      error = "not available on a legacy review";
+      return;
+    }
+    error = null;
+    try {
+      review.adopt(await run(id));
+    } catch (e) {
+      error = errorMessage(e);
+    }
+  }
+
+  return {
+    get comments(): Comment[] {
+      return comments();
+    },
+    get anchored(): Comment[] {
+      return partitionComments(comments(), getCurrentDiff() ?? EMPTY_DIFF).anchored;
+    },
+    get stale(): Comment[] {
+      return partitionComments(comments(), getCurrentDiff() ?? EMPTY_DIFF).stale;
+    },
+    get error(): string | null {
+      return error;
+    },
+    add: (comment: Comment) => persist([...comments(), comment]),
+    edit: (id: string, patch: Partial<Comment>) =>
+      persist(comments().map((c) => (c.id === id ? { ...c, ...patch } : c))),
+    remove: (id: string) => persist(comments().filter((c) => c.id !== id)),
+    resolve: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "resolved")),
+    reopen: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "open")),
+    reply: (commentId: string, text: string) => viaRecord((id) => deps.replyToReviewComment(id, commentId, text)),
+  };
+}
+
+export type CommentsStore = ReturnType<typeof createCommentsStore>;
