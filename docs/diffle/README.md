@@ -8,7 +8,7 @@ The `evolve` branch turns loupe into **diffle**: a frontend rewrite, a rebrand, 
 
 - **Name:** loupe → **diffle** — "loupe" is badly collided (npm, an active competitor, GNOME's image viewer). See [ADR 0004](../adr/0004-rename-loupe-to-diffle.md).
 - **Stack:** drop buildless; **Svelte 5 + Vite + Tailwind v4 + shadcn-svelte**, keeping **Bun** as the runtime + binary compiler. See [ADR 0005](../adr/0005-svelte-vite-drop-buildless.md).
-- **Distribution:** install-script + prebuilt binaries on GitHub Releases; self-contained MCPB; package managers. See [ADR 0006](../adr/0006-distribution-binaries-install-script.md).
+- **Distribution:** install script + self-contained executables on GitHub Releases; self-contained MCPBs; package managers after the primary path is proven. See [ADR 0006](../adr/0006-distribution-binaries-install-script.md).
 - **Brand:** dark-first, single indigo accent ("D5"). See [design.md](design.md).
 - **Docs:** GitHub Pages → **Astro Starlight** on Cloudflare. **Demos:** **Remotion**. (In [plan.md](plan.md).)
 
@@ -16,13 +16,16 @@ The `evolve` branch turns loupe into **diffle**: a frontend rewrite, a rebrand, 
 
 - [plan.md](plan.md) — phased implementation plan (incl. the cleanup workstream).
 - [design.md](design.md) — brand & design system (D5 palette tokens, type, motion, craft floor).
+- [parity.md](parity.md) — behavioral acceptance contract for replacing the current client.
+- [kickoff.md](kickoff.md) — the bounded Phase 0 prompt for a fresh Claude UltraCode session.
 - ADRs: [0004 rename](../adr/0004-rename-loupe-to-diffle.md) · [0005 stack](../adr/0005-svelte-vite-drop-buildless.md) · [0006 distribution](../adr/0006-distribution-binaries-install-script.md).
 
 ## Preserved
 
-The server (`Bun.serve` router/handlers, git/diff/review-record core, stdio MCP mode) and the `src/types.ts` contract are kept; this is primarily a client + tooling + brand + docs change.
+The server (`Bun.serve` router/handlers, git/diff/review-record core, stdio MCP mode) and the `src/types.ts` contract are kept. The Svelte client is developed beside the current client and becomes the default only after the parity gate.
 
-## Open items before locking
+## Public-release gates
 
-- Register `diffle.sh` and run a quick software trademark sweep for "diffle"; secure the `difflehq`/`usediffle` GitHub org (the bare handle is an unrelated user).
-- Implementation runs per-phase via Claude ultracode workflows.
+- Recheck and register `diffle.sh`, run a software-trademark search, and secure `difflehq` or `usediffle` before the external identity changes. The 2026-09-20 availability check was favorable but is time-sensitive; the bare GitHub handle is an unrelated user.
+- Repository rename, deployment, tags, and releases are separate explicit actions. Local implementation does not need to wait for them until the rebrand/distribution gate.
+- Run one bounded Claude UltraCode workflow per phase, starting with [kickoff.md](kickoff.md).
