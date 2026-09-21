@@ -102,8 +102,8 @@ describe("parseCliArgs", () => {
   });
 
   test("usage documents sessions and cleanup", () => {
-    expect(USAGE).toContain("loupe sessions");
-    expect(USAGE).toContain("loupe cleanup");
+    expect(USAGE).toContain("diffle sessions");
+    expect(USAGE).toContain("diffle cleanup");
     expect(USAGE).toContain("--yes");
     expect(USAGE).toContain("--all");
   });

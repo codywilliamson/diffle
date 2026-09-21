@@ -1,11 +1,12 @@
 {
-  "name": "loupe",
-  "version": "0.15.2",
+  "name": "diffle",
+  "version": "0.16.0",
   "description": "Local git diff viewer with inline comments and structured agent feedback",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
   "bin": {
+    "diffle": "src/index.ts",
     "loupe": "src/index.ts"
   },
   "scripts": {
@@ -21,7 +22,7 @@
     "mcp:serve": "bun src/mcp/index.ts",
     "mcpb:stage": "bun run build:binary && bun scripts/stage-mcpb.ts",
     "mcpb:validate": "bun run mcpb:stage && mcpb validate mcpb/manifest.json",
-    "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/loupe.mcpb"
+    "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/diffle.mcpb"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
