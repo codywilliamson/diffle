@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeFixture, startPreview, stop, cleanup } from "./harness";
+import { makeFixture, startPreview, stop, cleanup, gotoApp } from "./harness";
 
 test("unified diff renders highlighted code and collapses", async ({ page }) => {
   const fixture = makeFixture([
@@ -7,7 +7,7 @@ test("unified diff renders highlighted code and collapses", async ({ page }) => 
   ]);
   const { server, url } = startPreview(fixture);
   try {
-    await page.goto(await url);
+    await gotoApp(page, await url);
 
     // a hunk header pill and the added/removed content render in the code column
     await expect(page.getByText(/@@ .* @@/)).toBeVisible();

@@ -2,6 +2,7 @@ import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import type { Page } from "@playwright/test";
 
 const LOUPE_ROOT = process.cwd();
 const URL_PATTERN = /http:\/\/localhost:\d+\/\?review=[\w-]+/;
@@ -72,6 +73,17 @@ export function stop(server: ChildProcess): Promise<void> {
     });
     server.kill();
   });
+}
+
+// navigate to the app and dismiss the auto-shown "what's new" overlay if it appears, so it
+// doesn't block the tracer's interactions. (dismissing it persists seenVersion server-side.)
+export async function gotoApp(page: Page, url: string): Promise<void> {
+  await page.goto(url);
+  const whatsNew = page.getByRole("dialog", { name: /What's new/ });
+  await whatsNew
+    .waitFor({ state: "visible", timeout: 800 })
+    .then(() => page.keyboard.press("Escape"))
+    .catch(() => {});
 }
 
 export function cleanup(fixture: string): void {

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeFixture, startPreview, stop, cleanup } from "./harness";
+import { makeFixture, startPreview, stop, cleanup, gotoApp } from "./harness";
 
 const MD = "# Title\n\nHello **world**\n\n<script>window.__pwned = 1</script>\n\n[ext](https://example.com)\n";
 
@@ -10,7 +10,7 @@ test("split view, wrap, and sanitized markdown preview", async ({ page }) => {
   ]);
   const { server, url } = startPreview(fixture);
   try {
-    await page.goto(await url);
+    await gotoApp(page, await url);
 
     // side-by-side toggle renders the split table
     await page.getByRole("button", { name: "Side-by-side view" }).click();

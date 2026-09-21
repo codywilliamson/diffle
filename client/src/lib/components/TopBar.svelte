@@ -6,8 +6,11 @@
   import Columns2 from "@lucide/svelte/icons/columns-2";
   import WrapText from "@lucide/svelte/icons/wrap-text";
   import Rows3 from "@lucide/svelte/icons/rows-3";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import CircleHelp from "@lucide/svelte/icons/circle-help";
   import { getAppState } from "$lib/state/context";
   import ReviewPanel from "./review/ReviewPanel.svelte";
+  import UpdateBadge from "./UpdateBadge.svelte";
 
   const { diff, prefs, ui } = getAppState();
 
@@ -44,6 +47,7 @@
   </span>
 
   <div class="flex shrink-0 items-center gap-1">
+    <UpdateBadge />
     <ReviewPanel />
     <button
       class="rounded p-1.5 hover:bg-surface-2 {prefs.fileView === 'single' ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
@@ -82,6 +86,12 @@
       onclick={() => prefs.toggleTheme()}
     >
       {#if prefs.theme === "dark"}<Sun size={16} />{:else}<Moon size={16} />{/if}
+    </button>
+    <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="What's new" title="What's new" onclick={() => ui.toggleOverlay("whatsNew")}>
+      <Sparkles size={16} />
+    </button>
+    <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="Keyboard shortcuts" title="Keyboard shortcuts" onclick={() => ui.toggleOverlay("help")}>
+      <CircleHelp size={16} />
     </button>
   </div>
 </header>
