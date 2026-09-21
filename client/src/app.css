@@ -1,1 +1,60 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+
+/* tailwind + shadcn-svelte tokens alias the D5 variables — no parallel palette.
+   the one-accent rule collapses shadcn `primary` and `accent` onto the single brand;
+   subtle surfaces come from `secondary`/`surface-2`. */
+@theme inline {
+  --font-sans: var(--ff-sans);
+  --font-serif: var(--ff-serif);
+  --font-mono: var(--ff-mono);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 3px);
+
+  /* D5 semantic colors, available as bg-surface / text-muted / border-divider / … */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-divider: var(--divider);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-focus: var(--focus);
+
+  --color-add-bg: var(--add-bg);
+  --color-add-gutter: var(--add-gutter);
+  --color-add-text: var(--add-text);
+  --color-add-inline: var(--add-inline);
+  --color-del-bg: var(--del-bg);
+  --color-del-gutter: var(--del-gutter);
+  --color-del-text: var(--del-text);
+  --color-del-inline: var(--del-inline);
+  --color-mod-badge-bg: var(--mod-badge-bg);
+  --color-mod-badge-text: var(--mod-badge-text);
+  --color-ren-badge-bg: var(--ren-badge-bg);
+  --color-ren-badge-text: var(--ren-badge-text);
+
+  /* shadcn-svelte semantic tokens, each aliasing a D5 variable */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-accent-foreground: var(--on-accent);
+  --color-destructive: var(--del-text);
+  --color-destructive-foreground: var(--on-accent);
+  --color-input: var(--border);
+  --color-ring: var(--focus);
+}
