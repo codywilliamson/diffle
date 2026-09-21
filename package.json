@@ -11,6 +11,10 @@
   "scripts": {
     "start": "bun src/index.ts",
     "test": "bun test",
+    "client:build": "vite build",
+    "client:test": "vitest run",
+    "client:check": "cd client && svelte-check --tsconfig ./tsconfig.json",
+    "test:e2e": "playwright test",
     "build:binary": "bun build src/index.ts --compile --outfile dist/loupe",
     "mcp:serve": "bun src/mcp/index.ts",
     "mcpb:stage": "bun run build:binary && bun scripts/stage-mcpb.ts",
@@ -19,8 +23,23 @@
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
+    "@playwright/test": "1.62.1",
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/svelte": "5.4.2",
+    "@testing-library/user-event": "14.6.7",
     "@types/bun": "latest",
-    "playwright": "1.62.1"
+    "clsx": "2.1.1",
+    "jsdom": "30.1.0",
+    "playwright": "1.62.1",
+    "svelte": "5.57.1",
+    "svelte-check": "4.7.6",
+    "tailwind-merge": "3.7.0",
+    "tailwind-variants": "3.3.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
   },
   "peerDependencies": {
     "typescript": "^5"
