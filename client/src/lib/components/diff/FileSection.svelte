@@ -6,6 +6,8 @@
   import { changeBadge } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
   import { fileComments, newComment } from "$lib/diff/threads";
+  import { lineCountOf, estimatedHeight, GIANT_FILE_LINES } from "$lib/diff/metrics";
+  import { nearViewport } from "$lib/actions";
   import UnifiedDiff from "./UnifiedDiff.svelte";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
@@ -13,10 +15,13 @@
   let { file }: { file: DiffFile } = $props();
   const { ui, comments } = getAppState();
   let collapsed = $state(false);
+  let loaded = $state(false); // giant-file manual gate
+  let mounted = $state(false); // near-viewport lazy mount
 
   const badge = $derived(changeBadge(file.changeType));
   const fileLevel = $derived(fileComments(comments.comments.filter((c) => c.file === file.path)));
   const addingFile = $derived(ui.adding?.file === file.path && ui.adding.line == null);
+  const giant = $derived(lineCountOf(file) > GIANT_FILE_LINES);
 </script>
 
 <section id={fileAnchorId(file.path)} class="file-section mb-4 overflow-hidden rounded-lg border border-border bg-surface">
@@ -49,6 +54,13 @@
       <p class="px-4 py-3 text-sm text-muted">Binary file — no textual diff.</p>
     {:else if file.hunks.length === 0}
       <p class="px-4 py-3 text-sm text-dim">No changes to display.</p>
+    {:else if giant && !loaded}
+      <div class="flex items-center gap-3 px-4 py-3 text-sm text-muted">
+        <span>Large diff — hidden to keep things fast.</span>
+        <button class="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-2" onclick={() => (loaded = true)}>Load diff</button>
+      </div>
+    {:else if !giant && !mounted}
+      <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
       <div class="overflow-x-auto"><UnifiedDiff {file} /></div>
     {/if}
