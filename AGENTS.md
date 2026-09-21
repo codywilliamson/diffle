@@ -19,8 +19,7 @@ Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 ## Stack & hard constraints
 
 - **Bun runs the backend**: server (`Bun.serve`), CLI, MCP runtime, `bun test`, and the standalone compiler. Server/core/MCP TypeScript executes directly — no build step there.
-- **The client is a built Svelte SPA**: Svelte 5 runes + Vite + Tailwind v4 + shadcn-svelte. Source under `client/`, built to `dist/client` (served by `Bun.serve`). No SvelteKit. `bun run dev` runs the backend + Vite together with `/api` proxied to that backend; `bun start` / `bun run preview` serve the built client.
-- **`src/client/` is retired**: the old buildless Preact + htm client remains only as read-only parity evidence until Phase 3 removes it. Do not add to it or wire a runtime path back to it.
+- **The client is a built Svelte SPA**: Svelte 5 runes + Vite + Tailwind v4 + shadcn-svelte. Source under `client/`, built to `dist/client` (served by `Bun.serve`). No SvelteKit. `bun run dev` runs the backend + Vite together with `/api` proxied to that backend; `bun start` / `bun run preview` serve the built client. The old buildless Preact client has been removed.
 - **Runtime dependencies stay narrow and pinned.** The MCP SDK and its schema dependency are the intentional runtime deps; the Svelte/Vite/Tailwind/test tooling is dev-only and exact-pinned. Add a runtime package only when it replaces meaningful protocol or platform code.
 
 ## Engineering standards (enforced)
@@ -43,8 +42,7 @@ Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 - `src/mcp/` — local stdio MCP server and its Review Record adapter.
 - `src/server/` — `router` + `handlers` (`Bun.serve`). `GET /api/diff` re-runs git diff each call (live refresh).
 - `src/utils/git.ts` — `runGit`, `resolveRef`.
-- `client/` — Svelte 5 SPA (Vite root). `client/src/lib/` typed API adapters + `$lib`, `client/src/styles/` D5 tokens/theme. Built to `dist/client`.
-- `src/client/` — retired buildless Preact client, kept read-only as parity evidence until Phase 3.
+- `client/` — Svelte 5 SPA (Vite root). `client/src/lib/` typed API adapters + state stores + diff transforms, `client/src/lib/components/` the UI, `client/src/styles/` D5 tokens/theme. Built to `dist/client`.
 - `vite.config.ts` / `vitest.config.ts` / `playwright.config.ts` — client build, unit/component tests, e2e. `scripts/dev.ts` — the `bun run dev` launcher.
 - `tests/` — `bun test` (server/core/MCP), fixtures in `tests/fixtures/`. `e2e/` — Playwright specs (`*.pw.ts`).
 

@@ -14,6 +14,7 @@ playwright-report
 .playwright
 mcpb/server/
 mcpb/src/
+mcpb/dist/
 mcpb/package.json
 mcpb/manifest.json
 *.tgz

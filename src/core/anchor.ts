@@ -1,6 +1,6 @@
 // staleness: is a comment still anchored to a line/file present in the current diff?
 // orphaned comments (anchor gone) are excluded from the compiled prompt and surfaced
-// for cleanup in the ui. mirrored for the buildless client in src/client/util.js.
+// for cleanup in the ui. the svelte client imports this module directly (via $lib/anchor).
 
 import type { Comment, DiffResult, DiffLine } from "../types";
 

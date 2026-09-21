@@ -13,10 +13,14 @@ const binary = `loupe-mcp${extension}`;
 rmSync(serverDir, { recursive: true, force: true });
 mkdirSync(serverDir, { recursive: true });
 copyFileSync(source, join(serverDir, binary));
-const clientDir = join(root, "mcpb", "src", "client");
-rmSync(clientDir, { recursive: true, force: true });
-mkdirSync(join(root, "mcpb", "src"), { recursive: true });
-cpSync(join(root, "src", "client"), clientDir, { recursive: true });
+// stage the built svelte client next to the binary (phase 4 will embed it in the executable).
+const builtClient = join(root, "dist", "client");
+const mcpbDist = join(root, "mcpb", "dist");
+rmSync(mcpbDist, { recursive: true, force: true });
+if (existsSync(builtClient)) {
+  mkdirSync(mcpbDist, { recursive: true });
+  cpSync(builtClient, join(mcpbDist, "client"), { recursive: true });
+}
 copyFileSync(join(root, "package.json"), join(root, "mcpb", "package.json"));
 
 const manifest = {
