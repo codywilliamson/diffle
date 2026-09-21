@@ -23,6 +23,8 @@ Toggle between **unified** (one column, `+`/`-` markers) and **side-by-side** (o
 
 Long lines can be hard to scan side-by-side; turn on **line wrapping** to fold them into the column width instead of scrolling horizontally.
 
+![A side-by-side diff: the old file on the left, the new file on the right, with an inline comment thread](/media/side-by-side.png)
+
 ## Single-file vs all-files view
 
 By default diffle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
