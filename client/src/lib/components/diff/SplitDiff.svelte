@@ -64,8 +64,10 @@
           {#if list.length > 0 || adding}
             <tr class="comment-row">
               <td class="comment-cell" colspan="3">
-                {#if list.length > 0}<CommentThread comments={list} />{/if}
-                {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("old", left, ol, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                <div class="comment-box">
+                  {#if list.length > 0}<CommentThread comments={list} />{/if}
+                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("old", left, ol, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                </div>
               </td>
               <td colspan="3"></td>
             </tr>
@@ -78,8 +80,10 @@
             <tr class="comment-row">
               <td colspan="3"></td>
               <td class="comment-cell" colspan="3">
-                {#if list.length > 0}<CommentThread comments={list} />{/if}
-                {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("new", right, nl, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                <div class="comment-box">
+                  {#if list.length > 0}<CommentThread comments={list} />{/if}
+                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("new", right, nl, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                </div>
               </td>
             </tr>
           {/if}

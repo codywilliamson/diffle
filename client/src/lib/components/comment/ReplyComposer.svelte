@@ -27,7 +27,7 @@
   }
 </script>
 
-<div class="mt-2 rounded-md border border-border bg-surface-2 p-2">
+<div class="mt-2 rounded-md border border-border bg-surface-2 p-3">
   <textarea
     bind:this={input}
     bind:value={text}
@@ -36,8 +36,8 @@
     placeholder="Reply…"
     class="min-h-[2rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
   ></textarea>
-  <div class="mt-1 flex gap-2">
-    <button class="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim() || pending}>Send</button>
-    <button class="rounded px-2 py-1 text-xs text-muted hover:text-text" onclick={onDone} disabled={pending}>Cancel</button>
+  <div class="mt-3 flex gap-2">
+    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim() || pending}>Send</button>
+    <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onDone} disabled={pending}>Cancel</button>
   </div>
 </div>
