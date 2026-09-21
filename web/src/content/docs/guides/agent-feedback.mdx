@@ -1,0 +1,65 @@
+---
+title: Agent feedback loop
+description: Drive a diffle review from Codex or Claude Code over a local MCP server and return structured feedback.
+sidebar:
+  order: 3
+---
+
+import { Tabs, TabItem, Steps, Aside } from "@astrojs/starlight/components";
+
+diffle ships explicit review skills for **Codex** and **Claude Code** that drive a review through a local MCP server. Both integrations need the `diffle` command on your `PATH` — see [Installation](/getting-started/installation/).
+
+## Install the integration
+
+<Tabs syncKey="agent">
+  <TabItem label="Claude Code">
+    ```sh
+    claude plugin marketplace add codywilliamson/diffle
+    claude plugin install loupe-review@loupe-local --scope user
+    ```
+
+    Then start a new Claude Code session (or run `/reload-plugins`).
+  </TabItem>
+  <TabItem label="Codex">
+    ```sh
+    codex plugin marketplace add codywilliamson/diffle
+    codex plugin add loupe-review@loupe-local
+    ```
+
+    Then start a new Codex task — existing tasks don't reload newly installed skills/MCP servers.
+  </TabItem>
+</Tabs>
+
+<Aside>
+  The plugin is still named `loupe-review` during the compatibility window.
+</Aside>
+
+## The review loop
+
+<Steps>
+
+1. Ask the agent `Review my current changes with diffle.`
+
+2. Leave line/file comments and choose **Return Feedback**.
+
+3. Return to the agent and say `continue`.
+
+4. The agent replies and re-review requests appear in diffle — choose **Refresh diff** from the notice to load new changes.
+
+5. Verify, reply in a thread or resolve, then approve or return more feedback. Asking for more after approval reopens the same review.
+
+</Steps>
+
+<Aside type="caution">
+  If the agent can't start the diffle MCP server, run `diffle --version` in the same shell. If it's missing, fix your `PATH` (re-run the installer) and start a fresh agent session.
+</Aside>
+
+## Running the MCP server directly
+
+The MCP server can also be run directly:
+
+```sh
+diffle mcp serve
+```
+
+See [MCP tools](/reference/mcp-tools/) for the full tool list.
