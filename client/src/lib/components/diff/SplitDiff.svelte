@@ -25,6 +25,10 @@
 </script>
 
 <table class="diff-table split-table">
+  <colgroup>
+    <col style="width:22px" /><col style="width:52px" /><col />
+    <col style="width:22px" /><col style="width:52px" /><col />
+  </colgroup>
   {#each file.hunks as hunk, hi (hi)}
     {@const marks = hunkMarks(hunk.lines)}
     {@const rows = pairLines(hunk.lines)}
@@ -44,7 +48,7 @@
           </td>
           {#if left}
             <td class="lineno" class:sel={ol != null} onmousedown={ol != null ? (e) => startSelect(e, ui, file.path, "old", ol) : undefined}>{left.oldLine ?? ""}</td>
-            <td class="code code-{left.type}"><span class="code-inner">{@html code(left, marks)}</span></td>
+            <td class="code code-{left.type}"><div class="split-scroll"><span class="code-inner">{@html code(left, marks)}</span></div></td>
           {:else}
             <td class="lineno empty"></td><td class="code code-empty"></td>
           {/if}
@@ -53,7 +57,7 @@
           </td>
           {#if right}
             <td class="lineno" class:sel={nl != null} onmousedown={nl != null ? (e) => startSelect(e, ui, file.path, "new", nl) : undefined}>{right.newLine ?? ""}</td>
-            <td class="code code-{right.type}"><span class="code-inner">{@html code(right, marks)}</span></td>
+            <td class="code code-{right.type}"><div class="split-scroll"><span class="code-inner">{@html code(right, marks)}</span></div></td>
           {:else}
             <td class="lineno empty"></td><td class="code code-empty"></td>
           {/if}

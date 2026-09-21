@@ -114,9 +114,20 @@ body.selecting {
   cursor: ns-resize;
 }
 
-/* side-by-side: per-cell washes (unified uses row-level ones) and equal-width code columns */
+/* side-by-side: fixed layout keeps both panes locked at 50/50 no matter how long a line is;
+   each code cell scrolls its own long line horizontally instead of widening the whole table. */
+.split-table {
+  table-layout: fixed;
+}
 .split-table .code {
-  width: 50%;
+  padding: 0;
+}
+.split-scroll {
+  overflow-x: auto;
+  padding: 0 8px 0 4px;
+}
+.wrap .split-scroll {
+  overflow-x: visible;
 }
 .code-addition {
   background: var(--add-bg);
