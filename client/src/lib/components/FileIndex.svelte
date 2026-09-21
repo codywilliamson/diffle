@@ -4,6 +4,7 @@
   import { buildTree } from "$lib/diff/tree";
   import Folder from "./tree/Folder.svelte";
   import FileRow from "./tree/FileRow.svelte";
+  import Resizer from "./Resizer.svelte";
 
   const { diff, ui, prefs, comments } = getAppState();
   let filter = $state("");
@@ -19,7 +20,7 @@
 </script>
 
 <nav
-  class="shrink-0 flex-col border-r border-border bg-surface {ui.drawerOpen ? 'fixed inset-y-0 left-0 z-30 flex w-72 shadow-xl' : 'hidden lg:flex'}"
+  class="relative shrink-0 flex-col border-r border-border bg-surface {ui.drawerOpen ? 'fixed inset-y-0 left-0 z-30 flex w-72 shadow-xl' : 'hidden lg:flex'}"
   style={ui.drawerOpen ? "" : `width:${prefs.sidebarWidth}px`}
   aria-label="Changed files"
 >
@@ -56,4 +57,8 @@
       {/each}
     {/if}
   </div>
+
+  {#if !ui.drawerOpen}
+    <Resizer onResize={(x) => prefs.setSidebarWidth(Math.max(180, Math.min(640, x)))} />
+  {/if}
 </nav>
