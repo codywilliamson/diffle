@@ -1,58 +1,57 @@
-# loupe
+# diffle
 
 Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
 
-**Site & docs: [codywilliamson.github.io/loupe](https://codywilliamson.github.io/loupe/)**
+**Site & docs: [diffle.dev](https://diffle.dev)**
 
 ## Demo
 
-![Review an agent change with Loupe](docs/screenshots/agent-review-walkthrough.gif)
+![Review an agent change with diffle](docs/screenshots/walkthrough.gif)
 
-The walkthrough uses a real Claude Code edit: comment, return feedback, let the agent fix and reply, refresh the diff, resolve, and approve. [Watch the MP4](docs/screenshots/agent-review-walkthrough.mp4), read the [step-by-step tutorial](docs/agent-review-walkthrough.md), or open the [site](https://codywilliamson.github.io/loupe/#demo).
+Review a diff, comment on exact lines, and export structured feedback for your agent. [Watch the MP4](docs/screenshots/walkthrough.mp4) or read the [docs](https://diffle.dev).
 
 ## Screenshots
 
-![loupe — a unified diff with a file tree and inline comments](docs/screenshots/01-overview.png)
+![diffle — a unified diff with a file tree and inline comments](docs/screenshots/overview.png)
 
-| Dark mode | Inline multi-line comment | Side-by-side |
+| Inline comment | Side-by-side | Structured feedback |
 | --- | --- | --- |
-| ![dark mode](docs/screenshots/02-dark.png) | ![multi-line comment](docs/screenshots/03-comments.png) | ![side-by-side diff](docs/screenshots/04-side-by-side.png) |
+| ![inline comment](docs/screenshots/comment.png) | ![side-by-side diff](docs/screenshots/side-by-side.png) | ![feedback preview](docs/screenshots/feedback.png) |
 
 ## Install
 
-Loupe runs on [Bun](https://bun.sh). Clone the repo and register the `loupe` command globally — works on macOS, Linux, and Windows:
+diffle ships as a single self-contained binary — no checkout, no Node, no sidecar files. It needs only **`git`** on your `PATH`.
 
-    git clone https://github.com/codywilliamson/loupe
-    cd loupe
-    bun install
-    bun link          # puts `loupe` on your PATH
+```sh
+# macOS / Linux
+curl -fsSL https://diffle.dev/install | sh
+```
 
-Then run `loupe` from any git repo.
+```powershell
+# Windows
+irm https://diffle.dev/install.ps1 | iex
+```
 
-**Windows fallback** — if `loupe` isn't found after `bun link` (depends how Bun was installed), add a function to your PowerShell profile instead:
-
-    'function loupe { bun "C:\path\to\loupe\src\index.ts" @args }' | Add-Content $PROFILE
-    . $PROFILE   # load it into the current session
-
-(swap `C:\path\to\loupe` for wherever you cloned the repo.)
+The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.diffle/bin`. Keep it current with `diffle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://diffle.dev/getting-started/installation/).
 
 ## Usage
 
-    loupe                  # working tree vs HEAD (untracked included)
-    loupe staged           # staged changes only
-    loupe <branch>         # current branch vs named branch
-    loupe <ref1>..<ref2>   # commit range
-    loupe browse           # review the whole codebase
-    loupe browse src/      # scope to a subtree
-    loupe mcp serve        # local MCP server for agent integrations
-    loupe sessions         # list running loupe sessions
-    loupe cleanup          # stop stale sessions and finished reviews
+```sh
+diffle                  # working tree vs HEAD (untracked included)
+diffle staged           # staged changes only
+diffle <branch>         # current branch vs named branch (PR-style)
+diffle <ref1>..<ref2>   # commit range
+diffle browse           # review the whole codebase
+diffle browse src/      # scope to a subtree
+diffle mcp serve        # local MCP server for agent integrations
+diffle sessions         # list running diffle sessions
+diffle cleanup          # stop stale sessions and finished reviews
+diffle update           # self-update to the latest release
+```
 
-Flags: `--port <n>` fixed port, `--no-open` don't launch the browser, `--version`, `--help`.
-`cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions.
+Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions.
 
-loupe reviews whichever git repo you run it from, then prints a `http://localhost:<port>`
-URL and opens it in your browser — the diff renders there, not in the terminal.
+diffle reviews whichever git repo you run it from, then prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 
 ## Keyboard shortcuts
 
@@ -74,22 +73,19 @@ To comment on a range, drag across the line numbers or shift-click a second line
 
 ## Review with an agent
 
-1. Ask Codex or Claude Code: `Review my current changes with Loupe.`
-2. Leave line- or file-level comments in Loupe and choose **Return Feedback**.
+1. Ask Codex or Claude Code: `Review my current changes with diffle.`
+2. Leave line- or file-level comments in diffle and choose **Return Feedback**.
 3. Return to the agent and say `continue`.
-4. Agent replies and rereview requests appear in Loupe as they happen; choose **Refresh diff** from the notice to load the new changes.
+4. Agent replies and rereview requests appear in diffle as they happen; choose **Refresh diff** from the notice to load the new changes.
 5. Verify the changes, reply in a thread or resolve it, then approve or return more feedback. Asking the agent for more after approval reopens the same review.
 
 Install the agent integration first — see [Agent integrations](#agent-integrations).
 
 ## Review records
 
-Reviews are stored outside the repository under `~/.loupe/reviews/<review-id>/review.json`. Each
+Reviews are stored outside the repository under `~/.diffle/reviews/<review-id>/review.json`. Each
 record keeps its Git comparison, comments, replies, addressed/resolved state, summary, and outcome.
 Approved and cancelled reviews remain local until explicitly deleted.
-
-Existing `.review` files are treated as legacy data. Loupe leaves them untouched and prompts you to
-import, remove with confirmation, or ignore them.
 
 **Resolve** a comment to keep it on the record but drop it from returned feedback and open-comment counts — reopen it any time.
 
@@ -99,28 +95,27 @@ Markdown files open showing their diff; use the per-file **Preview** toggle to r
 
 ## Agent integrations
 
-Loupe ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server. Both need the `loupe` command from [Install](#install) on your PATH.
+diffle ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server. Both need the `diffle` command from [Install](#install) on your `PATH`.
 
-### Codex
+```sh
+# Claude Code
+claude plugin marketplace add codywilliamson/diffle
+claude plugin install loupe-review@loupe-local --scope user
 
-    codex plugin marketplace add codywilliamson/loupe
-    codex plugin add loupe-review@loupe-local
+# Codex
+codex plugin marketplace add codywilliamson/diffle
+codex plugin add loupe-review@loupe-local
+```
 
-Start a new Codex task after installation — existing tasks do not reload newly installed skills and
-MCP servers. Then ask: `Review my current changes with Loupe.`
+Start a fresh agent session after installing (or run `/reload-plugins` in Claude Code), then ask
+`Review my current changes with diffle.` The plugin is named `loupe-review` during the
+compatibility window. Package sources and maintenance notes live in [`integrations/`](integrations/README.md); see the [agent feedback guide](https://diffle.dev/guides/agent-feedback/) for the full loop.
 
-### Claude Code
+## Upgrading from loupe
 
-    claude plugin marketplace add codywilliamson/loupe
-    claude plugin install loupe-review@loupe-local --scope user
-
-Start a new Claude Code session, or run `/reload-plugins` in an existing one. Then ask:
-`Review my current changes with Loupe.`
-
-If an agent reports that it cannot start the Loupe MCP server, run `loupe --version` in the same
-shell. If the command is missing, rerun `bun link`, restart that shell, and start a fresh agent session.
-
-The package sources and maintenance notes live in [`integrations/`](integrations/README.md).
+diffle was previously **loupe**. The `loupe` command, `LOUPE_*` environment variables, and an
+existing `~/.loupe` data directory keep working for one release — see
+[Migrating from loupe](https://diffle.dev/guides/migrating-from-loupe/).
 
 ## Releases
 
