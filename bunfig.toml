@@ -1,0 +1,4 @@
+# bun test covers the server/core suite under tests/; the client is tested with
+# vitest (bun test cannot run @testing-library/svelte or .svelte imports).
+[test]
+root = "tests"
