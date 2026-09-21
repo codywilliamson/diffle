@@ -1,6 +1,6 @@
 # diffle — implementation handoff (Phases 0–3 done → Phase 4)
 
-> Branch: `evolve`. The frontend rewrite is **functionally complete**: the Svelte client is at full loupe parity and the retired Preact client is gone. Phases 0–3 are committed and verified. What remains (Phases 4–9) is packaging, the user-facing rebrand, release, docs, and demos — mostly gated on external go-aheads. This doc lets a fresh session pick up **Phase 4** without re-deriving the state.
+> Branch: `evolve`. The frontend rewrite is **functionally complete and refined through a dogfooding review pass** (diffle reviewing diffle): the Svelte client is at full loupe parity, the retired Preact client is gone, and the review-surface polish/bugs found in use are fixed. Phases 0–3 are committed and verified. What remains (Phases 4–9) is packaging, the user-facing rebrand, release, docs, and demos — mostly gated on external go-aheads. This doc lets a fresh session pick up **Phase 4** without re-deriving the state.
 
 ## Status — what's done
 
@@ -13,7 +13,17 @@
 
 The three parity contradictions from the Phase 0 audit are all **implemented** (not just decided): sanitized markdown preview (ADR 0007), focus-trapping dialogs, and empty/no-diff states.
 
-**Gate (all green):** `bun test` 204 · server `tsc` 0 · Vitest 83 · svelte-check 0 · Playwright 7 · client build · binary compile · MCPB validate. Browser-verified at desktop + phone, light + dark.
+**Post-review polish (dogfooding pass, all committed):** rebuilt the **feedback preview modal** (`review/FeedbackPreview.svelte`, rendered/raw + copy, opened from the review popover); **restored the sidebar resize handle** (`Resizer.svelte`); fixed the **sticky file header** (`overflow-hidden` was breaking `position: sticky`); **collapse deleted files by default** (GitHub-style); **side-by-side panes locked 50/50** with per-cell horizontal scroll (`table-layout: fixed` + colgroup — a long line no longer shoves the new pane off-screen); pinned + width-capped the **inline comment box** on wide diffs; readable comment **tag badges**; **refresh icon spins** while re-running; a **theme crossfade** (View Transitions API); folder **collapse animation**; and a general **motion pass** (cubic-out easing, popover/diff reveals). `DESIGN.md` now holds the full D5 system; `docs/diffle/design.md` points to it.
+
+**Gate (all green):** `bun test` 204 · server `tsc` 0 · Vitest 83 · svelte-check 0 · Playwright 7 · client build · binary compile · MCPB validate. Browser-verified at desktop + phone, light + dark, including the review/comment/feedback flows.
+
+### Open `evolve` enhancement backlog (GitHub issues, labeled `enhancement` + `evolve`)
+
+Out-of-scope items found while dogfooding — deferred, not lost:
+- **#23** — proper Svelte syntax highlighting (`.svelte` currently maps to `xml`; highlight.js has no Svelte grammar).
+- **#24** — independent per-pane horizontal scroll + a draggable split divider (the 50/50 fix above is the interim; true per-pane scroll/resize needs a non-table rebuild).
+- **#25** — fuller motion: NumberFlow counts, staggered diff-line reveals, GSAP, file→diff View Transition morph.
+- **#26** — scope the review to a folder by clicking it in the file tree.
 
 ## Layout as it is now
 
@@ -22,8 +32,9 @@ The three parity contradictions from the Phase 0 audit are all **implemented** (
   - `client/src/lib/api/` — `http.ts` (typed GET/POST + error text + abort) and `diff`/`comments`/`review`/`meta` adapters.
   - `client/src/lib/state/` — rune stores `ui`/`prefs`/`diff`/`review`/`comments` (`.svelte.ts`), `reviewRecord.ts` helpers, `context.ts` (composes all five, reads `?review=`, typed `getAppState`/`setAppState`).
   - `client/src/lib/diff/` — pure transforms: `tree`, `wordDiff`, `highlight`, `metrics`, `threads`, `selectDrag`, `markdown`. `client/src/lib/anchor.ts` **re-exports `src/core/anchor.ts`** (shared, do not duplicate).
-  - `client/src/lib/components/` — `TopBar`, `FileIndex`, `Modal`, overlays; `diff/*` (DiffView/FileSection/UnifiedDiff/SplitDiff/MarkdownPreview), `comment/*`, `review/*`, `tree/*`.
-  - `client/src/styles/` — `tokens.css` (D5, both themes), `base.css`, `diff.css` (diff table + syntax theme + comment layer + markdown prose).
+  - `client/src/lib/` (root helpers) — `format.ts`, `motion.ts` (reduced-motion-gated fade/fly/scale/slide/FLIP), `viewTransition.ts` (theme crossfade), `actions.ts` (`nearViewport`, `clickOutside`), `shortcuts.ts`, `whatsNew.ts`.
+  - `client/src/lib/components/` — `TopBar`, `FileIndex`, `Resizer`, `Modal`, `HelpOverlay`, `WhatsNewModal`, `UpdateBadge`, `LegacyPrompt`, `StaleComments`; `diff/*` (DiffView/FileSection/UnifiedDiff/SplitDiff/MarkdownPreview), `comment/*` (editor/card/thread/replies/composer), `review/*` (ReviewPanel/SyncNotice/FeedbackPreview), `tree/*`.
+  - `client/src/styles/` — `tokens.css` (D5, both themes), `base.css` (typography + surfaces + reduced-motion guard + view-transition), `diff.css` (diff table + syntax theme + comment layer + markdown prose).
 - `e2e/` — Playwright (`*.pw.ts`) via `e2e/harness.ts` (`makeFixture`/`startPreview`/`stop`/`cleanup`/`gotoApp`).
 - Commands: `bun start` · `bun run dev` (backend + Vite, `/api` proxied) · `bun run preview` · `client:build` · `client:test` (Vitest) · `client:check` (svelte-check) · `test:e2e` · `build:binary` · `mcpb:validate`.
 
@@ -32,7 +43,7 @@ The three parity contradictions from the Phase 0 audit are all **implemented** (
 - **Test runners are split.** `bun test` is scoped to `tests/` via `bunfig.toml` (it cannot run `.svelte` or Testing Library). The client is Vitest-only. `svelte-check` must run with cwd = `client/` (that's what `client:check` does). The root server `tsconfig` excludes `client`, `e2e`, `dist`, `mcpb`, `out`.
 - **Playwright runs via `npx playwright test`, not Bun** (Bun + Playwright hangs on Windows). Tracers use `gotoApp` to dismiss the auto-shown What's-New modal so it doesn't block clicks.
 - **New dev deps (all dev, exact-pinned):** `@lucide/svelte`, `highlight.js`, `marked`, `dompurify` (client bundle); plus the Phase 0 toolchain. Runtime deps stay the MCP SDK + zod only.
-- **Intentional simplifications** vs old loupe: side-by-side is a single table (shift+wheel gives shared horizontal scroll; fully-independent per-pane horizontal scroll is not implemented). Motion shipped the foundational transitions + FLIP only — **NumberFlow, GSAP, and View Transitions are deferred**. What's-New uses a placeholder version constant `0.16.0` in `client/src/lib/whatsNew.ts` (real versioning is Phase 6). User-level What's-New "seen" state persists to `~/.loupe/state.json` via `homedir()` — **not** `LOUPE_DATA_DIR` (which only moves review records).
+- **Intentional simplifications** vs old loupe (all tracked as `evolve` issues, see backlog above): side-by-side is a single `table-layout: fixed` table — panes stay 50/50 and long lines scroll per-cell, but true per-pane scroll + a draggable split divider are not implemented (**#24**). Motion shipped the foundational transitions + FLIP + theme crossfade; NumberFlow/GSAP/staggered reveals are deferred (**#25**). `.svelte` files highlight as `xml` (**#23**). What's-New uses a placeholder version constant `0.16.0` in `client/src/lib/whatsNew.ts` (real versioning is Phase 6). User-level What's-New "seen" state persists to `~/.loupe/state.json` via `homedir()` — **not** `LOUPE_DATA_DIR` (which only moves review records).
 - Git shows `LF will be replaced by CRLF` on commits — normal on Windows, ignore.
 
 ## Phase 4 — the next phase (self-contained packaging)
