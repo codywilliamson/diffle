@@ -18,15 +18,15 @@ Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 
 ## Stack & hard constraints
 
-- **Bun is everything**: server (`Bun.serve`), tests (`bun test`), TypeScript executed directly. No build step, no bundler, no transpile.
-- **Frontend is buildless**: Preact + htm + highlight.js loaded from a CDN (esm.sh) as ES modules. No JSX — htm tagged templates (`` html`...` ``).
-  - The raw `htm.bind(h)` does **not** support the `<>...</>` fragment shorthand. Return multiple root nodes instead (htm yields an array, Preact renders siblings).
-- **Runtime dependencies stay narrow and pinned.** The official MCP SDK and its schema dependency are intentional; add another runtime package only when it replaces meaningful protocol or platform code.
+- **Bun runs the backend**: server (`Bun.serve`), CLI, MCP runtime, `bun test`, and the standalone compiler. Server/core/MCP TypeScript executes directly — no build step there.
+- **The client is a built Svelte SPA**: Svelte 5 runes + Vite + Tailwind v4 + shadcn-svelte. Source under `client/`, built to `dist/client` (served by `Bun.serve`). No SvelteKit. `bun run dev` runs the backend + Vite together with `/api` proxied to that backend; `bun start` / `bun run preview` serve the built client.
+- **`src/client/` is retired**: the old buildless Preact + htm client remains only as read-only parity evidence until Phase 3 removes it. Do not add to it or wire a runtime path back to it.
+- **Runtime dependencies stay narrow and pinned.** The MCP SDK and its schema dependency are the intentional runtime deps; the Svelte/Vite/Tailwind/test tooling is dev-only and exact-pinned. Add a runtime package only when it replaces meaningful protocol or platform code.
 
 ## Engineering standards (enforced)
 
-- **File size**: soft 150 lines, **hard 200 — no file may exceed it**. `src/client/index.html` is exempt; the client `.js` modules are not. Split before you hit the cap.
-- **DRY** — extract anything used twice. Shared helpers in `src/utils/` (server) or `src/client/util.js` (client).
+- **File size**: soft 150 lines, **hard 200** for server/core/MCP modules — split before you hit the cap. The Svelte client is not under a blanket line cap; Svelte components and client `.ts` modules split by responsibility (SRP). The D5 token/theme CSS is exempt.
+- **DRY** — extract anything used twice. Shared helpers in `src/utils/` (server) or `client/src/lib/` (client).
 - **SRP** — one job per module. If describing a file needs "and", split it.
 - **KISS / YAGNI** — build exactly what's asked. Keep agent adapters thin and avoid speculative extension points.
 - **Types** — strict TS, no `any` on the contract types.
@@ -34,7 +34,7 @@ Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 
 ## The one architectural invariant
 
-`src/types.ts` is the single source of truth for diff JSON, durable Review Records, the legacy `.review` shape, and API/MCP request bodies. **Nothing redefines these — import from `src/types.ts`.** Change shared shapes there first.
+`src/types.ts` is the single source of truth for diff JSON, durable Review Records, the legacy `.review` shape, and API/MCP request bodies. **Nothing redefines these — import from `src/types.ts`.** The Svelte client imports them through the `$types` alias; it never re-declares a shape. Change shared shapes there first.
 
 ## Layout
 
@@ -43,19 +43,21 @@ Loupe uses a single-context domain model. See `docs/agents/domain.md`.
 - `src/mcp/` — local stdio MCP server and its Review Record adapter.
 - `src/server/` — `router` + `handlers` (`Bun.serve`). `GET /api/diff` re-runs git diff each call (live refresh).
 - `src/utils/git.ts` — `runGit`, `resolveRef`.
-- `src/client/` — buildless Preact modules; `src/types.ts` is the shared client/server contract.
-- `tests/` — `bun test`, fixtures in `tests/fixtures/`.
+- `client/` — Svelte 5 SPA (Vite root). `client/src/lib/` typed API adapters + `$lib`, `client/src/styles/` D5 tokens/theme. Built to `dist/client`.
+- `src/client/` — retired buildless Preact client, kept read-only as parity evidence until Phase 3.
+- `vite.config.ts` / `vitest.config.ts` / `playwright.config.ts` — client build, unit/component tests, e2e. `scripts/dev.ts` — the `bun run dev` launcher.
+- `tests/` — `bun test` (server/core/MCP), fixtures in `tests/fixtures/`. `e2e/` — Playwright specs (`*.pw.ts`).
 
 ## Commits — Conventional Commits
 
-`<type>(<scope>): <short lowercase description>`. Types: `feat` `fix` `test` `refactor` `chore` `docs` `style`. Scopes: `parser` `server` `ui` `store` `compiler` `cli` `types` `tests`. One concern per commit; never batch unrelated changes.
+`<type>(<scope>): <short lowercase description>`. Types: `feat` `fix` `test` `refactor` `chore` `docs` `style`. Scopes: `parser` `server` `ui` `client` `store` `compiler` `cli` `types` `tests`. One concern per commit; never batch unrelated changes.
 
 ## Testing & verification
 
-- `bun test` — aim for full branch coverage on the pure modules (`diffParser`, `promptCompiler`). Use fixtures for multi-line input; no fs mocking (use temp dirs via `os.tmpdir()`).
-- `bun x tsc --noEmit` (strict) must stay clean.
+- `bun test` covers server/core/MCP (scoped to `tests/` via `bunfig.toml`) — aim for full branch coverage on pure modules (`diffParser`, `promptCompiler`). Use fixtures for multi-line input; no fs mocking (temp dirs via `os.tmpdir()`).
+- The client is tested with **Vitest + Testing Library** (`bun run client:test`) and **Playwright** e2e (`bun run test:e2e`, `.pw.ts`). Keep server `bun x tsc --noEmit` (strict) and client `bun run client:check` (svelte-check) both clean.
 - MCP/plugin work also validates the MCPB manifest and both agent skills.
-- **Green tests ≠ a working app.** The buildless frontend is not covered by `bun test`. Verify UI changes in a real browser before calling them done. (A `<>` fragment bug once left the entire diff pane blank while all 48 tests passed.)
+- **Green tests ≠ a working app.** The frontend is not covered by `bun test`. Verify UI changes in a real browser (both themes, desktop + phone) before calling them done. (A `<>` fragment bug once left the entire diff pane blank while all tests passed.)
 
 ## Releases
 
