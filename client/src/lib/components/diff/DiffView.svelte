@@ -2,6 +2,7 @@
   import { getAppState } from "$lib/state/context";
   import { fileAnchorId } from "$lib/diff/tree";
   import FileSection from "./FileSection.svelte";
+  import StaleComments from "../StaleComments.svelte";
 
   const { diff, ui, prefs } = getAppState();
 
@@ -25,6 +26,7 @@
   <div class="grid h-full place-items-center p-6 text-sm text-muted">No changes in this diff.</div>
 {:else}
   <div class="p-4">
+    <StaleComments />
     {#each files as file (file.path)}
       <FileSection {file} />
     {/each}

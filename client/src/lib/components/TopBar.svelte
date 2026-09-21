@@ -3,6 +3,9 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Moon from "@lucide/svelte/icons/moon";
   import Sun from "@lucide/svelte/icons/sun";
+  import Columns2 from "@lucide/svelte/icons/columns-2";
+  import WrapText from "@lucide/svelte/icons/wrap-text";
+  import Rows3 from "@lucide/svelte/icons/rows-3";
   import { getAppState } from "$lib/state/context";
 
   const { diff, prefs, ui } = getAppState();
@@ -40,6 +43,33 @@
   </span>
 
   <div class="flex shrink-0 items-center gap-0.5">
+    <button
+      class="rounded p-1.5 hover:bg-surface-2 {prefs.fileView === 'single' ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
+      aria-label="Single-file view"
+      aria-pressed={prefs.fileView === "single"}
+      title="Single-file view"
+      onclick={() => prefs.setFileView(prefs.fileView === "single" ? "all" : "single")}
+    >
+      <Rows3 size={16} />
+    </button>
+    <button
+      class="rounded p-1.5 hover:bg-surface-2 {prefs.split ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
+      aria-label="Side-by-side view"
+      aria-pressed={prefs.split}
+      title="Side-by-side view"
+      onclick={() => prefs.toggleSplit()}
+    >
+      <Columns2 size={16} />
+    </button>
+    <button
+      class="rounded p-1.5 hover:bg-surface-2 {prefs.wrap ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
+      aria-label="Wrap lines"
+      aria-pressed={prefs.wrap}
+      title="Wrap lines"
+      onclick={() => prefs.toggleWrap()}
+    >
+      <WrapText size={16} />
+    </button>
     <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="Re-run the diff" title="Re-run the diff" onclick={() => diff.refresh()}>
       <RefreshCw size={16} />
     </button>
