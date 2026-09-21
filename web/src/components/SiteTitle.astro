@@ -1,0 +1,26 @@
+---
+// docs header brand — mirrors the landing header (mark + mono wordmark), links home to the landing.
+import Mark from "./Mark.astro";
+---
+
+<a href="/" class="site-brand" aria-label="diffle home">
+  <Mark size={24} />
+  <span>diffle</span>
+</a>
+
+<style>
+  .site-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sl-color-white);
+    text-decoration: none;
+    font-family: var(--ff-mono, "IBM Plex Mono", monospace);
+    font-weight: 500;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+  .site-brand :global(svg) {
+    flex: none;
+  }
+</style>
