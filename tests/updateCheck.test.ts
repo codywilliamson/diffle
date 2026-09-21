@@ -1,5 +1,8 @@
-import { describe, it, expect } from "bun:test";
-import { latestVersion } from "../src/core/updateCheck";
+import { describe, it, expect, beforeEach } from "bun:test";
+import { join } from "node:path";
+import { checkForUpdate, latestVersion, releasesApiUrl, resetUpdateCache } from "../src/core/updateCheck";
+
+const root = join(import.meta.dir, ".."); // currentVersion reads this repo's package.json
 
 describe("latestVersion", () => {
   it("returns a higher tag when one exists", () => {
@@ -24,5 +27,25 @@ describe("latestVersion", () => {
 
   it("returns current when there are no tags", () => {
     expect(latestVersion("0.3.0", [])).toBe("0.3.0");
+  });
+});
+
+describe("checkForUpdate", () => {
+  beforeEach(() => resetUpdateCache());
+
+  it("targets the configured repo's releases api", () => {
+    expect(releasesApiUrl()).toMatch(/^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/releases/);
+  });
+
+  it("reports behind when a newer release is published", async () => {
+    const status = await checkForUpdate(root, async () => ["v999.0.0"]);
+    expect(status.behind).toBe(true);
+    expect(status.latest).toBe("999.0.0");
+  });
+
+  it("reports up to date and never throws when the channel is unreachable", async () => {
+    const status = await checkForUpdate(root, async () => []);
+    expect(status.behind).toBe(false);
+    expect(status.latest).toBe(status.current);
   });
 });

@@ -124,7 +124,7 @@ describe("meta adapters", () => {
   });
 
   it("getUpdate reads the update status", async () => {
-    stub(ok({ behind: false, current: "1", latest: "1", repoPath: "/x" }));
+    stub(ok({ behind: false, current: "1", latest: "1" }));
     expect((await getUpdate()).behind).toBe(false);
   });
 
