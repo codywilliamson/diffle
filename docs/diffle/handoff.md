@@ -60,13 +60,15 @@ Committed on `evolve`. Rebrand: `83ae184` (product config + command), `1dde07a` 
 
 Committed on `evolve`: `42f04c1` (Astro Starlight site) + `chore: point repo urls at codywilliamson/diffle` + `feat(build): set diffle.dev as the product homepage`. The site is a **separate `web/` package** (Astro 7 + Starlight 0.42, build-only deps isolated from the app) themed with the D5 tokens: `getting-started/` (installation, quickstart), `guides/` (reviewing-changes, inline-comments, agent-feedback, migrating-from-loupe), `reference/` (cli, configuration, mcp-tools). `bun run build` copies the root `install.sh`/`install.ps1` into `web/public/` so the built site serves them at `/install` + `/install.ps1`. Verified: `bun run build` → 11 pages, browser-checked landing + a content page (D5 dark theme, sidebar order, Tabs/Steps/Aside render).
 
-### Gated actions still pending (the user's)
-1. **Connect Cloudflare Pages** to the repo and map `diffle.dev` — exact settings in [`web/README.md`](../../web/README.md) (Git integration = zero secrets in the repo). This makes `diffle.dev` + `diffle.dev/install` live.
-2. **Cut the first release**: merge the Release Please PR (tags + drafts), let `.github/workflows/release.yml` build/upload the per-target binaries + `checksums.txt`, then publish. Until a release exists, `diffle update` and the installers have nothing to fetch. **Nothing has been tagged, released, or deployed.**
-3. **Retire the old `site/` + `.github/workflows/pages.yml`** once the new CF site is confirmed live (the plan defers this until then; `pages.yml` is dormant meanwhile since nothing touches `site/`).
-4. GitHub repo **description + README** (the user is handling these).
+### Deploy — DONE
+`diffle.dev` is **live**. A Cloudflare Workers Builds project `diffle` (account "S3 Hub") is connected to `codywilliamson/diffle` with **production branch `evolve`**, build `cd web && bun install && bun run build`, deploy `npx wrangler deploy` (static assets via root `wrangler.jsonc` → `web/dist`), a dedicated build token, and the custom domain `diffle.dev` (HTTPS). It auto-deploys on every push to `evolve`; `diffle.dev/install` serves the installer. Config lives in `wrangler.jsonc` + [`web/README.md`](../../web/README.md).
 
-Done since the last handoff: domain `diffle.dev` registered; repo renamed to `codywilliamson/diffle` and in-repo URLs flipped; `diffle.dev` wired as `PRODUCT.site` + manifest/plugin homepage.
+### Gated actions still pending (the user's)
+1. **Cut the first release**: merge the Release Please PR (tags + drafts), let `.github/workflows/release.yml` build/upload the per-target binaries + `checksums.txt`, then publish. Until a release exists, `diffle update` and the installers resolve no asset ("could not resolve the latest release"). **Nothing has been tagged or released.**
+2. **Retire the old `site/` + `.github/workflows/pages.yml`** — safe now that the CF site is live (Phase 9, or whenever). `pages.yml` is dormant since nothing touches `site/`.
+3. GitHub repo **description + README** (the user is handling these).
+
+Done since the last handoff: domain `diffle.dev` registered; repo renamed to `codywilliamson/diffle`, in-repo URLs flipped; `diffle.dev` wired as `PRODUCT.site` + manifest/plugin homepage; Cloudflare deploy live (`wrangler.jsonc`); `evolve` pushed to origin.
 
 **Phase 8 is the next phase.** Paste the block below into a fresh session at the repo root; do not touch the gated actions above.
 
