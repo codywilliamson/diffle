@@ -8,6 +8,7 @@
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
+  import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
   import { getState } from "$lib/api/meta";
   import { WHATS_NEW } from "$lib/whatsNew";
   import { isEditable } from "$lib/shortcuts";
@@ -72,4 +73,5 @@
 
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
+  {#if ui.activeOverlay === "compile"}<FeedbackPreview />{/if}
 </main>
