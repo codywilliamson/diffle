@@ -1,0 +1,36 @@
+name: Commitlint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: Starting commit SHA
+        required: true
+        type: string
+      to:
+        description: Ending commit SHA
+        required: true
+        type: string
+
+permissions: { contents: read }
+
+concurrency:
+  group: commitlint-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  commitlint:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codywilliamson/commit-guard@v0.3.1
+        with:
+          mode: commits
+          token: ${{ github.token }}
+          from: ${{ inputs.from }}
+          to: ${{ inputs.to }}
