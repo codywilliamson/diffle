@@ -64,17 +64,19 @@ export function createCommentsStore(
     return isRecord(r) ? r.id : null;
   }
 
-  async function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<void> {
+  async function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
     const id = recordId();
     if (id == null) {
       error = "not available on a legacy review";
-      return;
+      return error;
     }
     error = null;
     try {
       review.adopt(await run(id));
+      return null;
     } catch (e) {
       error = errorMessage(e);
+      return error;
     }
   }
 

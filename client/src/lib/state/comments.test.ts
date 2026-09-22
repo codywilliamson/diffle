@@ -94,6 +94,16 @@ describe("comments store — mutations adopt the server record", () => {
     await store.reply("1", "hi");
     expect(calls).toEqual(["resolved:1", "open:1", "reply:1:hi"]);
   });
+
+  it("returns a reply error so the composer can stay open and retry", async () => {
+    const review = seeded(rec({ comments: [cmt("1")] }));
+    const store = createCommentsStore(review, () => null, cdeps({
+      replyToReviewComment: async () => { throw new Error("reply failed"); },
+    }));
+
+    await expect(store.reply("1", "Keep this draft")).resolves.toBe("reply failed");
+    expect(store.error).toBe("reply failed");
+  });
 });
 
 describe("comments store — legacy mode", () => {

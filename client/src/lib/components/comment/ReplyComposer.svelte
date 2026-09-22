@@ -1,8 +1,9 @@
 <script lang="ts">
-  let { onSend, onDone }: { onSend: (text: string) => Promise<void>; onDone: () => void } = $props();
+  let { onSend, onDone }: { onSend: (text: string) => Promise<string | null>; onDone: () => void } = $props();
 
   let text = $state("");
   let pending = $state(false);
+  let sendError = $state<string | null>(null);
   let input = $state<HTMLTextAreaElement>();
 
   $effect(() => input?.focus());
@@ -11,9 +12,15 @@
     const trimmed = text.trim();
     if (!trimmed || pending) return;
     pending = true;
-    await onSend(trimmed);
-    pending = false;
-    onDone();
+    sendError = null;
+    try {
+      sendError = await onSend(trimmed);
+      if (!sendError) onDone();
+    } catch (error) {
+      sendError = error instanceof Error ? error.message : String(error);
+    } finally {
+      pending = false;
+    }
   }
   function onKeydown(e: KeyboardEvent): void {
     if (e.key === "Escape") {
@@ -37,7 +44,8 @@
     class="min-h-[2rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
   ></textarea>
   <div class="mt-3 flex gap-2">
-    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim() || pending}>Send</button>
+    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim() || pending}>{pending ? "Sending…" : "Send"}</button>
     <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onDone} disabled={pending}>Cancel</button>
   </div>
+  {#if sendError}<p role="alert" class="mt-2 text-xs text-destructive">{sendError}</p>{/if}
 </div>
