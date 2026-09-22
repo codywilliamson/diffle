@@ -15,6 +15,7 @@ import { handleGetFile, handleGetRaw, serveStatic, notFound } from "./fileHandle
 import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleSessionStop } from "./sessionHandlers";
+import { apiError } from "./respond";
 
 export type { ServerContext } from "./handlers";
 
@@ -36,6 +37,9 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
   }
 
   if (method === "POST") {
+    const origin = req.headers.get("origin");
+    if (origin !== null && origin !== new URL(req.url).origin) return apiError("origin mismatch", 403);
+
     if (pathname === "/api/comments") return handlePostComments(ctx, req);
     if (pathname === "/api/viewed") return handlePostViewed(ctx, req);
     if (pathname === "/api/state") return handlePostState(req);

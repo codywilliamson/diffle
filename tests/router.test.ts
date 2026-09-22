@@ -126,6 +126,65 @@ describe("router", () => {
     expect(res.status).toBe(400);
   });
 
+  const postPaths = [
+    "/api/comments", "/api/viewed", "/api/state", "/api/review/outcome",
+    "/api/review/reply", "/api/review/status", "/api/review/legacy", "/api/session/stop",
+  ];
+
+  for (const path of postPaths) {
+    it(`POST ${path} rejects a foreign Origin before its handler runs`, async () => {
+      const res = await fetch(`${base}${path}`, {
+        method: "POST", headers: { Origin: "https://example.com" }, body: "not json",
+      });
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "origin mismatch" });
+    });
+
+    it(`POST ${path} still reaches its handler with same Origin or no Origin`, async () => {
+      for (const origin of [base, undefined]) {
+        const res = await fetch(`${base}${path}`, {
+          method: "POST", headers: origin ? { Origin: origin } : {}, body: "not json",
+        });
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid json body" });
+      }
+    });
+  }
+
+  it("blocks a foreign Origin without changing comments or user state", async () => {
+    const commentsBefore = await fetch(`${base}/api/comments`).then((res) => res.text());
+    const stateBefore = await fetch(`${base}/api/state`).then((res) => res.text());
+    const headers = { Origin: "https://example.com", "Content-Type": "application/json" };
+    const comments = await fetch(`${base}/api/comments`, {
+      method: "POST", headers, body: JSON.stringify({ comments: [] }),
+    });
+    const state = await fetch(`${base}/api/state`, {
+      method: "POST", headers, body: JSON.stringify({ seenVersion: "injected" }),
+    });
+    expect(comments.status).toBe(403);
+    expect(state.status).toBe(403);
+    expect(await fetch(`${base}/api/comments`).then((res) => res.text())).toBe(commentsBefore);
+    expect(await fetch(`${base}/api/state`).then((res) => res.text())).toBe(stateBefore);
+  });
+
+  it("accepts the 127.0.0.1 origin when the request uses that host", async () => {
+    const loopbackBase = `http://127.0.0.1:${server.port}`;
+    const res = await fetch(`${loopbackBase}/api/comments`, {
+      method: "POST", headers: { Origin: loopbackBase }, body: "not json",
+    });
+    expect(res.status).toBe(400);
+
+    const mixedHost = await fetch(`${loopbackBase}/api/comments`, {
+      method: "POST", headers: { Origin: base }, body: "not json",
+    });
+    expect(mixedHost.status).toBe(403);
+  });
+
+  it("keeps GET requests available with a foreign Origin", async () => {
+    const res = await fetch(`${base}/api/comments`, { headers: { Origin: "https://example.com" } });
+    expect(res.status).toBe(200);
+  });
+
   it("GET /api/file returns new-side content (working tree reads disk)", async () => {
     const res = await fetch(`${base}/api/file?path=readme.md`);
     expect(res.status).toBe(200);
