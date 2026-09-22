@@ -3,7 +3,7 @@ import { parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -29,7 +29,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, help: false, version: false });
+    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, help: false, version: false });
   });
 
   test("rejects a bad port", () => {
@@ -72,7 +72,19 @@ describe("parseCliArgs", () => {
   test("parses the MCP server command and durable review id", () => {
     expect(parseCliArgs(["mcp", "serve"]).command).toBe("mcp");
     expect(parseCliArgs(["--review-id", "r1"]).reviewId).toBe("r1");
-    expect(() => parseCliArgs(["mcp", "nope"])).toThrow("mcp requires the serve command");
+    expect(() => parseCliArgs(["mcp", "nope"])).toThrow("mcp requires one of: serve, list, restart");
+  });
+
+  test("parses the mcp list and restart commands", () => {
+    expect(parseCliArgs(["mcp", "serve"]).mcpAction).toBe("serve");
+    expect(parseCliArgs(["mcp", "list"]).mcpAction).toBe("list");
+    const restart = parseCliArgs(["mcp", "restart", "--yes"]);
+    expect(restart.mcpAction).toBe("restart");
+    expect(restart.yes).toBe(true);
+    expect(parseCliArgs(["sessions"]).mcpAction).toBeUndefined();
+    expect(() => parseCliArgs(["mcp", "list", "--yes"])).toThrow("only mcp restart accepts it");
+    expect(() => parseCliArgs(["mcp", "restart", "extra"])).toThrow("unexpected argument: extra");
+    expect(USAGE).toContain("mcp restart");
   });
 
   test("parses optional completion hooks", () => {
