@@ -15,8 +15,9 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "$types": ["../src/types.ts"],
+      "$product": ["../src/core/product.ts"],
       "$lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "../src/types.ts"]
+  "include": ["src/**/*.ts", "src/**/*.svelte", "../src/types.ts", "../src/core/product.ts"]
 }
