@@ -2,6 +2,14 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.17.1](https://github.com/codywilliamson/diffle/compare/v0.17.0...v0.17.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **build:** persist path and add leveled output in install.sh ([d983315](https://github.com/codywilliamson/diffle/commit/d98331527cc41cb1643f12a0a3453c62209b8d00)), closes [#39](https://github.com/codywilliamson/diffle/issues/39)
+* **build:** revamp install.ps1 path handling and logging ([afba01f](https://github.com/codywilliamson/diffle/commit/afba01f0c3350e71ae221fc067b75932165fb919)), closes [#38](https://github.com/codywilliamson/diffle/issues/38)
+
 ## [0.17.0](https://github.com/codywilliamson/diffle/compare/v0.16.0...v0.17.0) (2026-09-22)
 
 
