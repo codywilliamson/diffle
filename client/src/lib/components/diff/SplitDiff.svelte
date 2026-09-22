@@ -4,7 +4,7 @@
   import { getAppState } from "$lib/state/context";
   import { highlightLine } from "$lib/diff/highlight";
   import { pairLines, hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
-  import { commentsForLine, isPending, isAddingAt, rawLine, newComment, type Side } from "$lib/diff/threads";
+  import { commentsForLine, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
@@ -26,9 +26,12 @@
     const mark = marks.get(line);
     return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
   }
-  function saveAdd(side: Side, line: DiffLine, num: number, text: string, tag?: CommentTag): void {
-    comments.add(newComment({ file: file.path, side, line: num, endLine: num, lineContent: rawLine(line), text, tag }));
-    ui.cancelAdd();
+  async function saveAdd(side: Side, line: DiffLine, text: string, tag?: CommentTag): Promise<string | null> {
+    const range = selectedRange(ui.adding, file.path, side);
+    if (!range) return "The selected range is no longer available.";
+    const error = await comments.add(newComment({ file: file.path, side, ...range, lineContent: rawLine(line), text, tag }));
+    if (!error) ui.cancelAdd();
+    return error;
   }
 </script>
 
@@ -78,7 +81,7 @@
               <td class="comment-cell" colspan="3">
                 <div class="comment-box">
                   {#if list.length > 0}<CommentThread comments={list} />{/if}
-                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("old", left, ol, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("old", left, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
                 </div>
               </td>
               <td colspan="3"></td>
@@ -94,7 +97,7 @@
               <td class="comment-cell" colspan="3">
                 <div class="comment-box">
                   {#if list.length > 0}<CommentThread comments={list} />{/if}
-                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("new", right, nl, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
+                  {#if adding}<CommentEditor onSave={(text, tag) => saveAdd("new", right, text, tag)} onCancel={() => ui.cancelAdd()} />{/if}
                 </div>
               </td>
             </tr>

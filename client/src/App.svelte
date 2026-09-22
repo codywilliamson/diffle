@@ -15,17 +15,31 @@
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui, prefs } = app;
+  const { diff, ui, prefs, comments } = app;
 
   // global shortcuts, ignored while typing in a field.
   function onKeydown(e: KeyboardEvent): void {
+    if (e.key === "Escape") {
+      ui.closeOverlay();
+      return;
+    }
     if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const current = ui.activeFile ?? diff.files[0]?.path;
+    const index = diff.files.findIndex((file) => file.path === current);
+    const stepFile = (delta: number): void => {
+      const next = diff.files[Math.min(diff.files.length - 1, Math.max(0, index + delta))];
+      if (next) ui.selectFile(next.path);
+    };
     switch (e.key) {
+      case "j": stepFile(1); break;
+      case "k": stepFile(-1); break;
+      case "v": if (current) void comments.toggleViewed(current); break;
       case "t": prefs.toggleTheme(); break;
       case "s": prefs.toggleSplit(); break;
       case "w": prefs.toggleWrap(); break;
       case "o": prefs.setFileView(prefs.fileView === "single" ? "all" : "single"); break;
       case "r": void diff.refresh(); break;
+      case "c": ui.openOverlay("compile"); break;
       case "n": ui.toggleOverlay("whatsNew"); break;
       case "?": ui.toggleOverlay("help"); break;
       default: return;
@@ -58,6 +72,9 @@
     <TopBar />
     <SyncNotice />
     <LegacyPrompt />
+    {#if comments.error}
+      <p role="alert" class="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{comments.error}</p>
+    {/if}
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>

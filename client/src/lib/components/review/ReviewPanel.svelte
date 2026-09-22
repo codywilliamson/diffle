@@ -111,7 +111,7 @@
         <div class="mt-2 flex gap-3 text-xs text-muted">
           <button class="hover:text-text" onclick={() => copyFeedback("json")}>{copied === "json" ? "Copied" : "Copy JSON"}</button>
           <button class="hover:text-text" onclick={() => copyFeedback("md")}>{copied === "md" ? "Copied" : "Copy Markdown"}</button>
-          <button class="hover:text-text" onclick={() => { close(); ui.openOverlay("compile"); }}>Preview feedback</button>
+          <button class="hover:text-text" onclick={() => { close(); ui.openFeedbackPreview(summary || undefined); }}>Preview feedback</button>
         </div>
         {#if review.error}<div class="mt-2 text-xs text-destructive">{review.error}</div>{/if}
       </div>

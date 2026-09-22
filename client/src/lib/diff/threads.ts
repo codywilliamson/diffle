@@ -71,3 +71,10 @@ export function isAddingAt(adding: AddTarget | null, file: string, side: Side, l
     (adding.endLine ?? adding.line) === line
   );
 }
+
+// normalize the pending selection before it becomes a durable comment anchor.
+export function selectedRange(adding: AddTarget | null, file: string, side: Side): { line: number; endLine: number } | null {
+  if (!adding || adding.file !== file || adding.line == null || (adding.side ?? "new") !== side) return null;
+  const other = adding.endLine ?? adding.line;
+  return { line: Math.min(adding.line, other), endLine: Math.max(adding.line, other) };
+}

@@ -2,7 +2,7 @@
   import { untrack } from "svelte";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
-  import type { DiffFile } from "$types";
+  import type { CommentTag, DiffFile } from "$types";
   import { getAppState } from "$lib/state/context";
   import { changeBadge, isMarkdown } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
@@ -33,6 +33,12 @@
   // single-sided files (added/deleted) and browse mode force the unified view.
   const singleSided = $derived(file.changeType === "added" || file.changeType === "deleted");
   const useSplit = $derived(prefs.split && !singleSided && diff.meta?.mode !== "browse");
+
+  async function saveFileComment(text: string, tag?: CommentTag): Promise<string | null> {
+    const error = await comments.add(newComment({ file: file.path, line: null, lineContent: null, text, tag }));
+    if (!error) ui.cancelAdd();
+    return error;
+  }
 </script>
 
 <section id={fileAnchorId(file.path)} class="file-section mb-4 rounded-lg border border-border bg-surface">
@@ -94,10 +100,7 @@
         {#if fileLevel.length > 0}<CommentThread comments={fileLevel} />{/if}
         {#if addingFile}
           <CommentEditor
-            onSave={(text, tag) => {
-              comments.add(newComment({ file: file.path, line: null, lineContent: null, text, tag }));
-              ui.cancelAdd();
-            }}
+            onSave={saveFileComment}
             onCancel={() => ui.cancelAdd()}
           />
         {/if}

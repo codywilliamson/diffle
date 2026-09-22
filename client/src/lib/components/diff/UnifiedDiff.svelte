@@ -4,7 +4,7 @@
   import { getAppState } from "$lib/state/context";
   import { highlightLine } from "$lib/diff/highlight";
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
-  import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, type Side } from "$lib/diff/threads";
+  import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
@@ -28,13 +28,12 @@
     return null;
   }
 
-  function saveAdd(side: Side, line: DiffLine, text: string, tag?: CommentTag): void {
-    const a = ui.adding;
-    if (!a || a.line == null) return;
-    const start = Math.min(a.line, a.endLine ?? a.line);
-    const end = Math.max(a.line, a.endLine ?? a.line);
-    comments.add(newComment({ file: file.path, side, line: start, endLine: end, lineContent: rawLine(line), text, tag }));
-    ui.cancelAdd();
+  async function saveAdd(side: Side, line: DiffLine, text: string, tag?: CommentTag): Promise<string | null> {
+    const range = selectedRange(ui.adding, file.path, side);
+    if (!range) return "The selected range is no longer available.";
+    const error = await comments.add(newComment({ file: file.path, side, ...range, lineContent: rawLine(line), text, tag }));
+    if (!error) ui.cancelAdd();
+    return error;
   }
 </script>
 

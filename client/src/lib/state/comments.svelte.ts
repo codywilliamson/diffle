@@ -34,12 +34,14 @@ export function createCommentsStore(
   };
 
   // save the full comments array and adopt whatever record the server returns.
-  async function persist(next: Comment[]): Promise<void> {
+  async function persist(next: Comment[]): Promise<string | null> {
     error = null;
     try {
       review.adopt(await deps.saveComments(next));
+      return null;
     } catch (e) {
       error = errorMessage(e);
+      return error;
     }
   }
 

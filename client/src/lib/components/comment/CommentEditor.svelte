@@ -10,7 +10,7 @@
   }: {
     initial?: string;
     initialTag?: CommentTag;
-    onSave: (text: string, tag?: CommentTag) => void;
+    onSave: (text: string, tag?: CommentTag) => Promise<string | null>;
     onCancel: () => void;
   } = $props();
 
@@ -19,6 +19,8 @@
   let text = $state(untrack(() => initial));
   let tag = $state<CommentTag | undefined>(untrack(() => initialTag));
   let ta = $state<HTMLTextAreaElement>();
+  let saving = $state(false);
+  let saveError = $state<string | null>(null);
 
   // grow the textarea with its content, and focus it on mount.
   $effect(() => {
@@ -30,9 +32,18 @@
   });
   $effect(() => ta?.focus());
 
-  function submit(): void {
+  async function submit(): Promise<void> {
     const trimmed = text.trim();
-    if (trimmed) onSave(trimmed, tag);
+    if (!trimmed || saving) return;
+    saving = true;
+    saveError = null;
+    try {
+      saveError = await onSave(trimmed, tag);
+    } catch (error) {
+      saveError = error instanceof Error ? error.message : String(error);
+    } finally {
+      saving = false;
+    }
   }
   function onKeydown(e: KeyboardEvent): void {
     if (e.key === "Escape") {
@@ -41,7 +52,7 @@
       onCancel();
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      submit();
+      void submit();
     }
   }
 </script>
@@ -56,7 +67,7 @@
     class="min-h-[2.5rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
   ></textarea>
   <div class="mt-3 flex flex-wrap items-center gap-2">
-    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim()}>Save</button>
+    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
     <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onCancel}>Cancel</button>
     <div class="ml-auto flex gap-1.5">
       {#each TAGS as t (t)}
@@ -68,4 +79,5 @@
       {/each}
     </div>
   </div>
+  {#if saveError}<p role="alert" class="mt-2 text-xs text-destructive">{saveError}</p>{/if}
 </div>

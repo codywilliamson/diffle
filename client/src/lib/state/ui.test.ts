@@ -20,6 +20,15 @@ describe("ui store", () => {
     expect(ui.activeOverlay).toBeNull();
   });
 
+  it("carries a draft summary into feedback preview and clears it on close", () => {
+    const ui = createUiStore();
+    ui.openFeedbackPreview("Draft reviewer summary");
+    expect(ui.activeOverlay).toBe("compile");
+    expect(ui.feedbackSummary).toBe("Draft reviewer summary");
+    ui.closeOverlay();
+    expect(ui.feedbackSummary).toBeNull();
+  });
+
   it("selecting a file records it and closes the drawer", () => {
     const ui = createUiStore();
     ui.openDrawer();

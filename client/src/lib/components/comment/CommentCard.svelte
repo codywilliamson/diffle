@@ -20,9 +20,10 @@
   <CommentEditor
     initial={comment.text}
     initialTag={comment.tag}
-    onSave={(text, tag) => {
-      comments.edit(comment.id, { text, tag });
-      editing = false;
+    onSave={async (text, tag) => {
+      const error = await comments.edit(comment.id, { text, tag });
+      if (!error) editing = false;
+      return error;
     }}
     onCancel={() => (editing = false)}
   />
