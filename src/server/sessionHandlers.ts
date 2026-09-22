@@ -1,4 +1,4 @@
-// POST /api/session/stop — validated against the server's own origin and this server's session id,
+// POST /api/session/stop — validated against this server's session id,
 // then the actual teardown is deferred a beat so this handler's own 200 response has time to flush
 // before the socket goes away (a synchronous `server.stop`/`process.exit` here would race the
 // in-flight response and reset it). cli/hook hosts are the whole process, so they also exit; an
@@ -11,11 +11,6 @@ import { apiError, json } from "./respond";
 const SHUTDOWN_DELAY_MS = 50;
 
 export async function handleSessionStop(ctx: ServerContext, req: Request): Promise<Response> {
-  // browser fetches send an Origin header; the CLI's own fetch (diffle cleanup) sends none.
-  const requestOrigin = req.headers.get("origin");
-  const selfOrigin = new URL(req.url).origin;
-  if (requestOrigin !== null && requestOrigin !== selfOrigin) return apiError("origin mismatch", 403);
-
   let body: unknown;
   try {
     body = await req.json();
