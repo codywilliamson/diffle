@@ -2,6 +2,16 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.20.1](https://github.com/codywilliamson/diffle/compare/v0.20.0...v0.20.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **build:** build release PR after publishing assets ([b7e2604](https://github.com/codywilliamson/diffle/commit/b7e26041af4306ecce09ad5c3a82c87ee234ef24))
+* **server:** preserve dev proxy post origin guard ([b0c9b9a](https://github.com/codywilliamson/diffle/commit/b0c9b9a11e83b00c2264da5613260cb24d212f71))
+* **server:** reject cross-origin post requests ([0e5be0b](https://github.com/codywilliamson/diffle/commit/0e5be0b6fd269097570892b758c19375f0ce3861))
+* **server:** validate post origin against listener ([3fabcca](https://github.com/codywilliamson/diffle/commit/3fabccad1305e0c43262e374773a2bf1834e9aac))
+
 ## [0.20.0](https://github.com/codywilliamson/diffle/compare/v0.19.1...v0.20.0) (2026-09-22)
 
 
