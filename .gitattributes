@@ -1,2 +1,5 @@
 # dash rejects CRLF, so the curl | sh installer must stay LF on windows checkouts too
 *.sh text eol=lf
+
+# parseDiff is lf-sensitive, so fixtures must not pick up crlf on autocrlf checkouts
+tests/fixtures/** text eol=lf
