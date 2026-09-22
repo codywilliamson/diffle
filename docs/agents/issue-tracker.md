@@ -4,6 +4,8 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 `main` is rebase-only with required checks; keep PRs rebased on `main`. Its ruleset is versioned in `.github/rulesets/main.json`.
 
+Release Please opens PRs with `GITHUB_TOKEN`, so GitHub holds their `ci` and `commitlint` runs for approval. Approve both runs in Actions and wait for the required checks before merging a release PR.
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
