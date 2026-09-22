@@ -64,12 +64,12 @@ async function run(): Promise<void> {
     await shot(page, "thread");
 
     // 4 — side-by-side: same review, split layout
-    await page.getByRole("button", { name: "Side-by-side view" }).click();
+    await page.getByRole("button", { name: "Side-by-side view", exact: true }).click();
     await page.locator("table.split-table").first().waitFor();
     await shot(page, "side-by-side");
 
     // 5 — summary: toggle split back off (unified), open the review menu, summarize
-    await page.getByRole("button", { name: "Side-by-side view" }).click();
+    await page.getByRole("button", { name: "Side-by-side view", exact: true }).click();
     await page.locator("table.split-table").first().waitFor({ state: "detached" });
     await page.getByRole("button", { name: /Review menu/ }).click();
     await page.getByRole("textbox", { name: "Reviewer summary" }).fill(REVIEW_SUMMARY);
