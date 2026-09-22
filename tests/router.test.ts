@@ -167,6 +167,19 @@ describe("router", () => {
     expect(await fetch(`${base}/api/state`).then((res) => res.text())).toBe(stateBefore);
   });
 
+  it("rejects a matching Origin forged through the Host header", async () => {
+    const commentsBefore = await fetch(`${base}/api/comments`).then((res) => res.text());
+    for (const host of [`evil.example:${server.port}`, `localhost:${server.port! + 1}`]) {
+      const res = await fetch(`${base}/api/comments`, {
+        method: "POST",
+        headers: { Host: host, Origin: `http://${host}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: [] }),
+      });
+      expect(res.status).toBe(403);
+    }
+    expect(await fetch(`${base}/api/comments`).then((response) => response.text())).toBe(commentsBefore);
+  });
+
   it("accepts the 127.0.0.1 origin when the request uses that host", async () => {
     const loopbackBase = `http://127.0.0.1:${server.port}`;
     const res = await fetch(`${loopbackBase}/api/comments`, {
