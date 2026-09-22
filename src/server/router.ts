@@ -16,20 +16,15 @@ import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleSessionStop } from "./sessionHandlers";
 import { apiError } from "./respond";
+import { isLoopbackHttpOrigin } from "../utils/origin";
 
 export type { ServerContext } from "./handlers";
-
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-const HTTP_DEFAULT_PORT = 80;
 
 function hasAllowedOrigin(req: Request, serverPort: number): boolean {
   const origin = req.headers.get("origin");
   if (origin === null) return true;
   const url = new URL(req.url);
-  return url.protocol === "http:"
-    && LOOPBACK_HOSTS.has(url.hostname)
-    && Number(url.port || HTTP_DEFAULT_PORT) === serverPort
-    && origin === url.origin;
+  return isLoopbackHttpOrigin(url, serverPort) && origin === url.origin;
 }
 
 function route(ctx: ServerContext, req: Request, serverPort: number): Response | Promise<Response> {
