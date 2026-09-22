@@ -1,6 +1,7 @@
 // `diffle update`: download the matching asset from the latest GitHub Release, verify its
-// sha-256 against the published checksum manifest, and swap the running binary. refuses when a
-// package manager owns the install, or when running from a source checkout.
+// sha-256 against the published checksum manifest, swap the running binary, then stop idle MCP
+// servers so agents relaunch them on the new version. refuses when a package manager owns the
+// install, or when running from a source checkout.
 
 import { chmodSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -10,6 +11,7 @@ import { checkForUpdate } from "./updateCheck";
 import { fetchReleaseStatus, updateCheckReport } from "./updateNotice";
 import { assetName, detectPackageManager, managerCommand, parseChecksum } from "./updateTarget";
 import { isProductBinary } from "../utils/installRoot";
+import { restartMcpAfterUpdate } from "../utils/mcpCli";
 
 const tag = `[${PRODUCT.name}]`;
 
@@ -70,5 +72,6 @@ export async function runUpdate(loupeRoot: string, check = false): Promise<void>
   if (actual !== expected) throw new Error(`checksum mismatch for ${exe}`);
 
   replaceBinary(binary);
-  console.log(`${tag} updated to v${status.latest}. restart ${PRODUCT.name} to use it.`);
+  console.log(`${tag} updated to v${status.latest}. restart any open ${PRODUCT.name} review to use it.`);
+  await restartMcpAfterUpdate(process.execPath);
 }
