@@ -12,6 +12,7 @@ import { runUpdate } from "./core/update";
 import { launchUpdateNotice } from "./core/updateNotice";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
 import { runDoctorCommand } from "./utils/doctorCli";
+import { runMcpListCommand, runMcpRestartCommand } from "./utils/mcpCli";
 import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugins";
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
@@ -48,7 +49,9 @@ export async function main(): Promise<void> {
   }
   if (opts.help) return console.log(USAGE);
   if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(loupeRoot)}`);
-  if (opts.command === "mcp") return runMcpServer(cwd);
+  if (opts.mcpAction === "serve") return runMcpServer(cwd);
+  if (opts.mcpAction === "list") return runMcpListCommand();
+  if (opts.mcpAction === "restart") return runMcpRestartCommand({ yes: opts.yes });
   if (opts.command === "hook") {
     if (!opts.agent) fail("hook stop requires --agent codex or claude-code");
     return runCompletionHook(opts.agent, loupeRoot);

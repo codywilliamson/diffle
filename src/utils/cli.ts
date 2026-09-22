@@ -3,15 +3,19 @@
 import { PRODUCT } from "../core/product";
 import { UPDATE_CHECK_OPT_OUT } from "../core/updateNotice";
 
+const MCP_ACTIONS = ["serve", "list", "restart"] as const;
+export type McpAction = (typeof MCP_ACTIONS)[number];
+
 export interface CliOptions {
   command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor";
+  mcpAction: McpAction | undefined; // mcp only
   agent: "codex" | "claude-code" | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
   scope: string | undefined; // path scope for `browse`; ignored otherwise
   reviewId: string | undefined; // durable Review Record supplied by an integration
   port: number; // 0 = any free port
   open: boolean; // open the browser once serving
-  yes: boolean; // cleanup/doctor: skip the confirmation prompt
+  yes: boolean; // cleanup/doctor/mcp restart: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
   check: boolean; // update: report whether a newer release exists, never download
@@ -23,7 +27,7 @@ export const USAGE = `${PRODUCT.name} — local git diff review with inline comm
 
 Usage
   ${PRODUCT.name} [ref] [options]
-  ${PRODUCT.name} mcp serve
+  ${PRODUCT.name} mcp <serve|list|restart> [--yes]
   ${PRODUCT.name} hook stop --agent <codex|claude-code>
   ${PRODUCT.name} sessions
   ${PRODUCT.name} cleanup [--yes] [--all]
@@ -45,8 +49,14 @@ Session commands
       --yes         skip the confirmation prompt
       --all         also stop active (not just finished/stale) sessions
 
+MCP server
+  mcp serve         run the local stdio MCP server (agents launch this)
+  mcp list          list running ${PRODUCT.name} MCP servers
+  mcp restart       stop running MCP servers so agents relaunch them on reconnect
+      --yes         skip the confirmation prompt
+
 Updates
-  update            download and install the latest release
+  update            download and install the latest release, then restart idle MCP servers
       --check       only report whether a newer release exists
   (a new release is announced at launch; set ${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT}=1 to silence it)
 
@@ -71,7 +81,7 @@ type CommandFlag = "yes" | "all" | "fix" | "check";
 
 // subcommand-only boolean flags: the option each sets and the commands that accept it.
 const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly CliOptions["command"][] }> = {
-  "--yes": { field: "yes", commands: ["cleanup", "doctor"] },
+  "--yes": { field: "yes", commands: ["cleanup", "doctor", "mcp"] },
   "--all": { field: "all", commands: ["cleanup"] },
   "--fix": { field: "fix", commands: ["doctor"] },
   "--check": { field: "check", commands: ["update"] },
@@ -91,12 +101,13 @@ export function parseCliArgs(argv: string[]): CliOptions {
   if (command === "mcp" || command === "hook") {
     args.shift();
     const subcommand = args.shift();
-    if (command === "mcp" && subcommand !== "serve") throw new Error("mcp requires the serve command");
+    if (command === "mcp" && !MCP_ACTIONS.includes(subcommand as McpAction)) throw new Error(`mcp requires one of: ${MCP_ACTIONS.join(", ")}`);
     if (command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
   } else if (command !== "review") {
     args.shift();
   }
-  const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false };
+  const mcpAction = command === "mcp" ? (argv[1] as McpAction) : undefined;
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
@@ -136,5 +147,6 @@ export function parseCliArgs(argv: string[]): CliOptions {
       throw new Error(`unexpected argument: ${arg} (only one ref spec, try --help)`);
     }
   }
+  if (opts.yes && opts.command === "mcp" && opts.mcpAction !== "restart") throw new Error("unexpected argument: --yes (only mcp restart accepts it)");
   return opts;
 }
