@@ -58,7 +58,7 @@ export function releasesApiUrl(): string {
 }
 
 // published (non-draft, non-prerelease) release tags; [] on any network/parse failure.
-async function fetchReleaseTags(): Promise<string[]> {
+export async function fetchReleaseTags(): Promise<string[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {

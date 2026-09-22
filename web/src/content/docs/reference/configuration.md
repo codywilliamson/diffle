@@ -17,6 +17,7 @@ Prefer the `DIFFLE_*` form. The legacy `LOUPE_*` form is honored during the comp
 | `DIFFLE_SESSION_HOST` | internal: which integration launched a session (`cli` / `hook`) |
 | `DIFFLE_NO_OPEN` | set to `1` to suppress auto-opening the browser |
 | `DIFFLE_HOOK_NO_SPAWN` | set to `1` so the completion hook doesn't spawn a review |
+| `DIFFLE_NO_UPDATE_CHECK` | set to `1` to silence the new-release notice at launch (and doctor's release check) |
 
 ## Data directory
 

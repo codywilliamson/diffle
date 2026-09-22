@@ -85,17 +85,20 @@ diffle cleanup --yes
 diffle cleanup --all --yes
 ```
 
-### `diffle update`
+### `diffle update [--check]`
 
-Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. See [Configuration](/reference/configuration/) for the full update behavior.
+Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. `--check` only reports whether a newer release exists and never downloads; it also works in a source checkout. See [Configuration](/reference/configuration/) for the full update behavior.
 
 ```sh
 diffle update
+diffle update --check
 ```
+
+An installed binary also announces a newer release in one line when a review launches, checking GitHub at most once a day. Set `DIFFLE_NO_UPDATE_CHECK=1` to silence it (it's also skipped when `CI` is set).
 
 ### `diffle doctor [--fix] [--yes]`
 
-Check the Claude Code plugin install for stale `loupe-review` leftovers and report what to repair. `--fix` runs the repair commands through the `claude` CLI; `--yes` skips the confirmation. See [Migrating from loupe](/guides/migrating-from-loupe/).
+Check the Claude Code plugin install for stale `loupe-review` leftovers and report what to repair. It also reports whether a newer release is published. `--fix` runs the repair commands through the `claude` CLI; `--yes` skips the confirmation. See [Migrating from loupe](/guides/migrating-from-loupe/).
 
 ```sh
 diffle doctor

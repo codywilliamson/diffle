@@ -78,6 +78,8 @@ diffle update
 
 `diffle update` downloads the latest release, verifies its checksum, and swaps the binary in place (on Windows the swap completes as the process exits). If a package manager installed diffle, it prints that manager's upgrade command instead.
 
+diffle also announces a new release in one line when you launch a review (at most one check a day); set `DIFFLE_NO_UPDATE_CHECK=1` to silence it, or run `diffle update --check` to ask on demand.
+
 ## Uninstall
 
 Remove the binary, and optionally your data directory:

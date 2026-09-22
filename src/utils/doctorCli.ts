@@ -5,7 +5,9 @@ import { basename } from "node:path";
 import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
 import { confirmProceed } from "./confirm";
-import { diagnoseClaudePlugins, readClaudePluginState, type CheckLevel, type RepairStep } from "./claudePlugins";
+import { diagnoseClaudePlugins, readClaudePluginState, type Check, type CheckLevel, type RepairStep } from "./claudePlugins";
+import { fetchReleaseTags } from "../core/updateCheck";
+import { fetchReleaseStatus, UPDATE_CHECK_OPT_OUT, updateCheckDisabled, updateHint } from "../core/updateNotice";
 
 export interface DoctorOptions { fix: boolean; yes: boolean; }
 
@@ -44,12 +46,25 @@ function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
   console.log(`\ndone — ${RELOAD_HINT}`);
 }
 
-export async function runDoctorCommand(opts: DoctorOptions): Promise<void> {
+// live release check (doctor is explicit, so no throttle); skipped when the user opted out.
+async function releaseCheck(loupeRoot: string, fetchTags: () => Promise<string[]>): Promise<Check> {
+  const label = "release";
+  if (updateCheckDisabled()) return { level: "info", label, detail: `check disabled (${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT})` };
+  const status = await fetchReleaseStatus(loupeRoot, fetchTags);
+  if (!status) return { level: "info", label, detail: "could not reach GitHub" };
+  return status.behind
+    ? { level: "warn", label, detail: `v${status.latest} available — ${updateHint()}` }
+    : { level: "ok", label, detail: `v${status.current} is the latest` };
+}
+
+// `fetchTags` is injectable so tests never reach GitHub.
+export async function runDoctorCommand(opts: DoctorOptions, loupeRoot: string, fetchTags = fetchReleaseTags): Promise<void> {
   const state = readClaudePluginState();
   const usingLegacyDataDir = basename(homeDataDir()) === PRODUCT.legacyDataDir;
   const { checks, plan, ok } = diagnoseClaudePlugins(
     state, Bun.which(PRODUCT.name) ?? undefined, Bun.which(PRODUCT.legacyName) ?? undefined, usingLegacyDataDir,
   );
+  checks.push(await releaseCheck(loupeRoot, fetchTags));
 
   console.log(`${PRODUCT.name} doctor — Claude Code plugin health (${state.configDir})\n`);
   const width = Math.max(...checks.map((check) => check.label.length));

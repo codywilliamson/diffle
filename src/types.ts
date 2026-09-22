@@ -178,6 +178,8 @@ export interface LegacyReviewRequest {
 
 export interface UserState {
   seenVersion?: string; // loupe version whose what's-new highlights the user has dismissed
+  updateCheckedAt?: string; // iso time of the last launch-time release check (throttles the notice)
+  latestKnownVersion?: string; // newest release seen by that check
 }
 
 export interface StateUpdateRequest {
