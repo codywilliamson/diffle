@@ -4,10 +4,18 @@
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
   import type { CommentTag, DiffFile } from "$types";
   import { getAppState } from "$lib/state/context";
-  import { changeBadge, isMarkdown } from "$lib/format";
+  import { changeBadge } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
   import { fileComments, newComment } from "$lib/diff/threads";
   import { lineCountOf, estimatedHeight, GIANT_FILE_LINES } from "$lib/diff/metrics";
+  import {
+    canOverrideFileSplit,
+    canPreviewMarkdown,
+    createFileSplitState,
+    resolveFileSplit,
+    syncGlobalSplit,
+    toggleFileSplit,
+  } from "$lib/diff/fileMode";
   import { nearViewport } from "$lib/actions";
   import { fade } from "$lib/motion";
   import UnifiedDiff from "./UnifiedDiff.svelte";
@@ -23,16 +31,22 @@
   let loaded = $state(false); // giant-file manual gate
   let mounted = $state(false); // near-viewport lazy mount
   let preview = $state(false); // markdown: rendered preview vs diff
+  let splitState = $state(untrack(() => createFileSplitState(prefs.split)));
 
-  const isMd = $derived(isMarkdown(file.path) && !file.binary);
+  const isMd = $derived(canPreviewMarkdown(file));
 
   const badge = $derived(changeBadge(file.changeType));
   const fileLevel = $derived(fileComments(comments.comments.filter((c) => c.file === file.path)));
   const addingFile = $derived(ui.adding?.file === file.path && ui.adding.line == null);
   const giant = $derived(lineCountOf(file) > GIANT_FILE_LINES);
-  // single-sided files (added/deleted) and browse mode force the unified view.
-  const singleSided = $derived(file.changeType === "added" || file.changeType === "deleted");
-  const useSplit = $derived(prefs.split && !singleSided && diff.meta?.mode !== "browse");
+  const canToggleSplit = $derived(canOverrideFileSplit(file, diff.meta?.mode));
+  const useSplit = $derived(resolveFileSplit(splitState, file, diff.meta?.mode));
+
+  // a global choice replaces every local override; other updates leave it intact.
+  $effect(() => {
+    const globalSplit = prefs.split;
+    untrack(() => (splitState = syncGlobalSplit(splitState, globalSplit)));
+  });
 
   async function saveFileComment(text: string, tag?: CommentTag): Promise<string | null> {
     const error = await comments.add(newComment({ file: file.path, line: null, lineContent: null, text, tag }));
@@ -68,6 +82,15 @@
           title="Toggle rendered preview"
           onclick={() => (preview = !preview)}
         >{preview ? "Preview" : "Diff"}</button>
+      {/if}
+      {#if canToggleSplit}
+        <button
+          class="rounded border border-border px-1.5 py-0.5 text-[10px] {useSplit ? 'bg-surface-2 text-accent' : 'text-muted hover:text-text'}"
+          aria-label="{useSplit ? 'Use unified' : 'Use side-by-side'} view for {file.path}"
+          aria-pressed={useSplit}
+          title="Override view for this file"
+          onclick={() => (splitState = toggleFileSplit(splitState, file, diff.meta?.mode))}
+        >{useSplit ? "Side-by-side" : "Unified"}</button>
       {/if}
       <button class="rounded p-1 text-muted hover:bg-surface hover:text-text" aria-label="Comment on {file.path}" title="Comment on this file" onclick={() => ui.startFileAdd(file.path)}>
         <MessagePlus size={14} />
