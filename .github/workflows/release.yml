@@ -25,6 +25,7 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          skip-github-pull-request: true
 
   assets:
     needs: release-please
@@ -54,3 +55,15 @@ jobs:
       # publish only after every asset uploaded successfully
       - name: Publish the release
         run: gh release edit "$TAG" --draft=false
+
+  release-pr:
+    needs: [release-please, assets]
+    # Wait for a draft release to publish; still run when no release means assets was skipped.
+    if: ${{ always() && needs.release-please.result == 'success' && (needs.assets.result == 'success' || needs.assets.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
