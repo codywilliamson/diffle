@@ -1,0 +1,6 @@
+{
+  "types": ["feat", "fix", "test", "refactor", "chore", "docs", "style", "build", "ci", "perf", "revert"],
+  "maxHeaderLength": 72,
+  "ignoreMergeCommits": true,
+  "ignoreFixupCommits": true
+}

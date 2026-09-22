@@ -56,7 +56,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 
 ## Commits — Conventional Commits
 
-`<type>(<scope>): <short lowercase description>`. Types: `feat` `fix` `test` `refactor` `chore` `docs` `style`. Scopes: `parser` `server` `ui` `client` `store` `compiler` `build` `cli` `types` `tests`. One concern per commit; never batch unrelated changes.
+`<type>(<scope>): <short lowercase description>`. Allowed types and the 72-character header limit are enforced by `.commit-guard.json` and the `commitlint` check. Scopes: `parser` `server` `ui` `client` `store` `compiler` `build` `cli` `types` `tests`. Maintainers can install local `git commit-guard` hooks. One concern per commit; never batch unrelated changes.
 
 ## Testing & verification
 
