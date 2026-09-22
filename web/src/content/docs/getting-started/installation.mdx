@@ -30,6 +30,20 @@ The installer downloads the binary for your OS and architecture, verifies its SH
   Set `DIFFLE_INSTALL_DIR` before running the installer to choose a different directory.
 </Aside>
 
+<Aside type="note" title="PATH on macOS / Linux">
+  The installer appends a marked block to your login shell's rc file — `.zshrc` for zsh, `.bashrc` for bash (plus a `.bash_profile` that sources it on macOS), `config.fish` for fish, `.profile` for anything else:
+
+  ```sh
+  # >>> diffle >>>
+  export PATH="$HOME/.diffle/bin:$PATH"
+  # <<< diffle <<<
+  ```
+
+  Nothing else in the file is reordered or rewritten, the file is copied to `<rc>.diffle.bak-<timestamp>` before the first edit, and re-running the installer is a no-op. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `diffle` right away — new shells pick it up on their own.
+
+  Set `DIFFLE_NO_MODIFY_PATH=1` to skip the rc edit and print the `export` line instead, or `DIFFLE_DRY_RUN=1` to log every intended change without writing anything.
+</Aside>
+
 <Aside type="note" title="Windows PATH">
   `install.ps1` needs PowerShell 7 or newer. It edits only your **user** `PATH` (never the machine scope, and never the merged process value), backs the old value up to a timestamped file first, preserves every existing entry — `%VAR%` tokens included — and does nothing if `~\.diffle\bin` is already there. Set `DIFFLE_NO_MODIFY_PATH` to install without touching `PATH`, or `DIFFLE_DRY_RUN` to print the plan and write nothing.
 </Aside>
@@ -71,9 +85,11 @@ Remove the binary, and optionally your data directory:
 <Tabs syncKey="os">
   <TabItem label="macOS / Linux" icon="apple">
     ```sh
-    rm ~/.diffle/bin/diffle      # the binary
-    rm -rf ~/.diffle             # also removes review records + settings
+    curl -fsSL https://diffle.dev/install | DIFFLE_UNINSTALL=1 sh   # binary + PATH block
+    rm -rf ~/.diffle                                                # also removes review records + settings
     ```
+
+    The uninstall step removes the `# >>> diffle >>>` block from your rc file and leaves the rest byte-identical. If you already have the script on disk, `sh install.sh --uninstall` does the same thing.
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
