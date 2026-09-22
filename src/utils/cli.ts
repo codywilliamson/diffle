@@ -1,6 +1,7 @@
 // cli argument parsing for the diffle entry point. pure — no io, fully unit-tested.
 
 import { PRODUCT } from "../core/product";
+import { UPDATE_CHECK_OPT_OUT } from "../core/updateNotice";
 
 export interface CliOptions {
   command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor";
@@ -13,6 +14,7 @@ export interface CliOptions {
   yes: boolean; // cleanup/doctor: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
+  check: boolean; // update: report whether a newer release exists, never download
   help: boolean;
   version: boolean;
 }
@@ -25,7 +27,7 @@ Usage
   ${PRODUCT.name} hook stop --agent <codex|claude-code>
   ${PRODUCT.name} sessions
   ${PRODUCT.name} cleanup [--yes] [--all]
-  ${PRODUCT.name} update
+  ${PRODUCT.name} update [--check]
   ${PRODUCT.name} doctor [--fix] [--yes]
 
   (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
@@ -43,6 +45,11 @@ Session commands
       --yes         skip the confirmation prompt
       --all         also stop active (not just finished/stale) sessions
 
+Updates
+  update            download and install the latest release
+      --check       only report whether a newer release exists
+  (a new release is announced at launch; set ${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT}=1 to silence it)
+
 Diagnostics
   doctor            check the Claude Code plugin install for stale ${PRODUCT.legacyName} leftovers
       --fix         run the repair commands through the \`claude\` cli
@@ -59,6 +66,16 @@ Comments are saved to .review in the current directory and compile into a
 structured review prompt from the UI.`;
 
 const MAX_PORT = 65535;
+
+type CommandFlag = "yes" | "all" | "fix" | "check";
+
+// subcommand-only boolean flags: the option each sets and the commands that accept it.
+const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly CliOptions["command"][] }> = {
+  "--yes": { field: "yes", commands: ["cleanup", "doctor"] },
+  "--all": { field: "all", commands: ["cleanup"] },
+  "--fix": { field: "fix", commands: ["doctor"] },
+  "--check": { field: "check", commands: ["update"] },
+};
 
 // maps argv (already sliced past the runtime + script) into options.
 // throws a user-facing message on unknown flags or a bad port.
@@ -79,16 +96,16 @@ export function parseCliArgs(argv: string[]): CliOptions {
   } else if (command !== "review") {
     args.shift();
   }
-  const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, help: false, version: false };
+  const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
     else if (arg === "-v" || arg === "--version") opts.version = true;
     else if (arg === "--no-open") opts.open = false;
-    else if (arg === "--yes" || arg === "--all" || arg === "--fix") {
-      const allowed = arg === "--yes" ? ["cleanup", "doctor"] : arg === "--all" ? ["cleanup"] : ["doctor"];
-      if (!allowed.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
-      if (arg === "--yes") opts.yes = true; else if (arg === "--all") opts.all = true; else opts.fix = true;
+    else if (Object.hasOwn(COMMAND_FLAGS, arg)) {
+      const flag = COMMAND_FLAGS[arg]!;
+      if (!flag.commands.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      opts[flag.field] = true;
     }
     else if (arg === "--review-id") {
       const id = args[++i];

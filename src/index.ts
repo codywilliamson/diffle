@@ -9,6 +9,7 @@ import { runMcpServer } from "./mcp";
 import { installationRoot } from "./utils/installRoot";
 import { runCompletionHook } from "./core/completionHook";
 import { runUpdate } from "./core/update";
+import { launchUpdateNotice } from "./core/updateNotice";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
 import { runDoctorCommand } from "./utils/doctorCli";
 import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugins";
@@ -54,9 +55,9 @@ export async function main(): Promise<void> {
   }
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
-  if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes });
+  if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes }, loupeRoot);
   if (opts.command === "update") {
-    try { return await runUpdate(loupeRoot); }
+    try { return await runUpdate(loupeRoot, opts.check); }
     catch (err) { fail(err instanceof Error ? err.message : String(err)); }
   }
 
@@ -82,6 +83,7 @@ export async function main(): Promise<void> {
   const changed = launch.diff.meta?.mode === "browse" ? "" : " changed";
   console.log(`${accent(tag)} ${dim(`v${currentVersion(loupeRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
   console.log(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
+  void launchUpdateNotice(loupeRoot).then((notice) => notice && console.log(`${accent(tag)} ${dim(notice)}`));
 
   if (staleLegacyPlugin()) {
     console.log(`${accent(tag)} ${dim(`stale ${PRODUCT.legacyPlugin.name} plugin detected — run ${PRODUCT.name} doctor`)}`);

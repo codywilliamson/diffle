@@ -7,6 +7,7 @@ import { basename, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { PRODUCT } from "./product";
 import { checkForUpdate } from "./updateCheck";
+import { fetchReleaseStatus, updateCheckReport } from "./updateNotice";
 import { assetName, detectPackageManager, managerCommand, parseChecksum } from "./updateTarget";
 import { isProductBinary } from "../utils/installRoot";
 
@@ -37,7 +38,13 @@ function replaceBinary(bytes: Buffer): void {
   Bun.spawn(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps], { stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref();
 }
 
-export async function runUpdate(loupeRoot: string): Promise<void> {
+// `update --check`: report only, never download. works in a source checkout too.
+async function reportUpdate(loupeRoot: string): Promise<void> {
+  console.log(`${tag} ${updateCheckReport(await fetchReleaseStatus(loupeRoot))}`);
+}
+
+export async function runUpdate(loupeRoot: string, check = false): Promise<void> {
+  if (check) return reportUpdate(loupeRoot);
   if (!isProductBinary(basename(process.execPath))) {
     return console.log(`${tag} 'update' applies to an installed ${PRODUCT.name} binary; in a source checkout, use git pull.`);
   }

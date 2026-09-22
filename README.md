@@ -47,6 +47,7 @@ diffle mcp serve        # local MCP server for agent integrations
 diffle sessions         # list running diffle sessions
 diffle cleanup          # stop stale sessions and finished reviews
 diffle update           # self-update to the latest release
+diffle update --check   # only report whether a newer release exists
 diffle doctor           # check the Claude Code plugin install (--fix to repair)
 ```
 

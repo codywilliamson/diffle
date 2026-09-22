@@ -3,7 +3,7 @@ import { parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, help: false, version: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -29,7 +29,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, help: false, version: false });
+    expect(opts).toEqual({ command: "review", agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, help: false, version: false });
   });
 
   test("rejects a bad port", () => {
@@ -130,8 +130,20 @@ describe("parseCliArgs", () => {
     expect(USAGE).toContain("--fix");
   });
 
-  test("update is a bare command", () => {
-    expect(parseCliArgs(["update"]).command).toBe("update");
+  test("update takes only --check", () => {
+    expect(parseCliArgs(["update"])).toMatchObject({ command: "update", check: false });
+    expect(parseCliArgs(["update", "--check"])).toMatchObject({ command: "update", check: true });
     expect(() => parseCliArgs(["update", "--yes"])).toThrow("unexpected argument: --yes (update accepts options only)");
+  });
+
+  test("--check is rejected outside update", () => {
+    expect(() => parseCliArgs(["--check"])).toThrow("unexpected argument: --check (review accepts options only)");
+    expect(() => parseCliArgs(["doctor", "--check"])).toThrow("unexpected argument: --check (doctor accepts options only)");
+    expect(() => parseCliArgs(["cleanup", "--check"])).toThrow("unexpected argument: --check (cleanup accepts options only)");
+  });
+
+  test("usage documents update --check and the launch-notice opt-out", () => {
+    expect(USAGE).toContain("diffle update [--check]");
+    expect(USAGE).toContain("DIFFLE_NO_UPDATE_CHECK=1");
   });
 });
