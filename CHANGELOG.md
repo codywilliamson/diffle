@@ -2,6 +2,19 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.20.0](https://github.com/codywilliamson/diffle/compare/v0.19.1...v0.20.0) (2026-09-22)
+
+
+### Features
+
+* **cli:** add mcp list and mcp restart ([f3f682f](https://github.com/codywilliamson/diffle/commit/f3f682f43eb673bbd21def5d0007d0ed16579588))
+* **cli:** stop old mcp servers after update when no review is live ([ca2bec2](https://github.com/codywilliamson/diffle/commit/ca2bec2dc106db12e0bc11c102e16c4e3905ce65))
+
+
+### Bug Fixes
+
+* **cli:** swap the windows binary while mcp servers hold it open ([83108a0](https://github.com/codywilliamson/diffle/commit/83108a0260af0dcf1268549fceec3e0b3ca0f86d))
+
 ## [0.19.1](https://github.com/codywilliamson/diffle/compare/v0.19.0...v0.19.1) (2026-09-22)
 
 
