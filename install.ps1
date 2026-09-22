@@ -194,6 +194,16 @@ function Update-UserPath {
   else { Remove-DiffleFromUserPath -Directory $BinDir -WhatIf:$DryRun }
 }
 
+# windows will not let a running exe be overwritten; say so up front instead of failing mid-move
+$StopHint = "stop every running $Name first (close open reviews, run '$Name cleanup --all', and end agent sessions using the $Name MCP server)"
+function Assert-NotRunning {
+  param([Parameter(Mandatory)][string] $Path)
+  $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -ieq $Path })
+  if ($running.Count -eq 0) { return }
+  $ids = ($running | ForEach-Object { $_.Id }) -join ', '
+  throw "diffle install: $Path is running (pid $ids) — $StopHint, then rerun the installer"
+}
+
 function Save-ReleaseAsset($ReleaseAsset, $Destination) {
   try {
     Invoke-WebRequest -Uri $ReleaseAsset.browser_download_url -OutFile $Destination -UseBasicParsing -ErrorAction Stop
@@ -277,9 +287,11 @@ try {
 
     Write-Section 'Install'
     New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+    Assert-NotRunning $Target
     $Staged = Join-Path $BinDir ".$Name.new-$PID-$([guid]::NewGuid())"
     Copy-Item -LiteralPath $BinaryPath -Destination $Staged
-    Move-Item -LiteralPath $Staged -Destination $Target -Force
+    try { Move-Item -LiteralPath $Staged -Destination $Target -Force -ErrorAction Stop }
+    catch { throw "diffle install: could not replace $Target ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
     $Staged = $null
     Write-Log OK "installed $Name $Tag to $Target"
   }
