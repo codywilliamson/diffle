@@ -2,6 +2,7 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/diff.css";
+@import "./styles/comment.css";
 
 /* tailwind + shadcn-svelte tokens alias the D5 variables — no parallel palette.
    the one-accent rule collapses shadcn `primary` and `accent` onto the single brand;

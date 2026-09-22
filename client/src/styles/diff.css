@@ -99,15 +99,20 @@
   background: var(--surface);
 }
 .comment-row .comment-cell {
-  padding: 4px 12px 8px 4px;
+  padding: 4px 12px 8px;
+}
+/* the file's scroller is the query container, so a thread never outgrows the visible pane */
+.diff-scroll {
+  container-type: inline-size;
 }
 /* unified: pin the comment box to the left of the horizontal scroll so a wide (unwrapped)
-   diff table never drags the editor/thread off-screen with it. split overrides this below —
-   there the box must stay inside its own side, not stick to the pane's left edge. */
+   diff table never drags the editor/thread off-screen with it, and cap it to the visible
+   pane (less the cell's 12px insets) so its right edge and controls stay on screen. split
+   overrides this below — there the box must stay inside its own side. */
 .comment-box {
   position: sticky;
-  left: 0;
-  width: min(46rem, 100%);
+  left: 12px;
+  width: min(46rem, 100%, 100cqw - 24px);
   box-sizing: border-box;
 }
 body.selecting {

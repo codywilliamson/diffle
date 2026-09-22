@@ -1,10 +1,13 @@
 <script lang="ts">
+  import ComposerHint from "./ComposerHint.svelte";
+
   let { onSend, onDone }: { onSend: (text: string) => Promise<string | null>; onDone: () => void } = $props();
 
   let text = $state("");
   let pending = $state(false);
   let sendError = $state<string | null>(null);
   let input = $state<HTMLTextAreaElement>();
+  const hintId = $props.id();
 
   $effect(() => input?.focus());
 
@@ -34,18 +37,21 @@
   }
 </script>
 
-<div class="mt-2 rounded-md border border-border bg-surface-2 p-3">
+<div class="composer @container mt-2">
   <textarea
     bind:this={input}
     bind:value={text}
     onkeydown={onKeydown}
+    rows="2"
     aria-label="Reply"
+    aria-describedby={hintId}
     placeholder="Reply…"
-    class="min-h-[2rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
+    class="composer-input"
   ></textarea>
-  <div class="mt-3 flex gap-2">
-    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={submit} disabled={!text.trim() || pending}>{pending ? "Sending…" : "Send"}</button>
-    <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onDone} disabled={pending}>Cancel</button>
+  <div class="mt-2 flex flex-wrap items-center gap-2">
+    <button class="comment-btn comment-btn-primary" onclick={submit} disabled={!text.trim() || pending}>{pending ? "Sending…" : "Send"}</button>
+    <button class="comment-btn" onclick={onDone} disabled={pending}>Cancel</button>
+    <ComposerHint id={hintId} action="send" class="@max-md:hidden" />
   </div>
   {#if sendError}<p role="alert" class="mt-2 text-xs text-destructive">{sendError}</p>{/if}
 </div>

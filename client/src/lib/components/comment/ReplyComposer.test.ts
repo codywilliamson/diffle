@@ -32,4 +32,10 @@ describe("ReplyComposer", () => {
     expect(onSend).toHaveBeenCalledWith("Sent");
     expect(onDone).toHaveBeenCalledOnce();
   });
+
+  it("describes the keyboard shortcuts on the textarea", () => {
+    render(ReplyComposer, { onSend: vi.fn(), onDone: vi.fn() });
+
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveAccessibleDescription(/Enter to send · Esc to cancel/);
+  });
 });
