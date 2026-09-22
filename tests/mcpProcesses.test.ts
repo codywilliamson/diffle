@@ -57,7 +57,8 @@ describe("stopMcpServers", () => {
 });
 
 describe("listMcpProcesses", () => {
+  // cold Windows CIM queries can exceed the suite's 10s default.
   it("reads the real process table and never lists itself", () => {
     expect(listMcpProcesses().some((proc) => proc.pid === process.pid)).toBe(false);
-  });
+  }, 30_000);
 });
