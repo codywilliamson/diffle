@@ -13,7 +13,7 @@ test("split view, wrap, and sanitized markdown preview", async ({ page }) => {
     await gotoApp(page, await url);
 
     // side-by-side toggle renders the split table
-    await page.getByRole("button", { name: "Side-by-side view" }).click();
+    await page.getByRole("button", { name: "Side-by-side view", exact: true }).click();
     await expect(page.locator("table.split-table").first()).toBeVisible();
 
     // wrap toggle applies the wrap class
