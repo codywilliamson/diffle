@@ -1,0 +1,2 @@
+# dash rejects CRLF, so the curl | sh installer must stay LF on windows checkouts too
+*.sh text eol=lf
