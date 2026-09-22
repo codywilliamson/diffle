@@ -1,5 +1,7 @@
 # diffle
 
+[![CI](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml)
+
 Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
 
 **Site & docs: [diffle.dev](https://diffle.dev)**
