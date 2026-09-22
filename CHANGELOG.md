@@ -2,6 +2,13 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.18.0](https://github.com/codywilliamson/diffle/compare/v0.17.1...v0.18.0) (2026-09-22)
+
+
+### Features
+
+* **cli:** add diffle doctor for stale loupe-review plugins ([a4c7591](https://github.com/codywilliamson/diffle/commit/a4c7591814a3c8a29cda97f4e96263bd2adc43ae)), closes [#45](https://github.com/codywilliamson/diffle/issues/45)
+
 ## [0.17.1](https://github.com/codywilliamson/diffle/compare/v0.17.0...v0.17.1) (2026-09-22)
 
 

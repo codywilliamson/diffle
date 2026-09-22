@@ -1,6 +1,6 @@
 {
   "name": "diffle",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "description": "Local git diff viewer with inline comments and structured agent feedback",
   "module": "src/index.ts",
   "type": "module",
