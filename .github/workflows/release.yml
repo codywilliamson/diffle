@@ -14,7 +14,13 @@ permissions:
   pull-requests: write
 
 jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   release-please:
+    needs: ci
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
@@ -48,13 +54,46 @@ jobs:
         run: |
           for t in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64 windows-arm64; do
             bun scripts/stage-mcpb.ts "$t"
+            bun x mcpb validate mcpb/manifest.json
             bun x mcpb pack mcpb "dist/release/diffle-$t.mcpb"
           done
+      - name: Smoke compiled Linux binary
+        run: bun scripts/smoke-binary.ts dist/release/diffle-linux-x64
       - name: Upload assets into the draft release
         run: gh release upload "$TAG" dist/release/* --clobber
       # publish only after every asset uploaded successfully
       - name: Publish the release
         run: gh release edit "$TAG" --draft=false
+
+  installers:
+    name: installers (post-publish) (${{ matrix.os }})
+    needs: [release-please, assets]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    permissions:
+      contents: read
+      issues: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Smoke install and uninstall
+        id: smoke
+        run: bun scripts/smoke-installer.ts
+      - name: Report installer failure
+        if: ${{ failure() && steps.smoke.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/report-installer-failure.ts
 
   release-pr:
     needs: [release-please, assets]
