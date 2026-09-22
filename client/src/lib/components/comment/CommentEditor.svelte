@@ -1,6 +1,8 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import Check from "@lucide/svelte/icons/check";
   import type { CommentTag } from "$types";
+  import ComposerHint from "./ComposerHint.svelte";
 
   let {
     initial = "",
@@ -15,6 +17,7 @@
   } = $props();
 
   const TAGS: CommentTag[] = ["nit", "issue", "question", "praise"];
+  const hintId = $props.id();
   // seed once from the props; the editor is mounted fresh per add/edit.
   let text = $state(untrack(() => initial));
   let tag = $state<CommentTag | undefined>(untrack(() => initialTag));
@@ -57,25 +60,26 @@
   }
 </script>
 
-<div class="rounded-md border border-focus bg-surface p-3">
+<div class="composer @container">
   <textarea
     bind:this={ta}
     bind:value={text}
     onkeydown={onKeydown}
+    rows="2"
     aria-label="Comment text"
+    aria-describedby={hintId}
     placeholder="Leave a comment…"
-    class="min-h-[2.5rem] w-full resize-none bg-transparent font-sans text-sm text-text outline-none placeholder:text-dim"
+    class="composer-input"
   ></textarea>
-  <div class="mt-3 flex flex-wrap items-center gap-2">
-    <button class="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
-    <button class="rounded px-2.5 py-1 text-xs text-muted hover:text-text" onclick={onCancel}>Cancel</button>
-    <div class="ml-auto flex gap-1.5">
+  <div class="mt-2 flex flex-wrap items-center gap-2">
+    <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
+    <button class="comment-btn" onclick={onCancel}>Cancel</button>
+    <ComposerHint id={hintId} action="save" class="@max-2xl:hidden" />
+    <div role="group" aria-label="Tag" class="ml-auto flex flex-wrap gap-1.5 @max-md:ml-0 @max-md:basis-full">
       {#each TAGS as t (t)}
-        <button
-          type="button"
-          class="rounded-full border px-2 py-0.5 text-[10px] {tag === t ? 'border-accent bg-accent/10 text-accent' : 'border-border text-muted hover:border-focus hover:text-text'}"
-          onclick={() => (tag = tag === t ? undefined : t)}
-        >{t}</button>
+        <button type="button" class="comment-tag" aria-pressed={tag === t} onclick={() => (tag = tag === t ? undefined : t)}>
+          {#if tag === t}<Check size={12} strokeWidth={2.5} aria-hidden="true" />{/if}{t}
+        </button>
       {/each}
     </div>
   </div>

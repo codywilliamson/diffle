@@ -113,13 +113,13 @@
     {:else if !giant && !mounted}
       <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
-      <div class="overflow-x-auto {prefs.wrap ? 'wrap' : ''}" in:fade>
+      <div class="diff-scroll overflow-x-auto {prefs.wrap ? 'wrap' : ''}" in:fade>
         {#if useSplit}<SplitDiff {file} />{:else}<UnifiedDiff {file} />{/if}
       </div>
     {/if}
 
     {#if fileLevel.length > 0 || addingFile}
-      <div class="flex flex-col gap-2 border-t border-divider p-2">
+      <div class="flex flex-col gap-2 border-t border-divider px-3 py-2">
         {#if fileLevel.length > 0}<CommentThread comments={fileLevel} />{/if}
         {#if addingFile}
           <CommentEditor

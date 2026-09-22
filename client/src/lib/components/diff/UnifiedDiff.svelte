@@ -73,8 +73,7 @@
           {@const adding = isAddingAt(ui.adding, file.path, a.side, a.line)}
           {#if list.length > 0 || adding}
             <tr class="comment-row">
-              <td colspan="3"></td>
-              <td class="comment-cell">
+              <td class="comment-cell" colspan="4">
                 <div class="comment-box">
                   {#if list.length > 0}<CommentThread comments={list} />{/if}
                   {#if adding}

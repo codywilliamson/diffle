@@ -1,0 +1,152 @@
+/* comment surfaces: the card, the composer (add / edit / reply), and their controls.
+   one inset (8px 12px), one radius, one 1px border; the composer sits on the stronger
+   surface because it's the active element. unlayered like base.css, whose global
+   :focus-visible would otherwise square off every rounded control here. */
+
+.comment-card,
+.composer {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-family: var(--ff-sans);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text);
+}
+.comment-card {
+  background: var(--surface);
+}
+/* resolved threads recede through color, not opacity, so the body stays at AA contrast */
+.comment-card.resolved .comment-body {
+  color: var(--muted);
+}
+.composer {
+  background: var(--surface-2);
+}
+.composer:focus-within {
+  border-color: var(--focus);
+  outline: 1px solid var(--focus);
+  outline-offset: 0;
+}
+
+/* the composer frame carries focus, so the field itself draws no second ring */
+.composer-input {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  resize: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+.composer-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.composer-input:focus-visible {
+  outline: none;
+}
+
+.composer-hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.composer-hint kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.comment-btn,
+.comment-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+  transition:
+    color 0.1s ease,
+    background-color 0.1s ease,
+    border-color 0.1s ease;
+}
+@media (pointer: coarse) {
+  .comment-btn,
+  .comment-tag {
+    min-height: 32px;
+  }
+}
+
+.comment-btn {
+  padding: 0 8px;
+  border-radius: calc(var(--radius) - 2px);
+  font-weight: 500;
+}
+.comment-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.comment-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  border-radius: calc(var(--radius) - 2px);
+}
+.comment-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.comment-btn-primary {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+.comment-btn-primary:hover:not(:disabled) {
+  color: var(--on-accent);
+  background: var(--accent-hover);
+}
+.comment-btn-danger:hover:not(:disabled),
+.comment-btn-danger:focus-visible {
+  color: var(--del-text);
+  background: var(--del-bg);
+}
+
+.comment-tag {
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.comment-tag:hover {
+  color: var(--text);
+  border-color: var(--focus);
+}
+/* pressed: accent frame + tint + a check glyph, so the state never rests on hue alone */
+.comment-tag[aria-pressed="true"] {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.comment-tag:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+/* metadata chips in the card header */
+.comment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+}
+.comment-chip-tag {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  line-height: 18px;
+  color: var(--accent);
+}
