@@ -47,9 +47,10 @@ diffle mcp serve        # local MCP server for agent integrations
 diffle sessions         # list running diffle sessions
 diffle cleanup          # stop stale sessions and finished reviews
 diffle update           # self-update to the latest release
+diffle doctor           # check the Claude Code plugin install (--fix to repair)
 ```
 
-Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions.
+Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation.
 
 diffle reviews whichever git repo you run it from, then prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 

@@ -13,6 +13,8 @@ The server only operates on a cwd inside an approved root (see `DIFFLE_ROOT` in 
 diffle mcp serve
 ```
 
+If the `diffle` server doesn't show up in your agent, run `diffle doctor` — a stale `loupe-review` plugin keeps the old server wired in its place.
+
 ## Tools
 
 | tool | purpose | inputs |

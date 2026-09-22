@@ -10,6 +10,8 @@ import { installationRoot } from "./utils/installRoot";
 import { runCompletionHook } from "./core/completionHook";
 import { runUpdate } from "./core/update";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
+import { runDoctorCommand } from "./utils/doctorCli";
+import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugins";
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
 import { PRODUCT } from "./core/product";
@@ -22,6 +24,11 @@ const accent = paint(PRODUCT.accent);
 const bold = paint("1");
 const dim = paint("2");
 const tag = `[${PRODUCT.name}]`;
+
+// one cheap read of claude's plugin registry per launch; any problem stays silent.
+function staleLegacyPlugin(): boolean {
+  try { return hasStaleLegacyPlugin(readClaudePluginState()); } catch { return false; }
+}
 
 function fail(message: string): never {
   console.error(`${accent(tag)} ${message}`);
@@ -47,6 +54,7 @@ export async function main(): Promise<void> {
   }
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
+  if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes });
   if (opts.command === "update") {
     try { return await runUpdate(loupeRoot); }
     catch (err) { fail(err instanceof Error ? err.message : String(err)); }
@@ -74,6 +82,10 @@ export async function main(): Promise<void> {
   const changed = launch.diff.meta?.mode === "browse" ? "" : " changed";
   console.log(`${accent(tag)} ${dim(`v${currentVersion(loupeRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
   console.log(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
+
+  if (staleLegacyPlugin()) {
+    console.log(`${accent(tag)} ${dim(`stale ${PRODUCT.legacyPlugin.name} plugin detected — run ${PRODUCT.name} doctor`)}`);
+  }
 
   const { stale, live } = await classifySessions();
   const finished = live.filter((entry) => entry.reviewId !== launch.review.id).filter((entry) => {

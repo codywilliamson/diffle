@@ -93,6 +93,15 @@ Download and install the latest release. It verifies the download's SHA-256 and 
 diffle update
 ```
 
+### `diffle doctor [--fix] [--yes]`
+
+Check the Claude Code plugin install for stale `loupe-review` leftovers and report what to repair. `--fix` runs the repair commands through the `claude` CLI; `--yes` skips the confirmation. See [Migrating from loupe](/guides/migrating-from-loupe/).
+
+```sh
+diffle doctor
+diffle doctor --fix
+```
+
 ## Options
 
 | flag | meaning |

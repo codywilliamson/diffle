@@ -2,9 +2,12 @@
 // manifest metadata all read from here. a deprecated legacy name, env prefix, and data dir are
 // kept for one minor release so existing commands, scripts, env vars, and records keep working.
 
+const name = "diffle";
+const legacyName = "loupe";
+
 export const PRODUCT = {
-  name: "diffle",
-  legacyName: "loupe",
+  name,
+  legacyName,
   displayName: "Diffle Review",
   description: "Local git diff viewer with inline comments and structured agent feedback",
   envPrefix: "DIFFLE_",
@@ -15,4 +18,12 @@ export const PRODUCT = {
   author: { name: "Cody Williamson", url: "https://github.com/codywilliamson" },
   site: "https://diffle.dev", // docs site + the `curl https://diffle.dev/install | sh` host
   repository: "https://github.com/codywilliamson/diffle",
+  // claude code plugin identity — must match .claude-plugin/marketplace.json
+  plugin: { name: `${name}-review`, marketplace: `${name}-local` },
+  legacyPlugin: { name: `${legacyName}-review`, marketplace: `${legacyName}-local` },
 } as const;
+
+// owner/repo slug for `claude plugin marketplace add`
+export function repositorySlug(): string {
+  return PRODUCT.repository.replace(/^https?:\/\/github\.com\//, "");
+}
