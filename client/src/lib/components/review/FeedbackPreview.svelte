@@ -12,7 +12,7 @@
   let copied = $state(false);
   let raw = $state<HTMLTextAreaElement>();
 
-  compile()
+  compile(ui.feedbackSummary ?? undefined)
     .then((r) => {
       prompt = r.prompt;
       status = "ready";

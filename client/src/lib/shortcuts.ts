@@ -5,11 +5,15 @@ export interface Shortcut {
 }
 
 export const SHORTCUTS: Shortcut[] = [
+  { key: "j", label: "Next file" },
+  { key: "k", label: "Previous file" },
+  { key: "v", label: "Toggle viewed on the current file" },
   { key: "t", label: "Toggle light / dark theme" },
   { key: "s", label: "Side-by-side / unified" },
   { key: "w", label: "Wrap long lines" },
   { key: "o", label: "Single-file / all files" },
   { key: "r", label: "Re-run the diff" },
+  { key: "c", label: "Preview review feedback" },
   { key: "n", label: "What's new" },
   { key: "?", label: "Keyboard shortcuts" },
   { key: "Esc", label: "Close the open overlay" },

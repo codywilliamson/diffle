@@ -67,6 +67,14 @@ describe("comments store — mutations adopt the server record", () => {
     expect(store.comments[0]!.text).toBe("new");
   });
 
+  it("returns the write error so an editor can stay open and retry", async () => {
+    const review = seeded(rec());
+    const store = createCommentsStore(review, () => null, cdeps({ saveComments: async () => { throw new Error("disk full"); } }));
+    await expect(store.add(cmt("1"))).resolves.toBe("disk full");
+    expect(store.error).toBe("disk full");
+    expect(store.comments).toEqual([]);
+  });
+
   it("removes a comment through saveComments", async () => {
     const review = seeded(rec({ comments: [cmt("1"), cmt("2")] }));
     const store = createCommentsStore(review, () => null, cdeps());
