@@ -231,7 +231,7 @@ ${invokeInstaller}
     expect(readFileSync(target, "utf8")).toBe(binary);
   });
 
-  it("fails with a stop-it-first message when the installed binary cannot be replaced", async () => {
+  (process.platform === "win32" ? it : it.skip)("fails with a stop-it-first message when the installed binary cannot be replaced", async () => {
     const dir = tempDir();
     const bin = join(dir, "bin");
     const target = join(bin, "diffle.exe");
