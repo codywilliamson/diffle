@@ -1,6 +1,6 @@
 # diffle — agent guide
 
-Local git diff viewer for focused code review: review a diff, leave inline comments, export them as structured feedback (or hand it to an agent over MCP). Run from source with `bun src/index.ts` (or `bun run dev`); the installed command is `diffle`. Full original spec: [`docs/prompt.md`](docs/prompt.md).
+Local git diff viewer for focused code review: review a diff, leave inline comments, export them as structured feedback (or hand it to an agent over MCP). Run from source with `bun start` (built client) or `bun run dev` (Vite); the installed command is `diffle`. Full original spec: [`docs/prompt.md`](docs/prompt.md).
 
 > **Rebranded loupe → diffle.** One product config (`src/core/product.ts`) is the single identity source. A deprecated `loupe` command alias, legacy `LOUPE_*` env vars, and an existing `~/.loupe` data dir are supported for one release — **keep that compatibility working** until it's intentionally removed (Phase 9). See [`docs/diffle/handoff.md`](docs/diffle/handoff.md) for the current phase state.
 
@@ -21,7 +21,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 ## Stack & hard constraints
 
 - **Bun runs the backend**: server (`Bun.serve`), CLI, MCP runtime, `bun test`, and the standalone compiler. Server/core/MCP TypeScript executes directly — no build step there.
-- **The client is a built Svelte SPA**: Svelte 5 runes + Vite + Tailwind v4 + shadcn-svelte. Source under `client/`, built to `dist/client`. No SvelteKit. `bun run dev` runs the backend + Vite together with `/api` proxied to that backend; `bun start` / `bun run preview` serve the built client.
+- **The client is a built Svelte SPA**: Svelte 5 runes + Vite + Tailwind v4 + shadcn-svelte. Source under `client/`, built to `dist/client`. No SvelteKit. `bun run dev` runs the backend + Vite together with `/api` proxied to that backend; `bun start` / `bun run preview` build and serve the client.
 - **The shipped binary is self-contained**: `bun run build:binary` compiles a single executable that embeds `dist/client` (via a generated `with { type: "file" }` manifest) and the version — it runs anywhere with no checkout, `package.json`, or sidecar assets. Static serving goes through the `AssetSource` seam (`src/server/assetSource.ts`): a directory adapter in source/preview, the embedded map in the binary.
 - **Distribution is the GitHub Releases channel**: `scripts/build-release.ts` cross-compiles all six OS/arch targets + `checksums.txt`; `install.sh`/`install.ps1` and `diffle update` download + SHA-256-verify from Releases; Release Please + `.github/workflows/release.yml` own versioning and the per-target binary/MCPB matrix.
 - **Runtime dependencies stay narrow and pinned.** The MCP SDK and its schema dependency are the intentional runtime deps; the Svelte/Vite/Tailwind/test tooling is dev-only and exact-pinned. The docs site (`web/`) is a **separate package** so Astro/Starlight never touch the app's deps. Add a runtime package only when it replaces meaningful protocol or platform code.

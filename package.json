@@ -10,7 +10,7 @@
     "loupe": "src/index.ts"
   },
   "scripts": {
-    "start": "bun src/index.ts",
+    "start": "bun run client:build && bun src/index.ts",
     "dev": "bun scripts/dev.ts",
     "preview": "bun run client:build && bun src/index.ts",
     "test": "bun test",
