@@ -2,6 +2,13 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.20.2](https://github.com/codywilliamson/diffle/compare/v0.20.1...v0.20.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **build:** gate releases with CI and smoke checks ([583fa78](https://github.com/codywilliamson/diffle/commit/583fa785e2fc546ced0ee7b440f41704475c4020))
+
 ## [0.20.1](https://github.com/codywilliamson/diffle/compare/v0.20.0...v0.20.1) (2026-09-22)
 
 
