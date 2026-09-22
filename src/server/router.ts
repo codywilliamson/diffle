@@ -19,7 +19,20 @@ import { apiError } from "./respond";
 
 export type { ServerContext } from "./handlers";
 
-function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const HTTP_DEFAULT_PORT = 80;
+
+function hasAllowedOrigin(req: Request, serverPort: number): boolean {
+  const origin = req.headers.get("origin");
+  if (origin === null) return true;
+  const url = new URL(req.url);
+  return url.protocol === "http:"
+    && LOOPBACK_HOSTS.has(url.hostname)
+    && Number(url.port || HTTP_DEFAULT_PORT) === serverPort
+    && origin === url.origin;
+}
+
+function route(ctx: ServerContext, req: Request, serverPort: number): Response | Promise<Response> {
   const { pathname } = new URL(req.url);
   const { method } = req;
 
@@ -37,8 +50,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
   }
 
   if (method === "POST") {
-    const origin = req.headers.get("origin");
-    if (origin !== null && origin !== new URL(req.url).origin) return apiError("origin mismatch", 403);
+    if (!hasAllowedOrigin(req, serverPort)) return apiError("origin mismatch", 403);
 
     if (pathname === "/api/comments") return handlePostComments(ctx, req);
     if (pathname === "/api/viewed") return handlePostViewed(ctx, req);
@@ -54,8 +66,9 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
 }
 
 export function createServer(ctx: ServerContext, port = 0): Server<undefined> {
-  return Bun.serve({
+  const server: Server<undefined> = Bun.serve({
     port,
-    fetch: async (req) => maybeCompress(req, await route(ctx, req)),
+    fetch: async (req) => maybeCompress(req, await route(ctx, req, server.port ?? port)),
   });
+  return server;
 }
