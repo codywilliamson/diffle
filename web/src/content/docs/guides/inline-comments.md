@@ -11,6 +11,8 @@ diffle lets you annotate a diff with inline comments while you review. Comments 
 
 Hover a line to reveal its comment bubble, or click the line number, then type your note. The comment anchors to that line.
 
+Optionally tag the comment as a **nit**, **issue**, **question**, or **praise** so the agent knows how to weigh it. Press `Ctrl`+`Enter` (`⌘`+`Enter` on macOS) to save, or `Esc` to discard the draft.
+
 ## Comment on a range
 
 To cover several lines, **drag across the line numbers**, or **shift-click** a second line number to extend the selection from the first. The comment anchors to the whole range.

@@ -64,6 +64,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 - The client is tested with **Vitest + Testing Library** (`bun run client:test`) and **Playwright** e2e (`bun run test:e2e`, `.pw.ts`). Keep server `bun x tsc --noEmit` (strict) and client `bun run client:check` (svelte-check) both clean.
 - MCP/plugin work also validates the MCPB manifest and both agent skills. Packaging work also verifies the compiled binary from a temp dir outside the checkout (version, review, `mcp serve`, `diffle update`) and `mcpb validate`.
 - **Green tests ≠ a working app.** The frontend is not covered by `bun test`. Verify UI changes in a real browser (both themes, desktop + phone) before calling them done. (A `<>` fragment bug once left the entire diff pane blank while all tests passed.)
+- **UI changes ship with regenerated media and docs.** If a change alters anything the screenshots or walkthrough footage show (comment box, review panel, file tree, diff views, dialogs), regenerate the demos in the same PR: `bun run client:build`, then from `demos/` (Node only, never Bun) `npm run build` (captures, records the takes, renders with Remotion, publishes to `docs/screenshots/` + `web/public/media/`) and `npm run shots` (copy the refreshed `public/shots/*.png` into `docs/screenshots/gallery/`). Then update the docs pages (`web/src/content/docs/**`, README) that describe the changed UI. Never hand-edit the published media.
 
 ## Releases
 
