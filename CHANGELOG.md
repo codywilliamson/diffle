@@ -2,6 +2,14 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.19.1](https://github.com/codywilliamson/diffle/compare/v0.19.0...v0.19.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **build:** stop the windows installer cleanly when diffle is running ([4aa86a2](https://github.com/codywilliamson/diffle/commit/4aa86a2424a2b6946db1c9d8ca5bb090a32ca703))
+* **tests:** pin diff fixtures to lf line endings ([7cc550e](https://github.com/codywilliamson/diffle/commit/7cc550e4f870d96f4278d05c2f9d93c8f0bd0e27))
+
 ## [0.19.0](https://github.com/codywilliamson/diffle/compare/v0.18.0...v0.19.0) (2026-09-22)
 
 
