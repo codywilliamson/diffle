@@ -69,7 +69,8 @@ Press `?` in the UI for this list at any time.
 | `r` | re-run the diff |
 | `c` | preview review feedback |
 | `?` | show the shortcut overlay |
-| `Esc` | close dialogs |
+| `Ctrl`/`⌘` + `Enter` | save the open comment |
+| `Esc` | close dialogs, cancel an open comment |
 
 To comment on a range, drag across the line numbers or shift-click a second line.
 
