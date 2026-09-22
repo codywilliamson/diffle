@@ -77,10 +77,10 @@ async function run(): Promise<void> {
       await page.getByText(COMMENT_TEXT).waitFor();
       await shoot(page, "comment-thread");
 
-      await page.getByRole("button", { name: "Side-by-side view" }).click();
+      await page.getByRole("button", { name: "Side-by-side view", exact: true }).click();
       await page.locator("table.split-table").first().waitFor();
       await shoot(page, "side-by-side");
-      await page.getByRole("button", { name: "Side-by-side view" }).click();
+      await page.getByRole("button", { name: "Side-by-side view", exact: true }).click();
       await page.locator("table.split-table").first().waitFor({ state: "detached" });
 
       const md = page.locator("section.file-section", { has: page.getByText("README.md") });

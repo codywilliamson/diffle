@@ -115,7 +115,7 @@ export const DRIVERS: Driver[] = [
       await beat(700);
       captions[0].toSec = since();
 
-      const split = page.getByRole("button", { name: "Side-by-side view" });
+      const split = page.getByRole("button", { name: "Side-by-side view", exact: true });
       await glideTo(split);
       await beat(300);
       await split.click();
