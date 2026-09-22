@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { binary, checksum, cleanupTempDirs, root, run, tempDir } from "./helpers/installers";
 
@@ -207,6 +207,58 @@ ${invokeInstaller}
     const after = readFileSync(userPathFile(dir), "utf8");
     expect(after).toBe(`${bin};${before}`);
     expect(after.slice(bin.length + 1)).toBe(before);
+  });
+
+  it("replaces an existing install in place", async () => {
+    const dir = tempDir();
+    const bin = join(dir, "bin");
+    const target = join(bin, "diffle.exe");
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(target, "previous release");
+    const wrapper = writeWrapper(
+      dir,
+      "replace.ps1",
+      `
+${prelude(dir, bin, { DIFFLE_NO_MODIFY_PATH: "1" })}
+${releaseMock}
+${downloadMock(binary, checksum)}
+${invokeInstaller}
+`,
+    );
+
+    const result = await run(pwsh!, ["-NoProfile", "-File", wrapper], dir);
+    expect(result.code).toBe(0);
+    expect(readFileSync(target, "utf8")).toBe(binary);
+  });
+
+  it("fails with a stop-it-first message when the installed binary cannot be replaced", async () => {
+    const dir = tempDir();
+    const bin = join(dir, "bin");
+    const target = join(bin, "diffle.exe");
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(target, "in use");
+    // an exclusive handle stands in for a running diffle.exe, which windows refuses to overwrite
+    const wrapper = writeWrapper(
+      dir,
+      "locked.ps1",
+      `
+${prelude(dir, bin, { DIFFLE_NO_MODIFY_PATH: "1" })}
+${releaseMock}
+${downloadMock(binary, checksum)}
+$Lock = [IO.File]::Open('${psPath(target)}', [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
+try { ${invokeInstaller}; exit 99 }
+catch { [Console]::Error.WriteLine($_.Exception.Message); exit 42 }
+finally { $Lock.Dispose() }
+`,
+    );
+
+    const result = await run(pwsh!, ["-NoProfile", "-File", wrapper], dir);
+    expect(result.code).toBe(42);
+    expect(result.stderr).toContain(`diffle install: could not replace ${target}`);
+    expect(result.stderr).toContain("stop every running diffle first");
+    expect(result.stderr).toContain("diffle cleanup --all");
+    expect(readFileSync(target, "utf8")).toBe("in use");
+    expect(readdirSync(bin)).toEqual(["diffle.exe"]);
   });
 
   it("writes nothing on a dry run and reports the plan", async () => {
