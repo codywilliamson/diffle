@@ -8,6 +8,7 @@
   import Rows3 from "@lucide/svelte/icons/rows-3";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
+  import { PRODUCT } from "$product";
   import { getAppState } from "$lib/state/context";
   import { withViewTransition } from "$lib/viewTransition";
   import OverflowMenu from "./OverflowMenu.svelte";
@@ -33,7 +34,7 @@
     <PanelLeft size={16} />
   </button>
 
-  <span class="font-serif text-lg leading-none tracking-[-0.04em] text-accent">diffle</span>
+  <span class="font-serif text-lg leading-none tracking-[-0.04em] text-accent">{PRODUCT.name}</span>
 
   {#if diff.meta}
     <span class="hidden font-mono text-xs text-muted sm:inline">{diff.meta.repo}</span>

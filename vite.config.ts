@@ -6,10 +6,12 @@ import { resolve } from "node:path";
 const rootDir = import.meta.dirname;
 export const clientDir = resolve(rootDir, "client");
 
-// the client's two allowed cross-boundary aliases: the shared contract and its own $lib.
+// the client's allowed cross-boundary aliases: shared contracts/identity and its own $lib.
 export const aliases = {
   // the single shared client/server contract — never redefine these shapes
   $types: resolve(rootDir, "src/types.ts"),
+  // the single user-facing product identity source
+  $product: resolve(rootDir, "src/core/product.ts"),
   $lib: resolve(clientDir, "src/lib"),
 };
 
@@ -21,7 +23,7 @@ export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   resolve: { alias: aliases },
   server: {
-    // allow importing the shared contract that lives outside the vite root
+    // allow importing shared contracts and identity that live outside the vite root
     fs: { allow: [rootDir] },
     proxy: { "/api": { target: apiTarget, changeOrigin: true } },
   },

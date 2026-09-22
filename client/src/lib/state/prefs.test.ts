@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createPrefsStore } from "./prefs.svelte";
-import type { StorageLike } from "./prefs-storage";
+import { LEGACY_PREFS_PREFIX, PREFS_PREFIX, type StorageLike } from "./prefs-storage";
 
 type FakeStorage = StorageLike & { data: Record<string, string> };
 
@@ -61,10 +61,10 @@ describe("prefs store", () => {
 
   it("migrates legacy loupe-* keys to diffle-* on first read", () => {
     const storage = fakeStorage({
-      "loupe-sidebar": "360",
-      "loupe-split": "true",
-      "loupe-wrap": "true",
-      "loupe-view": "single",
+      [`${LEGACY_PREFS_PREFIX}sidebar`]: "360",
+      [`${LEGACY_PREFS_PREFIX}split`]: "true",
+      [`${LEGACY_PREFS_PREFIX}wrap`]: "true",
+      [`${LEGACY_PREFS_PREFIX}view`]: "single",
     });
     const prefs = createPrefsStore({ storage, matchMedia: media(false) });
     expect(prefs.sidebarWidth).toBe(360);
@@ -72,26 +72,26 @@ describe("prefs store", () => {
     expect(prefs.wrap).toBe(true);
     expect(prefs.fileView).toBe("single");
     // values are re-persisted under the new namespace
-    expect(storage.data["diffle-sidebar"]).toBe("360");
-    expect(storage.data["diffle-split"]).toBe("true");
-    expect(storage.data["diffle-view"]).toBe("single");
+    expect(storage.data[`${PREFS_PREFIX}sidebar`]).toBe("360");
+    expect(storage.data[`${PREFS_PREFIX}split`]).toBe("true");
+    expect(storage.data[`${PREFS_PREFIX}view`]).toBe("single");
   });
 
   it("prefers an existing diffle-* value over the legacy loupe-* one", () => {
-    const storage = fakeStorage({ "diffle-sidebar": "300", "loupe-sidebar": "360" });
+    const storage = fakeStorage({ [`${PREFS_PREFIX}sidebar`]: "300", [`${LEGACY_PREFS_PREFIX}sidebar`]: "360" });
     const prefs = createPrefsStore({ storage, matchMedia: media(false) });
     expect(prefs.sidebarWidth).toBe(300);
   });
 
   it("migrates legacy theme values claude -> light and claude-dark -> dark", () => {
-    const lightStore = fakeStorage({ "loupe-theme": "claude" });
+    const lightStore = fakeStorage({ [`${LEGACY_PREFS_PREFIX}theme`]: "claude" });
     const light = createPrefsStore({ storage: lightStore, matchMedia: media(true) });
     expect(light.theme).toBe("light");
-    expect(lightStore.data["diffle-theme"]).toBe("light");
+    expect(lightStore.data[`${PREFS_PREFIX}theme`]).toBe("light");
 
-    const darkStore = fakeStorage({ "loupe-theme": "claude-dark" });
+    const darkStore = fakeStorage({ [`${LEGACY_PREFS_PREFIX}theme`]: "claude-dark" });
     const dark = createPrefsStore({ storage: darkStore, matchMedia: media(false) });
     expect(dark.theme).toBe("dark");
-    expect(darkStore.data["diffle-theme"]).toBe("dark");
+    expect(darkStore.data[`${PREFS_PREFIX}theme`]).toBe("dark");
   });
 });
