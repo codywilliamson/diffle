@@ -32,7 +32,7 @@ curl -fsSL https://diffle.dev/install | sh
 irm https://diffle.dev/install.ps1 | iex
 ```
 
-The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.diffle/bin`. Keep it current with `diffle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://diffle.dev/getting-started/installation/).
+The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.diffle/bin`. On macOS and Linux it also adds that directory to your login shell's rc file inside a `# >>> diffle >>>` marker block — run `exec $SHELL -l` to use it in the current shell, opt out with `DIFFLE_NO_MODIFY_PATH=1`, or undo it with `curl -fsSL https://diffle.dev/install | DIFFLE_UNINSTALL=1 sh`. Keep it current with `diffle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://diffle.dev/getting-started/installation/).
 
 ## Usage
 
