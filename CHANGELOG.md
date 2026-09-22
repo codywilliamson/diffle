@@ -2,6 +2,14 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.19.0](https://github.com/codywilliamson/diffle/compare/v0.18.0...v0.19.0) (2026-09-22)
+
+
+### Features
+
+* **cli:** announce new releases at launch and add update --check ([c823027](https://github.com/codywilliamson/diffle/commit/c823027371065128c2584f1c871b788365583f49))
+* **ui:** polish comment box accessibility and spacing ([f31ed64](https://github.com/codywilliamson/diffle/commit/f31ed643c18385d7e3bd1349bc9efdb3dea09623))
+
 ## [0.18.0](https://github.com/codywilliamson/diffle/compare/v0.17.1...v0.18.0) (2026-09-22)
 
 
