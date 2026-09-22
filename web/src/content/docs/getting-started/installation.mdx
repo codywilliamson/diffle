@@ -24,10 +24,14 @@ diffle ships as a single self-contained binary: it embeds its own web client and
   </TabItem>
 </Tabs>
 
-The installer downloads the binary for your OS and architecture, verifies its SHA-256 against the published checksum manifest, and installs it to `~/.diffle/bin`. If that directory isn't on your `PATH`, the script prints the exact line to add.
+The installer downloads the binary for your OS and architecture, verifies its SHA-256 against the published checksum manifest, and installs it to `~/.diffle/bin` — and adds that directory to your `PATH` for you.
 
 <Aside type="tip" title="Custom location">
   Set `DIFFLE_INSTALL_DIR` before running the installer to choose a different directory.
+</Aside>
+
+<Aside type="note" title="Windows PATH">
+  `install.ps1` needs PowerShell 7 or newer. It edits only your **user** `PATH` (never the machine scope, and never the merged process value), backs the old value up to a timestamped file first, preserves every existing entry — `%VAR%` tokens included — and does nothing if `~\.diffle\bin` is already there. Set `DIFFLE_NO_MODIFY_PATH` to install without touching `PATH`, or `DIFFLE_DRY_RUN` to print the plan and write nothing.
 </Aside>
 
 ## Verify
@@ -73,7 +77,8 @@ Remove the binary, and optionally your data directory:
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
-    Remove-Item ~/.diffle/bin/diffle.exe      # the binary
+    $env:DIFFLE_UNINSTALL = 1                 # the binary, and its user PATH entry
+    irm https://diffle.dev/install.ps1 | iex
     Remove-Item -Recurse -Force ~/.diffle     # also removes review records + settings
     ```
   </TabItem>
