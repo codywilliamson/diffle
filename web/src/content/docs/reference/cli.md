@@ -58,6 +58,23 @@ Run the local MCP server for agent integrations. See [MCP tools](/reference/mcp-
 diffle mcp serve
 ```
 
+### `diffle mcp list`
+
+List running diffle MCP servers (pid and binary path).
+
+```sh
+diffle mcp list
+```
+
+### `diffle mcp restart [--yes]`
+
+Stop every running diffle MCP server so your agent relaunches it, e.g. on the new binary after an update. Agents don't respawn a stopped stdio server by themselves: in Claude Code, reconnect it from `/mcp` or start a new session. It refuses while a review session is live, since a review can be hosted inside an MCP server; stale sessions don't block it. `--yes` skips the confirmation.
+
+```sh
+diffle mcp restart
+diffle mcp restart --yes
+```
+
 ### `diffle hook stop --agent <codex|claude-code>`
 
 Completion-hook entry used by the agent integrations.
@@ -87,7 +104,7 @@ diffle cleanup --all --yes
 
 ### `diffle update [--check]`
 
-Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. `--check` only reports whether a newer release exists and never downloads; it also works in a source checkout. See [Configuration](/reference/configuration/) for the full update behavior.
+Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. After installing, it stops MCP servers still running the old binary (the same as `diffle mcp restart`) as long as no review session is live; otherwise it tells you to run `diffle mcp restart` later. `--check` only reports whether a newer release exists and never downloads; it also works in a source checkout. See [Configuration](/reference/configuration/) for the full update behavior.
 
 ```sh
 diffle update

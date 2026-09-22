@@ -31,7 +31,7 @@ Legacy `.review` files in a repo are treated as legacy data: diffle leaves them 
 
 ## Update behavior
 
-`diffle update` checks the GitHub Releases channel against the installed version, downloads the matching asset, verifies its SHA-256 against the published `checksums.txt`, and swaps the binary. On Windows the swap completes as the process exits.
+`diffle update` checks the GitHub Releases channel against the installed version, downloads the matching asset, verifies its SHA-256 against the published `checksums.txt`, and swaps the binary. On Windows the running exe is renamed aside (`.diffle.exe.old`, removed by the next update) so the swap works even while MCP servers are running. Afterwards it stops MCP servers still on the old binary, unless a review session is live; agents relaunch them on reconnect.
 
 It refuses to self-update when a package manager owns the install, and prints that manager's command instead.
 
