@@ -3,7 +3,7 @@ import { parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, help: false, version: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, help: false, version: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -29,7 +29,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, help: false, version: false });
+    expect(opts).toEqual({ command: "review", agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, help: false, version: false });
   });
 
   test("rejects a bad port", () => {
@@ -107,6 +107,27 @@ describe("parseCliArgs", () => {
     expect(USAGE).toContain("diffle update");
     expect(USAGE).toContain("--yes");
     expect(USAGE).toContain("--all");
+  });
+
+  test("parses the doctor command with --fix and --yes", () => {
+    const opts = parseCliArgs(["doctor", "--fix", "--yes"]);
+    expect(opts.command).toBe("doctor");
+    expect(opts.fix).toBe(true);
+    expect(opts.yes).toBe(true);
+    expect(parseCliArgs(["doctor"]).fix).toBe(false);
+    expect(() => parseCliArgs(["doctor", "extra"])).toThrow("unexpected argument: extra");
+    expect(() => parseCliArgs(["doctor", "--all"])).toThrow("unexpected argument: --all (doctor accepts options only)");
+  });
+
+  test("--fix is rejected outside doctor", () => {
+    expect(() => parseCliArgs(["--fix"])).toThrow("unexpected argument: --fix (review accepts options only)");
+    expect(() => parseCliArgs(["cleanup", "--fix"])).toThrow("unexpected argument: --fix (cleanup accepts options only)");
+  });
+
+  test("usage documents diagnostics", () => {
+    expect(USAGE).toContain("Diagnostics");
+    expect(USAGE).toContain("diffle doctor");
+    expect(USAGE).toContain("--fix");
   });
 
   test("update is a bare command", () => {

@@ -3,15 +3,16 @@
 import { PRODUCT } from "../core/product";
 
 export interface CliOptions {
-  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update";
+  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor";
   agent: "codex" | "claude-code" | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
   scope: string | undefined; // path scope for `browse`; ignored otherwise
   reviewId: string | undefined; // durable Review Record supplied by an integration
   port: number; // 0 = any free port
   open: boolean; // open the browser once serving
-  yes: boolean; // cleanup: skip the confirmation prompt
+  yes: boolean; // cleanup/doctor: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
+  fix: boolean; // doctor: apply the repair plan
   help: boolean;
   version: boolean;
 }
@@ -25,6 +26,7 @@ Usage
   ${PRODUCT.name} sessions
   ${PRODUCT.name} cleanup [--yes] [--all]
   ${PRODUCT.name} update
+  ${PRODUCT.name} doctor [--fix] [--yes]
 
   (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
 
@@ -40,6 +42,11 @@ Session commands
   cleanup           stop stale sessions and finished reviews
       --yes         skip the confirmation prompt
       --all         also stop active (not just finished/stale) sessions
+
+Diagnostics
+  doctor            check the Claude Code plugin install for stale ${PRODUCT.legacyName} leftovers
+      --fix         run the repair commands through the \`claude\` cli
+      --yes         skip the confirmation prompt
 
 Options
   -p, --port <n>    serve on a fixed port (default: any free port)
@@ -62,24 +69,26 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "hook" ? "hook" :
     args[0] === "sessions" ? "sessions" :
     args[0] === "cleanup" ? "cleanup" :
-    args[0] === "update" ? "update" : "review";
+    args[0] === "update" ? "update" :
+    args[0] === "doctor" ? "doctor" : "review";
   if (command === "mcp" || command === "hook") {
     args.shift();
     const subcommand = args.shift();
     if (command === "mcp" && subcommand !== "serve") throw new Error("mcp requires the serve command");
     if (command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
-  } else if (command === "sessions" || command === "cleanup" || command === "update") {
+  } else if (command !== "review") {
     args.shift();
   }
-  const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, help: false, version: false };
+  const opts: CliOptions = { command, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, help: false, version: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
     else if (arg === "-v" || arg === "--version") opts.version = true;
     else if (arg === "--no-open") opts.open = false;
-    else if (arg === "--yes" || arg === "--all") {
-      if (opts.command !== "cleanup") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
-      if (arg === "--yes") opts.yes = true; else opts.all = true;
+    else if (arg === "--yes" || arg === "--all" || arg === "--fix") {
+      const allowed = arg === "--yes" ? ["cleanup", "doctor"] : arg === "--all" ? ["cleanup"] : ["doctor"];
+      if (!allowed.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      if (arg === "--yes") opts.yes = true; else if (arg === "--all") opts.all = true; else opts.fix = true;
     }
     else if (arg === "--review-id") {
       const id = args[++i];

@@ -1,9 +1,9 @@
 // `diffle sessions` and `diffle cleanup` — list and reclaim orphaned/finished review servers.
 
-import { createInterface } from "node:readline/promises";
 import { classifySessions, stopSession, unregisterSession, type SessionEntry } from "../core/sessions";
 import { readReviewRecord } from "../core/reviewRecords";
 import { PRODUCT } from "../core/product";
+import { confirmProceed } from "./confirm";
 
 const NO_SESSIONS = `no ${PRODUCT.name} sessions`;
 
@@ -65,16 +65,6 @@ export async function applyCleanupPlan(plan: CleanupPlan, stop: Stopper = stopSe
   return failed;
 }
 
-async function confirm(): Promise<boolean> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = await rl.question("Proceed? [y/N] ");
-    return /^y(es)?$/i.test(answer.trim());
-  } finally {
-    rl.close();
-  }
-}
-
 export async function runCleanupCommand(opts: CleanupOptions): Promise<void> {
   const { live, stale } = await classifySessions();
   const plan = buildCleanupPlan(live, stale, opts);
@@ -84,13 +74,7 @@ export async function runCleanupCommand(opts: CleanupOptions): Promise<void> {
   for (const entry of plan.toDelete) console.log(`  delete stale entry ${entry.reviewId} (${entry.host}, pid ${entry.pid})`);
   for (const entry of plan.toStop) console.log(`  stop ${entry.reviewId} (${entry.host}, port ${entry.port}, ${recordStatus(entry.reviewId)})`);
 
-  if (!opts.yes) {
-    if (process.stdin.isTTY !== true) {
-      console.log("pass --yes to proceed");
-      process.exit(1);
-    }
-    if (!(await confirm())) return;
-  }
+  if (!(await confirmProceed(opts.yes))) return;
 
   const failed = await applyCleanupPlan(plan);
   if (failed.length > 0) {
