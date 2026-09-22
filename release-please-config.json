@@ -1,14 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "group-pull-request-title-pattern": "chore${scope}: release${component} ${version}",
   "packages": {
     ".": {
       "release-type": "node",
       "component": "diffle",
+      "pull-request-title-pattern": "chore${scope}: release${component} ${version}",
       "draft": true,
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false
     }
   },
-  "separate-pull-requests": false
+  "separate-pull-requests": true
 }
