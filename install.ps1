@@ -1,7 +1,8 @@
 # diffle installer (Windows) — downloads the matching release binary, verifies its sha-256,
 # installs it to ~\.diffle\bin, and puts that directory on the user PATH.
 # Usage: irm https://<host>/install.ps1 | iex
-# Env knobs: DIFFLE_INSTALL_DIR, DIFFLE_DRY_RUN, DIFFLE_NO_MODIFY_PATH, DIFFLE_UNINSTALL
+# Env knobs: DIFFLE_INSTALL_DIR, DIFFLE_DRY_RUN, DIFFLE_NO_MODIFY_PATH, DIFFLE_UNINSTALL,
+#   GITHUB_TOKEN (optional; authenticates the release lookup)
 #Requires -Version 7.0
 & {
 Set-StrictMode -Version Latest
@@ -236,11 +237,13 @@ try {
   $Asset = "$Name-windows-$Arch.exe"
   $ApiUrl = "https://api.github.com/repos/$Repo/releases/latest"
   $Headers = @{ Accept = 'application/vnd.github+json'; 'User-Agent' = $Name }
+  # ci sets GITHUB_TOKEN; authenticating dodges the anonymous rate limit shared runner ips hit
+  if ($env:GITHUB_TOKEN) { $Headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
 
   Write-Section "Download $Name"
   $Release = Invoke-Step "resolving the latest $Name release" {
     try { Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -ErrorAction Stop }
-    catch { throw 'diffle install: could not query the latest GitHub release' }
+    catch { throw "diffle install: could not query the latest GitHub release ($($_.Exception.Message))" }
   }
 
   $Tag = $Release.tag_name

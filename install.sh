@@ -2,7 +2,8 @@
 # diffle installer — downloads the matching release binary, verifies its sha-256, installs it to
 # ~/.diffle/bin, and persists that directory on PATH via a marker block in your shell rc.
 # Usage: curl -fsSL https://<host>/install | sh   (uninstall: sh install.sh --uninstall)
-# Env: DIFFLE_INSTALL_DIR, DIFFLE_NO_MODIFY_PATH, DIFFLE_DRY_RUN, DIFFLE_UNINSTALL, NO_COLOR
+# Env: DIFFLE_INSTALL_DIR, DIFFLE_NO_MODIFY_PATH, DIFFLE_DRY_RUN, DIFFLE_UNINSTALL, NO_COLOR,
+#      GITHUB_TOKEN (optional; authenticates the release lookup)
 set -eu
 
 REPO="codywilliamson/diffle"
@@ -185,7 +186,26 @@ uninstall_diffle() {
 
 # --- download + progress ------------------------------------------------------------------------
 
-download() { curl -fL --silent --show-error "$1" -o "$2" 2>/dev/null; }
+# curl's own error is kept so a failed download can say why (http status, dns, tls)
+download() {
+  dl_url="$1"; dl_out="$2"; shift 2
+  curl -fL --silent --show-error "$@" "$dl_url" -o "$dl_out" 2>"$tmp/curl.err"
+}
+
+# the api call authenticates when GITHUB_TOKEN is set (ci), dodging the anonymous rate limit
+# that shared runner ips hit; asset downloads stay anonymous
+fetch_release_json() {
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    download "$1" "$2" -H "Authorization: Bearer $GITHUB_TOKEN"
+  else
+    download "$1" "$2"
+  fi
+}
+
+download_failed() {
+  dl_reason="$(sed -n '$p' "$tmp/curl.err" 2>/dev/null)"
+  fail "$1${dl_reason:+ ($dl_reason)}"
+}
 
 hash_asset() {
   case "$HASH_CMD" in
@@ -258,9 +278,9 @@ log OK "target asset: $ASSET"
 section "Download"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/diffle-install.XXXXXX")"
 release_json="$tmp/release.json"
-spinner_wait "fetching the latest release metadata" download \
+spinner_wait "fetching the latest release metadata" fetch_release_json \
   "https://api.github.com/repos/$REPO/releases/latest" "$release_json" \
-  || fail "failed to download latest GitHub release metadata"
+  || download_failed "failed to download latest GitHub release metadata"
 
 TAG="$(sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' "$release_json" | head -n1)"
 [ -n "$TAG" ] || fail "latest GitHub release has no tag"
@@ -273,9 +293,9 @@ log INFO "latest release is $TAG"
 
 BASE="https://github.com/$REPO/releases/download/$TAG"
 spinner_wait "downloading checksums.txt ($TAG)" download "$BASE/checksums.txt" "$tmp/checksums.txt" \
-  || fail "failed to download checksums.txt for $TAG"
+  || download_failed "failed to download checksums.txt for $TAG"
 spinner_wait "downloading $ASSET ($TAG)" download "$BASE/$ASSET" "$tmp/$ASSET" \
-  || fail "failed to download $ASSET for $TAG"
+  || download_failed "failed to download $ASSET for $TAG"
 log OK "downloaded $ASSET ($TAG)"
 
 # --- verify -------------------------------------------------------------------------------------
