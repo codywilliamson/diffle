@@ -55,6 +55,11 @@ describe("needsFileText", () => {
     expect(needsFileText(file("a.ts", [ctx(1, 1, "x")]))).toBe(false);
   });
 
+  it("skips the fetch when there's no grammar or the hunk is too deep to seed", () => {
+    expect(needsFileText(file("notes.unknownext", svelteHunk()))).toBe(false);
+    expect(needsFileText(file("gen.ts", [ctx(9001, 9001, "x")]))).toBe(false);
+  });
+
   it("reads a pure-deletion hunk's position from its header", () => {
     expect(needsFileText(file("a.ts", [del(5, "x")], "modified", "@@ -5 +4,0 @@"))).toBe(true);
   });
