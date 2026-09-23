@@ -8,7 +8,7 @@ import { PRODUCT } from "../src/core/product";
 import { assetName } from "../src/core/updateTarget";
 
 const root = join(import.meta.dir, "..");
-const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string };
+const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string; license: string };
 
 const target = process.argv[2]; // optional release target, e.g. "windows-x64"
 const os = target ? target.split("-")[0] : process.platform === "win32" ? "windows" : process.platform;
@@ -30,6 +30,7 @@ const manifest = {
   manifest_version: "0.4", name: PRODUCT.name, display_name: PRODUCT.displayName, version: packageJson.version,
   description: "Review local Git changes and return structured feedback to coding agents.",
   author: { name: PRODUCT.author.name, url: PRODUCT.author.url },
+  license: packageJson.license,
   homepage: PRODUCT.site,
   icon: "icon.png",
   repository: { type: "git", url: `${PRODUCT.repository}.git` },

@@ -2,6 +2,7 @@
   "name": "diffle-demos",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "description": "Playwright-captured, Remotion-composited product demos for diffle (build-only, isolated from the app)",
   "scripts": {
     "capture": "tsx src/capture.ts",

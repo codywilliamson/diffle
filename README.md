@@ -1,10 +1,12 @@
 # diffle
 
-[![CI](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml)
+[![CI](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/codywilliamson/diffle)](https://github.com/codywilliamson/diffle/releases/latest) [![License: MIT](https://img.shields.io/github/license/codywilliamson/diffle)](LICENSE) [![Docs](https://img.shields.io/badge/docs-diffle.dev-blue)](https://diffle.dev)
 
 Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
 
 **Site & docs: [diffle.dev](https://diffle.dev)**
+
+Want to help? Read the [contribution guide](CONTRIBUTING.md). Please [report security issues privately](SECURITY.md).
 
 ## Demo
 

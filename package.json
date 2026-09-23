@@ -5,6 +5,7 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "bin": {
     "diffle": "src/index.ts",
     "loupe": "src/index.ts"
