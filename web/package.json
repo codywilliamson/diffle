@@ -2,6 +2,7 @@
   "name": "diffle-docs",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "node scripts/copy-shared-assets.mjs && astro dev",
     "build": "node scripts/copy-shared-assets.mjs && astro build",

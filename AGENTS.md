@@ -25,6 +25,7 @@ diffle uses a single-context domain model. See `docs/agents/domain.md`.
 - **The shipped binary is self-contained**: `bun run build:binary` compiles a single executable that embeds `dist/client` (via a generated `with { type: "file" }` manifest) and the version — it runs anywhere with no checkout, `package.json`, or sidecar assets. Static serving goes through the `AssetSource` seam (`src/server/assetSource.ts`): a directory adapter in source/preview, the embedded map in the binary.
 - **Distribution is the GitHub Releases channel**: `scripts/build-release.ts` cross-compiles all six OS/arch targets + `checksums.txt`; `install.sh`/`install.ps1` and `diffle update` download + SHA-256-verify from Releases; Release Please + `.github/workflows/release.yml` own versioning and the per-target binary/MCPB matrix.
 - **Runtime dependencies stay narrow and pinned.** The MCP SDK and its schema dependency are the intentional runtime deps; the Svelte/Vite/Tailwind/test tooling is dev-only and exact-pinned. The docs site (`web/`) is a **separate package** so Astro/Starlight never touch the app's deps. Add a runtime package only when it replaces meaningful protocol or platform code.
+- The package manifests keep `private: true` only to guard against accidental npm publishing; the repository is MIT licensed.
 
 ## Engineering standards (enforced)
 
