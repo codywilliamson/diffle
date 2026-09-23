@@ -31,6 +31,7 @@ const manifest = {
   description: "Review local Git changes and return structured feedback to coding agents.",
   author: { name: PRODUCT.author.name, url: PRODUCT.author.url },
   homepage: PRODUCT.site,
+  icon: "icon.png",
   repository: { type: "git", url: `${PRODUCT.repository}.git` },
   server: { type: "binary", entry_point: `server/${binary}`, mcp_config: { command: `\${__dirname}/server/${binary}`, args: ["mcp", "serve"] } },
   compatibility: { claude_desktop: ">=1.0.0", platforms: [nodePlatform] },
