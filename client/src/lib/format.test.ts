@@ -1,16 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { changeBadge, langFor, isMarkdown, resolveRepoPath, relativeTime } from "./format";
+import { changeBadge, isMarkdown, resolveRepoPath, relativeTime } from "./format";
 
 describe("format helpers", () => {
   it("maps change types to badges", () => {
     expect(changeBadge("added").letter).toBe("A");
     expect(changeBadge("deleted").letter).toBe("D");
-  });
-
-  it("maps extensions to highlight.js languages", () => {
-    expect(langFor("a.ts")).toBe("typescript");
-    expect(langFor("a.py")).toBe("python");
-    expect(langFor("a.unknownext")).toBeNull();
   });
 
   it("detects markdown files", () => {

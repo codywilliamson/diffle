@@ -13,8 +13,8 @@ test("unified diff renders highlighted code and collapses", async ({ page }) => 
     await expect(page.getByText(/@@ .* @@/)).toBeVisible();
     await expect(page.locator("td.code").filter({ hasText: "a - b" })).toBeVisible();
     await expect(page.locator("td.code").filter({ hasText: "a + b" })).toBeVisible();
-    // syntax highlighting is applied (highlight.js wraps tokens)
-    await expect(page.locator("td.code .hljs-keyword").first()).toBeVisible();
+    // syntax highlighting is applied (tokens are colored with the D5 syntax vars)
+    await expect(page.locator('td.code span[style*="--syn-keyword"]').first()).toBeVisible();
 
     // collapsing the file hides its rows
     await page.getByRole("button", { name: /^Collapse / }).first().click();

@@ -2,7 +2,7 @@
   import MessageSquarePlus from "@lucide/svelte/icons/message-square-plus";
   import type { DiffFile, DiffLine, CommentTag } from "$types";
   import { getAppState } from "$lib/state/context";
-  import { highlightLine } from "$lib/diff/highlight";
+  import { createFileHighlight } from "$lib/diff/fileHighlight.svelte";
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
   import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
@@ -11,12 +11,13 @@
 
   let { file }: { file: DiffFile } = $props();
   const { ui, comments } = getAppState();
+  const highlighted = createFileHighlight(() => file);
 
   const SIGN: Record<DiffLine["type"], string> = { addition: "+", deletion: "−", context: " " };
   const fileComments = $derived(comments.comments.filter((c) => c.file === file.path));
 
   function render(line: DiffLine, marks: Map<DiffLine, CharRange>): string {
-    const html = highlightLine(line.content, file.path);
+    const html = highlighted(line);
     const mark = marks.get(line);
     return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
   }
