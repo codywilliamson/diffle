@@ -8,7 +8,8 @@ import { highlighterFor, highlightLines, stateAfter, type GrammarState } from ".
 export type LineHtml = Map<DiffLine, string>;
 
 const PURE_DELETION = /\+(\d+),0\b/;
-// reading context runs on the main thread (~0.1ms/line); past this a huge file isn't worth the stall.
+// seeding tokenizes every line before the deepest hunk on the main thread (~0.1ms/line); past
+// this it isn't worth the stall or the fetch.
 const MAX_CONTEXT_LINES = 4000;
 
 // how many new-side lines come before the hunk.
@@ -18,9 +19,13 @@ function linesBefore(hunk: DiffHunk): number {
   return Number(PURE_DELETION.exec(hunk.header)?.[1] ?? 0);
 }
 
-// modified files whose hunks start mid-file need the full text to know their starting context.
+// modified files whose hunks start mid-file need the full text to know their starting context —
+// decided before fetching, so files without a grammar or with hunks too deep to seed skip the request.
 export function needsFileText(file: DiffFile): boolean {
-  return (file.changeType === "modified" || file.changeType === "renamed") && file.hunks.some((h) => linesBefore(h) > 0);
+  if (file.changeType !== "modified" && file.changeType !== "renamed") return false;
+  if (!languageFor(file.path)) return false;
+  const deepest = Math.max(0, ...file.hunks.map(linesBefore));
+  return deepest > 0 && deepest <= MAX_CONTEXT_LINES;
 }
 
 // highlighted html per diff line; empty when the language has no grammar.
@@ -30,8 +35,7 @@ export async function highlightFile(file: DiffFile, newText: string | null): Pro
   const hl = lang ? await highlighterFor(lang) : null;
   if (!lang || !hl) return html;
 
-  const lines = newText?.split(/\r?\n/);
-  const source = lines && lines.length <= MAX_CONTEXT_LINES ? lines : null;
+  const source = newText?.split(/\r?\n/) ?? null;
   let state: GrammarState | undefined;
   let consumed = 0;
   for (const hunk of file.hunks) {
