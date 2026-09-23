@@ -25,6 +25,10 @@ Long lines can be hard to scan side-by-side; turn on **line wrapping** to fold t
 
 ![A side-by-side diff: the old file on the left, the new file on the right, with an inline comment thread](/media/side-by-side.png)
 
+## Syntax highlighting
+
+Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. diffle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
+
 ## Single-file vs all-files view
 
 By default diffle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
