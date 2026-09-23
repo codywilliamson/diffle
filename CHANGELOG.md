@@ -2,6 +2,18 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.22.0](https://github.com/codywilliamson/diffle/compare/v0.21.0...v0.22.0) (2026-09-23)
+
+
+### Features
+
+* **client:** highlight diffs with shiki and hunk context ([1de5c20](https://github.com/codywilliamson/diffle/commit/1de5c2093dc9d1d208b39f3678fc8c37ae64924e)), closes [#23](https://github.com/codywilliamson/diffle/issues/23)
+
+
+### Bug Fixes
+
+* **client:** decide on file context before fetching it ([9a9e8dd](https://github.com/codywilliamson/diffle/commit/9a9e8dd30b9c65fbbe8a6868cc470f10d1ca98a6))
+
 ## [0.21.0](https://github.com/codywilliamson/diffle/compare/v0.20.2...v0.21.0) (2026-09-23)
 
 
