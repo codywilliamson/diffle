@@ -87,6 +87,33 @@ exit 42
     expect(existsSync(join(dir, "bin", "diffle.exe"))).toBe(false);
   });
 
+  it("sends GITHUB_TOKEN on the release lookup and names the failure", async () => {
+    const dir = tempDir();
+    const wrapper = writeWrapper(
+      dir,
+      "ratelimited.ps1",
+      `
+${prelude(dir, join(dir, "bin"), { DIFFLE_NO_MODIFY_PATH: "1", GITHUB_TOKEN: "test-token" })}
+function Invoke-RestMethod {
+  param([string]$Uri, [hashtable]$Headers, $ErrorAction)
+  [Console]::Out.WriteLine("auth=$($Headers.Authorization)")
+  throw 'Response status code does not indicate success: 403 (rate limit exceeded).'
+}
+function Invoke-WebRequest { throw 'download should not run' }
+try { ${invokeInstaller} }
+catch { [Console]::Error.WriteLine($_.Exception.Message); exit 42 }
+exit 99
+`,
+    );
+
+    const result = await run(pwsh!, ["-NoProfile", "-File", wrapper], dir);
+    expect(result.code).toBe(42);
+    expect(result.stdout).toContain("auth=Bearer test-token");
+    expect(result.stderr.trim()).toBe(
+      "diffle install: could not query the latest GitHub release (Response status code does not indicate success: 403 (rate limit exceeded).)",
+    );
+  });
+
   it("verifies and atomically installs the matching asset", async () => {
     const dir = tempDir();
     const bin = join(dir, "bin");

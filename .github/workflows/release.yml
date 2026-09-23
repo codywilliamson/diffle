@@ -88,6 +88,9 @@ jobs:
           bun-version: 1.3.14
       - name: Smoke install and uninstall
         id: smoke
+        # authenticates the installers' release lookup; shared macos runner ips hit the anonymous limit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun scripts/smoke-installer.ts
       - name: Report installer failure
         if: ${{ failure() && steps.smoke.outcome == 'failure' }}

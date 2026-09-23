@@ -22,7 +22,7 @@ function toShPath(path: string): string {
 const sq = (value: string) => value.replaceAll("'", "'\\''");
 
 interface WrapperOptions {
-  scenario?: "missing" | "success" | "checksum";
+  scenario?: "missing" | "success" | "checksum" | "ratelimited";
   loginShell?: string;
   unameOs?: "Linux" | "Darwin";
   /** values may use the {HOME} and {BIN} tokens */
@@ -54,6 +54,10 @@ function sandbox(shellPath: string, options: WrapperOptions = {}): Sandbox {
   const asset = `diffle-${unameOs === "Darwin" ? "darwin" : "linux"}-x64`;
   const releaseAssets = scenario === "missing" ? '    "name": "loupe.exe"' : `    "name": "${asset}"\n    "name": "checksums.txt"`;
   const publishedChecksum = scenario === "checksum" ? "0".repeat(64) : checksum;
+  const releaseReply =
+    scenario === "ratelimited"
+      ? `echo 'curl: (22) The requested URL returned error: 403' >&2; return 22`
+      : `printf '%s\\n' '{' '  "tag_name": "v0.17.0",' '  "assets": [' '${releaseAssets}' '  ]' '}' > "$out"`;
   const exports = Object.entries(env).map(([key, value]) => `export ${key}='${sq(expand(value))}'`).join("\n");
   // git's autocrlf can hand a Windows checkout a CRLF install.sh, which dash refuses to parse
   const installerCopy = join(dir, "install.sh");
@@ -68,9 +72,11 @@ function sandbox(shellPath: string, options: WrapperOptions = {}): Sandbox {
 PATH="${pathPrefix ? `${sq(expand(pathPrefix))}:` : ""}/usr/bin:/bin:$PATH"; export PATH
 HOME='${toShPath(home)}'; export HOME
 SHELL='${sq(loginShell)}'; export SHELL
-unset ZDOTDIR XDG_CONFIG_HOME NO_COLOR DIFFLE_NO_MODIFY_PATH DIFFLE_DRY_RUN DIFFLE_UNINSTALL
+unset ZDOTDIR XDG_CONFIG_HOME NO_COLOR DIFFLE_NO_MODIFY_PATH DIFFLE_DRY_RUN DIFFLE_UNINSTALL GITHUB_TOKEN
 uname() { [ "$1" = "-s" ] && echo ${unameOs} || echo x86_64; }
 curl() {
+  printf '%s
+' "$*" >> "$HOME/curl.log"
   out=""; url=""
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -80,7 +86,7 @@ curl() {
     esac
   done
   case "$url" in
-    */releases/latest) printf '%s\n' '{' '  "tag_name": "v0.17.0",' '  "assets": [' '${releaseAssets}' '  ]' '}' > "$out" ;;
+    */releases/latest) ${releaseReply} ;;
     */checksums.txt) printf '%s  %s\n' '${publishedChecksum}' '${asset}' > "$out" ;;
     */${asset}) printf '${sq(binary)}' > "$out" ;;
     *) return 22 ;;
@@ -122,6 +128,28 @@ for (const [shellName, shellPath] of shells) {
       expect(result.stdout).not.toContain("\r");
       expect(result.stderr.trim()).toBe("");
       expect(readFileSync(join(box.binDir, "diffle"), "utf8")).toBe(binary);
+    });
+
+    it("names curl's error when the release lookup fails", async () => {
+      const box = sandbox(shellPath, { scenario: "ratelimited" });
+      const result = await exec(box);
+      expect(result.code).toBe(1);
+      expect(result.stderr.trim()).toBe(
+        "diffle install: failed to download latest GitHub release metadata (curl: (22) The requested URL returned error: 403)",
+      );
+    });
+
+    it("sends GITHUB_TOKEN on the release lookup only, and nothing without it", async () => {
+      const authed = sandbox(shellPath, { env: { GITHUB_TOKEN: "test-token" } });
+      expect((await exec(authed)).code).toBe(0);
+      const calls = readFileSync(join(authed.home, "curl.log"), "utf8").trim().split("\n");
+      expect(calls.filter((c) => c.includes("Authorization: Bearer test-token"))).toEqual([
+        expect.stringContaining("/releases/latest"),
+      ]);
+
+      const anonymous = sandbox(shellPath);
+      expect((await exec(anonymous)).code).toBe(0);
+      expect(readFileSync(join(anonymous.home, "curl.log"), "utf8")).not.toContain("Authorization");
     });
 
     it("keeps an existing install when checksum verification fails", async () => {
