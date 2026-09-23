@@ -29,6 +29,7 @@ mcpb/src/
 mcpb/dist/
 mcpb/package.json
 mcpb/manifest.json
+mcpb/LICENSE
 *.tgz
 
 # code coverage

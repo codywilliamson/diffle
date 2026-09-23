@@ -130,6 +130,7 @@ diffle doctor --fix
 | `--no-open` | don't open the browser automatically |
 | `--review-id <id>` | open an existing durable Review Record |
 | `-v, --version` | print the installed version |
+| `--license` | print the bundled MIT license notice |
 | `-h, --help` | show help |
 
 ## The `loupe` alias
