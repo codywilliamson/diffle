@@ -18,6 +18,7 @@ import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
 import { PRODUCT } from "./core/product";
 import { productEnv } from "./utils/env";
+import { resolveLicenseText } from "./core/standalone";
 
 // ansi styling, skipped when stdout isn't a terminal.
 const tty = process.stdout.isTTY === true;
@@ -49,6 +50,7 @@ export async function main(): Promise<void> {
   }
   if (opts.help) return console.log(USAGE);
   if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(loupeRoot)}`);
+  if (opts.license) return console.log(resolveLicenseText(loupeRoot).trimEnd());
   if (opts.mcpAction === "serve") return runMcpServer(cwd);
   if (opts.mcpAction === "list") return runMcpListCommand();
   if (opts.mcpAction === "restart") return runMcpRestartCommand({ yes: opts.yes });

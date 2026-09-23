@@ -28,6 +28,7 @@ export function generateStandaloneEntry(root: string): StandaloneEntry {
   const generatedDir = join(root, "src", "generated");
   const entryFile = join(generatedDir, "standalone.ts");
   const version = (JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string }).version;
+  const licenseText = readFileSync(join(root, "LICENSE"), "utf8");
 
   const vite = Bun.spawnSync(["bun", "run", "client:build"], { cwd: root, stdout: "inherit", stderr: "inherit" });
   if (vite.exitCode !== 0) throw new Error("vite build failed");
@@ -45,6 +46,7 @@ ${imports.join("\n")}
 
 useStandaloneBuild({
   version: ${JSON.stringify(version)},
+  licenseText: ${JSON.stringify(licenseText)},
   assets: embeddedAssets({
 ${entries.join("\n")}
   }),

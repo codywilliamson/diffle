@@ -54,10 +54,11 @@ diffle sessions         # list running diffle sessions
 diffle cleanup          # stop stale sessions and finished reviews
 diffle update           # self-update to the latest release
 diffle update --check   # only report whether a newer release exists
+diffle --license         # print the bundled MIT license notice
 diffle doctor           # check the Claude Code plugin install (--fix to repair)
 ```
 
-Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation. `mcp restart` accepts `--yes`.
+Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `--license`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation. `mcp restart` accepts `--yes`.
 
 diffle reviews whichever git repo you run it from, then prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 

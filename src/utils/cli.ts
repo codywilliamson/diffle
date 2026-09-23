@@ -21,6 +21,7 @@ export interface CliOptions {
   check: boolean; // update: report whether a newer release exists, never download
   help: boolean;
   version: boolean;
+  license: boolean;
 }
 
 export const USAGE = `${PRODUCT.name} — local git diff review with inline comments and LLM prompt export
@@ -70,6 +71,7 @@ Options
       --no-open     don't open the browser automatically
       --review-id   open an existing durable Review Record
   -v, --version     print the installed version
+      --license     print the bundled MIT license notice
   -h, --help        show this help
 
 Comments are saved to .review in the current directory and compile into a
@@ -107,11 +109,12 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = command === "mcp" ? (argv[1] as McpAction) : undefined;
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
     else if (arg === "-v" || arg === "--version") opts.version = true;
+    else if (arg === "--license") opts.license = true;
     else if (arg === "--no-open") opts.open = false;
     else if (Object.hasOwn(COMMAND_FLAGS, arg)) {
       const flag = COMMAND_FLAGS[arg]!;

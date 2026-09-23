@@ -1,7 +1,7 @@
 // exercises a release binary outside the checkout before its draft is published.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { PRODUCT } from "../src/core/product";
@@ -60,6 +60,8 @@ try {
   chmodSync(binary, 0o755);
   const reported = run(binary, ["--version"], temp);
   if (reported !== `${PRODUCT.name} v${version}`) throw new Error(`expected ${PRODUCT.name} v${version}, got ${reported}`);
+  const license = run(binary, ["--license"], temp);
+  if (license !== readFileSync(join(import.meta.dir, "..", "LICENSE"), "utf8").trim()) throw new Error("binary omitted the MIT license notice");
 
   const transport = new StdioClientTransport({ command: binary, args: ["mcp", "serve"], cwd: temp, env });
   const client = new Client({ name: "diffle-release-smoke", version: "1" });

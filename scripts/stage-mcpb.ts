@@ -24,6 +24,7 @@ const binary = `${PRODUCT.name}-mcp${ext}`;
 for (const stale of ["server", "src", "dist", "package.json"]) rmSync(join(mcpbDir, stale), { recursive: true, force: true });
 mkdirSync(serverDir, { recursive: true });
 copyFileSync(source, join(serverDir, binary));
+copyFileSync(join(root, "LICENSE"), join(mcpbDir, "LICENSE"));
 
 const manifest = {
   $schema: "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
