@@ -17,6 +17,8 @@ web/dist/
 web/.astro/
 web/public/install
 web/public/install.ps1
+web/public/favicon.svg
+web/public/apple-touch-icon.png
 
 # playwright e2e artifacts
 test-results
