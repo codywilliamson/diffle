@@ -7,6 +7,8 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   timeout: 30_000,
   fullyParallel: false,
+  retries: process.env.CI ? 2 : 0,
   workers: 1,
-  use: { headless: true },
+  reporter: process.env.CI ? [["dot"], ["html", { open: "never" }]] : "list",
+  use: { headless: true, trace: "on-first-retry" },
 });
