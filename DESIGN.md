@@ -88,4 +88,9 @@ Native-first, one heavyweight for the hard part (see [ADR notes in plan](docs/di
 
 ## Mark
 
-Current mark is loupe's split-aperture lens, recolored to indigo. TODO: evolve the mark to suit diffle — a split-aperture or diff/merge motif.
+The **hunk** mark: a rounded code tile holding two muted context lines and one indigo band — the line under review. Frame and context lines take `currentColor`; the band is the only accent (`--accent`), per the one-accent rule.
+
+- **Geometry (32×32):** frame `4,4 24×24 r6.5` stroked 2; context lines `8.5,9 11×2.75` and `8.5,20.25 7.5×2.75` at 55% opacity; band `7,13.75 18×4.5`. Every copy (`client/public/favicon.svg`, `Mark.svelte`, `web/src/components/Mark.astro`, `demos/src/components/Mark.tsx`) uses exactly this — change it everywhere or nowhere.
+- **Favicon:** `client/public/favicon.svg` is the source; it switches light/dark ink via `prefers-color-scheme`. The docs build copies it (and `apple-touch-icon.png`) into `web/public/`.
+- **App icon:** the frame becomes a filled `--surface` tile (`#141826`, hairline `--border`) — `mcpb/icon.png` (512, rounded) and `client/public/apple-touch-icon.png` (180, full-bleed; iOS masks it).
+- **Motion:** context lines draw in from the left, then the band sweeps across — "a line gets picked out for review." One-shot entrance on the landing header, a loop as the app's loading state, spring-driven on the demo title cards. Reduced motion shows the static mark.
