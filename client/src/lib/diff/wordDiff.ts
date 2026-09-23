@@ -80,7 +80,7 @@ export function hunkMarks(lines: DiffLine[]): Map<DiffLine, CharRange> {
 
 // wraps the [start, end) text range of highlighted html in <mark class="cls">, closing +
 // reopening across tag boundaries so nesting stays valid. entities count as one rendered char;
-// a literal "<" only opens tags because highlight.js escapes every "<" in code as &lt;.
+// a literal "<" only opens tags because the highlighter escapes every "<" in code as &lt;.
 const PIECE = /<[^>]*>|&[a-zA-Z]+;|&#x?[0-9a-fA-F]+;|[\s\S]/g;
 
 export function markRange(html: string, start: number, end: number, cls: string): string {
