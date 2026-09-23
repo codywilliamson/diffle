@@ -2,6 +2,19 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.21.0](https://github.com/codywilliamson/diffle/compare/v0.20.2...v0.21.0) (2026-09-23)
+
+
+### Features
+
+* **ui:** add hunk favicon and touch icon ([1b49421](https://github.com/codywilliamson/diffle/commit/1b494215a76b0a037cfdc1572b5a74de144e45b4))
+* **ui:** show the hunk mark in the top bar and loading state ([43d03ac](https://github.com/codywilliamson/diffle/commit/43d03ac96c8d56822abc5d9a3cd9fc5a4eee1bc8))
+
+
+### Bug Fixes
+
+* **build:** include license notice in distributables ([1a61a58](https://github.com/codywilliamson/diffle/commit/1a61a58b607ff1f3843197db29b4bfe76dd59503))
+
 ## [0.20.2](https://github.com/codywilliamson/diffle/compare/v0.20.1...v0.20.2) (2026-09-22)
 
 
