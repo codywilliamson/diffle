@@ -1,5 +1,6 @@
 <script lang="ts">
   import PanelLeft from "@lucide/svelte/icons/panel-left";
+  import Mark from "./Mark.svelte";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Moon from "@lucide/svelte/icons/moon";
   import Sun from "@lucide/svelte/icons/sun";
@@ -34,7 +35,10 @@
     <PanelLeft size={16} />
   </button>
 
-  <span class="font-serif text-lg leading-none tracking-[-0.04em] text-accent">{PRODUCT.name}</span>
+  <span class="flex items-center gap-1.5">
+    <Mark size={20} />
+    <span class="font-serif text-lg leading-none tracking-[-0.04em] text-accent">{PRODUCT.name}</span>
+  </span>
 
   {#if diff.meta}
     <span class="hidden font-mono text-xs text-muted sm:inline">{diff.meta.repo}</span>

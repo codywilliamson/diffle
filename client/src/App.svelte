@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { createAppState, setAppState } from "$lib/state/context";
   import TopBar from "$lib/components/TopBar.svelte";
+  import Mark from "$lib/components/Mark.svelte";
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
@@ -85,7 +86,10 @@
       </section>
     </div>
   {:else}
-    <p role="status" class="p-6 font-mono text-sm text-muted">Loading the diff…</p>
+    <div role="status" class="flex flex-1 flex-col items-center justify-center gap-4">
+      <Mark size={40} animated />
+      <p class="font-mono text-sm text-muted">Loading the diff…</p>
+    </div>
   {/if}
 
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
