@@ -2,7 +2,7 @@
   import MessageSquarePlus from "@lucide/svelte/icons/message-square-plus";
   import type { DiffFile, DiffLine, CommentTag } from "$types";
   import { getAppState } from "$lib/state/context";
-  import { highlightLine } from "$lib/diff/highlight";
+  import { createFileHighlight } from "$lib/diff/fileHighlight.svelte";
   import { pairLines, hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
   import { commentsForLine, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
@@ -11,6 +11,7 @@
 
   let { file }: { file: DiffFile } = $props();
   const { ui, comments, prefs } = getAppState();
+  const highlighted = createFileHighlight(() => file);
   const fileComments = $derived(comments.comments.filter((c) => c.file === file.path));
 
   // the longest line drives the table width so both panes stay 50/50 and long lines scroll the
@@ -22,7 +23,7 @@
   });
 
   function code(line: DiffLine, marks: Map<DiffLine, CharRange>): string {
-    const html = highlightLine(line.content, file.path);
+    const html = highlighted(line);
     const mark = marks.get(line);
     return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
   }
