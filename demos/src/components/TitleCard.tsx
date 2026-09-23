@@ -1,6 +1,7 @@
-// intro / outro bookend: wordmark + line, fading in and out over the brand background.
+// intro / outro bookend: animated mark + wordmark + line, fading in and out over the brand background.
 import { AbsoluteFill, interpolate, useCurrentFrame, spring, useVideoConfig } from "remotion";
 import { THEME } from "../theme";
+import { Mark } from "./Mark";
 
 export function TitleCard({
   title,
@@ -34,6 +35,9 @@ export function TitleCard({
       }}
     >
       <div style={{ transform: `scale(${scale})`, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+          <Mark size={112} delay={4} />
+        </div>
         <div
           style={{
             fontSize: 96,
@@ -43,7 +47,6 @@ export function TitleCard({
           }}
         >
           diffle
-          <span style={{ color: THEME.accent }}>.</span>
         </div>
         {subtitle && (
           <div style={{ marginTop: 14, fontSize: 30, color: THEME.muted, fontWeight: 500 }}>
