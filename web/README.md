@@ -11,7 +11,7 @@ bun run dev       # local dev server with live reload
 bun run build     # static build → web/dist
 ```
 
-`bun run build`/`dev` first copy the repo-root `install.sh`/`install.ps1` into `public/` (via `scripts/copy-installers.mjs`), so the built site serves them at `/install` and `/install.ps1` — that's what `curl -fsSL https://diffle.dev/install | sh` hits. The root scripts stay the single source of truth; the copies under `public/` are generated and gitignored.
+`bun run build`/`dev` first copy the repo-root `install.sh`/`install.ps1` and the client's brand icons (`client/public/favicon.svg`, `apple-touch-icon.png`) into `public/` (via `scripts/copy-shared-assets.mjs`), so the built site serves them at `/install`, `/install.ps1`, and as its favicon — `/install` is what `curl -fsSL https://diffle.dev/install | sh` hits. The originals stay the single source of truth; the copies under `public/` are generated and gitignored.
 
 ## Deploy — Cloudflare Pages
 

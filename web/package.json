@@ -3,8 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "node scripts/copy-installers.mjs && astro dev",
-    "build": "node scripts/copy-installers.mjs && astro build",
+    "dev": "node scripts/copy-shared-assets.mjs && astro dev",
+    "build": "node scripts/copy-shared-assets.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {

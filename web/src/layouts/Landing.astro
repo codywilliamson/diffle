@@ -27,6 +27,8 @@ const year = new Date().getFullYear();
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta name="theme-color" content="#0b0e16" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -70,7 +72,7 @@ const year = new Date().getFullYear();
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="/" aria-label="diffle home">
-          <Mark size={26} />
+          <Mark size={26} animated />
           <span class="wordmark">diffle</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
