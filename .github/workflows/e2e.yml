@@ -1,0 +1,46 @@
+name: e2e
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-root-${{ hashFiles('bun.lock') }}
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      # global-setup builds dist/client; each fixture repo sets its own git identity.
+      - run: bun run test:e2e
+        env:
+          CI: "1"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 7
