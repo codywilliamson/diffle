@@ -2,6 +2,13 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.22.2](https://github.com/codywilliamson/diffle/compare/v0.22.1...v0.22.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* **deps:** bump transitive qs to 6.16.0 for medium cves ([6d1f827](https://github.com/codywilliamson/diffle/commit/6d1f8273f5438ab760b2354bf5769b8e53eeec19))
+
 ## [0.22.1](https://github.com/codywilliamson/diffle/compare/v0.22.0...v0.22.1) (2026-09-23)
 
 
