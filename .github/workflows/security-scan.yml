@@ -26,8 +26,6 @@ jobs:
       trivy-scanners: "vuln,secret,misconfig"
       trivy-skip-dirs: "node_modules,web/node_modules,demos/node_modules,dist"
       label: "security"
-      # preview the first backlog before issues get created
-      dry-run: true
     permissions:
       contents: read
       security-events: write
