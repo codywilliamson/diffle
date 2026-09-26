@@ -1,0 +1,35 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, monday 6am utc
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+  actions: read
+
+jobs:
+  security-scan:
+    uses: codywilliamson/repo-sentinel/.github/workflows/security-scan.yml@v0.3.3
+    with:
+      severity-threshold: "MEDIUM"
+      codeql-languages: "javascript-typescript"
+      assign-copilot: false
+      comment-pr-findings: true
+      trivy-scanners: "vuln,secret,misconfig"
+      trivy-skip-dirs: "node_modules,web/node_modules,demos/node_modules,dist"
+      label: "security"
+      # preview the first backlog before issues get created
+      dry-run: true
+    permissions:
+      contents: read
+      security-events: write
+      issues: write
+      actions: read
