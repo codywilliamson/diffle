@@ -14,10 +14,10 @@
     "build": "npm run capture && npm run record && npm run render && npm run publish-media"
   },
   "devDependencies": {
-    "@remotion/bundler": "^4.0.0",
-    "@remotion/cli": "^4.0.0",
-    "@remotion/renderer": "^4.0.0",
-    "@remotion/transitions": "4.0.526",
+    "@remotion/bundler": "^4.0.527",
+    "@remotion/cli": "^4.0.527",
+    "@remotion/renderer": "^4.0.527",
+    "@remotion/transitions": "4.0.527",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "playwright": "^1.62.1",
