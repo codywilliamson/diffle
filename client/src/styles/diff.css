@@ -245,6 +245,8 @@ body.selecting {
 /* intra-line word-change marks (markRange wraps the changed range) */
 .wd {
   border-radius: 3px;
+  /* <mark> defaults to black text; keep the row or syntax-token color instead */
+  color: inherit;
 }
 .wd-addition {
   background: var(--add-inline);
