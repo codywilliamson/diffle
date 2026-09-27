@@ -15,7 +15,7 @@ updates:
     labels: [dependencies]
     open-pull-requests-limit: 5
     groups:
-      dev-minor-patch:
+      dev:
         dependency-type: development
         update-types: [minor, patch]
   - package-ecosystem: bun
