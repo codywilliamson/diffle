@@ -2,6 +2,15 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.22.3](https://github.com/codywilliamson/diffle/compare/v0.22.2...v0.22.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* **deps:** dedupe zod so the mcp sdk shares the root copy ([611c605](https://github.com/codywilliamson/diffle/commit/611c605c10f6e4c75b23606d4c36d6f834ab7751))
+* **ui:** keep word-diff highlight text readable in dark mode ([24349b0](https://github.com/codywilliamson/diffle/commit/24349b0f38b2def2a0b8364005b7fc6d4ae76502)), closes [#95](https://github.com/codywilliamson/diffle/issues/95)
+* **ui:** order all-files diffs and j/k by the sidebar tree ([fa7ef18](https://github.com/codywilliamson/diffle/commit/fa7ef1889695ce080ff8aca7cd2a15c3afcfcb16)), closes [#94](https://github.com/codywilliamson/diffle/issues/94)
+
 ## [0.22.2](https://github.com/codywilliamson/diffle/compare/v0.22.1...v0.22.2) (2026-09-26)
 
 
