@@ -14,7 +14,7 @@
     "build": "npm run capture && npm run record && npm run render && npm run publish-media"
   },
   "devDependencies": {
-    "@remotion/bundler": "^4.0.527",
+    "@remotion/bundler": "^4.0.528",
     "@remotion/cli": "^4.0.527",
     "@remotion/renderer": "^4.0.527",
     "@remotion/transitions": "4.0.527",
