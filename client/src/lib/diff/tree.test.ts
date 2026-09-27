@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { DiffFile } from "$types";
-import { buildTree, fileAnchorId } from "./tree";
+import { buildTree, fileAnchorId, treeOrder } from "./tree";
 
 function file(path: string): DiffFile {
   return { path, oldPath: null, changeType: "modified", additions: 0, deletions: 0, hunks: [] };
@@ -30,5 +30,19 @@ describe("buildTree", () => {
 describe("fileAnchorId", () => {
   it("produces a dom-safe id", () => {
     expect(fileAnchorId("src/a b.ts")).toBe("file-src-a-b-ts");
+  });
+});
+
+describe("treeOrder", () => {
+  it("matches the sidebar: depth-first, subfolders before a folder's own files", () => {
+    const files = [file("README.md"), file("src/a.ts"), file("src/nested/b.ts")];
+    expect(treeOrder(files).map((f) => f.path)).toEqual(["src/nested/b.ts", "src/a.ts", "README.md"]);
+  });
+
+  it("returns the original file objects", () => {
+    const files = [file("x/y.ts"), file("z.ts")];
+    const ordered = treeOrder(files);
+    expect(ordered[0]).toBe(files[0]);
+    expect(ordered[1]).toBe(files[1]);
   });
 });

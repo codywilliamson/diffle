@@ -32,6 +32,19 @@ export function buildTree(files: DiffFile[]): TreeNode {
   return root;
 }
 
+// the files in the order the tree renders them: depth-first, subfolders before a
+// folder's own files. the diff pane and j/k follow this so they match the sidebar.
+export function treeOrder(files: DiffFile[]): DiffFile[] {
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const ordered: DiffFile[] = [];
+  const walk = (node: TreeNode): void => {
+    for (const dir of node.dirs.values()) walk(dir);
+    for (const leaf of node.files) ordered.push(byPath.get(leaf.path) ?? leaf);
+  };
+  walk(buildTree(files));
+  return ordered;
+}
+
 // stable dom id for a file section, so the tree can scroll to it.
 export function fileAnchorId(path: string): string {
   return "file-" + path.replace(/[^a-zA-Z0-9]/g, "-");
