@@ -35,7 +35,7 @@ jobs:
           key: bun-${{ runner.os }}-root-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: bun x tsc --noEmit -p .
-      # installer integration tests start multiple shells and can exceed bun's 5s default.
+      # process-table and stdio tests take ~4s on windows runners, close to bun's 5s default.
       - run: bun test --timeout 10000
 
   client:
