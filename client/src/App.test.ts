@@ -2,17 +2,19 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { REVIEW_SCHEMA_VERSION, type DiffResult, type ReviewRecord } from "$types";
 import App from "./App.svelte";
+import { WHATS_NEW } from "$lib/whatsNew";
 
 const diff: DiffResult = {
   ref: "feature/x → origin/main",
   files: [{ path: "a.ts", oldPath: null, changeType: "modified", additions: 2, deletions: 1, hunks: [] }],
 };
 
+// git lists the root file first; the sidebar tree lists the src/ folder first.
 const keyboardDiff: DiffResult = {
   ref: "feature/x → origin/main",
   files: [
-    { path: "a.ts", oldPath: null, changeType: "modified", additions: 1, deletions: 0, hunks: [] },
     { path: "b.ts", oldPath: null, changeType: "modified", additions: 1, deletions: 0, hunks: [] },
+    { path: "src/a.ts", oldPath: null, changeType: "modified", additions: 1, deletions: 0, hunks: [] },
   ],
 };
 
@@ -59,7 +61,7 @@ describe("App shell", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("git exploded");
   });
 
-  it("supports file navigation, viewed state, and feedback preview shortcuts", async () => {
+  it("supports tree-ordered file navigation, viewed state, and feedback preview shortcuts", async () => {
     Element.prototype.scrollIntoView = vi.fn();
     Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
@@ -67,7 +69,7 @@ describe("App shell", () => {
       const path = String(input);
       if (path === "/api/diff") return jsonResponse(keyboardDiff, 200);
       if (path === "/api/comments") return jsonResponse({ meta: { ref: "HEAD", createdAt: "", updatedAt: "" }, viewed: [], comments: [] }, 200);
-      if (path === "/api/state") return jsonResponse({ seenVersion: "0.16.0" }, 200);
+      if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
       if (path === "/api/compile") return jsonResponse({ prompt: "compiled feedback" }, 200);
       if (path === "/api/viewed") {
         const viewed = JSON.parse(String(init?.body)).viewed as string[];
@@ -87,7 +89,7 @@ describe("App shell", () => {
     await fireEvent.keyDown(window, { key: "v" });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/viewed",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ viewed: ["a.ts"] }) }),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ viewed: ["src/a.ts"] }) }),
     ));
 
     await fireEvent.keyDown(window, { key: "c" });
@@ -102,7 +104,7 @@ describe("App shell", () => {
       const path = String(input);
       if (path === "/api/diff") return jsonResponse(diff, 200);
       if (path === "/api/comments") return jsonResponse(reviewRecord, 200);
-      if (path === "/api/state") return jsonResponse({ seenVersion: "0.16.0" }, 200);
+      if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
       if (path === "/api/compile?summary=Draft%20note") return jsonResponse({ prompt: "Draft note" }, 200);
       return jsonResponse({}, 404);
     });

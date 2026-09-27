@@ -1,5 +1,6 @@
 import type { DiffResult, DiffFile, DiffMeta } from "$types";
 import { getDiff } from "$lib/api/diff";
+import { treeOrder } from "$lib/diff/tree";
 
 // diff loading state machine. load() is the initial fetch; refresh() re-fetches
 // and keeps the last good diff on failure, mirroring the server's behavior.
@@ -24,7 +25,8 @@ export function createDiffStore(deps: Deps = { getDiff }) {
   let inflight: AbortController | null = null;
 
   const ready = $derived(state.status === "ready" ? state.diff : undefined);
-  const files = $derived<DiffFile[]>(ready?.files ?? []);
+  // sidebar tree order, so the diff pane and j/k walk files the way the tree lists them.
+  const files = $derived<DiffFile[]>(treeOrder(ready?.files ?? []));
   const ref = $derived<string>(ready?.ref ?? "");
   const meta = $derived<DiffMeta | undefined>(ready?.meta);
 
