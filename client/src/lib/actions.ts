@@ -2,9 +2,9 @@ import type { Action } from "svelte/action";
 
 // svelte action: call `onOutside` on a pointer press outside the node. deferred one tick so the
 // press that opened the popover doesn't immediately close it.
-export const clickOutside: Action<HTMLElement, () => void> = (node, onOutside) => {
+export const clickOutside: Action<HTMLElement, (e: MouseEvent) => void> = (node, onOutside) => {
   const handler = (e: MouseEvent): void => {
-    if (!node.contains(e.target as Node)) onOutside?.();
+    if (!node.contains(e.target as Node)) onOutside?.(e);
   };
   const id = setTimeout(() => document.addEventListener("mousedown", handler), 0);
   return {

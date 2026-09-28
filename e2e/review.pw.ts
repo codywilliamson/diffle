@@ -18,3 +18,21 @@ test("review panel returns feedback and reflects the new status", async ({ page 
     cleanup(fixture);
   }
 });
+
+test("pressing the review trigger again closes the popover", async ({ page }) => {
+  const fixture = makeFixture([{ path: "a.ts", base: "const x = 1;\n", work: "const x = 2;\n" }]);
+  const { server, url } = startPreview(fixture);
+  try {
+    await gotoApp(page, await url);
+
+    const trigger = page.getByRole("button", { name: /Review menu/ });
+    await trigger.click();
+    await expect(page.getByRole("dialog", { name: "Review outcome" })).toBeVisible();
+    await trigger.click();
+    await expect(page.getByRole("dialog", { name: "Review outcome" })).toBeHidden();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
