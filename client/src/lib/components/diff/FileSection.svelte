@@ -17,7 +17,7 @@
     toggleFileSplit,
   } from "$lib/diff/fileMode";
   import { nearViewport } from "$lib/actions";
-  import { fade } from "$lib/motion";
+  import { revealRows } from "$lib/motion";
   import UnifiedDiff from "./UnifiedDiff.svelte";
   import SplitDiff from "./SplitDiff.svelte";
   import MarkdownPreview from "./MarkdownPreview.svelte";
@@ -113,7 +113,7 @@
     {:else if !giant && !mounted}
       <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
-      <div class="diff-scroll overflow-x-auto {prefs.wrap ? 'wrap' : ''}" in:fade>
+      <div class="diff-scroll overflow-x-auto {prefs.wrap ? 'wrap' : ''}" use:revealRows>
         {#if useSplit}<SplitDiff {file} />{:else}<UnifiedDiff {file} />{/if}
       </div>
     {/if}
