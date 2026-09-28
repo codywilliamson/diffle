@@ -9,6 +9,7 @@
   import Rows3 from "@lucide/svelte/icons/rows-3";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
+  import NumberFlow from "@number-flow/svelte";
   import { PRODUCT } from "$product";
   import { getAppState } from "$lib/state/context";
   import { withViewTransition } from "$lib/viewTransition";
@@ -49,8 +50,8 @@
 
   <span class="ml-auto hidden shrink-0 items-center gap-2 font-mono text-xs min-[701px]:flex">
     <span class="text-dim">{fileCount}</span>
-    <span class="text-add-text">+{delta.add}</span>
-    <span class="text-del-text">−{delta.del}</span>
+    <span class="text-add-text"><NumberFlow value={delta.add} prefix="+" /></span>
+    <span class="text-del-text"><NumberFlow value={delta.del} prefix="−" /></span>
   </span>
 
   <div class="flex w-full shrink-0 items-center justify-end gap-1 min-[701px]:w-auto">

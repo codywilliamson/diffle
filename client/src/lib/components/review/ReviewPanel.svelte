@@ -1,5 +1,6 @@
 <script lang="ts">
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import NumberFlow from "@number-flow/svelte";
   import type { ReviewData } from "$lib/state/reviewRecord";
   import { getAppState } from "$lib/state/context";
   import { isRecord } from "$lib/state/reviewRecord";
@@ -73,7 +74,7 @@
     >
       <span class="text-muted">Review</span>
       <span class="rounded px-1.5 text-xs status-{status}">{STATUS[status ?? ""]}</span>
-      {#if !terminal && unresolved}<span class="rounded-full bg-accent px-1.5 text-xs text-primary-foreground">{unresolved}</span>{/if}
+      {#if !terminal && unresolved}<span class="rounded-full bg-accent px-1.5 text-xs text-primary-foreground"><NumberFlow value={unresolved} /></span>{/if}
       <ChevronDown size={14} class="text-dim" />
     </button>
 

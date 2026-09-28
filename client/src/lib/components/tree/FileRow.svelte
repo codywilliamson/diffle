@@ -1,5 +1,6 @@
 <script lang="ts">
   import Check from "@lucide/svelte/icons/check";
+  import NumberFlow from "@number-flow/svelte";
   import type { TreeFile } from "$lib/diff/tree";
   import { getAppState } from "$lib/state/context";
   import { changeBadge } from "$lib/format";
@@ -24,7 +25,7 @@
     <span class="truncate font-mono">{file.name}</span>
     <span class="ml-auto flex shrink-0 items-center gap-1.5">
       {#if count > 0}
-        <span class="rounded-full bg-surface-2 px-1.5 font-mono text-[10px] text-accent" title="{count} unresolved">{count}</span>
+        <span class="rounded-full bg-surface-2 px-1.5 font-mono text-[10px] text-accent" title="{count} unresolved"><NumberFlow value={count} /></span>
       {/if}
       {#if !file.binary && (file.additions || file.deletions)}
         <span class="font-mono text-[10px]">

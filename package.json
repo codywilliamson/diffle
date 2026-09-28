@@ -29,6 +29,7 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "2.1.2",
     "@lucide/svelte": "1.48.0",
+    "@number-flow/svelte": "0.4.2",
     "@playwright/test": "1.63.0",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@tailwindcss/vite": "4.3.3",
