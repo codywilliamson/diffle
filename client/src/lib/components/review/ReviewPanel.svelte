@@ -39,6 +39,10 @@
     open = false;
     trigger?.focus();
   }
+  // the trigger sits outside the popover; let its own click toggle instead of close-then-reopen.
+  function closeUnlessTrigger(e: MouseEvent): void {
+    if (!trigger?.contains(e.target as Node)) close();
+  }
   async function act(kind: "feedback" | "approved" | "cancelled"): Promise<void> {
     if (kind === "approved" && unresolved && !confirm(`There are ${unresolved} unresolved comments. Approve anyway?`)) return;
     if (kind === "cancelled" && (unresolved > 0 || summary.trim()) && !confirm("Cancel this review? Open comments and your summary stay on the record but the review closes without approval.")) return;
@@ -86,7 +90,7 @@
         tabindex="-1"
         style="transform-origin: top right"
         transition:scale={{ start: 0.96 }}
-        use:clickOutside={close}
+        use:clickOutside={closeUnlessTrigger}
         onkeydown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}
       >
         <div class="mb-1 text-sm font-medium status-{status}">{STATUS[status ?? ""]}</div>
