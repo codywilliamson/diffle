@@ -70,6 +70,12 @@ pre {
   animation-timing-function: ease;
 }
 
+/* tree row → diff header morph in single-file mode (see morphInto) */
+::view-transition-group(file-morph) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -81,7 +87,8 @@ pre {
   }
 
   ::view-transition-old(root),
-  ::view-transition-new(root) {
+  ::view-transition-new(root),
+  ::view-transition-group(file-morph) {
     animation: none !important;
   }
 }

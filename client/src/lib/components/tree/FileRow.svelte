@@ -1,17 +1,26 @@
 <script lang="ts">
   import Check from "@lucide/svelte/icons/check";
   import NumberFlow from "@number-flow/svelte";
-  import type { TreeFile } from "$lib/diff/tree";
+  import { fileAnchorId, type TreeFile } from "$lib/diff/tree";
   import { getAppState } from "$lib/state/context";
   import { changeBadge } from "$lib/format";
+  import { morphInto } from "$lib/viewTransition";
 
   let { file, depth = 0 }: { file: TreeFile; depth?: number } = $props();
-  const { ui, comments } = getAppState();
+  const { ui, comments, prefs } = getAppState();
 
   const badge = $derived(changeBadge(file.changeType));
   const active = $derived(ui.activeFile === file.path);
   const viewed = $derived(comments.viewedSet.has(file.path));
   const count = $derived(comments.countFor(file.path));
+
+  // single-file mode swaps the diff, so the row morphs into its file header; all-files mode just scrolls.
+  function select(e: MouseEvent & { currentTarget: HTMLElement }): void {
+    if (prefs.fileView !== "single" || active) return ui.selectFile(file.path);
+    morphInto(e.currentTarget, () => ui.selectFile(file.path), () =>
+      document.getElementById(fileAnchorId(file.path))?.querySelector<HTMLElement>("[data-file-header]") ?? null,
+    );
+  }
 </script>
 
 <div class="flex items-center gap-1 pr-1.5" style="padding-left: {depth * 12 + 6}px">
@@ -19,7 +28,7 @@
     type="button"
     class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm hover:bg-surface-2 {active ? 'bg-surface-2 text-text' : 'text-muted'}"
     aria-current={active ? "true" : undefined}
-    onclick={() => ui.selectFile(file.path)}
+    onclick={select}
   >
     <span class="grid size-4 shrink-0 place-items-center rounded font-mono text-[10px] font-semibold {badge.cls}" title={badge.label}>{badge.letter}</span>
     <span class="truncate font-mono">{file.name}</span>
