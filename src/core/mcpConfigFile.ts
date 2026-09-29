@@ -61,7 +61,8 @@ export function removeMcpEntry(path: string, key: string, name: string): ConfigA
   if (!existsSync(path)) return "not-found";
   const text = readFileSync(path, "utf8");
   const root = parseObject(text);
-  if (!root) return "skipped";
+  // can't edit it; report not-found once the name is gone so a hand edit clears the teardown
+  if (!root) return text.includes(JSON.stringify(name)) ? "skipped" : "not-found";
   const servers = root[key];
   if (!isObject(servers)) return key in root ? "skipped" : "not-found";
   if (!(name in servers)) return "not-found";
