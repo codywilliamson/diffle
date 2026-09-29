@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { marketplaceState } from "./marketplaceState";
+import { hasOurMarketplace } from "./marketplaceState";
 import { hasMcpEntry, isMissingFile } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
 
@@ -114,6 +114,5 @@ export function isPluginInstalled({ registry }: PluginIntegration): boolean {
 
 // a marketplace of the same name pointing elsewhere isn't ours to remove; unknown fails safe
 export function isMarketplaceRegistered({ marketplaceSources }: PluginIntegration): boolean {
-  const state = marketplaceState(marketplaceSources);
-  return state === "ours" || state === "unknown";
+  return hasOurMarketplace(marketplaceSources);
 }

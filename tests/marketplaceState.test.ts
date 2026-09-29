@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { marketplaceState, normalizeRepo } from "../src/core/marketplaceState";
+import { hasOurMarketplace, marketplaceState, normalizeRepo } from "../src/core/marketplaceState";
 import { PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
@@ -63,4 +63,13 @@ test("unreadable or unparseable is unknown; foreign wins over everything", () =>
   const foreign = file("k.json", JSON.stringify({ [NAME]: github("someone/else") }));
   const ours = file("s.json", JSON.stringify({ extraKnownMarketplaces: { [NAME]: github(repositorySlug()) } }));
   expect(marketplaceState([ours, dir, foreign])).toBe("foreign");
+});
+
+test("teardown sees ours in any source, even next to a conflicting one", () => {
+  const foreign = file("k.json", JSON.stringify({ [NAME]: github("someone/else") }));
+  const ours = file("s.json", JSON.stringify({ extraKnownMarketplaces: { [NAME]: github(repositorySlug()) } }));
+  expect(marketplaceState([foreign, ours])).toBe("foreign");
+  expect(hasOurMarketplace([foreign, ours])).toBe(true);
+  expect(hasOurMarketplace([foreign])).toBe(false);
+  expect(hasOurMarketplace([join(tempDir(), "none.json")])).toBe(false);
 });
