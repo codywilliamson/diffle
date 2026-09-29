@@ -63,6 +63,14 @@ test("remove also drops the marketplace, tolerating one that's already gone", ()
   expect(results[1]!.text).toContain("already removed");
 });
 
+test("a config i/o error fails that agent instead of throwing", () => {
+  const home = tempDir();
+  writeFileSync(join(home, ".cursor"), "a file where the config dir should be");
+  const results = applyAgent(byId(home, "cursor"), "install", true);
+  expect(results).toEqual([expect.objectContaining({ status: "failed" })]);
+  expect(results[0]!.text).toContain(join(home, ".cursor", "mcp.json"));
+});
+
 test("mcp-config install then remove on a real file", () => {
   const home = tempDir();
   const cursor = byId(home, "cursor");

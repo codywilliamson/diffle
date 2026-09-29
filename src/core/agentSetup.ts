@@ -1,6 +1,6 @@
 // applies (or removes) one agent's diffle integration and reports what happened per step.
 
-import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry } from "./mcpConfigFile";
+import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "./mcpConfigFile";
 import { MCP_SERVER_NAME, type AgentTarget, type McpConfigIntegration, type PluginCli } from "./agentTargets";
 
 export type SetupMode = "install" | "remove";
@@ -35,7 +35,13 @@ function applyPlugin(cli: PluginCli, steps: string[][], yes: boolean, run: RunCo
 }
 
 function applyMcpConfig({ path, key, entry }: McpConfigIntegration, mode: SetupMode): StepResult[] {
-  const action = mode === "install" ? mergeMcpEntry(path, key, MCP_SERVER_NAME, entry) : removeMcpEntry(path, key, MCP_SERVER_NAME);
+  let action: ConfigAction;
+  try {
+    action = mode === "install" ? mergeMcpEntry(path, key, MCP_SERVER_NAME, entry) : removeMcpEntry(path, key, MCP_SERVER_NAME);
+  } catch (err) {
+    // unreadable/unwritable config fails this agent only; the rest still run
+    return [{ status: "failed", text: `${path} (${err instanceof Error ? err.message : String(err)})` }];
+  }
   if (action === "not-found") return [{ status: "skipped", text: `nothing to remove in ${path}` }];
   if (action !== "skipped") return [{ status: "ok", text: `${action} → ${path}` }];
   if (mode === "remove") return [{ status: "skipped", text: `${path} is not plain JSON (has comments?) — remove the ${MCP_SERVER_NAME} entry by hand` }];
