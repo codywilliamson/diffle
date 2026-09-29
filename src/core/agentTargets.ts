@@ -7,8 +7,12 @@ import { hasMcpEntry, isMissingFile } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
 
 export type PluginCli = "claude" | "codex";
-// argv lists run as `<cli> ...args`, in order; registry = the agent's file listing installed plugins
-export interface PluginIntegration { kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; registry: string; }
+// argv lists run as `<cli> ...args`, in order; registry = the agent's file listing installed plugins,
+// marketplaces = the file listing marketplace sources and the text that marks ours in it
+export interface PluginIntegration {
+  kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; registry: string;
+  marketplaces: { file: string; markers: string[] };
+}
 // key = top-level object holding servers
 export interface McpConfigIntegration { kind: "mcp-config"; path: string; key: string; entry: Record<string, unknown>; }
 export type AgentIntegration = PluginIntegration | McpConfigIntegration;
@@ -21,7 +25,8 @@ export const MCP_SERVER_NAME: string = PRODUCT.name;
 const MCP_ARGS = ["mcp", "serve"];
 const PLUGIN_REF = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
 const MARKETPLACE_ADD = ["plugin", "marketplace", "add", repositorySlug()];
-const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace];
+const MARKETPLACE: string = PRODUCT.plugin.marketplace;
+const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", MARKETPLACE];
 
 // gui-launched agents don't source shell rc files, so the installed binary is written by
 // absolute path; running from source (or the legacy alias) falls back to the bare name.
@@ -55,19 +60,23 @@ export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
   const zedDir = platform === "win32" ? join(appData, "Zed") : join(xdg, "zed");
   const opencodeDir = join(xdg, "opencode");
   const opencodeFile = existsSync(join(opencodeDir, "opencode.jsonc")) ? "opencode.jsonc" : "opencode.json";
+  const claudeDir = env.CLAUDE_CONFIG_DIR || join(home, ".claude");
+  const codexConfig = join(env.CODEX_HOME || join(home, ".codex"), "config.toml");
 
   return [
     pluginTarget("claude", "Claude Code", home, {
       kind: "plugin", cli: "claude",
       install: [MARKETPLACE_ADD, ["plugin", "install", PLUGIN_REF, "--scope", "user"]],
       remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"], MARKETPLACE_REMOVE],
-      registry: join(env.CLAUDE_CONFIG_DIR || join(home, ".claude"), "plugins", "installed_plugins.json"),
+      registry: join(claudeDir, "plugins", "installed_plugins.json"),
+      marketplaces: { file: join(claudeDir, "plugins", "known_marketplaces.json"), markers: [JSON.stringify(MARKETPLACE)] },
     }),
     pluginTarget("codex", "Codex", home, {
       kind: "plugin", cli: "codex",
       install: [MARKETPLACE_ADD, ["plugin", "add", PLUGIN_REF]],
       remove: [["plugin", "remove", PLUGIN_REF], MARKETPLACE_REMOVE],
-      registry: join(env.CODEX_HOME || join(home, ".codex"), "config.toml"),
+      registry: codexConfig,
+      marketplaces: { file: codexConfig, markers: [`[marketplaces.${MARKETPLACE}]`, `[marketplaces.${JSON.stringify(MARKETPLACE)}]`] },
     }),
     mcpTarget({ id: "cursor", displayName: "Cursor", binary: "cursor", dir: join(home, ".cursor"), file: "mcp.json", key: "mcpServers", entry: commandEntry }),
     mcpTarget({ id: "gemini", displayName: "Gemini CLI", binary: "gemini", dir: join(home, ".gemini"), file: "settings.json", key: "mcpServers", entry: commandEntry }),
@@ -91,9 +100,19 @@ export function isDetected(
 // json registry key and codex's `[plugins."…"]` toml table
 export function isRegistered({ integration }: AgentTarget): boolean {
   if (integration.kind === "mcp-config") return hasMcpEntry(integration.path, integration.key, MCP_SERVER_NAME);
+  return fileMentions(integration.registry, [JSON.stringify(PLUGIN_REF)]);
+}
+
+export function isMarketplaceRegistered({ marketplaces }: PluginIntegration): boolean {
+  return fileMentions(marketplaces.file, marketplaces.markers);
+}
+
+// unreadable counts as mentioned so a teardown that can't confirm removal fails safe
+function fileMentions(path: string, markers: string[]): boolean {
   try {
-    return readFileSync(integration.registry, "utf8").includes(JSON.stringify(PLUGIN_REF));
+    const text = readFileSync(path, "utf8");
+    return markers.some((marker) => text.includes(marker));
   } catch (err) {
-    return !isMissingFile(err); // unreadable counts as registered so teardown fails safe
+    return !isMissingFile(err);
   }
 }
