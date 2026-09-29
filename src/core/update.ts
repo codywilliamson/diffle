@@ -10,6 +10,7 @@ import { PRODUCT } from "./product";
 import { checkForUpdate } from "./updateCheck";
 import { fetchReleaseStatus, updateCheckReport } from "./updateNotice";
 import { assetName, detectPackageManager, managerCommand, parseChecksum } from "./updateTarget";
+import { formatNextSteps, updateNextSteps } from "./updateNextSteps";
 import { isProductBinary } from "../utils/installRoot";
 import { restartMcpAfterUpdate } from "../utils/mcpCli";
 
@@ -72,6 +73,7 @@ export async function runUpdate(loupeRoot: string, check = false): Promise<void>
   if (actual !== expected) throw new Error(`checksum mismatch for ${exe}`);
 
   replaceBinary(binary);
-  console.log(`${tag} updated to v${status.latest}. restart any open ${PRODUCT.name} review to use it.`);
-  await restartMcpAfterUpdate(process.execPath);
+  console.log(`${tag} updated to v${status.latest}.`);
+  const outcome = await restartMcpAfterUpdate(process.execPath);
+  console.log(formatNextSteps(updateNextSteps(outcome)));
 }
