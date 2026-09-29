@@ -20,12 +20,14 @@ function detectIndent(text: string): string {
   return /^([ \t]+)"/m.exec(text)?.[1] ?? DEFAULT_INDENT;
 }
 
+export const isMissingFile = (err: unknown): boolean => (err as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
+
 function writeJson(path: string, data: Json, original = ""): void {
   const eol = original.includes("\r\n") ? "\r\n" : "\n";
   const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
-  mkdirSync(dirname(path), { recursive: true });
   // write a sibling then rename, so a failed or interrupted write never truncates the real config.
   // a symlink is followed (the link survives) and the file's mode is kept (configs can hold secrets)
+  mkdirSync(dirname(path), { recursive: true });
   const exists = existsSync(path);
   const target = exists ? realpathSync(path) : path;
   const mode = exists ? statSync(target).mode & PERMISSION_BITS : NEW_FILE_MODE;
@@ -64,7 +66,8 @@ export function mergeMcpEntry(path: string, key: string, name: string, entry: Re
   return "updated";
 }
 
-// read-only check; a file that can't be parsed counts when it mentions the name at all
+// read-only check; a file that can't be parsed counts when it mentions the name at all, and one
+// that exists but can't be read counts too, so a teardown that can't confirm removal fails safe
 export function hasMcpEntry(path: string, key: string, name: string): boolean {
   try {
     const text = readFileSync(path, "utf8");
@@ -72,8 +75,8 @@ export function hasMcpEntry(path: string, key: string, name: string): boolean {
     if (!root) return text.includes(JSON.stringify(name));
     const servers = root[key];
     return isObject(servers) && name in servers;
-  } catch {
-    return false;
+  } catch (err) {
+    return !isMissingFile(err);
   }
 }
 
