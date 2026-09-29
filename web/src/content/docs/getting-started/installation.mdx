@@ -92,7 +92,7 @@ diffle also announces a new release in one line when you launch a review (at mos
 
 ## Uninstall
 
-Remove the binary, and optionally your data directory. On a terminal, the uninstaller first runs `diffle setup --remove` so agents you wired up with `diffle setup` stop pointing at the deleted binary; without one, run `diffle setup --remove` yourself before uninstalling.
+Remove the binary, and optionally your data directory. On a terminal, the uninstaller first runs `diffle setup --remove` so agents you wired up with `diffle setup` stop pointing at the deleted binary. Cancelling it stops the uninstall with the binary still in place; set `DIFFLE_NO_SETUP=1` to skip it. Without a terminal, run `diffle setup --remove` yourself before uninstalling.
 
 <Tabs syncKey="os">
   <TabItem label="macOS / Linux" icon="apple">

@@ -224,7 +224,7 @@ function Test-Terminal {
 # agent configs point at the binary, so unregister them while it still exists. releases before
 # `setup` existed would treat it as a git ref, so check the help text first
 function Invoke-AgentTeardown {
-  if (-not (Test-Path -LiteralPath $Target)) { return }
+  if ($NoSetup -or -not (Test-Path -LiteralPath $Target)) { return }
   if (-not ((& $Target --help 2>$null) -match ' setup')) { return }
   if (-not (Test-Terminal)) {
     Write-Log INFO "no terminal: if you ran '$Name setup', run '$Name setup --remove' before uninstalling"
@@ -232,7 +232,10 @@ function Invoke-AgentTeardown {
   }
   $global:LASTEXITCODE = 0
   try { & $Target setup --remove } catch { $global:LASTEXITCODE = 1 }
-  if ($LASTEXITCODE -ne 0) { Write-Log WARN 'agent teardown did not finish' }
+  # a cancelled or failed teardown keeps the binary so `setup --remove` can still be rerun
+  if ($LASTEXITCODE -ne 0) {
+    throw "agent teardown did not finish, so $Name is still installed; rerun, or set DIFFLE_NO_SETUP=1 to skip it"
+  }
 }
 
 function Invoke-AgentSetupOffer {

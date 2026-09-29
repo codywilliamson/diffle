@@ -171,9 +171,12 @@ has_terminal() {
 # agent configs point at the binary, so unregister them while it still exists. releases before
 # `setup` existed would treat it as a git ref, so check the help text first
 offer_agent_teardown() {
+  [ -z "${DIFFLE_NO_SETUP:-}" ] || return 0
   [ -x "$BIN_DIR/$NAME" ] && "$BIN_DIR/$NAME" --help 2>/dev/null | grep -q " setup" || return 0
   if has_terminal; then
-    "$BIN_DIR/$NAME" setup --remove </dev/tty || log WARN "agent teardown did not finish"
+    # a cancelled or failed teardown keeps the binary so `setup --remove` can still be rerun
+    "$BIN_DIR/$NAME" setup --remove </dev/tty \
+      || fail "agent teardown did not finish, so $NAME is still installed; rerun, or set DIFFLE_NO_SETUP=1 to skip it"
   else
     log INFO "no terminal: if you ran '$NAME setup', run '$NAME setup --remove' before uninstalling"
   fi
