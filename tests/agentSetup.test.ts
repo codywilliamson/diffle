@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { applyAgent, pluginStepArgs, type RunCommand } from "../src/core/agentSetup";
 import { agentTargets, MCP_SERVER_NAME, type AgentTarget } from "../src/core/agentTargets";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
@@ -93,6 +93,18 @@ test("non-json config is skipped with a snippet, never rewritten", () => {
   const [install] = applyAgent(zed, "install", true);
   expect(install).toMatchObject({ status: "skipped" });
   expect(install!.detail).toContain("context_servers");
-  expect(applyAgent(zed, "remove", true)[0]!.text).toContain("by hand");
+  expect(applyAgent(zed, "remove", true)[0]).toMatchObject({ status: "skipped", text: expect.stringContaining("nothing to remove") });
+  expect(readFileSync(path, "utf8")).toBe(original);
+});
+
+test("removing from a non-json config that still has the entry fails, so uninstall stops", () => {
+  const home = tempDir();
+  const zed = byId(home, "zed");
+  if (zed.integration.kind !== "mcp-config") throw new Error("expected mcp-config");
+  const { path } = zed.integration;
+  const original = `// zed\n{ "context_servers": { "${MCP_SERVER_NAME}": {} } }\n`;
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, original);
+  expect(applyAgent(zed, "remove", true)[0]).toMatchObject({ status: "failed", text: expect.stringContaining("by hand") });
   expect(readFileSync(path, "utf8")).toBe(original);
 });

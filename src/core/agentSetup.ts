@@ -44,7 +44,8 @@ function applyMcpConfig({ path, key, entry }: McpConfigIntegration, mode: SetupM
   }
   if (action === "not-found") return [{ status: "skipped", text: `nothing to remove in ${path}` }];
   if (action !== "skipped") return [{ status: "ok", text: `${action} → ${path}` }];
-  if (mode === "remove") return [{ status: "skipped", text: `${path} is not plain JSON (has comments?) — remove the ${MCP_SERVER_NAME} entry by hand` }];
+  // failed, not skipped: the entry still points at the binary, so an uninstall must not proceed
+  if (mode === "remove") return [{ status: "failed", text:`${path} is not plain JSON (has comments?) — remove the ${MCP_SERVER_NAME} entry by hand` }];
   return [{
     status: "skipped",
     text: `${path} is not plain JSON (has comments?) — add this by hand:`,

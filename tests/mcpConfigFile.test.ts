@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry } from "../src/core/mcpConfigFile";
+import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "../src/core/mcpConfigFile";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
 afterEach(cleanupTempDirs);
@@ -50,17 +50,26 @@ test("preserves tab indentation and crlf", () => {
   expect(text.endsWith("\r\n")).toBe(true);
 });
 
-test.each([
-  ["comments", '{\n  // hi\n  "a": 1\n}\n'],
-  ["array root", "[1, 2]"],
-  ["non-object key", '{"mcpServers": []}'],
-  ["not json", "nope"],
-])("skips and never rewrites: %s", (_label, body) => {
+test.each<[string, string, ConfigAction]>([
+  ["comments", '{\n  // hi\n  "a": 1\n}\n', "not-found"],
+  ["comments with the entry", '{\n  // hi\n  "mcpServers": { "diffle": {} }\n}\n', "skipped"],
+  ["array root", "[1, 2]", "not-found"],
+  ["non-object key", '{"mcpServers": []}', "skipped"],
+  ["not json", "nope", "not-found"],
+])("skips and never rewrites: %s", (_label, body, removal) => {
   const path = join(tempDir(), "s.json");
   writeFileSync(path, body);
   expect(mergeMcpEntry(path, "mcpServers", "diffle", ENTRY)).toBe("skipped");
-  expect(removeMcpEntry(path, "mcpServers", "diffle")).toBe("skipped");
+  expect(removeMcpEntry(path, "mcpServers", "diffle")).toBe(removal);
   expect(read(path)).toBe(body);
+});
+
+test("writes leave no staged temp file behind", () => {
+  const dir = tempDir();
+  const path = join(dir, "s.json");
+  writeFileSync(path, JSON.stringify({ x: 1 }));
+  expect(mergeMcpEntry(path, "mcpServers", "diffle", ENTRY)).toBe("updated");
+  expect(readdirSync(dir)).toEqual(["s.json"]);
 });
 
 test("remove deletes the entry and keeps an empty key object", () => {
