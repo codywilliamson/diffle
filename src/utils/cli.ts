@@ -1,13 +1,13 @@
 // cli argument parsing for the diffle entry point. pure — no io, fully unit-tested.
 
-import { PRODUCT } from "../core/product";
-import { UPDATE_CHECK_OPT_OUT } from "../core/updateNotice";
+
+export { USAGE } from "./usage";
 
 const MCP_ACTIONS = ["serve", "list", "restart"] as const;
 export type McpAction = (typeof MCP_ACTIONS)[number];
 
 export interface CliOptions {
-  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor";
+  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup";
   mcpAction: McpAction | undefined; // mcp only
   agent: "codex" | "claude-code" | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
@@ -15,78 +15,28 @@ export interface CliOptions {
   reviewId: string | undefined; // durable Review Record supplied by an integration
   port: number; // 0 = any free port
   open: boolean; // open the browser once serving
-  yes: boolean; // cleanup/doctor/mcp restart: skip the confirmation prompt
+  yes: boolean; // cleanup/doctor/setup/mcp restart: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
   check: boolean; // update: report whether a newer release exists, never download
+  remove: boolean; // setup: unwire instead of wire
+  agents: string[] | undefined; // setup: agent ids to act on, skipping the prompt
   help: boolean;
   version: boolean;
   license: boolean;
 }
 
-export const USAGE = `${PRODUCT.name} — local git diff review with inline comments and LLM prompt export
-
-Usage
-  ${PRODUCT.name} [ref] [options]
-  ${PRODUCT.name} mcp <serve|list|restart> [--yes]
-  ${PRODUCT.name} hook stop --agent <codex|claude-code>
-  ${PRODUCT.name} sessions
-  ${PRODUCT.name} cleanup [--yes] [--all]
-  ${PRODUCT.name} update [--check]
-  ${PRODUCT.name} doctor [--fix] [--yes]
-
-  (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
-
-Refs
-  (none)            working tree vs HEAD, untracked files included
-  staged            staged changes only
-  <branch>          current branch vs <branch> (pr-style three-dot)
-  <ref1>..<ref2>    commit range
-  browse [path]     review the whole codebase (optionally scoped to a path)
-
-Session commands
-  sessions          list running ${PRODUCT.name} sessions (host, port, age, live/stale)
-  cleanup           stop stale sessions and finished reviews
-      --yes         skip the confirmation prompt
-      --all         also stop active (not just finished/stale) sessions
-
-MCP server
-  mcp serve         run the local stdio MCP server (agents launch this)
-  mcp list          list running ${PRODUCT.name} MCP servers
-  mcp restart       stop running MCP servers so agents relaunch them on reconnect
-      --yes         skip the confirmation prompt
-
-Updates
-  update            download and install the latest release, then restart idle MCP servers
-      --check       only report whether a newer release exists
-  (a new release is announced at launch; set ${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT}=1 to silence it)
-
-Diagnostics
-  doctor            check the Claude Code plugin install for stale ${PRODUCT.legacyName} leftovers
-      --fix         run the repair commands through the \`claude\` cli
-      --yes         skip the confirmation prompt
-
-Options
-  -p, --port <n>    serve on a fixed port (default: any free port)
-      --no-open     don't open the browser automatically
-      --review-id   open an existing durable Review Record
-  -v, --version     print the installed version
-      --license     print the bundled MIT license notice
-  -h, --help        show this help
-
-Comments are saved to .review in the current directory and compile into a
-structured review prompt from the UI.`;
-
 const MAX_PORT = 65535;
 
-type CommandFlag = "yes" | "all" | "fix" | "check";
+type CommandFlag = "yes" | "all" | "fix" | "check" | "remove";
 
 // subcommand-only boolean flags: the option each sets and the commands that accept it.
 const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly CliOptions["command"][] }> = {
-  "--yes": { field: "yes", commands: ["cleanup", "doctor", "mcp"] },
+  "--yes": { field: "yes", commands: ["cleanup", "doctor", "setup", "mcp"] },
   "--all": { field: "all", commands: ["cleanup"] },
   "--fix": { field: "fix", commands: ["doctor"] },
   "--check": { field: "check", commands: ["update"] },
+  "--remove": { field: "remove", commands: ["setup"] },
 };
 
 // maps argv (already sliced past the runtime + script) into options.
@@ -99,7 +49,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "sessions" ? "sessions" :
     args[0] === "cleanup" ? "cleanup" :
     args[0] === "update" ? "update" :
-    args[0] === "doctor" ? "doctor" : "review";
+    args[0] === "doctor" ? "doctor" :
+    args[0] === "setup" ? "setup" : "review";
   if (command === "mcp" || command === "hook") {
     args.shift();
     const subcommand = args.shift();
@@ -109,7 +60,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = command === "mcp" ? (argv[1] as McpAction) : undefined;
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false, license: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
@@ -120,6 +71,13 @@ export function parseCliArgs(argv: string[]): CliOptions {
       const flag = COMMAND_FLAGS[arg]!;
       if (!flag.commands.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
       opts[flag.field] = true;
+    }
+    else if (arg === "--agents") {
+      const list = args[++i];
+      if (opts.command !== "setup") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      const ids = (list ?? "").split(",").map((id) => id.trim()).filter(Boolean);
+      if (ids.length === 0) throw new Error("--agents needs a comma-separated list of agent ids");
+      opts.agents = ids;
     }
     else if (arg === "--review-id") {
       const id = args[++i];

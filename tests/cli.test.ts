@@ -3,7 +3,7 @@ import { parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, help: false, version: false, license: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -30,7 +30,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, help: false, version: false, license: false });
+    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("rejects a bad port", () => {
@@ -153,6 +153,34 @@ describe("parseCliArgs", () => {
     expect(() => parseCliArgs(["--check"])).toThrow("unexpected argument: --check (review accepts options only)");
     expect(() => parseCliArgs(["doctor", "--check"])).toThrow("unexpected argument: --check (doctor accepts options only)");
     expect(() => parseCliArgs(["cleanup", "--check"])).toThrow("unexpected argument: --check (cleanup accepts options only)");
+  });
+
+  test("setup parses --remove, --agents and --yes", () => {
+    expect(parseCliArgs(["setup"])).toMatchObject({ command: "setup", remove: false, agents: undefined, yes: false });
+    expect(parseCliArgs(["setup", "--remove", "--yes"])).toMatchObject({ command: "setup", remove: true, yes: true });
+    expect(parseCliArgs(["setup", "--agents", "claude, cursor,"]).agents).toEqual(["claude", "cursor"]);
+  });
+
+  test("--agents needs a list", () => {
+    expect(() => parseCliArgs(["setup", "--agents"])).toThrow("--agents needs");
+    expect(() => parseCliArgs(["setup", "--agents", ","])).toThrow("--agents needs");
+  });
+
+  test("setup flags are rejected on other commands", () => {
+    expect(() => parseCliArgs(["--remove"])).toThrow("unexpected argument: --remove (review accepts options only)");
+    expect(() => parseCliArgs(["doctor", "--remove"])).toThrow("unexpected argument: --remove (doctor accepts options only)");
+    expect(() => parseCliArgs(["--agents", "claude"])).toThrow("unexpected argument: --agents (review accepts options only)");
+    expect(() => parseCliArgs(["cleanup", "--agents", "claude"])).toThrow("unexpected argument: --agents");
+  });
+
+  test("other commands' flags are rejected on setup", () => {
+    expect(() => parseCliArgs(["setup", "--fix"])).toThrow("unexpected argument: --fix (setup accepts options only)");
+    expect(() => parseCliArgs(["setup", "--all"])).toThrow("unexpected argument: --all (setup accepts options only)");
+    expect(() => parseCliArgs(["setup", "claude"])).toThrow("unexpected argument: claude (setup accepts options only)");
+  });
+
+  test("usage documents setup", () => {
+    expect(USAGE).toContain("diffle setup [--remove] [--agents <ids>] [--yes]");
   });
 
   test("usage documents update --check and the launch-notice opt-out", () => {
