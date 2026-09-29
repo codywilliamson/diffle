@@ -1,7 +1,7 @@
 // idempotent json merge/remove of one mcp server entry. files that are not plain json objects
 // (comments, arrays, odd shapes) are never rewritten — callers show `mcpEntrySnippet` instead.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -22,7 +22,14 @@ function writeJson(path: string, data: Json, original = ""): void {
   const eol = original.includes("\r\n") ? "\r\n" : "\n";
   const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, body + eol);
+  // write a sibling then rename, so a failed or interrupted write never truncates the real config
+  const staged = `${path}.${process.pid}.tmp`;
+  try {
+    writeFileSync(staged, body + eol);
+    renameSync(staged, path);
+  } finally {
+    rmSync(staged, { force: true });
+  }
 }
 
 function parseObject(text: string): Json | undefined {
