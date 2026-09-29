@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type AgentEnv, agentTargets, isDetected, MCP_SERVER_NAME } from "../src/core/agentTargets";
+import { type AgentEnv, agentTargets, isDetected, MCP_SERVER_NAME, serverCommand } from "../src/core/agentTargets";
 import { PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
@@ -90,4 +90,22 @@ test("isDetected uses binary or config dir", () => {
   expect(isDetected(target, none, () => false)).toBe(false);
   expect(isDetected(target, (bin) => (bin === "cursor" ? "/bin/cursor" : null), () => false)).toBe(true);
   expect(isDetected(target, none, (p) => p === target.configDir)).toBe(true);
+});
+
+test("serverCommand pins the installed binary and falls back to the bare name", () => {
+  expect(serverCommand("/home/u/.diffle/bin/diffle")).toBe("/home/u/.diffle/bin/diffle");
+  expect(serverCommand("C:/Users/u/.diffle/bin/Diffle.exe")).toBe("C:/Users/u/.diffle/bin/Diffle.exe");
+  expect(serverCommand("/usr/local/bin/bun")).toBe(PRODUCT.name);
+  expect(serverCommand("/home/u/.loupe/bin/loupe")).toBe(PRODUCT.name);
+});
+
+test("mcp entries launch the injected command", () => {
+  const env = { ...linux("/h"), command: "/opt/diffle/bin/diffle" };
+  const entryOf = (id: string) => {
+    const { integration } = byId(env, id);
+    if (integration.kind !== "mcp-config") throw new Error("not mcp-config");
+    return integration.entry;
+  };
+  expect(entryOf("cursor")).toEqual({ command: "/opt/diffle/bin/diffle", args: ["mcp", "serve"] });
+  expect(entryOf("opencode").command).toEqual(["/opt/diffle/bin/diffle", "mcp", "serve"]);
 });
