@@ -14,31 +14,52 @@ type Json = Record<string, unknown>;
 const asObject = (value: unknown): Json | undefined =>
   value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Json) : undefined;
 
-const classify = (entry: string | undefined): MarketplaceState =>
-  entry === undefined ? "absent" : entry.toLowerCase().includes(repositorySlug().toLowerCase()) ? "ours" : "foreign";
+// an entry's source: undefined = no entry, null = an entry whose source can't be read
+type Source = string | null | undefined;
 
-// claude's known_marketplaces.json keys marketplaces at the top level; settings.json nests them
-// under extraKnownMarketplaces
-function jsonEntry(text: string): string | undefined {
-  const root = asObject(JSON.parse(text));
-  const entry = root?.[NAME] ?? asObject(root?.extraKnownMarketplaces)?.[NAME];
-  return entry === undefined ? undefined : JSON.stringify(entry);
+// `owner/repo`, `https://github.com/owner/repo(.git)`, `git@github.com:owner/repo.git` → owner/repo
+export function normalizeRepo(source: string): string {
+  return source.trim().toLowerCase()
+    .replace(/^(?:https?:\/\/|ssh:\/\/)?(?:git@)?github\.com[/:]/, "")
+    .replace(/\/+$/, "")
+    .replace(/\.git$/, "");
 }
 
-// codex's config.toml: the `[marketplaces.<name>]` table, up to the next table header
-function tomlEntry(text: string): string | undefined {
+// exact match only — a substring check would accept owner/diffle-anything
+const classify = (source: Source): MarketplaceState =>
+  source === undefined ? "absent" : source !== null && normalizeRepo(source) === repositorySlug().toLowerCase() ? "ours" : "foreign";
+
+const str = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
+
+// claude's known_marketplaces.json keys marketplaces at the top level; settings.json nests them
+// under extraKnownMarketplaces. the source is `{ source: "github", repo }` or `{ source: "git", url }`
+function jsonSource(text: string): Source {
+  const root = asObject(JSON.parse(text));
+  const entry = root?.[NAME] ?? asObject(root?.extraKnownMarketplaces)?.[NAME];
+  if (entry === undefined) return undefined;
+  const source = asObject(asObject(entry)?.source);
+  return str(source?.repo) ?? str(source?.url) ?? null;
+}
+
+// codex's config.toml: the `source = "…"` line of the `[marketplaces.<name>]` table
+function tomlSource(text: string): Source {
   const lines = text.split(/\r?\n/);
   const headers = [`[marketplaces.${NAME}]`, `[marketplaces.${JSON.stringify(NAME)}]`];
   const start = lines.findIndex((line) => headers.includes(line.trim()));
   if (start === -1) return undefined;
   const end = lines.findIndex((line, i) => i > start && line.trim().startsWith("["));
-  return lines.slice(start, end === -1 ? undefined : end).join("\n");
+  const table = lines.slice(start + 1, end === -1 ? undefined : end);
+  for (const line of table) {
+    const match = /^\s*source\s*=\s*(["'])(.*)\1\s*$/.exec(line);
+    if (match) return match[2]!;
+  }
+  return null;
 }
 
 function stateOf(path: string): MarketplaceState {
   try {
     const text = readFileSync(path, "utf8");
-    return classify(path.endsWith(".toml") ? tomlEntry(text) : jsonEntry(text));
+    return classify(path.endsWith(".toml") ? tomlSource(text) : jsonSource(text));
   } catch (err) {
     return isMissingFile(err) ? "absent" : "unknown";
   }
