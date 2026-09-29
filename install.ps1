@@ -217,9 +217,27 @@ function Save-ReleaseAsset($ReleaseAsset, $Destination) {
 
 # skipped on dry runs, DIFFLE_NO_SETUP, or without an interactive console; a failed setup never
 # fails the install
+function Test-Terminal {
+  [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+}
+
+# agent configs point at the binary, so unregister them while it still exists. releases before
+# `setup` existed would treat it as a git ref, so check the help text first
+function Invoke-AgentTeardown {
+  if (-not (Test-Path -LiteralPath $Target)) { return }
+  if (-not ((& $Target --help 2>$null) -match ' setup')) { return }
+  if (-not (Test-Terminal)) {
+    Write-Log INFO "no terminal: if you ran '$Name setup', run '$Name setup --remove' before uninstalling"
+    return
+  }
+  $global:LASTEXITCODE = 0
+  try { & $Target setup --remove } catch { $global:LASTEXITCODE = 1 }
+  if ($LASTEXITCODE -ne 0) { Write-Log WARN 'agent teardown did not finish' }
+}
+
 function Invoke-AgentSetupOffer {
   if ($DryRun -or $NoSetup) { return }
-  if (-not [Environment]::UserInteractive -or [Console]::IsInputRedirected -or [Console]::IsOutputRedirected) { return }
+  if (-not (Test-Terminal)) { return }
   Write-Section 'Agent setup'
   $answer = Read-Host "Set up $Name for your coding agents? [Y/n]"
   if ($answer -match '^\s*n') {
@@ -238,6 +256,7 @@ try {
     if (Test-Path -LiteralPath $Target) {
       if ($DryRun) { Write-Log INFO "dry run: would remove $Target" }
       else {
+        Invoke-AgentTeardown
         Remove-Item -LiteralPath $Target -Force
         Write-Log OK "removed $Target"
       }
