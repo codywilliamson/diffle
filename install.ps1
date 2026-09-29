@@ -196,14 +196,16 @@ function Update-UserPath {
   else { Remove-DiffleFromUserPath -Directory $BinDir -WhatIf:$DryRun }
 }
 
-# windows will not let a running exe be overwritten; say so up front instead of failing mid-move
-$StopHint = "stop every running $Name first (close open reviews, run '$Name cleanup --all', and end agent sessions using the $Name MCP server)"
-function Assert-NotRunning {
+# windows locks a running exe (open reviews, mcp servers) against overwrite but not rename, so
+# retire it aside like `diffle update` does; running copies keep working, the next update removes it
+$StopHint = "stop every running $Name first (close open reviews and end agent sessions using the $Name MCP server)"
+function Move-ExistingAside {
   param([Parameter(Mandatory)][string] $Path)
-  $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path -ieq $Path })
-  if ($running.Count -eq 0) { return }
-  $ids = ($running | ForEach-Object { $_.Id }) -join ', '
-  throw "diffle install: $Path is running (pid $ids) — $StopHint, then rerun the installer"
+  if (-not (Test-Path -LiteralPath $Path)) { return }
+  $Retired = Join-Path (Split-Path -Parent $Path) ".$(Split-Path -Leaf $Path).old"
+  Remove-Item -LiteralPath $Retired -Force -ErrorAction SilentlyContinue
+  try { Move-Item -LiteralPath $Path -Destination $Retired -ErrorAction Stop }
+  catch { throw "diffle install: could not move the existing $Path aside ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
 }
 
 function Save-ReleaseAsset($ReleaseAsset, $Destination) {
@@ -330,9 +332,9 @@ try {
 
     Write-Section 'Install'
     New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
-    Assert-NotRunning $Target
     $Staged = Join-Path $BinDir ".$Name.new-$PID-$([guid]::NewGuid())"
     Copy-Item -LiteralPath $BinaryPath -Destination $Staged
+    Move-ExistingAside $Target
     try { Move-Item -LiteralPath $Staged -Destination $Target -Force -ErrorAction Stop }
     catch { throw "diffle install: could not replace $Target ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
     $Staged = $null
