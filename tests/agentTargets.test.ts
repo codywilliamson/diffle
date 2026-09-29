@@ -120,6 +120,15 @@ test("isRegistered reads plugin registries and mcp configs", () => {
   for (const id of ["claude", "codex", "cursor", "zed"]) expect(isRegistered(byId(env, id))).toBe(true);
 });
 
+test("a leftover marketplace alone still counts as registered", () => {
+  const home = tempDir();
+  const codex = byId(linux(home), "codex");
+  if (codex.integration.kind !== "plugin") throw new Error("expected plugin");
+  mkdirSync(join(home, ".codex"), { recursive: true });
+  writeFileSync(codex.integration.marketplaces.file, `[marketplaces.${PRODUCT.plugin.marketplace}]\nsource = "x"\n`);
+  expect(isRegistered(codex)).toBe(true);
+});
+
 test("plugin registries follow CLAUDE_CONFIG_DIR and CODEX_HOME", () => {
   const env = linux("/h", { CLAUDE_CONFIG_DIR: "/cc", CODEX_HOME: "/cx" });
   const registryOf = (id: string) => {

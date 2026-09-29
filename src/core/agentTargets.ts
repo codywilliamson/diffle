@@ -100,7 +100,12 @@ export function isDetected(
 // json registry key and codex's `[plugins."…"]` toml table
 export function isRegistered({ integration }: AgentTarget): boolean {
   if (integration.kind === "mcp-config") return hasMcpEntry(integration.path, integration.key, MCP_SERVER_NAME);
-  return fileMentions(integration.registry, [JSON.stringify(PLUGIN_REF)]);
+  // a marketplace left behind by a half-finished teardown still counts, so a rerun picks it up
+  return isPluginInstalled(integration) || isMarketplaceRegistered(integration);
+}
+
+export function isPluginInstalled({ registry }: PluginIntegration): boolean {
+  return fileMentions(registry, [JSON.stringify(PLUGIN_REF)]);
 }
 
 export function isMarketplaceRegistered({ marketplaces }: PluginIntegration): boolean {
