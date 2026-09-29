@@ -1,7 +1,7 @@
 // `diffle setup` — wire diffle into coding agents (plugin install or mcp config edit), or unwire it.
 
 import { PRODUCT } from "../core/product";
-import { agentTargets, isDetected, type AgentTarget } from "../core/agentTargets";
+import { agentTargets, isDetected, isRegistered, type AgentTarget } from "../core/agentTargets";
 import { applyAgent, runInherited, type RunCommand, type SetupMode, type StepResult } from "../core/agentSetup";
 import { confirmProceed } from "./confirm";
 import { promptMultiSelect, type SelectItem } from "./multiSelect";
@@ -13,6 +13,7 @@ export interface SetupDeps {
   run: RunCommand;
   which: (bin: string) => string | null;
   exists?: (path: string) => boolean;
+  registered: (target: AgentTarget) => boolean;
   interactive: boolean;
   select: (title: string, items: SelectItem<AgentTarget>[]) => Promise<AgentTarget[] | undefined>;
   confirm: (yes: boolean) => Promise<boolean>;
@@ -33,7 +34,7 @@ const palette = (color: boolean) => ({
 
 export function defaultSetupDeps(): SetupDeps {
   return {
-    targets: agentTargets(), run: runInherited, which: (bin) => Bun.which(bin),
+    targets: agentTargets(), run: runInherited, which: (bin) => Bun.which(bin), registered: isRegistered,
     interactive: process.stdin.isTTY === true && process.stdout.isTTY === true, select: promptMultiSelect, confirm: confirmProceed,
     log: console.log, color: process.stdout.isTTY === true,
   };
@@ -56,6 +57,7 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
   const detected = (target: AgentTarget) => isDetected(target, deps.which, deps.exists);
 
   let chosen: AgentTarget[] | undefined;
+  let kept: AgentTarget[] = [];
   try {
     chosen = opts.agents ? resolveAgents(opts.agents, deps.targets) : undefined;
   } catch (err) {
@@ -72,19 +74,23 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
       log(`valid ids: ${deps.targets.map((target) => target.id).join(", ")}`);
       return 1;
     }
-    const ordered = [...deps.targets.filter(detected), ...deps.targets.filter((target) => !detected(target))];
+    // install pre-checks detected agents; remove pre-checks the ones diffle is actually wired into
+    const preferred = opts.remove ? deps.registered : detected;
+    const ordered = [...deps.targets.filter(preferred), ...deps.targets.filter((target) => !preferred(target))];
     const items = ordered.map((target) => ({
       label: target.displayName,
-      hint: detected(target) ? "(detected)" : undefined,
+      hint: opts.remove && deps.registered(target) ? "(set up)" : detected(target) ? "(detected)" : undefined,
       value: target,
-      checked: !opts.remove && detected(target),
+      checked: preferred(target),
     }));
     const title = opts.remove ? `Select agents to remove ${PRODUCT.name} from:` : "Select agents to set up:";
     chosen = await deps.select(title, items);
     // cancel exits non-zero so callers (the uninstaller) don't mistake it for a finished run
     if (!chosen) { log("cancelled"); return CANCELLED; }
-    // an empty removal isn't a finished teardown either — the uninstaller must not delete the binary
-    if (chosen.length === 0) { log("nothing selected"); return opts.remove ? CANCELLED : 0; }
+    // a removal that leaves a wired-up agent behind isn't a finished teardown either
+    const picked = chosen;
+    kept = opts.remove ? deps.targets.filter((target) => deps.registered(target) && !picked.includes(target)) : [];
+    if (chosen.length === 0) { log("nothing selected"); return kept.length > 0 ? CANCELLED : 0; }
   }
 
   log("");
@@ -93,7 +99,8 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
 
   const runnable = chosen.filter((target) => !missing.get(target.id));
   // a selected plugin left in place is an unfinished teardown, so the uninstaller must keep the binary
-  const leftBehind = opts.remove && runnable.length < chosen.length;
+  const leftBehind = (opts.remove && runnable.length < chosen.length) || kept.length > 0;
+  if (kept.length > 0) log(dim(`still set up (not selected): ${kept.map((target) => target.displayName).join(", ")}`));
   if (runnable.length === 0) { log("\nnothing to run"); return leftBehind ? 1 : 0; }
   log("");
   if (!(await deps.confirm(opts.yes))) { log("cancelled"); return CANCELLED; }

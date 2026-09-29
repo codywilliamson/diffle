@@ -94,23 +94,43 @@ test("empty selection exits cleanly; prompt is detected-first and pre-checked", 
   expect(seen!.checked.slice(1).every((c) => !c)).toBe(true);
 });
 
-test("remove prompt starts unchecked", async () => {
-  let checked: boolean[] = [];
-  let title = "";
+const registeredCursor = (target: AgentTarget) => target.id === "cursor";
+
+test("remove prompt pre-checks only agents diffle is wired into, first", async () => {
+  let seen: { title: string; ids: string[]; hints: (string | undefined)[]; checked: boolean[] } | undefined;
   const { deps } = harness({
     interactive: true,
     which: () => "/bin/x",
-    select: async (t, items) => { title = t; checked = items.map((i) => i.checked); return undefined; },
+    registered: registeredCursor,
+    select: async (title, items) => {
+      seen = { title, ids: items.map((i) => i.value.id), hints: items.map((i) => i.hint), checked: items.map((i) => i.checked) };
+      return undefined;
+    },
   });
   await runSetup({ remove: true, agents: undefined, yes: false }, deps);
-  expect(title).toBe("Select agents to remove diffle from:");
-  expect(checked.some(Boolean)).toBe(false);
+  expect(seen!.title).toBe("Select agents to remove diffle from:");
+  expect(seen!.ids[0]).toBe("cursor");
+  expect(seen!.hints[0]).toBe("(set up)");
+  expect(seen!.checked).toEqual([true, ...seen!.checked.slice(1).map(() => false)]);
 });
 
-test("an empty removal exits non-zero so the uninstaller keeps the binary", async () => {
-  const { deps, text } = harness({ interactive: true, select: async () => [] });
-  expect(await runSetup({ remove: true, agents: undefined, yes: false }, deps)).toBe(130);
+test("an empty removal is fine when nothing is wired up", async () => {
+  const { deps, text } = harness({ interactive: true, registered: () => false, select: async () => [] });
+  expect(await runSetup({ remove: true, agents: undefined, yes: false }, deps)).toBe(0);
   expect(text()).toContain("nothing selected");
+});
+
+test("deselecting a wired-up agent exits non-zero so the uninstaller keeps the binary", async () => {
+  const empty = harness({ interactive: true, registered: registeredCursor, select: async () => [] });
+  expect(await runSetup({ remove: true, agents: undefined, yes: false }, empty.deps)).toBe(130);
+
+  const partial = harness({
+    interactive: true,
+    registered: (target) => target.id === "cursor" || target.id === "gemini",
+    select: async (_title, items) => items.filter((i) => i.value.id === "cursor").map((i) => i.value),
+  });
+  expect(await runSetup({ remove: true, agents: undefined, yes: true }, partial.deps)).toBe(1);
+  expect(partial.text()).toContain("still set up (not selected): Gemini CLI");
 });
 
 test("plugin cli missing: plan lists commands and nothing runs", async () => {

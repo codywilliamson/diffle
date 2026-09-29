@@ -1,13 +1,14 @@
 // registry of coding agents diffle can wire itself into, plus install detection.
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { hasMcpEntry } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
 
 export type PluginCli = "claude" | "codex";
-// argv lists run as `<cli> ...args`, in order
-export interface PluginIntegration { kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; }
+// argv lists run as `<cli> ...args`, in order; registry = the agent's file listing installed plugins
+export interface PluginIntegration { kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; registry: string; }
 // key = top-level object holding servers
 export interface McpConfigIntegration { kind: "mcp-config"; path: string; key: string; entry: Record<string, unknown>; }
 export type AgentIntegration = PluginIntegration | McpConfigIntegration;
@@ -60,11 +61,13 @@ export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
       kind: "plugin", cli: "claude",
       install: [MARKETPLACE_ADD, ["plugin", "install", PLUGIN_REF, "--scope", "user"]],
       remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"], MARKETPLACE_REMOVE],
+      registry: join(env.CLAUDE_CONFIG_DIR || join(home, ".claude"), "plugins", "installed_plugins.json"),
     }),
     pluginTarget("codex", "Codex", home, {
       kind: "plugin", cli: "codex",
       install: [MARKETPLACE_ADD, ["plugin", "add", PLUGIN_REF]],
       remove: [["plugin", "remove", PLUGIN_REF], MARKETPLACE_REMOVE],
+      registry: join(env.CODEX_HOME || join(home, ".codex"), "config.toml"),
     }),
     mcpTarget({ id: "cursor", displayName: "Cursor", binary: "cursor", dir: join(home, ".cursor"), file: "mcp.json", key: "mcpServers", entry: commandEntry }),
     mcpTarget({ id: "gemini", displayName: "Gemini CLI", binary: "gemini", dir: join(home, ".gemini"), file: "settings.json", key: "mcpServers", entry: commandEntry }),
@@ -82,4 +85,15 @@ export function isDetected(
   exists: (path: string) => boolean = existsSync,
 ): boolean {
   return (!!target.binary && !!which(target.binary)) || (!!target.configDir && exists(target.configDir));
+}
+
+// whether diffle is currently wired into this agent. the quoted plugin ref matches both claude's
+// json registry key and codex's `[plugins."…"]` toml table
+export function isRegistered({ integration }: AgentTarget): boolean {
+  if (integration.kind === "mcp-config") return hasMcpEntry(integration.path, integration.key, MCP_SERVER_NAME);
+  try {
+    return readFileSync(integration.registry, "utf8").includes(JSON.stringify(PLUGIN_REF));
+  } catch {
+    return false;
+  }
 }
