@@ -1,7 +1,7 @@
 # diffle installer (Windows) — downloads the matching release binary, verifies its sha-256,
 # installs it to ~\.diffle\bin, and puts that directory on the user PATH.
 # Usage: irm https://<host>/install.ps1 | iex
-# Env knobs: DIFFLE_INSTALL_DIR, DIFFLE_DRY_RUN, DIFFLE_NO_MODIFY_PATH, DIFFLE_UNINSTALL,
+# Env knobs: DIFFLE_INSTALL_DIR, DIFFLE_DRY_RUN, DIFFLE_NO_MODIFY_PATH, DIFFLE_NO_SETUP, DIFFLE_UNINSTALL,
 #   GITHUB_TOKEN (optional; authenticates the release lookup)
 #Requires -Version 7.0
 & {
@@ -21,6 +21,7 @@ $Target = Join-Path $BinDir "$Name.exe"
 $DryRun = [bool]$env:DIFFLE_DRY_RUN
 $NoModifyPath = [bool]$env:DIFFLE_NO_MODIFY_PATH
 $Uninstall = [bool]$env:DIFFLE_UNINSTALL
+$NoSetup = [bool]$env:DIFFLE_NO_SETUP
 $SpinnerFrames = '|', '/', '-', '\'
 $Rule = '=' * 72
 # animate only on a real console; redirected/CI output gets a single WAIT line per wait
@@ -214,6 +215,23 @@ function Save-ReleaseAsset($ReleaseAsset, $Destination) {
   }
 }
 
+# skipped on dry runs, DIFFLE_NO_SETUP, or without an interactive console; a failed setup never
+# fails the install
+function Invoke-AgentSetupOffer {
+  if ($DryRun -or $NoSetup) { return }
+  if (-not [Environment]::UserInteractive -or [Console]::IsInputRedirected) { return }
+  Write-Section 'Agent setup'
+  $answer = Read-Host "Set up $Name for your coding agents? [Y/n]"
+  if ($answer -match '^\s*n') {
+    Write-Log INFO "skipped; run '$Name setup' any time to wire up your coding agents"
+    return
+  }
+  $global:LASTEXITCODE = 0
+  try { & $Target setup } catch { $global:LASTEXITCODE = 1 }
+  if ($LASTEXITCODE -eq 0) { Write-Log OK 'agent setup complete' }
+  else { Write-Log WARN "agent setup did not finish; run '$Name setup' to retry" }
+}
+
 try {
   if ($Uninstall) {
     Write-Section "Uninstall $Name"
@@ -305,6 +323,7 @@ try {
 
   Update-UserPath -Action Add
   Write-Log INFO "run '$Name --version' in a new shell to confirm the install"
+  Invoke-AgentSetupOffer
 }
 catch {
   Write-Log ERROR $_.Exception.Message

@@ -2,7 +2,7 @@
 # diffle installer — downloads the matching release binary, verifies its sha-256, installs it to
 # ~/.diffle/bin, and persists that directory on PATH via a marker block in your shell rc.
 # Usage: curl -fsSL https://<host>/install | sh   (uninstall: sh install.sh --uninstall)
-# Env: DIFFLE_INSTALL_DIR, DIFFLE_NO_MODIFY_PATH, DIFFLE_DRY_RUN, DIFFLE_UNINSTALL, NO_COLOR,
+# Env: DIFFLE_INSTALL_DIR, DIFFLE_NO_MODIFY_PATH, DIFFLE_NO_SETUP, DIFFLE_DRY_RUN, DIFFLE_UNINSTALL, NO_COLOR,
 #      GITHUB_TOKEN (optional; authenticates the release lookup)
 set -eu
 
@@ -324,3 +324,27 @@ else
 fi
 
 configure_path
+
+# --- agent setup --------------------------------------------------------------------------------
+
+# stdin is the curl pipe, so the prompt and the setup command both talk to /dev/tty; skipped when
+# there is no usable terminal, on dry runs, or when DIFFLE_NO_SETUP is set. a failed setup never
+# fails the install
+offer_agent_setup() {
+  if [ -n "${DIFFLE_DRY_RUN:-}" ] || [ -n "${DIFFLE_NO_SETUP:-}" ]; then return 0; fi
+  if ! { [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null; }; then return 0; fi
+  section "Agent setup"
+  printf 'Set up %s for your coding agents? [Y/n] ' "$NAME"
+  setup_answer=""
+  read -r setup_answer </dev/tty || setup_answer=n
+  case "$setup_answer" in
+    n|N|no|No|NO) log INFO "skipped; run '$NAME setup' any time to wire up your coding agents"; return 0 ;;
+  esac
+  if "$BIN_DIR/$NAME" setup </dev/tty; then
+    log OK "agent setup complete"
+  else
+    log WARN "agent setup did not finish; run '$NAME setup' to retry"
+  fi
+}
+
+offer_agent_setup
