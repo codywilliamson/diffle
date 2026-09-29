@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
-import { chmodSync, existsSync, lstatSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "../src/core/mcpConfigFile";
+import { hasMcpEntry, mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "../src/core/mcpConfigFile";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
 afterEach(cleanupTempDirs);
@@ -87,6 +87,23 @@ posixOnly("a symlinked config keeps its link and updates the target", () => {
   expect(mergeMcpEntry(link, "mcpServers", "diffle", ENTRY)).toBe("updated");
   expect(lstatSync(link).isSymbolicLink()).toBe(true);
   expect(JSON.parse(read(real)).mcpServers.diffle).toEqual(ENTRY);
+});
+
+posixOnly("a dangling symlink keeps its link and creates the target", () => {
+  const dir = tempDir();
+  const real = join(dir, "dotfiles", "s.json");
+  const link = join(dir, "s.json");
+  symlinkSync(real, link);
+  expect(mergeMcpEntry(link, "mcpServers", "diffle", ENTRY)).toBe("created");
+  expect(lstatSync(link).isSymbolicLink()).toBe(true);
+  expect(JSON.parse(read(real)).mcpServers.diffle).toEqual(ENTRY);
+});
+
+test("hasMcpEntry: missing is false, unreadable counts as present", () => {
+  const dir = tempDir();
+  expect(hasMcpEntry(join(dir, "none.json"), "mcpServers", "diffle")).toBe(false);
+  mkdirSync(join(dir, "dir.json"));
+  expect(hasMcpEntry(join(dir, "dir.json"), "mcpServers", "diffle")).toBe(true);
 });
 
 test("writes leave no staged temp file behind", () => {
