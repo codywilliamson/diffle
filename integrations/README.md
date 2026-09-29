@@ -13,6 +13,8 @@ active Review Record prevents duplicate launches.
 
 ## Local installation
 
+`diffle setup` installs these for you (and wires the MCP server into other agents); the commands below are the manual equivalent.
+
 Register the marketplace, then install the explicit review plugin:
 
 ```text

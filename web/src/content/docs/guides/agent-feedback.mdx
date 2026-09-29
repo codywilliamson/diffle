@@ -7,9 +7,35 @@ sidebar:
 
 import { Tabs, TabItem, Steps, Aside } from "@astrojs/starlight/components";
 
-diffle ships explicit review skills for **Codex** and **Claude Code** that drive a review through a local MCP server. Both integrations need the `diffle` command on your `PATH` — see [Installation](/getting-started/installation/).
+diffle ships explicit review skills for **Codex** and **Claude Code** that drive a review through a local MCP server. It can also register that server with Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed, and GitHub Copilot CLI. All integrations need the `diffle` command on your `PATH` — see [Installation](/getting-started/installation/).
 
-## Install the integration
+## Set up your agents
+
+```sh
+diffle setup
+```
+
+`diffle setup` detects the coding agents you have installed (a binary on `PATH` or a config directory), then shows a checkbox list: `↑↓` move, `space` select, `a` all, `enter` confirm. Detected agents are listed first and pre-checked. It prints a plan of every command it will run and file it will touch, asks `Proceed? [y/N]`, then applies. Re-running is safe; already-configured agents report `unchanged`. Restart the agent or start a new session afterwards.
+
+| agent | id | what setup does |
+| --- | --- | --- |
+| Claude Code | `claude` | installs the `diffle-review` plugin |
+| Codex | `codex` | installs the `diffle-review` plugin |
+| Cursor | `cursor` | adds a `diffle` MCP server to `~/.cursor/mcp.json` |
+| Gemini CLI | `gemini` | adds it to `~/.gemini/settings.json` |
+| VS Code | `vscode` | adds it to the user `mcp.json` |
+| Windsurf | `windsurf` | adds it to `~/.codeium/windsurf/mcp_config.json` |
+| OpenCode | `opencode` | adds it to `~/.config/opencode/opencode.json` |
+| Zed | `zed` | adds it to Zed's `settings.json` |
+| GitHub Copilot CLI | `copilot` | adds it to `~/.copilot/mcp-config.json` |
+
+The MCP entry runs `diffle mcp serve` and every other setting in the file is preserved. If a config file isn't plain JSON (comments are common in Zed and VS Code), setup never rewrites it and prints the snippet to paste by hand instead.
+
+To skip the prompts, pass `--agents claude,codex` to select agents and `--yes` to skip the confirmation. Without a terminal and without `--agents`, setup exits 1 with a hint. Undo it with `diffle setup --remove`. The installer offers to run `diffle setup` when it finishes; set `DIFFLE_NO_SETUP=1` to skip that. See the [CLI reference](/reference/cli/).
+
+## Manual setup
+
+Prefer to install the plugin yourself? Run the commands for your agent.
 
 <Tabs syncKey="agent">
   <TabItem label="Claude Code">

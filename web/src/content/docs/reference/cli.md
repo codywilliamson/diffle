@@ -75,6 +75,20 @@ diffle mcp restart
 diffle mcp restart --yes
 ```
 
+### `diffle setup [--remove] [--agents <id,id>] [--yes]`
+
+Wire diffle into your coding agents. It detects installed agents (binary on `PATH` or config directory present), shows a checkbox list (`↑↓` move, `space` select, `a` all, `enter` confirm) with detected agents first and pre-checked, prints every command and file it will touch, and asks `Proceed? [y/N]` before applying. It's idempotent: re-running reports `unchanged`. See [Agent feedback](/guides/agent-feedback/).
+
+`--remove` reverses the setup (nothing pre-checked). `--agents` selects agents non-interactively and `--yes` skips the confirmation. Without a terminal and without `--agents`, it exits 1 with a hint.
+
+```sh
+diffle setup
+diffle setup --agents claude,codex --yes
+diffle setup --remove
+```
+
+Agent ids: `claude`, `codex`, `cursor`, `gemini`, `vscode`, `windsurf`, `opencode`, `zed`, `copilot`.
+
 ### `diffle hook stop --agent <codex|claude-code>`
 
 Completion-hook entry used by the agent integrations.
