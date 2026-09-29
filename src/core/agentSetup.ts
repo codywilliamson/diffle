@@ -14,6 +14,7 @@ export const runInherited: RunCommand = (cli, args) =>
   Bun.spawnSync({ cmd: [cli, ...args], stdio: ["inherit", "inherit", "inherit"] }).exitCode;
 
 const isMarketplaceStep = (args: string[]) => args[1] === "marketplace";
+const SPAWN_FAILED = -1;
 
 // claude prompts before trusting a marketplace-declared command; --yes accepts it (codex has no such flag)
 export function pluginStepArgs(cli: PluginCli, args: string[], yes: boolean): string[] {
@@ -21,6 +22,15 @@ export function pluginStepArgs(cli: PluginCli, args: string[], yes: boolean): st
 }
 
 export const renderCommand = (cli: string, args: string[]) => `${cli} ${args.join(" ")}`;
+
+// a cli that can't be spawned at all (corrupt, vanished since planning) is a failed step, not a crash
+function exitCodeOf(run: RunCommand, cli: string, args: string[]): number {
+  try {
+    return run(cli, args);
+  } catch {
+    return SPAWN_FAILED;
+  }
+}
 
 // adding an already-added marketplace errors harmlessly; a failed removal only passes once the
 // marketplace is verifiably gone
@@ -36,7 +46,7 @@ function applyPlugin(integration: PluginIntegration, steps: string[][], yes: boo
   for (const step of steps) {
     const args = pluginStepArgs(cli, step, yes);
     const text = renderCommand(cli, args);
-    if (run(cli, args) === 0) { results.push({ status: "ok", text }); continue; }
+    if (exitCodeOf(run, cli, args) === 0) { results.push({ status: "ok", text }); continue; }
     if (isMarketplaceStep(step)) {
       const result = marketplaceFailure(integration, step, text);
       results.push(result);

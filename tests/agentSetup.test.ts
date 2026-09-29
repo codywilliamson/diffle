@@ -71,6 +71,23 @@ test("a config i/o error fails that agent instead of throwing", () => {
   expect(results[0]!.text).toContain(join(home, ".cursor", "mcp.json"));
 });
 
+test("a failed marketplace removal fails while the marketplace is still registered", () => {
+  const home = tempDir();
+  const codex = byId(home, "codex");
+  if (codex.integration.kind !== "plugin") throw new Error("expected plugin");
+  mkdirSync(dirname(codex.integration.marketplaces.file), { recursive: true });
+  writeFileSync(codex.integration.marketplaces.file, `${codex.integration.marketplaces.markers[0]}\nsource = "x"\n`);
+  const { run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
+  const results = applyAgent(codex, "remove", false, run);
+  expect(results.map((r) => r.status)).toEqual(["ok", "failed"]);
+  expect(results[1]!.text).toContain("still registered");
+});
+
+test("a cli that throws on spawn is a failed step, not a crash", () => {
+  const run: RunCommand = () => { throw new Error("bad CPU type in executable"); };
+  expect(applyAgent(byId("/h", "claude"), "install", false, run).at(-1)).toMatchObject({ status: "failed" });
+});
+
 test("mcp-config install then remove on a real file", () => {
   const home = tempDir();
   const cursor = byId(home, "cursor");
