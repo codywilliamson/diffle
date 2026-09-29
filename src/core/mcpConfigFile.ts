@@ -1,8 +1,10 @@
 // idempotent json merge/remove of one mcp server entry. files that are not plain json objects
 // (comments, arrays, odd shapes) are never rewritten — callers show `mcpEntrySnippet` instead.
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import {
+  chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, statSync, writeFileSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 export type ConfigAction = "created" | "updated" | "unchanged" | "removed" | "not-found" | "skipped";
@@ -22,15 +24,24 @@ function detectIndent(text: string): string {
 
 export const isMissingFile = (err: unknown): boolean => (err as NodeJS.ErrnoException | undefined)?.code === "ENOENT";
 
+// the real file behind a symlink, including a dangling one whose target doesn't exist yet
+function writeTarget(path: string): string {
+  try {
+    if (!lstatSync(path).isSymbolicLink()) return path;
+  } catch {
+    return path;
+  }
+  return existsSync(path) ? realpathSync(path) : resolve(dirname(path), readlinkSync(path));
+}
+
 function writeJson(path: string, data: Json, original = ""): void {
   const eol = original.includes("\r\n") ? "\r\n" : "\n";
   const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
   // write a sibling then rename, so a failed or interrupted write never truncates the real config.
   // a symlink is followed (the link survives) and the file's mode is kept (configs can hold secrets)
-  mkdirSync(dirname(path), { recursive: true });
-  const exists = existsSync(path);
-  const target = exists ? realpathSync(path) : path;
-  const mode = exists ? statSync(target).mode & PERMISSION_BITS : NEW_FILE_MODE;
+  const target = writeTarget(path);
+  mkdirSync(dirname(target), { recursive: true });
+  const mode = existsSync(target) ? statSync(target).mode & PERMISSION_BITS : NEW_FILE_MODE;
   const staged = `${target}.${process.pid}.tmp`;
   try {
     writeFileSync(staged, body + eol, { mode });
