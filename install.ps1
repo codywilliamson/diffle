@@ -204,6 +204,8 @@ function Move-ExistingAside {
   if (-not (Test-Path -LiteralPath $Path)) { return }
   $Retired = Join-Path (Split-Path -Parent $Path) ".$(Split-Path -Leaf $Path).old"
   Remove-Item -LiteralPath $Retired -Force -ErrorAction SilentlyContinue
+  # an older retired copy still held by a running process can't be removed; retire to a fresh name
+  if (Test-Path -LiteralPath $Retired) { $Retired = "$Retired-$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())" }
   try { Move-Item -LiteralPath $Path -Destination $Retired -ErrorAction Stop }
   catch { throw "diffle install: could not move the existing $Path aside ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
 }
