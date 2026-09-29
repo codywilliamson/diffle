@@ -1,7 +1,9 @@
 // applies (or removes) one agent's diffle integration and reports what happened per step.
 
 import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "./mcpConfigFile";
-import { MCP_SERVER_NAME, type AgentTarget, type McpConfigIntegration, type PluginCli } from "./agentTargets";
+import {
+  isMarketplaceRegistered, MCP_SERVER_NAME, type AgentTarget, type McpConfigIntegration, type PluginCli, type PluginIntegration,
+} from "./agentTargets";
 
 export type SetupMode = "install" | "remove";
 export type StepStatus = "ok" | "skipped" | "failed";
@@ -20,14 +22,27 @@ export function pluginStepArgs(cli: PluginCli, args: string[], yes: boolean): st
 
 export const renderCommand = (cli: string, args: string[]) => `${cli} ${args.join(" ")}`;
 
-function applyPlugin(cli: PluginCli, steps: string[][], yes: boolean, run: RunCommand): StepResult[] {
+// adding an already-added marketplace errors harmlessly; a failed removal only passes once the
+// marketplace is verifiably gone
+function marketplaceFailure(integration: PluginIntegration, step: string[], text: string): StepResult {
+  if (step[2] === "add") return { status: "skipped", text: `${text} (failed — likely already added)` };
+  if (!isMarketplaceRegistered(integration)) return { status: "skipped", text: `${text} (failed — already removed)` };
+  return { status: "failed", text: `${text} (failed — still registered)` };
+}
+
+function applyPlugin(integration: PluginIntegration, steps: string[][], yes: boolean, run: RunCommand): StepResult[] {
+  const { cli } = integration;
   const results: StepResult[] = [];
   for (const step of steps) {
     const args = pluginStepArgs(cli, step, yes);
     const text = renderCommand(cli, args);
     if (run(cli, args) === 0) { results.push({ status: "ok", text }); continue; }
-    // adding an already-added (or removing a missing) marketplace errors — harmless, carry on
-    if (isMarketplaceStep(step)) { results.push({ status: "skipped", text: `${text} (failed — likely already ${step[2] === "add" ? "added" : "removed"})` }); continue; }
+    if (isMarketplaceStep(step)) {
+      const result = marketplaceFailure(integration, step, text);
+      results.push(result);
+      if (result.status === "failed") break;
+      continue;
+    }
     results.push({ status: "failed", text: `${text} (failed)` });
     break;
   }
@@ -56,5 +71,5 @@ function applyMcpConfig({ path, key, entry }: McpConfigIntegration, mode: SetupM
 export function applyAgent(target: AgentTarget, mode: SetupMode, yes: boolean, run: RunCommand = runInherited): StepResult[] {
   const { integration } = target;
   if (integration.kind === "mcp-config") return applyMcpConfig(integration, mode);
-  return applyPlugin(integration.cli, mode === "install" ? integration.install : integration.remove, yes, run);
+  return applyPlugin(integration, mode === "install" ? integration.install : integration.remove, yes, run);
 }

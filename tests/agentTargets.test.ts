@@ -32,12 +32,17 @@ test("plugin argv comes from PRODUCT", () => {
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "install", ref, "--scope", "user"]],
     remove: [["plugin", "uninstall", ref, "--scope", "user"], marketplaceRemove],
     registry: join("/h", ".claude", "plugins", "installed_plugins.json"),
+    marketplaces: { file: join("/h", ".claude", "plugins", "known_marketplaces.json"), markers: [`"${PRODUCT.plugin.marketplace}"`] },
   });
   expect(codex.integration).toEqual({
     kind: "plugin", cli: "codex",
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "add", ref]],
     remove: [["plugin", "remove", ref], marketplaceRemove],
     registry: join("/h", ".codex", "config.toml"),
+    marketplaces: {
+      file: join("/h", ".codex", "config.toml"),
+      markers: [`[marketplaces.${PRODUCT.plugin.marketplace}]`, `[marketplaces."${PRODUCT.plugin.marketplace}"]`],
+    },
   });
   expect(claude.configDir).toBe(join("/h", ".claude"));
   expect(codex.binary).toBe("codex");
