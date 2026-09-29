@@ -265,6 +265,9 @@ try {
       else {
         Invoke-AgentTeardown
         Remove-Item -LiteralPath $Target -Force
+        # retired copies from earlier upgrades; ones still held by a running process stay behind
+        Get-ChildItem -LiteralPath $BinDir -Force -Filter ".$Name.exe.old*" -ErrorAction SilentlyContinue |
+          Remove-Item -Force -ErrorAction SilentlyContinue
         Write-Log OK "removed $Target"
       }
     }
