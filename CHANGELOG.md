@@ -2,6 +2,20 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.23.0](https://github.com/codywilliamson/diffle/compare/v0.22.3...v0.23.0) (2026-09-29)
+
+
+### Features
+
+* **ui:** animate diff and comment counts with numberflow ([17f0487](https://github.com/codywilliamson/diffle/commit/17f0487a99b6ccd06df9fa304a58f94ad675eea7))
+* **ui:** morph tree row into its diff header in single-file view ([2909b7c](https://github.com/codywilliamson/diffle/commit/2909b7c3770015bcebd376d1e052a76f432fa14e))
+* **ui:** stagger diff rows in on file mount ([97fba81](https://github.com/codywilliamson/diffle/commit/97fba81ecef6eae8d62d4e29dee3fc9c65f80962))
+
+
+### Bug Fixes
+
+* **ui:** let the review trigger close its own popover ([720b9e0](https://github.com/codywilliamson/diffle/commit/720b9e0d35978a7f792b76f2f0a8f7cecc709743))
+
 ## [0.22.3](https://github.com/codywilliamson/diffle/compare/v0.22.2...v0.22.3) (2026-09-27)
 
 
