@@ -11,7 +11,7 @@ export type RunCommand = (cli: string, args: string[]) => number;
 export const runInherited: RunCommand = (cli, args) =>
   Bun.spawnSync({ cmd: [cli, ...args], stdio: ["inherit", "inherit", "inherit"] }).exitCode;
 
-const isMarketplaceAdd = (args: string[]) => args[1] === "marketplace";
+const isMarketplaceStep = (args: string[]) => args[1] === "marketplace";
 
 // claude prompts before trusting a marketplace-declared command; --yes accepts it (codex has no such flag)
 export function pluginStepArgs(cli: PluginCli, args: string[], yes: boolean): string[] {
@@ -26,8 +26,8 @@ function applyPlugin(cli: PluginCli, steps: string[][], yes: boolean, run: RunCo
     const args = pluginStepArgs(cli, step, yes);
     const text = renderCommand(cli, args);
     if (run(cli, args) === 0) { results.push({ status: "ok", text }); continue; }
-    // adding an already-added marketplace errors — harmless, carry on
-    if (isMarketplaceAdd(step)) { results.push({ status: "skipped", text: `${text} (failed — likely already added)` }); continue; }
+    // adding an already-added (or removing a missing) marketplace errors — harmless, carry on
+    if (isMarketplaceStep(step)) { results.push({ status: "skipped", text: `${text} (failed — likely already ${step[2] === "add" ? "added" : "removed"})` }); continue; }
     results.push({ status: "failed", text: `${text} (failed)` });
     break;
   }
