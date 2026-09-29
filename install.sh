@@ -163,6 +163,22 @@ configure_path() {
   activation_hint
 }
 
+# both ends must be a terminal: a readable /dev/tty with redirected output would prompt invisibly
+has_terminal() {
+  [ -t 1 ] && [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null
+}
+
+# agent configs point at the binary, so unregister them while it still exists. releases before
+# `setup` existed would treat it as a git ref, so check the help text first
+offer_agent_teardown() {
+  [ -x "$BIN_DIR/$NAME" ] && "$BIN_DIR/$NAME" --help 2>/dev/null | grep -q " setup" || return 0
+  if has_terminal; then
+    "$BIN_DIR/$NAME" setup --remove </dev/tty || log WARN "agent teardown did not finish"
+  else
+    log INFO "no terminal: if you ran '$NAME setup', run '$NAME setup --remove' before uninstalling"
+  fi
+}
+
 uninstall_diffle() {
   section "Uninstall"
   resolve_rc
@@ -170,6 +186,7 @@ uninstall_diffle() {
     log WAIT "dry run: would remove the diffle PATH block and $BIN_DIR/$NAME"
     return 0
   fi
+  offer_agent_teardown
   for rc_candidate in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" \
     "$HOME/.profile" "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"; do
     strip_block "$rc_candidate"
@@ -332,8 +349,7 @@ configure_path
 # fails the install
 offer_agent_setup() {
   if [ -n "${DIFFLE_DRY_RUN:-}" ] || [ -n "${DIFFLE_NO_SETUP:-}" ]; then return 0; fi
-  # both ends must be a terminal: a readable /dev/tty with redirected output would prompt invisibly
-  if [ ! -t 1 ] || ! { [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null; }; then return 0; fi
+  has_terminal || return 0
   section "Agent setup"
   printf 'Set up %s for your coding agents? [Y/n] ' "$NAME"
   setup_answer=""
