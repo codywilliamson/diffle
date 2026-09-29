@@ -107,6 +107,12 @@ test("remove prompt starts unchecked", async () => {
   expect(checked.some(Boolean)).toBe(false);
 });
 
+test("an empty removal exits non-zero so the uninstaller keeps the binary", async () => {
+  const { deps, text } = harness({ interactive: true, select: async () => [] });
+  expect(await runSetup({ remove: true, agents: undefined, yes: false }, deps)).toBe(130);
+  expect(text()).toContain("nothing selected");
+});
+
 test("plugin cli missing: plan lists commands and nothing runs", async () => {
   const { deps, text, calls } = harness();
   expect(await runSetup({ remove: false, agents: ["claude"], yes: true }, deps)).toBe(0);
