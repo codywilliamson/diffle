@@ -2,6 +2,43 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.24.0](https://github.com/codywilliamson/diffle/compare/v0.23.0...v0.24.0) (2026-09-29)
+
+
+### Features
+
+* **build:** offer agent setup at the end of install ([fd337da](https://github.com/codywilliamson/diffle/commit/fd337da1db29aa132e310b0bf9ac8e52e958e1f5))
+* **cli:** add dependency-free multi-select prompt ([31f201a](https://github.com/codywilliamson/diffle/commit/31f201a9800d7cee70c8e7c34a85cac1848eac3e))
+* **cli:** add diffle setup to wire diffle into coding agents ([3fe4463](https://github.com/codywilliamson/diffle/commit/3fe44631830d9d2c06dfc48db7c9e05883fe02ab))
+* **cli:** detect coding agents and merge mcp config entries ([dbaae21](https://github.com/codywilliamson/diffle/commit/dbaae210a52858716d96a4bd36668d0e3489474b))
+
+
+### Bug Fixes
+
+* **build:** skip the setup offer when installer output is redirected ([7ecbad8](https://github.com/codywilliamson/diffle/commit/7ecbad8498fa444b8a2d6b45771930d759946b30))
+* **build:** stop uninstalling when agent teardown is cancelled ([c0c69c0](https://github.com/codywilliamson/diffle/commit/c0c69c026188ba1880f4201d218ba7ea25f2bf3f))
+* **build:** unregister agents before the uninstaller deletes the binary ([d74f5ec](https://github.com/codywilliamson/diffle/commit/d74f5ec4bc5728c2dffcb48d6f237186664278ee))
+* **cli:** check claude settings.json for the diffle marketplace ([31d5434](https://github.com/codywilliamson/diffle/commit/31d5434bdf87c4537fffb43bc9c7aaec78c5ab29))
+* **cli:** count unreadable agent configs as registered on teardown ([8a176e0](https://github.com/codywilliamson/diffle/commit/8a176e0726e530b7efd078635b6a1822e2b95f4f))
+* **cli:** exit non-zero on an empty setup --remove selection ([43df6a4](https://github.com/codywilliamson/diffle/commit/43df6a4bf5398e9c97e56b158535d0ec4bd762a5))
+* **cli:** exit non-zero when setup --remove leaves a plugin behind ([6b1588c](https://github.com/codywilliamson/diffle/commit/6b1588c4c344714dae61539234055ebcae92d3e7))
+* **cli:** exit non-zero when setup is cancelled ([8736370](https://github.com/codywilliamson/diffle/commit/8736370d87206450adf41e04a13815a4375ddcff))
+* **cli:** fail teardown when a config still has an entry it can't edit ([44d0fe3](https://github.com/codywilliamson/diffle/commit/44d0fe35db5e9de956fb2b8efcef764aa270b4d8))
+* **cli:** fail teardown when the marketplace is still registered ([ed2c10f](https://github.com/codywilliamson/diffle/commit/ed2c10fe86a30d6774e3f4618881cb1e93c453bf))
+* **cli:** keep config symlinks and file modes on atomic rewrite ([7ab0ef4](https://github.com/codywilliamson/diffle/commit/7ab0ef498e99893661b02891d4d70d330fdcebd5))
+* **cli:** keep dangling config symlinks when writing ([1a92e4d](https://github.com/codywilliamson/diffle/commit/1a92e4d3c02e8cdce475e511c83adf9da555f83d))
+* **cli:** let setup --remove finish a half-done plugin teardown ([b184b18](https://github.com/codywilliamson/diffle/commit/b184b183d280a5b371c3865b18066f18cea1c6b0))
+* **cli:** match the marketplace source repo exactly ([470a0a6](https://github.com/codywilliamson/diffle/commit/470a0a62993fa0549ad5f67feafb9c08aa98d953))
+* **cli:** only prompt in setup when stdout is a terminal too ([9428ad6](https://github.com/codywilliamson/diffle/commit/9428ad6b874c6f6f57b4d909989aa9ea37afb42a))
+* **cli:** only reuse an existing marketplace that points at our repo ([ae3eb2d](https://github.com/codywilliamson/diffle/commit/ae3eb2ddf2b84d5ea15d29d29d95fcfa5d6879b1))
+* **cli:** pre-check wired-up agents on setup --remove ([1423486](https://github.com/codywilliamson/diffle/commit/1423486c23069a5ce33e08540e6f7895376d62b4))
+* **cli:** remove the plugin marketplace on setup --remove ([f8c89f3](https://github.com/codywilliamson/diffle/commit/f8c89f35f0998c1456aa0d19d2f10972e1509a5a))
+* **cli:** replace agent config files atomically ([cdab77c](https://github.com/codywilliamson/diffle/commit/cdab77cc70c6e9fc310876aed845262484e4f967))
+* **cli:** report mcp config i/o errors per agent instead of aborting ([dffc9a5](https://github.com/codywilliamson/diffle/commit/dffc9a5034004c9cc44aaf9924b18d782f8293c2))
+* **cli:** report plugin cli spawn errors as failed steps ([8fd18c7](https://github.com/codywilliamson/diffle/commit/8fd18c771b846c8cefaad871a7765c9b42f7e8dd))
+* **cli:** see our marketplace in any source during teardown ([9cb3fa9](https://github.com/codywilliamson/diffle/commit/9cb3fa9e925c56eb9d5269f5ae45ec5799288ba2))
+* **cli:** write the installed binary path into agent mcp configs ([171a389](https://github.com/codywilliamson/diffle/commit/171a3899e89fd06c5969c4624677d01aad9f8d82))
+
 ## [0.23.0](https://github.com/codywilliamson/diffle/compare/v0.22.3...v0.23.0) (2026-09-29)
 
 
