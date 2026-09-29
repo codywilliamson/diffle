@@ -34,7 +34,7 @@ const palette = (color: boolean) => ({
 export function defaultSetupDeps(): SetupDeps {
   return {
     targets: agentTargets(), run: runInherited, which: (bin) => Bun.which(bin),
-    interactive: process.stdin.isTTY === true, select: promptMultiSelect, confirm: confirmProceed,
+    interactive: process.stdin.isTTY === true && process.stdout.isTTY === true, select: promptMultiSelect, confirm: confirmProceed,
     log: console.log, color: process.stdout.isTTY === true,
   };
 }
