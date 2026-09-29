@@ -83,7 +83,8 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
     chosen = await deps.select(title, items);
     // cancel exits non-zero so callers (the uninstaller) don't mistake it for a finished run
     if (!chosen) { log("cancelled"); return CANCELLED; }
-    if (chosen.length === 0) { log("nothing selected"); return 0; }
+    // an empty removal isn't a finished teardown either — the uninstaller must not delete the binary
+    if (chosen.length === 0) { log("nothing selected"); return opts.remove ? CANCELLED : 0; }
   }
 
   log("");
