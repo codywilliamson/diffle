@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { hasMcpEntry } from "./mcpConfigFile";
+import { hasMcpEntry, isMissingFile } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
 
 export type PluginCli = "claude" | "codex";
@@ -93,7 +93,7 @@ export function isRegistered({ integration }: AgentTarget): boolean {
   if (integration.kind === "mcp-config") return hasMcpEntry(integration.path, integration.key, MCP_SERVER_NAME);
   try {
     return readFileSync(integration.registry, "utf8").includes(JSON.stringify(PLUGIN_REF));
-  } catch {
-    return false;
+  } catch (err) {
+    return !isMissingFile(err); // unreadable counts as registered so teardown fails safe
   }
 }
