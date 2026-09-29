@@ -121,6 +121,14 @@ test("plugin cli missing: plan lists commands and nothing runs", async () => {
   expect(calls).toEqual([]);
 });
 
+test("removal with a plugin cli missing still runs the rest but exits 1", async () => {
+  const { deps, text } = harness();
+  expect(await runSetup({ remove: true, agents: ["claude"], yes: true }, deps)).toBe(1);
+  expect(await runSetup({ remove: true, agents: ["claude", "cursor"], yes: true }, deps)).toBe(1);
+  expect(text()).toContain("nothing to remove in");
+  expect(text()).toContain("finished with errors");
+});
+
 test("plugin failure gives exit code 1", async () => {
   const { deps, text } = harness({ which: () => "/bin/claude", run: (_c, args) => (args[1] === "install" ? 1 : 0) });
   expect(await runSetup({ remove: false, agents: ["claude"], yes: true }, deps)).toBe(1);

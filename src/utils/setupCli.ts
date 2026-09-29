@@ -92,11 +92,13 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
   for (const target of chosen) for (const line of planLines(target, mode, opts.yes, missing.get(target.id) === true, style)) log(line);
 
   const runnable = chosen.filter((target) => !missing.get(target.id));
-  if (runnable.length === 0) { log("\nnothing to run"); return 0; }
+  // a selected plugin left in place is an unfinished teardown, so the uninstaller must keep the binary
+  const leftBehind = opts.remove && runnable.length < chosen.length;
+  if (runnable.length === 0) { log("\nnothing to run"); return leftBehind ? 1 : 0; }
   log("");
   if (!(await deps.confirm(opts.yes))) { log("cancelled"); return CANCELLED; }
 
-  let failed = false;
+  let failed = leftBehind;
   for (const [index, target] of runnable.entries()) {
     if (index > 0) log("");
     log(bold(target.displayName));
