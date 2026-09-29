@@ -20,6 +20,7 @@ export interface SetupDeps {
   color: boolean;
 }
 
+const CANCELLED = 130;
 const RESTART_HINT = "done — restart your agents (or start a new session) to pick up the changes";
 const ICON: Record<StepResult["status"], string> = { ok: "✓", skipped: "–", failed: "✗" };
 
@@ -80,7 +81,9 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
     }));
     const title = opts.remove ? `Select agents to remove ${PRODUCT.name} from:` : "Select agents to set up:";
     chosen = await deps.select(title, items);
-    if (!chosen || chosen.length === 0) { log("nothing selected"); return 0; }
+    // cancel exits non-zero so callers (the uninstaller) don't mistake it for a finished run
+    if (!chosen) { log("cancelled"); return CANCELLED; }
+    if (chosen.length === 0) { log("nothing selected"); return 0; }
   }
 
   log("");
@@ -90,7 +93,7 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
   const runnable = chosen.filter((target) => !missing.get(target.id));
   if (runnable.length === 0) { log("\nnothing to run"); return 0; }
   log("");
-  if (!(await deps.confirm(opts.yes))) { log("cancelled"); return 0; }
+  if (!(await deps.confirm(opts.yes))) { log("cancelled"); return CANCELLED; }
 
   let failed = false;
   for (const [index, target] of runnable.entries()) {
