@@ -64,9 +64,15 @@ test("--agents installs mcp configs, then removes them", async () => {
 
 test("declined confirmation cancels without changes", async () => {
   const { deps, text, home } = harness({ confirm: async () => false });
-  expect(await runSetup({ remove: false, agents: ["cursor"], yes: false }, deps)).toBe(0);
+  expect(await runSetup({ remove: false, agents: ["cursor"], yes: false }, deps)).toBe(130);
   expect(text()).toContain("cancelled");
   expect(existsSync(join(home, ".cursor", "mcp.json"))).toBe(false);
+});
+
+test("cancelling the picker exits non-zero, unlike an empty selection", async () => {
+  const { deps, text } = harness({ interactive: true, select: async () => undefined });
+  expect(await runSetup({ remove: true, agents: undefined, yes: false }, deps)).toBe(130);
+  expect(text()).toContain("cancelled");
 });
 
 test("empty selection exits cleanly; prompt is detected-first and pre-checked", async () => {
