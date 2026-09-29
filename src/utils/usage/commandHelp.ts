@@ -30,8 +30,8 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "  <ref1>..<ref2>    commit range",
       "  browse [path]     review the whole codebase (optionally scoped to a path)",
       "",
-      "Comments are saved to .review in the current directory and compile into a",
-      "structured review prompt from the UI.",
+      `Comments are saved to durable Review Records under ~/${PRODUCT.dataDir}/reviews and`,
+      "compile into a structured review prompt from the UI.",
     ],
     options: [
       ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
