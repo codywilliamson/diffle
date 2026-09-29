@@ -36,7 +36,7 @@ curl -fsSL https://diffle.dev/install | sh
 irm https://diffle.dev/install.ps1 | iex
 ```
 
-The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.diffle/bin`. On macOS and Linux it also adds that directory to your login shell's rc file inside a `# >>> diffle >>>` marker block — run `exec $SHELL -l` to use it in the current shell, opt out with `DIFFLE_NO_MODIFY_PATH=1`, or undo it with `curl -fsSL https://diffle.dev/install | DIFFLE_UNINSTALL=1 sh`. Keep it current with `diffle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://diffle.dev/getting-started/installation/).
+The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.diffle/bin`. On macOS and Linux it also adds that directory to your login shell's rc file inside a `# >>> diffle >>>` marker block — run `exec $SHELL -l` to use it in the current shell, opt out with `DIFFLE_NO_MODIFY_PATH=1`, or undo it with `curl -fsSL https://diffle.dev/install | DIFFLE_UNINSTALL=1 sh`. On a terminal, the installer then offers to run `diffle setup` to wire diffle into your coding agents (skip with `DIFFLE_NO_SETUP=1`). Keep it current with `diffle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://diffle.dev/getting-started/installation/).
 
 ## Usage
 
@@ -50,6 +50,7 @@ diffle browse src/      # scope to a subtree
 diffle mcp serve        # local MCP server for agent integrations
 diffle mcp list         # list running MCP servers
 diffle mcp restart      # stop MCP servers so agents relaunch them (e.g. after an update)
+diffle setup            # wire diffle into your coding agents (--remove to undo)
 diffle sessions         # list running diffle sessions
 diffle cleanup          # stop stale sessions and finished reviews
 diffle update           # self-update to the latest release
@@ -58,7 +59,7 @@ diffle --license         # print the bundled MIT license notice
 diffle doctor           # check the Claude Code plugin install (--fix to repair)
 ```
 
-Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `--license`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation. `mcp restart` accepts `--yes`.
+Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `--license`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation. `mcp restart` accepts `--yes`. `setup` accepts `--remove`, `--agents <id,id>`, and `--yes`.
 
 diffle reviews whichever git repo you run it from, then prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 
@@ -105,7 +106,15 @@ Markdown files open showing their diff; use the per-file **Preview** toggle to r
 
 ## Agent integrations
 
-diffle ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server. Both need the `diffle` command from [Install](#install) on your `PATH`.
+diffle ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server, and can register the MCP server with Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed, and GitHub Copilot CLI. All need the `diffle` command from [Install](#install) on your `PATH`.
+
+The quickest route is `diffle setup`: it detects your installed agents, lets you pick which to wire up, shows exactly what it will run or write, and asks before applying. It's idempotent, and `diffle setup --remove` undoes it. Pass `--agents claude,codex` to skip the picker and `--yes` to skip the confirmation.
+
+```sh
+diffle setup
+```
+
+Or install the plugins by hand:
 
 ```sh
 # Claude Code
@@ -117,7 +126,7 @@ codex plugin marketplace add codywilliamson/diffle
 codex plugin add diffle-review@diffle-local
 ```
 
-Start a fresh agent session after installing (or run `/reload-plugins` in Claude Code), then ask
+Start a fresh agent session afterwards (or run `/reload-plugins` in Claude Code), then ask
 `Review my current changes with diffle.` The plugin is named `diffle-review`. Package sources and
 maintenance notes live in [`integrations/`](integrations/README.md); see the [agent feedback guide](https://diffle.dev/guides/agent-feedback/) for the full loop.
 

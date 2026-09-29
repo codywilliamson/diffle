@@ -41,12 +41,22 @@ The installer downloads the binary for your OS and architecture, verifies its SH
 
   Nothing else in the file is reordered or rewritten, the file is copied to `<rc>.diffle.bak-<timestamp>` before the first edit, and re-running the installer is a no-op. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `diffle` right away — new shells pick it up on their own.
 
-  Set `DIFFLE_NO_MODIFY_PATH=1` to skip the rc edit and print the `export` line instead, or `DIFFLE_DRY_RUN=1` to log every intended change without writing anything.
+  Set `DIFFLE_NO_MODIFY_PATH=1` to skip the rc edit and print the `export` line instead, `DIFFLE_NO_SETUP=1` to skip the agent setup prompt, or `DIFFLE_DRY_RUN=1` to log every intended change without writing anything.
 </Aside>
 
 <Aside type="note" title="Windows PATH">
-  `install.ps1` needs PowerShell 7 or newer. It edits only your **user** `PATH` (never the machine scope, and never the merged process value), backs the old value up to a timestamped file first, preserves every existing entry — `%VAR%` tokens included — and does nothing if `~\.diffle\bin` is already there. Set `DIFFLE_NO_MODIFY_PATH` to install without touching `PATH`, or `DIFFLE_DRY_RUN` to print the plan and write nothing.
+  `install.ps1` needs PowerShell 7 or newer. It edits only your **user** `PATH` (never the machine scope, and never the merged process value), backs the old value up to a timestamped file first, preserves every existing entry — `%VAR%` tokens included — and does nothing if `~\.diffle\bin` is already there. Set `DIFFLE_NO_MODIFY_PATH` to install without touching `PATH`, `DIFFLE_NO_SETUP` to skip the agent setup prompt, or `DIFFLE_DRY_RUN` to print the plan and write nothing.
 </Aside>
+
+## Set up your coding agents
+
+On a terminal, the installer finishes by asking `Set up diffle for your coding agents? [Y/n]` and runs `diffle setup`. It detects the agents you have installed, shows exactly what it will change, and asks before applying. You can run it any time, and `diffle setup --remove` undoes it. See [Agent feedback](/guides/agent-feedback/).
+
+```sh
+diffle setup
+```
+
+The prompt is skipped when there's no terminal, with `DIFFLE_DRY_RUN`, or with `DIFFLE_NO_SETUP=1`.
 
 ## Verify
 
