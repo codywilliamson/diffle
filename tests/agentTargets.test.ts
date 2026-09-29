@@ -32,7 +32,7 @@ test("plugin argv comes from PRODUCT", () => {
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "install", ref, "--scope", "user"]],
     remove: [["plugin", "uninstall", ref, "--scope", "user"], marketplaceRemove],
     registry: join("/h", ".claude", "plugins", "installed_plugins.json"),
-    marketplaceSources: [join("/h", ".claude", "plugins", "known_marketplaces.json")],
+    marketplaceSources: [join("/h", ".claude", "plugins", "known_marketplaces.json"), join("/h", ".claude", "settings.json")],
   });
   expect(codex.integration).toEqual({
     kind: "plugin", cli: "codex",

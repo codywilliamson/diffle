@@ -68,7 +68,7 @@ export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
       install: [MARKETPLACE_ADD, ["plugin", "install", PLUGIN_REF, "--scope", "user"]],
       remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"], MARKETPLACE_REMOVE],
       registry: join(claudeDir, "plugins", "installed_plugins.json"),
-      marketplaceSources: [join(claudeDir, "plugins", "known_marketplaces.json")],
+      marketplaceSources: [join(claudeDir, "plugins", "known_marketplaces.json"), join(claudeDir, "settings.json")],
     }),
     pluginTarget("codex", "Codex", home, {
       kind: "plugin", cli: "codex",
