@@ -1,6 +1,7 @@
 ---
 import "../styles/tokens.css";
 import Mark from "../components/Mark.astro";
+import { PRODUCT } from "../../../src/core/product";
 
 interface Props {
   title?: string;
@@ -8,18 +9,18 @@ interface Props {
 }
 
 const {
-  title = "diffle — local git diff review for AI coding agents",
+  title = `${PRODUCT.name} — local git diff review for AI coding agents`,
   description = "Review git diffs locally, leave inline comments, and hand structured feedback to Claude Code, Codex, or any MCP agent. One binary, no account, no hosted AI.",
 } = Astro.props;
 
-const repo = "https://github.com/codywilliamson/diffle";
+const repo = PRODUCT.repository;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const socialImage = new URL("/media/overview.png", Astro.site).href;
-const socialImageAlt = "diffle reviewing a git diff with a file tree and syntax-highlighted changes";
+const socialImageAlt = `${PRODUCT.name} reviewing a git diff with a file tree and syntax-highlighted changes`;
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "diffle",
+  name: PRODUCT.name,
   description,
   url: canonical,
   image: socialImage,
@@ -40,7 +41,7 @@ const year = new Date().getFullYear();
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta property="og:site_name" content="diffle" />
+    <meta property="og:site_name" content={PRODUCT.name} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
