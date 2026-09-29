@@ -48,11 +48,23 @@ test("a failing install is reported and counted", () => {
   expect(results.at(-1)).toMatchObject({ status: "failed" });
 });
 
-test("a failing uninstall is reported", () => {
+test("a failing uninstall is reported while the plugin is still installed", () => {
+  const home = tempDir();
+  const claude = byId(home, "claude");
+  if (claude.integration.kind !== "plugin") throw new Error("expected plugin");
+  mkdirSync(dirname(claude.integration.registry), { recursive: true });
+  writeFileSync(claude.integration.registry, JSON.stringify({ plugins: { "diffle-review@diffle-local": [] } }));
   const { calls, run } = recorder(() => 1);
-  const results = applyAgent(byId("/h", "claude"), "remove", true, run);
-  expect(results).toEqual([expect.objectContaining({ status: "failed" })]);
+  const results = applyAgent(claude, "remove", true, run);
+  expect(results).toEqual([expect.objectContaining({ status: "failed", text: expect.stringContaining("still registered") })]);
   expect(calls[0]).toContain("uninstall");
+});
+
+test("a failing uninstall of an already-gone plugin moves on to the marketplace", () => {
+  const { calls, run } = recorder((args) => (args[1] === "uninstall" ? 1 : 0));
+  const results = applyAgent(byId(tempDir(), "claude"), "remove", true, run);
+  expect(results.map((r) => r.status)).toEqual(["skipped", "ok"]);
+  expect(calls).toHaveLength(2);
 });
 
 test("remove also drops the marketplace, tolerating one that's already gone", () => {
