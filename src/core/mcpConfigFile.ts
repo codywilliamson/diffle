@@ -1,7 +1,7 @@
 // idempotent json merge/remove of one mcp server entry. files that are not plain json objects
 // (comments, arrays, odd shapes) are never rewritten — callers show `mcpEntrySnippet` instead.
 
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -13,6 +13,8 @@ const isObject = (value: unknown): value is Json =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 const DEFAULT_INDENT = "  ";
+const PERMISSION_BITS = 0o777;
+const NEW_FILE_MODE = 0o600;
 
 function detectIndent(text: string): string {
   return /^([ \t]+)"/m.exec(text)?.[1] ?? DEFAULT_INDENT;
@@ -22,11 +24,16 @@ function writeJson(path: string, data: Json, original = ""): void {
   const eol = original.includes("\r\n") ? "\r\n" : "\n";
   const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
   mkdirSync(dirname(path), { recursive: true });
-  // write a sibling then rename, so a failed or interrupted write never truncates the real config
-  const staged = `${path}.${process.pid}.tmp`;
+  // write a sibling then rename, so a failed or interrupted write never truncates the real config.
+  // a symlink is followed (the link survives) and the file's mode is kept (configs can hold secrets)
+  const exists = existsSync(path);
+  const target = exists ? realpathSync(path) : path;
+  const mode = exists ? statSync(target).mode & PERMISSION_BITS : NEW_FILE_MODE;
+  const staged = `${target}.${process.pid}.tmp`;
   try {
-    writeFileSync(staged, body + eol);
-    renameSync(staged, path);
+    writeFileSync(staged, body + eol, { mode });
+    chmodSync(staged, mode); // writeFileSync's mode is masked by the umask
+    renameSync(staged, target);
   } finally {
     rmSync(staged, { force: true });
   }

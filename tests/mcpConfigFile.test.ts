@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "../src/core/mcpConfigFile";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
@@ -62,6 +62,31 @@ test.each<[string, string, ConfigAction]>([
   expect(mergeMcpEntry(path, "mcpServers", "diffle", ENTRY)).toBe("skipped");
   expect(removeMcpEntry(path, "mcpServers", "diffle")).toBe(removal);
   expect(read(path)).toBe(body);
+});
+
+const posixOnly = test.skipIf(process.platform === "win32");
+
+posixOnly("rewrites keep a restrictive mode and new files are owner-only", () => {
+  const dir = tempDir();
+  const path = join(dir, "s.json");
+  writeFileSync(path, JSON.stringify({ x: 1 }));
+  chmodSync(path, 0o600);
+  mergeMcpEntry(path, "mcpServers", "diffle", ENTRY);
+  expect(statSync(path).mode & 0o777).toBe(0o600);
+  const created = join(dir, "new", "n.json");
+  mergeMcpEntry(created, "mcpServers", "diffle", ENTRY);
+  expect(statSync(created).mode & 0o777).toBe(0o600);
+});
+
+posixOnly("a symlinked config keeps its link and updates the target", () => {
+  const dir = tempDir();
+  const real = join(dir, "dotfiles.json");
+  const link = join(dir, "s.json");
+  writeFileSync(real, JSON.stringify({ x: 1 }));
+  symlinkSync(real, link);
+  expect(mergeMcpEntry(link, "mcpServers", "diffle", ENTRY)).toBe("updated");
+  expect(lstatSync(link).isSymbolicLink()).toBe(true);
+  expect(JSON.parse(read(real)).mcpServers.diffle).toEqual(ENTRY);
 });
 
 test("writes leave no staged temp file behind", () => {
