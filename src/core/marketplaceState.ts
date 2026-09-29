@@ -65,7 +65,13 @@ function stateOf(path: string): MarketplaceState {
   }
 }
 
+// install's view: any conflicting entry wins, so setup never trusts a mixed registration
 export function marketplaceState(sources: string[]): MarketplaceState {
   const states = sources.map(stateOf);
   return PRECEDENCE.find((state) => states.includes(state)) ?? "absent";
+}
+
+// teardown's view: any source still ours (or unreadable) means there's something left to remove
+export function hasOurMarketplace(sources: string[]): boolean {
+  return sources.map(stateOf).some((state) => state === "ours" || state === "unknown");
 }
