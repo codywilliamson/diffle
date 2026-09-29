@@ -332,7 +332,8 @@ configure_path
 # fails the install
 offer_agent_setup() {
   if [ -n "${DIFFLE_DRY_RUN:-}" ] || [ -n "${DIFFLE_NO_SETUP:-}" ]; then return 0; fi
-  if ! { [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null; }; then return 0; fi
+  # both ends must be a terminal: a readable /dev/tty with redirected output would prompt invisibly
+  if [ ! -t 1 ] || ! { [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null; }; then return 0; fi
   section "Agent setup"
   printf 'Set up %s for your coding agents? [Y/n] ' "$NAME"
   setup_answer=""

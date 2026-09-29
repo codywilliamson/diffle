@@ -219,7 +219,7 @@ function Save-ReleaseAsset($ReleaseAsset, $Destination) {
 # fails the install
 function Invoke-AgentSetupOffer {
   if ($DryRun -or $NoSetup) { return }
-  if (-not [Environment]::UserInteractive -or [Console]::IsInputRedirected) { return }
+  if (-not [Environment]::UserInteractive -or [Console]::IsInputRedirected -or [Console]::IsOutputRedirected) { return }
   Write-Section 'Agent setup'
   $answer = Read-Host "Set up $Name for your coding agents? [Y/n]"
   if ($answer -match '^\s*n') {
