@@ -64,6 +64,19 @@ export function mergeMcpEntry(path: string, key: string, name: string, entry: Re
   return "updated";
 }
 
+// read-only check; a file that can't be parsed counts when it mentions the name at all
+export function hasMcpEntry(path: string, key: string, name: string): boolean {
+  try {
+    const text = readFileSync(path, "utf8");
+    const root = parseObject(text);
+    if (!root) return text.includes(JSON.stringify(name));
+    const servers = root[key];
+    return isObject(servers) && name in servers;
+  } catch {
+    return false;
+  }
+}
+
 export function removeMcpEntry(path: string, key: string, name: string): ConfigAction {
   if (!existsSync(path)) return "not-found";
   const text = readFileSync(path, "utf8");

@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type AgentEnv, agentTargets, isDetected, MCP_SERVER_NAME, serverCommand } from "../src/core/agentTargets";
+import { type AgentEnv, agentTargets, isDetected, isRegistered, MCP_SERVER_NAME, serverCommand } from "../src/core/agentTargets";
 import { PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
@@ -31,11 +31,13 @@ test("plugin argv comes from PRODUCT", () => {
     kind: "plugin", cli: "claude",
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "install", ref, "--scope", "user"]],
     remove: [["plugin", "uninstall", ref, "--scope", "user"], marketplaceRemove],
+    registry: join("/h", ".claude", "plugins", "installed_plugins.json"),
   });
   expect(codex.integration).toEqual({
     kind: "plugin", cli: "codex",
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "add", ref]],
     remove: [["plugin", "remove", ref], marketplaceRemove],
+    registry: join("/h", ".codex", "config.toml"),
   });
   expect(claude.configDir).toBe(join("/h", ".claude"));
   expect(codex.binary).toBe("codex");
@@ -91,6 +93,37 @@ test("isDetected uses binary or config dir", () => {
   expect(isDetected(target, none, () => false)).toBe(false);
   expect(isDetected(target, (bin) => (bin === "cursor" ? "/bin/cursor" : null), () => false)).toBe(true);
   expect(isDetected(target, none, (p) => p === target.configDir)).toBe(true);
+});
+
+test("isRegistered reads plugin registries and mcp configs", () => {
+  const home = tempDir();
+  const env = linux(home);
+  const ref = `"${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}"`;
+  for (const id of ["claude", "codex", "cursor", "zed"]) expect(isRegistered(byId(env, id))).toBe(false);
+
+  const claude = byId(env, "claude").integration;
+  const codex = byId(env, "codex").integration;
+  if (claude.kind !== "plugin" || codex.kind !== "plugin") throw new Error("expected plugins");
+  mkdirSync(join(home, ".claude", "plugins"), { recursive: true });
+  writeFileSync(claude.registry, JSON.stringify({ plugins: { [JSON.parse(ref)]: [] } }));
+  mkdirSync(join(home, ".codex"), { recursive: true });
+  writeFileSync(codex.registry, `[plugins.${ref}]\nenabled = true\n`);
+  mkdirSync(join(home, ".cursor"), { recursive: true });
+  writeFileSync(mcpPath(env, "cursor"), JSON.stringify({ mcpServers: { [MCP_SERVER_NAME]: {} } }));
+  mkdirSync(join(home, ".config", "zed"), { recursive: true });
+  writeFileSync(mcpPath(env, "zed"), `// comments\n{ "context_servers": { "${MCP_SERVER_NAME}": {} } }`);
+  for (const id of ["claude", "codex", "cursor", "zed"]) expect(isRegistered(byId(env, id))).toBe(true);
+});
+
+test("plugin registries follow CLAUDE_CONFIG_DIR and CODEX_HOME", () => {
+  const env = linux("/h", { CLAUDE_CONFIG_DIR: "/cc", CODEX_HOME: "/cx" });
+  const registryOf = (id: string) => {
+    const { integration } = byId(env, id);
+    if (integration.kind !== "plugin") throw new Error("expected plugin");
+    return integration.registry;
+  };
+  expect(registryOf("claude")).toBe(join("/cc", "plugins", "installed_plugins.json"));
+  expect(registryOf("codex")).toBe(join("/cx", "config.toml"));
 });
 
 test("serverCommand pins the installed binary and falls back to the bare name", () => {
