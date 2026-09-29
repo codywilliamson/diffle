@@ -24,17 +24,18 @@ test("registry ids in order", () => {
 
 test("plugin argv comes from PRODUCT", () => {
   const ref = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
+  const marketplaceRemove = ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace];
   const claude = byId(linux("/h"), "claude");
   const codex = byId(linux("/h"), "codex");
   expect(claude.integration).toEqual({
     kind: "plugin", cli: "claude",
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "install", ref, "--scope", "user"]],
-    remove: [["plugin", "uninstall", ref, "--scope", "user"]],
+    remove: [["plugin", "uninstall", ref, "--scope", "user"], marketplaceRemove],
   });
   expect(codex.integration).toEqual({
     kind: "plugin", cli: "codex",
     install: [["plugin", "marketplace", "add", repositorySlug()], ["plugin", "add", ref]],
-    remove: [["plugin", "remove", ref]],
+    remove: [["plugin", "remove", ref], marketplaceRemove],
   });
   expect(claude.configDir).toBe(join("/h", ".claude"));
   expect(codex.binary).toBe("codex");

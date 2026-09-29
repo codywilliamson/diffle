@@ -55,6 +55,14 @@ test("a failing uninstall is reported", () => {
   expect(calls[0]).toContain("uninstall");
 });
 
+test("remove also drops the marketplace, tolerating one that's already gone", () => {
+  const { calls, run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
+  const results = applyAgent(byId("/h", "codex"), "remove", false, run);
+  expect(calls.map((call) => call.slice(1, 3))).toEqual([["plugin", "remove"], ["plugin", "marketplace"]]);
+  expect(results.map((r) => r.status)).toEqual(["ok", "skipped"]);
+  expect(results[1]!.text).toContain("already removed");
+});
+
 test("mcp-config install then remove on a real file", () => {
   const home = tempDir();
   const cursor = byId(home, "cursor");

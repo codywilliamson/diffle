@@ -20,6 +20,7 @@ export const MCP_SERVER_NAME: string = PRODUCT.name;
 const MCP_ARGS = ["mcp", "serve"];
 const PLUGIN_REF = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
 const MARKETPLACE_ADD = ["plugin", "marketplace", "add", repositorySlug()];
+const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace];
 
 // gui-launched agents don't source shell rc files, so the installed binary is written by
 // absolute path; running from source (or the legacy alias) falls back to the bare name.
@@ -58,12 +59,12 @@ export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
     pluginTarget("claude", "Claude Code", home, {
       kind: "plugin", cli: "claude",
       install: [MARKETPLACE_ADD, ["plugin", "install", PLUGIN_REF, "--scope", "user"]],
-      remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"]],
+      remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"], MARKETPLACE_REMOVE],
     }),
     pluginTarget("codex", "Codex", home, {
       kind: "plugin", cli: "codex",
       install: [MARKETPLACE_ADD, ["plugin", "add", PLUGIN_REF]],
-      remove: [["plugin", "remove", PLUGIN_REF]],
+      remove: [["plugin", "remove", PLUGIN_REF], MARKETPLACE_REMOVE],
     }),
     mcpTarget({ id: "cursor", displayName: "Cursor", binary: "cursor", dir: join(home, ".cursor"), file: "mcp.json", key: "mcpServers", entry: commandEntry }),
     mcpTarget({ id: "gemini", displayName: "Gemini CLI", binary: "gemini", dir: join(home, ".gemini"), file: "settings.json", key: "mcpServers", entry: commandEntry }),
