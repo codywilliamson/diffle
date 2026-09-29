@@ -3,15 +3,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { marketplaceState } from "./marketplaceState";
 import { hasMcpEntry, isMissingFile } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
 
 export type PluginCli = "claude" | "codex";
 // argv lists run as `<cli> ...args`, in order; registry = the agent's file listing installed plugins,
-// marketplaces = the file listing marketplace sources and the text that marks ours in it
+// marketplaceSources = the files that can register a marketplace (see marketplaceState)
 export interface PluginIntegration {
-  kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; registry: string;
-  marketplaces: { file: string; markers: string[] };
+  kind: "plugin"; cli: PluginCli; install: string[][]; remove: string[][]; registry: string; marketplaceSources: string[];
 }
 // key = top-level object holding servers
 export interface McpConfigIntegration { kind: "mcp-config"; path: string; key: string; entry: Record<string, unknown>; }
@@ -25,8 +25,7 @@ export const MCP_SERVER_NAME: string = PRODUCT.name;
 const MCP_ARGS = ["mcp", "serve"];
 const PLUGIN_REF = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
 const MARKETPLACE_ADD = ["plugin", "marketplace", "add", repositorySlug()];
-const MARKETPLACE: string = PRODUCT.plugin.marketplace;
-const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", MARKETPLACE];
+const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace];
 
 // gui-launched agents don't source shell rc files, so the installed binary is written by
 // absolute path; running from source (or the legacy alias) falls back to the bare name.
@@ -69,14 +68,14 @@ export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
       install: [MARKETPLACE_ADD, ["plugin", "install", PLUGIN_REF, "--scope", "user"]],
       remove: [["plugin", "uninstall", PLUGIN_REF, "--scope", "user"], MARKETPLACE_REMOVE],
       registry: join(claudeDir, "plugins", "installed_plugins.json"),
-      marketplaces: { file: join(claudeDir, "plugins", "known_marketplaces.json"), markers: [JSON.stringify(MARKETPLACE)] },
+      marketplaceSources: [join(claudeDir, "plugins", "known_marketplaces.json")],
     }),
     pluginTarget("codex", "Codex", home, {
       kind: "plugin", cli: "codex",
       install: [MARKETPLACE_ADD, ["plugin", "add", PLUGIN_REF]],
       remove: [["plugin", "remove", PLUGIN_REF], MARKETPLACE_REMOVE],
       registry: codexConfig,
-      marketplaces: { file: codexConfig, markers: [`[marketplaces.${MARKETPLACE}]`, `[marketplaces.${JSON.stringify(MARKETPLACE)}]`] },
+      marketplaceSources: [codexConfig],
     }),
     mcpTarget({ id: "cursor", displayName: "Cursor", binary: "cursor", dir: join(home, ".cursor"), file: "mcp.json", key: "mcpServers", entry: commandEntry }),
     mcpTarget({ id: "gemini", displayName: "Gemini CLI", binary: "gemini", dir: join(home, ".gemini"), file: "settings.json", key: "mcpServers", entry: commandEntry }),
@@ -104,20 +103,17 @@ export function isRegistered({ integration }: AgentTarget): boolean {
   return isPluginInstalled(integration) || isMarketplaceRegistered(integration);
 }
 
+// unreadable counts as installed so a teardown that can't confirm removal fails safe
 export function isPluginInstalled({ registry }: PluginIntegration): boolean {
-  return fileMentions(registry, [JSON.stringify(PLUGIN_REF)]);
-}
-
-export function isMarketplaceRegistered({ marketplaces }: PluginIntegration): boolean {
-  return fileMentions(marketplaces.file, marketplaces.markers);
-}
-
-// unreadable counts as mentioned so a teardown that can't confirm removal fails safe
-function fileMentions(path: string, markers: string[]): boolean {
   try {
-    const text = readFileSync(path, "utf8");
-    return markers.some((marker) => text.includes(marker));
+    return readFileSync(registry, "utf8").includes(JSON.stringify(PLUGIN_REF));
   } catch (err) {
     return !isMissingFile(err);
   }
+}
+
+// a marketplace of the same name pointing elsewhere isn't ours to remove; unknown fails safe
+export function isMarketplaceRegistered({ marketplaceSources }: PluginIntegration): boolean {
+  const state = marketplaceState(marketplaceSources);
+  return state === "ours" || state === "unknown";
 }

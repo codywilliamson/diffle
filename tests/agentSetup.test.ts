@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { applyAgent, pluginStepArgs, type RunCommand } from "../src/core/agentSetup";
 import { agentTargets, MCP_SERVER_NAME, type AgentTarget } from "../src/core/agentTargets";
+import { PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
 afterEach(cleanupTempDirs);
@@ -35,11 +36,33 @@ test("codex never gets --yes", () => {
   expect(pluginStepArgs("codex", ["plugin", "install", "x"], true)).toEqual(["plugin", "install", "x"]);
 });
 
-test("a failing marketplace add is tolerated", () => {
+// writes a claude known_marketplaces.json registering our marketplace name to `repo`
+function claudeWithMarketplace(repo: string): AgentTarget {
+  const claude = byId(tempDir(), "claude");
+  if (claude.integration.kind !== "plugin") throw new Error("expected plugin");
+  const [known] = claude.integration.marketplaceSources;
+  mkdirSync(dirname(known!), { recursive: true });
+  writeFileSync(known!, JSON.stringify({ [PRODUCT.plugin.marketplace]: { source: { source: "github", repo } } }));
+  return claude;
+}
+
+test("a failing marketplace add is tolerated only when the existing entry is ours", () => {
   const { calls, run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
-  const results = applyAgent(byId("/h", "claude"), "install", false, run);
+  const results = applyAgent(claudeWithMarketplace(repositorySlug()), "install", false, run);
   expect(results.map((r) => r.status)).toEqual(["skipped", "ok"]);
   expect(calls).toHaveLength(2);
+});
+
+test("a same-named marketplace from another source stops the install", () => {
+  const { calls, run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
+  const results = applyAgent(claudeWithMarketplace("someone/else"), "install", true, run);
+  expect(results).toEqual([expect.objectContaining({ status: "failed", text: expect.stringContaining("another source") })]);
+  expect(calls).toHaveLength(1);
+});
+
+test("a failing marketplace add with nothing registered is a failure", () => {
+  const { run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
+  expect(applyAgent(byId(tempDir(), "claude"), "install", false, run)).toEqual([expect.objectContaining({ status: "failed" })]);
 });
 
 test("a failing install is reported and counted", () => {
@@ -87,8 +110,8 @@ test("a failed marketplace removal fails while the marketplace is still register
   const home = tempDir();
   const codex = byId(home, "codex");
   if (codex.integration.kind !== "plugin") throw new Error("expected plugin");
-  mkdirSync(dirname(codex.integration.marketplaces.file), { recursive: true });
-  writeFileSync(codex.integration.marketplaces.file, `${codex.integration.marketplaces.markers[0]}\nsource = "x"\n`);
+  mkdirSync(dirname(codex.integration.registry), { recursive: true });
+  writeFileSync(codex.integration.registry, `[marketplaces.${PRODUCT.plugin.marketplace}]\nsource = "https://github.com/${repositorySlug()}"\n`);
   const { run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
   const results = applyAgent(codex, "remove", false, run);
   expect(results.map((r) => r.status)).toEqual(["ok", "failed"]);

@@ -1,5 +1,7 @@
 // applies (or removes) one agent's diffle integration and reports what happened per step.
 
+import { marketplaceState } from "./marketplaceState";
+import { PRODUCT } from "./product";
 import { mcpEntrySnippet, mergeMcpEntry, removeMcpEntry, type ConfigAction } from "./mcpConfigFile";
 import {
   isMarketplaceRegistered, isPluginInstalled, MCP_SERVER_NAME, type AgentTarget, type McpConfigIntegration, type PluginCli, type PluginIntegration,
@@ -14,6 +16,7 @@ export const runInherited: RunCommand = (cli, args) =>
   Bun.spawnSync({ cmd: [cli, ...args], stdio: ["inherit", "inherit", "inherit"] }).exitCode;
 
 const isMarketplaceStep = (args: string[]) => args[1] === "marketplace";
+const MARKETPLACE: string = PRODUCT.plugin.marketplace;
 const SPAWN_FAILED = -1;
 
 // claude prompts before trusting a marketplace-declared command; --yes accepts it (codex has no such flag)
@@ -32,11 +35,16 @@ function exitCodeOf(run: RunCommand, cli: string, args: string[]): number {
   }
 }
 
-// adding an already-added marketplace errors harmlessly; a failed removal step only passes once
-// what it removes is verifiably gone, so a half-finished teardown can be rerun to completion
+// a failed marketplace add only passes when the existing entry is verifiably ours — installing
+// through a same-named marketplace from another source would trust code we didn't vet. a failed
+// removal step only passes once what it removes is gone, so a half-done teardown can be rerun
 function stepFailure(integration: PluginIntegration, step: string[], text: string, mode: SetupMode): StepResult {
   const marketplace = isMarketplaceStep(step);
-  if (marketplace && mode === "install") return { status: "skipped", text: `${text} (failed — likely already added)` };
+  if (marketplace && mode === "install") {
+    const state = marketplaceState(integration.marketplaceSources);
+    if (state === "ours") return { status: "skipped", text: `${text} (failed — already added)` };
+    if (state === "foreign") return { status: "failed", text: `${text} (failed — ${MARKETPLACE} points at another source; remove it first)` };
+  }
   if (mode === "install") return { status: "failed", text: `${text} (failed)` };
   const stillThere = marketplace ? isMarketplaceRegistered(integration) : isPluginInstalled(integration);
   return stillThere
