@@ -31,7 +31,7 @@ diffle setup
 
 The MCP entry runs `diffle mcp serve` and every other setting in the file is preserved. If a config file isn't plain JSON (comments are common in Zed and VS Code), setup never rewrites it and prints the snippet to paste by hand instead.
 
-To skip the prompts, pass `--agents claude,codex` to select agents and `--yes` to skip the confirmation. Without a terminal and without `--agents`, setup exits 1 with a hint. Undo it with `diffle setup --remove`. The installer offers to run `diffle setup` when it finishes; set `DIFFLE_NO_SETUP=1` to skip that. See the [CLI reference](/reference/cli/).
+To skip the prompts, pass `--agents claude,codex` to select agents and `--yes` to skip the confirmation. Without a terminal and without `--agents`, setup exits 1 with a hint. Undo it with `diffle setup --remove`, which pre-checks every agent diffle is currently set up in. The installer offers to run `diffle setup` when it finishes; set `DIFFLE_NO_SETUP=1` to skip that. See the [CLI reference](/reference/cli/).
 
 ## Manual setup
 
