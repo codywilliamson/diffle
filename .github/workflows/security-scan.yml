@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   security-scan:
-    uses: codywilliamson/repo-sentinel/.github/workflows/security-scan.yml@v0.3.3
+    uses: codywilliamson/repo-sentinel/.github/workflows/security-scan.yml@v0.3.4
     with:
       severity-threshold: "MEDIUM"
       codeql-languages: "javascript-typescript"
