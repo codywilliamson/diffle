@@ -14,6 +14,8 @@ Want to help? Read the [contribution guide](CONTRIBUTING.md). Please [report sec
 
 Review a diff, comment on exact lines, and export structured feedback for your agent. [Watch the MP4](docs/screenshots/walkthrough.mp4) or read the [docs](https://diffle.dev).
 
+Side-by-side diffs have independent horizontal scrolling and a resizable divider. Line numbers and comments stay visible, and wrapped lines stay aligned across both sides. [Reviewing changes](https://diffle.dev/guides/reviewing-changes/) covers the pointer and keyboard controls.
+
 ## Screenshots
 
 ![diffle — a unified diff with a file tree and inline comments](docs/screenshots/overview.png)

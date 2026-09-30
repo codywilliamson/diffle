@@ -36,7 +36,7 @@
       {#if status === "addressed"}<span class="comment-chip bg-mod-badge-bg text-mod-badge-text">Addressed</span>{/if}
       {#if comment.tag}<span class="comment-chip comment-chip-tag">{comment.tag}</span>{/if}
       <time datetime={comment.createdAt}>{relativeTime(comment.createdAt)}</time>
-      <span class="-mr-2 ml-auto flex items-center gap-0.5">
+      <span class="-mr-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
         <button class="comment-btn" onclick={() => (resolved ? comments.reopen(comment.id) : comments.resolve(comment.id))}>{resolved ? "Reopen" : "Resolve"}</button>
         {#if !resolved}<button class="comment-btn" onclick={() => (editing = true)}>Edit</button>{/if}
         {#if !review.isLegacy && !resolved}<button class="comment-btn" onclick={() => (replying = true)}>Reply</button>{/if}

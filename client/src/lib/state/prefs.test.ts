@@ -18,11 +18,22 @@ function fakeStorage(seed: Record<string, string> = {}): FakeStorage {
 const media = (matches: boolean) => () => ({ matches });
 
 describe("prefs store", () => {
+  it("bounds saved split widths and tolerates invalid preferences", () => {
+    const prefs = createPrefsStore({ storage: fakeStorage({ [`${PREFS_PREFIX}split-ratio`]: "NaN" }), matchMedia: media(false) });
+    expect(prefs.splitRatio).toBe(50);
+    prefs.setSplitRatio(-5);
+    expect(prefs.splitRatio).toBe(20);
+    prefs.setSplitRatio(100);
+    expect(prefs.splitRatio).toBe(80);
+    prefs.setSplitRatio(Number.POSITIVE_INFINITY);
+    expect(prefs.splitRatio).toBe(50);
+  });
   it("uses defaults when nothing is stored", () => {
     const prefs = createPrefsStore({ storage: fakeStorage(), matchMedia: media(false) });
     expect(prefs.theme).toBe("light");
     expect(prefs.sidebarWidth).toBe(280);
     expect(prefs.split).toBe(false);
+    expect(prefs.splitRatio).toBe(50);
     expect(prefs.wrap).toBe(false);
     expect(prefs.fileView).toBe("all");
   });
@@ -38,6 +49,7 @@ describe("prefs store", () => {
     a.setTheme("dark");
     a.setSidebarWidth(320);
     a.toggleSplit();
+    a.setSplitRatio(63);
     a.toggleWrap();
     a.setFileView("single");
 
@@ -45,6 +57,7 @@ describe("prefs store", () => {
     expect(b.theme).toBe("dark");
     expect(b.sidebarWidth).toBe(320);
     expect(b.split).toBe(true);
+    expect(b.splitRatio).toBe(63);
     expect(b.wrap).toBe(true);
     expect(b.fileView).toBe("single");
   });
