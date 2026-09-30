@@ -14,11 +14,18 @@
   const id = $props.id();
   let ratio = $state(untrack(() => prefs.splitRatio));
   const rows = $derived(splitRows(file, comments.comments, ui.adding));
-  $effect(() => { ratio = prefs.splitRatio; });
+  $effect(() => {
+    ratio = prefs.splitRatio;
+  });
 </script>
 
 <div class="split-diff" style="--split-ratio:{ratio}" use:alignSplitRows>
   <SplitPane {file} {rows} side="old" id="{id}-old" {highlighted} />
-  <SplitDivider value={ratio} controls="{id}-old" onResize={(value) => (ratio = value)} onCommit={() => prefs.setSplitRatio(ratio)} />
+  <SplitDivider
+    value={ratio}
+    controls="{id}-old"
+    onResize={(value) => (ratio = value)}
+    onCommit={() => prefs.setSplitRatio(ratio)}
+  />
   <SplitPane {file} {rows} side="new" id="{id}-new" {highlighted} />
 </div>
