@@ -9,11 +9,22 @@ const WORK = ["export const options = {", LONG_NEW, "  retries: 5,", "  enabled:
 
 async function aligned(page: Page): Promise<void> {
   await expect.poll(() => page.locator(".split-pane").evaluateAll((panes) => {
-    const rows = panes.map((pane) => Array.from(pane.querySelectorAll(".split-line, .split-comment-slot")).map((row) => {
-      const rect = row.getBoundingClientRect();
-      return [rect.y, rect.height];
-    }));
-    return rows[0]!.length === rows[1]!.length && rows[0]!.every((rect, i) => rect.every((n, j) => Math.abs(n - rows[1]![i]![j]!) < 1));
+    const rowLayouts = panes.map((pane) => {
+      const rows = pane.querySelectorAll(".split-line, .split-comment-slot");
+      return Array.from(rows, (row) => {
+        const bounds = row.getBoundingClientRect();
+        return { top: bounds.y, height: bounds.height };
+      });
+    });
+    const [oldRows, newRows] = rowLayouts;
+    if (!oldRows || !newRows || oldRows.length !== newRows.length) return false;
+
+    return oldRows.every((oldRow, index) => {
+      const newRow = newRows[index]!;
+      const sameTop = Math.abs(oldRow.top - newRow.top) < 1;
+      const sameHeight = Math.abs(oldRow.height - newRow.height) < 1;
+      return sameTop && sameHeight;
+    });
   })).toBe(true);
 }
 

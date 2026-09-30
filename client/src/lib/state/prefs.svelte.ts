@@ -3,7 +3,7 @@
 // side effect and the theme-value migration (claude -> light, claude-dark -> dark).
 
 import { readMigrated, writeKey, type StorageLike } from "./prefs-storage";
-import { clampSplitRatio } from "$lib/diff/splitRatio";
+import { DEFAULT_SPLIT_RATIO, clampSplitRatio } from "$lib/diff/splitRatio";
 
 export type Theme = "light" | "dark";
 export type FileView = "all" | "single";
@@ -68,7 +68,7 @@ export function createPrefsStore(deps: PrefsDeps = {}) {
   let theme = $state<Theme>(initialTheme);
   let sidebarWidth = $state(resolveNumber(storage, "sidebar", DEFAULT_SIDEBAR));
   let split = $state(resolveBool(storage, "split"));
-  let splitRatio = $state(clampSplitRatio(resolveNumber(storage, "split-ratio", 50)));
+  let splitRatio = $state(clampSplitRatio(resolveNumber(storage, "split-ratio", DEFAULT_SPLIT_RATIO)));
   let wrap = $state(resolveBool(storage, "wrap"));
   let fileView = $state<FileView>(readMigrated(storage, "view") === "single" ? "single" : "all");
 
@@ -108,7 +108,9 @@ export function createPrefsStore(deps: PrefsDeps = {}) {
     get split(): boolean {
       return split;
     },
-    get splitRatio(): number { return splitRatio; },
+    get splitRatio(): number {
+      return splitRatio;
+    },
     setSplitRatio(value: number): void {
       splitRatio = clampSplitRatio(value);
       writeKey(storage, "split-ratio", String(splitRatio));
