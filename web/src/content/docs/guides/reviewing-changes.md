@@ -21,7 +21,11 @@ Every changed file appears in the sidebar tree. Click a file to jump to it. Filt
 
 Toggle between **unified** (one column, `+`/`-` markers) and **side-by-side** (old on the left, new on the right) with the `s` shortcut. Added and deleted files always render **unified** — there is no counterpart column to show.
 
-Long lines can be hard to scan side-by-side; turn on **line wrapping** to fold them into the column width instead of scrolling horizontally.
+Each side scrolls horizontally on its own. Hover the old or new pane and use a horizontal trackpad swipe or `Shift` + wheel to inspect a long line. Line numbers and comment controls stay visible; vertical scrolling keeps both sides together. At a horizontal edge, `Shift` + wheel returns to vertical scrolling.
+
+Drag the divider to give either side more room. You can also focus it with `Tab` and use the left/right arrow keys (`Shift` for larger steps), or `Home` / `End` to reach the limits. Double-click the divider or press `Enter` to restore equal widths. The width choice is remembered across files and reloads.
+
+Turn on **line wrapping** to fold long lines into each pane's width. Corresponding lines stay aligned even when one side wraps more, or a comment thread expands. Inline and range comments remain attached to their own side.
 
 ![A side-by-side diff: the old file on the left, the new file on the right, with an inline comment thread](/media/side-by-side.png)
 

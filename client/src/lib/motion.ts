@@ -39,7 +39,7 @@ const STAGGER_STEP_MS = 12;
 
 export function revealRows(node: HTMLElement) {
   if (reduced()) return;
-  const rows = Array.from(node.querySelectorAll<HTMLElement>("tr.diff-row")).slice(0, STAGGER_ROWS);
+  const rows = Array.from(node.querySelectorAll<HTMLElement>(".diff-row")).slice(0, STAGGER_ROWS);
   for (const [i, row] of rows.entries()) {
     row.animate?.(
       [

@@ -120,25 +120,6 @@ body.selecting {
   cursor: ns-resize;
 }
 
-/* side-by-side: one horizontal scrollbar for the whole diff (the file wrapper's), never one per
-   line. table-layout: fixed + a width sized to the longest line keeps both panes locked at 50/50
-   while a long line widens the table into that single scroller. --split-maxch is the file's
-   longest line length (0 while wrapping); 148px covers the four gutter columns. */
-.split-table {
-  table-layout: fixed;
-  width: max(100%, calc(148px + var(--split-maxch, 0) * 2ch));
-}
-.split-table .code {
-  padding: 0 8px 0 4px;
-}
-.wrap .split-table {
-  width: 100%;
-}
-/* the thread anchors to one side via colspan; keep it inside that side rather than sticking to
-   the pane's left edge, which would drag a new-side comment across into the old pane on scroll. */
-.split-table .comment-box {
-  position: static;
-}
 .code-addition {
   background: var(--add-bg);
 }
@@ -146,7 +127,7 @@ body.selecting {
   background: var(--del-bg);
 }
 .code-empty,
-.split-table .lineno.empty {
+.split-line.row-empty {
   background: color-mix(in srgb, var(--surface-2) 45%, transparent);
 }
 
