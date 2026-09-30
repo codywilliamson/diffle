@@ -39,14 +39,19 @@ const STAGGER_STEP_MS = 12;
 
 export function revealRows(node: HTMLElement) {
   if (reduced()) return;
-  const rows = Array.from(node.querySelectorAll<HTMLElement>(".diff-row")).slice(0, STAGGER_ROWS);
-  for (const [i, row] of rows.entries()) {
-    row.animate?.(
-      [
-        { opacity: 0, transform: "translateY(4px)" },
-        { opacity: 1, transform: "none" },
-      ],
-      { duration: 220, delay: i * STAGGER_STEP_MS, easing: "cubic-bezier(0.33, 1, 0.68, 1)", fill: "backwards" },
-    );
+  const panes = Array.from(node.querySelectorAll<HTMLElement>(".split-pane"));
+  const rowGroups = panes.length === 2 ? panes : [node];
+  // old/new panes render their rows separately; paired rows must share the same delay.
+  for (const group of rowGroups) {
+    const rows = Array.from(group.querySelectorAll<HTMLElement>(".diff-row")).slice(0, STAGGER_ROWS);
+    for (const [index, row] of rows.entries()) {
+      row.animate?.(
+        [
+          { opacity: 0, transform: "translateY(4px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 220, delay: index * STAGGER_STEP_MS, easing: "cubic-bezier(0.33, 1, 0.68, 1)", fill: "backwards" },
+      );
+    }
   }
 }
