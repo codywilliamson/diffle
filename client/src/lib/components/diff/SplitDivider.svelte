@@ -7,13 +7,14 @@
     value: number;
     controls: string;
     onResize: (ratio: number) => void;
+    onEffectiveResize: (ratio: number) => void;
     onCommit: () => void;
   }
   const MIN_PANE_WIDTH = 120;
   const KEYBOARD_STEP = 2;
   const LARGE_KEYBOARD_STEP = 10;
 
-  let { value, controls, onResize, onCommit }: Props = $props();
+  let { value, controls, onResize, onEffectiveResize, onCommit }: Props = $props();
   let handle: HTMLDivElement;
   let activePointer: number | null = null;
   let pendingFrame = 0;
@@ -25,13 +26,16 @@
     return Math.min(maximum, Math.max(minimum, clampSplitRatio(next)));
   }
 
+  // layout constraints affect presentation; only user input changes the requested ratio.
+  const effectiveValue = $derived(constrainRatio(value));
+  $effect(() => onEffectiveResize(effectiveValue));
+
   onMount(() => {
     const container = handle.parentElement!;
     const observer = new ResizeObserver(() => {
       const availableWidth = Math.max(1, container.clientWidth - handle.offsetWidth);
       const minimumWidthRatio = MIN_PANE_WIDTH / availableWidth * 100;
       minimum = Math.min(DEFAULT_SPLIT_RATIO, Math.max(MIN_SPLIT_RATIO, minimumWidthRatio));
-      onResize(constrainRatio(value));
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -85,10 +89,10 @@
     let nextRatio: number;
     switch (event.key) {
       case "ArrowLeft":
-        nextRatio = value - step;
+        nextRatio = effectiveValue - step;
         break;
       case "ArrowRight":
-        nextRatio = value + step;
+        nextRatio = effectiveValue + step;
         break;
       case "Home":
         nextRatio = minimum;
@@ -131,8 +135,8 @@
   aria-orientation="vertical"
   aria-valuemin={minimum}
   aria-valuemax={maximum}
-  aria-valuenow={Math.round(value)}
-  aria-valuetext="{Math.round(value)}% old, {Math.round(100 - value)}% new"
+  aria-valuenow={Math.round(effectiveValue)}
+  aria-valuetext="{Math.round(effectiveValue)}% old, {Math.round(100 - effectiveValue)}% new"
   title="Drag to resize · Arrow keys to adjust · Double-click or Enter to reset"
   onpointerdown={startDrag}
   onpointermove={moveDivider}
