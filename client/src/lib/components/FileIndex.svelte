@@ -50,7 +50,7 @@
     </div>
   </div>
 
-  <div class="min-h-0 flex-1 overflow-auto pb-2">
+  <div class="relative min-h-0 flex-1 overflow-auto pb-2">
     {#if shown.length === 0}
       <div class="px-3 py-4 text-sm text-dim">No files match “{filter}”</div>
     {:else}
