@@ -2,6 +2,16 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.25.1](https://github.com/codywilliamson/diffle/compare/v0.25.0...v0.25.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **ui:** contain hidden viewed controls in the file scroller ([addcfcc](https://github.com/codywilliamson/diffle/commit/addcfcc56d8427b0990c0e3ed5a6a3d6bc19f646))
+* **ui:** restore chosen split widths when constraints relax ([09b40b7](https://github.com/codywilliamson/diffle/commit/09b40b77cdf6c5fc08840cb7fe03296842a09d2e))
+* **ui:** restore independent resizable split panes ([c955964](https://github.com/codywilliamson/diffle/commit/c955964216d8c80082dcc44bd26a2b70838dd639))
+* **ui:** reveal corresponding split rows together ([744f9ef](https://github.com/codywilliamson/diffle/commit/744f9efc7019058b0c32d720ac2a4bef6ceadac2))
+
 ## [0.25.0](https://github.com/codywilliamson/diffle/compare/v0.24.0...v0.25.0) (2026-09-29)
 
 
