@@ -3,7 +3,7 @@
   import type { Snippet } from "svelte";
   import { fade, scale } from "$lib/motion";
 
-  let { title, onClose, children }: { title: string; onClose: () => void; children: Snippet } = $props();
+  let { title, wide = false, onClose, children }: { title: string; wide?: boolean; onClose: () => void; children: Snippet } = $props();
 
   let dialog = $state<HTMLDivElement>();
   let opener: Element | null = null;
@@ -51,7 +51,7 @@
   <div
     bind:this={dialog}
     transition:scale
-    class="relative z-10 max-h-[85vh] w-full max-w-lg overflow-auto rounded-lg border border-border bg-surface p-4 shadow-xl"
+    class="relative z-10 max-h-[85vh] w-full {wide ? 'max-w-3xl' : 'max-w-lg'} overflow-auto rounded-lg border border-border bg-surface p-4 shadow-xl"
     role="dialog"
     aria-modal="true"
     aria-label={title}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { REVIEW_SCHEMA_VERSION, type DiffResult, type ReviewRecord } from "$types";
 import App from "./App.svelte";
@@ -95,6 +95,33 @@ describe("App shell", () => {
     await fireEvent.keyDown(window, { key: "c" });
     expect(await screen.findByRole("heading", { name: "Feedback preview" })).toBeInTheDocument();
     expect(await screen.findByText("compiled feedback")).toBeInTheDocument();
+  });
+
+  it("expands the review menu into a modal that keeps the draft and renders the agent update", async () => {
+    Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const withUpdate: ReviewRecord = {
+      ...reviewRecord,
+      activity: [{ id: "a1", type: "rereview_requested", actor: "agent", summary: "All **17** addressed", createdAt: "2026-01-01T00:00:00Z" }],
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/api/diff") return jsonResponse(diff, 200);
+      if (path === "/api/comments") return jsonResponse(withUpdate, 200);
+      if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
+      return jsonResponse({}, 404);
+    }));
+    render(App);
+    await screen.findByText(/1 file\b/);
+
+    await fireEvent.click(screen.getByRole("button", { name: /Review menu/i }));
+    expect(screen.getByText("17").tagName).toBe("STRONG");
+    await fireEvent.input(screen.getByRole("textbox", { name: "Reviewer summary" }), { target: { value: "Draft note" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Expand review" }));
+
+    const dialog = await screen.findByRole("dialog", { name: /^Review —/ });
+    expect(within(dialog).getByRole("textbox", { name: "Reviewer summary" })).toHaveValue("Draft note");
+    expect(within(dialog).getByText("17").tagName).toBe("STRONG");
   });
 
   it("includes the review menu's draft summary in feedback preview", async () => {
