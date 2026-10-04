@@ -47,7 +47,8 @@ export function makeFixture(files: FixtureFile[]): string {
 export function startBackend(fixture: string): { server: ChildProcess; url: Promise<string> } {
   const server = spawn("bun", [join(REPO_ROOT, "src", "index.ts"), "--no-open"], {
     cwd: fixture,
-    env: { ...process.env, LOUPE_SESSION_HOST: "cli" },
+    // keep review records + state in the throwaway parent dir, never the real ~/.diffle
+    env: { ...process.env, LOUPE_SESSION_HOST: "cli", DIFFLE_DATA_DIR: join(dirname(fixture), "data") },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const url = new Promise<string>((resolve, reject) => {

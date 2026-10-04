@@ -40,11 +40,15 @@ export function makeFixture(files: FixtureFile[]): string {
   return dir;
 }
 
+// review records + state live beside the fixture (inside it they'd show up in the diff), never
+// in the real ~/.diffle.
+const dataDirFor = (fixture: string): string => `${fixture}-data`;
+
 // launch the real bun backend in the fixture and return the review url it prints.
 export function startPreview(fixture: string): { server: ChildProcess; url: Promise<string> } {
   const server = spawn("bun", [join(LOUPE_ROOT, "src", "index.ts"), "--no-open"], {
     cwd: fixture,
-    env: { ...process.env, LOUPE_SESSION_HOST: "cli" },
+    env: { ...process.env, LOUPE_SESSION_HOST: "cli", DIFFLE_DATA_DIR: dataDirFor(fixture) },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const url = new Promise<string>((resolve, reject) => {
@@ -87,9 +91,11 @@ export async function gotoApp(page: Page, url: string): Promise<void> {
 }
 
 export function cleanup(fixture: string): void {
-  try {
-    rmSync(fixture, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  } catch {
-    // best-effort — the os reaps the temp dir regardless
+  for (const dir of [fixture, dataDirFor(fixture)]) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {
+      // best-effort — the os reaps the temp dir regardless
+    }
   }
 }
