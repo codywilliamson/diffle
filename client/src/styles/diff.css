@@ -213,6 +213,32 @@ body.selecting {
   margin: 1em 0;
 }
 
+/* compact variant for comments, replies and agent updates: body-sized, no outer margins */
+.markdown-compact {
+  line-height: inherit;
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+.markdown-compact > :first-child {
+  margin-top: 0;
+}
+.markdown-compact > :last-child {
+  margin-bottom: 0;
+}
+.markdown-compact p,
+.markdown-compact ul,
+.markdown-compact ol,
+.markdown-compact blockquote,
+.markdown-compact pre {
+  margin: 0.4em 0;
+}
+.markdown-compact h1,
+.markdown-compact h2,
+.markdown-compact h3 {
+  font-size: 1.05em;
+  margin: 0.6em 0 0.3em;
+}
+
 /* review status colors */
 .status-awaiting_human {
   color: var(--accent);
