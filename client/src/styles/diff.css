@@ -163,8 +163,12 @@ body.selecting {
 .markdown-body ol {
   padding-left: 1.4em;
 }
-.markdown-body li {
-  list-style: revert;
+/* tailwind's preflight strips list markers from ul/ol, which li would otherwise inherit */
+.markdown-body ul {
+  list-style: disc;
+}
+.markdown-body ol {
+  list-style: decimal;
 }
 .markdown-body a {
   color: var(--accent);
