@@ -22,6 +22,8 @@ The Svelte client may change the presentation, but it does not ship until these 
 - Each file has its own Side-by-side/Unified toggle that overrides the global split choice for that file; a global split flip resets every per-file override.
 - Added and deleted files (content on only one side) are forced to the unified view and hide the side-by-side toggle.
 - In side-by-side view, shift+wheel or a horizontal trackpad swipe scrolls the hovered pane horizontally, deferring to vertical scroll at the pane edge.
+- The split divider supports pointer capture, keyboard arrows (shift for larger steps), Home/End bounds, and Enter/double-click reset. Its ratio persists across files and reloads, with minimum readable pane widths on narrow screens. Gutters and comment controls stay visible during horizontal scrolling; corresponding rows stay aligned through wrapping and comment expansion.
+- Temporary width constraints preserve the requested split ratio; widening the viewport or reducing the sidebar restores it without a remount. With motion enabled, corresponding old/new rows reveal together, including diffs longer than the stagger limit.
 - External links in the rendered markdown preview open in a new tab (`rel=noopener`) so the review stays put.
 - Files over ~2000 lines render a "large diff hidden" notice with a Load-diff button — a manual gate distinct from the near-viewport lazy mount.
 

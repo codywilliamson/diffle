@@ -113,7 +113,7 @@
     {:else if !giant && !mounted}
       <div style="height:{estimatedHeight(file)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
-      <div class="diff-scroll overflow-x-auto {prefs.wrap ? 'wrap' : ''}" use:revealRows>
+      <div class="diff-scroll {useSplit ? 'split-scroll' : 'overflow-x-auto'} {prefs.wrap ? 'wrap' : ''}" use:revealRows>
         {#if useSplit}<SplitDiff {file} />{:else}<UnifiedDiff {file} />{/if}
       </div>
     {/if}

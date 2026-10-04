@@ -16,6 +16,25 @@ function tableWith(rows: number): { node: HTMLElement; animate: ReturnType<typeo
 afterEach(() => vi.unstubAllGlobals());
 
 describe("revealRows", () => {
+  it.each([5, 60])("reveals matching rows together in both %i-row panes", (count) => {
+    mockReducedMotion(false);
+    const node = document.createElement("div");
+    const rows = '<div class="diff-row"></div>'.repeat(count);
+    node.innerHTML = `<section class="split-pane">${rows}</section><section class="split-pane">${rows}</section>`;
+    const animate = vi.fn();
+    for (const row of node.querySelectorAll<HTMLElement>(".diff-row")) row.animate = animate;
+
+    revealRows(node);
+
+    const revealedRows = Math.min(count, 40);
+    expect(animate).toHaveBeenCalledTimes(revealedRows * 2);
+    for (let index = 0; index < revealedRows; index++) {
+      const oldOptions = animate.mock.calls[index]![1];
+      const newOptions = animate.mock.calls[index + revealedRows]![1];
+      expect(newOptions.delay).toBe(oldOptions.delay);
+    }
+  });
+
   it("staggers only the first diff rows", () => {
     mockReducedMotion(false);
     const { node, animate } = tableWith(60);

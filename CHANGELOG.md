@@ -2,6 +2,34 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.25.1](https://github.com/codywilliamson/diffle/compare/v0.25.0...v0.25.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **ui:** contain hidden viewed controls in the file scroller ([addcfcc](https://github.com/codywilliamson/diffle/commit/addcfcc56d8427b0990c0e3ed5a6a3d6bc19f646))
+* **ui:** restore chosen split widths when constraints relax ([09b40b7](https://github.com/codywilliamson/diffle/commit/09b40b77cdf6c5fc08840cb7fe03296842a09d2e))
+* **ui:** restore independent resizable split panes ([c955964](https://github.com/codywilliamson/diffle/commit/c955964216d8c80082dcc44bd26a2b70838dd639))
+* **ui:** reveal corresponding split rows together ([744f9ef](https://github.com/codywilliamson/diffle/commit/744f9efc7019058b0c32d720ac2a4bef6ceadac2))
+
+## [0.25.0](https://github.com/codywilliamson/diffle/compare/v0.24.0...v0.25.0) (2026-09-29)
+
+
+### Features
+
+* **cli:** add per-command help ([663589d](https://github.com/codywilliamson/diffle/commit/663589d14dda4e65e17e8ddeceaf7ca441233c73)), closes [#114](https://github.com/codywilliamson/diffle/issues/114)
+* **cli:** list next steps after update ([171fbc0](https://github.com/codywilliamson/diffle/commit/171fbc0990ff378ab122a879f284d272d93276ef)), closes [#114](https://github.com/codywilliamson/diffle/issues/114)
+
+
+### Bug Fixes
+
+* **build:** remove retired binaries on uninstall ([1965266](https://github.com/codywilliamson/diffle/commit/196526642e997039438f4a4fd5cf730f1a6ebfba)), closes [#113](https://github.com/codywilliamson/diffle/issues/113)
+* **build:** retire a running exe aside instead of refusing to install ([aa02374](https://github.com/codywilliamson/diffle/commit/aa02374b7e016126ecc99b2b4d221ed97d636f89)), closes [#113](https://github.com/codywilliamson/diffle/issues/113)
+* **build:** retire to a fresh name when the old copy is locked ([7b19d9d](https://github.com/codywilliamson/diffle/commit/7b19d9d142d2fc72a85dcab0d4432668eae28cea)), closes [#113](https://github.com/codywilliamson/diffle/issues/113)
+* **cli:** point review help at durable review records ([031fc02](https://github.com/codywilliamson/diffle/commit/031fc02deea286e97b7000aad459ba8c87621971)), closes [#114](https://github.com/codywilliamson/diffle/issues/114)
+* **cli:** tolerate a locked retired binary on update ([34a1ce7](https://github.com/codywilliamson/diffle/commit/34a1ce7cbfdfc0c0b98c38840d5a700ab06edd9d)), closes [#113](https://github.com/codywilliamson/diffle/issues/113)
+* **ui:** build what's new and help labels from the product name ([27e51c4](https://github.com/codywilliamson/diffle/commit/27e51c47a3ffd30f1620f2db5a2ea7eea41bc1cf)), closes [#114](https://github.com/codywilliamson/diffle/issues/114)
+
 ## [0.24.0](https://github.com/codywilliamson/diffle/compare/v0.23.0...v0.24.0) (2026-09-29)
 
 

@@ -4,11 +4,11 @@
 import { classifySessions } from "../core/sessions";
 import { isOwnInstall, listMcpProcesses, stopMcpProcess, type McpProcess } from "../core/mcpProcesses";
 import { PRODUCT } from "../core/product";
+import { NO_MCP_ACTIVITY, type McpRestartOutcome } from "../core/updateNextSteps";
 import { confirmProceed } from "./confirm";
 
 const NO_SERVERS = `no ${PRODUCT.name} MCP servers running`;
 const RECONNECT_HINT = "agents start the new server on reconnect (Claude Code: /mcp → reconnect, or a new session)";
-const RESTART_COMMAND = `${PRODUCT.name} mcp restart`;
 const tag = `[${PRODUCT.name}]`;
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -56,19 +56,22 @@ export async function runMcpRestartCommand(opts: { yes: boolean }): Promise<void
 
 // after `update` swaps the binary, old servers of this install keep running the previous version
 // until relaunched. stops them unless a review is live; never fails the update itself.
-export async function restartMcpAfterUpdate(execPath: string): Promise<void> {
+export async function restartMcpAfterUpdate(execPath: string): Promise<McpRestartOutcome> {
   try {
     const servers = listMcpProcesses().filter((server) => isOwnInstall(server, execPath));
-    if (servers.length === 0) return;
+    if (servers.length === 0) return NO_MCP_ACTIVITY;
     const live = await liveSessionCount();
     if (live > 0) {
-      return console.log(`${tag} ${plural(servers.length, "MCP server")} still on the old version — ${plural(live, "live review session")} open; run ${RESTART_COMMAND} once they finish`);
+      console.log(`${tag} ${plural(servers.length, "MCP server")} still on the old version — ${plural(live, "live review session")} open`);
+      return { ...NO_MCP_ACTIVITY, found: servers.length, blockedByLive: live };
     }
     const failed = stopMcpServers(servers);
     const stopped = servers.length - failed.length;
-    if (stopped > 0) console.log(`${tag} stopped ${plural(stopped, "MCP server")} — ${RECONNECT_HINT}`);
-    if (failed.length > 0) console.log(`${tag} couldn't stop pid ${failed.map((server) => server.pid).join(", ")} — run ${RESTART_COMMAND}`);
+    if (stopped > 0) console.log(`${tag} stopped ${plural(stopped, "MCP server")}`);
+    if (failed.length > 0) console.log(`${tag} couldn't stop pid ${failed.map((server) => server.pid).join(", ")}`);
+    return { ...NO_MCP_ACTIVITY, found: servers.length, stopped, failed: failed.length };
   } catch (err) {
-    console.log(`${tag} couldn't check for running MCP servers (${err instanceof Error ? err.message : String(err)}) — run ${RESTART_COMMAND}`);
+    console.log(`${tag} couldn't check for running MCP servers (${err instanceof Error ? err.message : String(err)})`);
+    return { ...NO_MCP_ACTIVITY, checkFailed: true };
   }
 }

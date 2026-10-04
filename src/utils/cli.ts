@@ -1,7 +1,7 @@
 // cli argument parsing for the diffle entry point. pure — no io, fully unit-tested.
 
 
-export { USAGE } from "./usage";
+export { USAGE, helpFor } from "./usage";
 
 const MCP_ACTIONS = ["serve", "list", "restart"] as const;
 export type McpAction = (typeof MCP_ACTIONS)[number];
@@ -53,13 +53,14 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "setup" ? "setup" : "review";
   if (command === "mcp" || command === "hook") {
     args.shift();
-    const subcommand = args.shift();
-    if (command === "mcp" && !MCP_ACTIONS.includes(subcommand as McpAction)) throw new Error(`mcp requires one of: ${MCP_ACTIONS.join(", ")}`);
-    if (command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
+    const helpOnly = args[0] === "-h" || args[0] === "--help"; // `mcp --help` needs no subcommand
+    const subcommand = helpOnly ? undefined : args.shift();
+    if (!helpOnly && command === "mcp" && !MCP_ACTIONS.includes(subcommand as McpAction)) throw new Error(`mcp requires one of: ${MCP_ACTIONS.join(", ")}`);
+    if (!helpOnly && command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
   } else if (command !== "review") {
     args.shift();
   }
-  const mcpAction = command === "mcp" ? (argv[1] as McpAction) : undefined;
+  const mcpAction = MCP_ACTIONS.find((action) => command === "mcp" && action === argv[1]);
   const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;

@@ -18,25 +18,29 @@ export function startSelect(e: MouseEvent, ui: UiStore, file: string, side: Side
   // rAF-throttle: coalesce mousemove bursts to one update per frame.
   let raf = 0;
   let lastXY: [number, number] | null = null;
+  function updateHead(x: number, y: number): void {
+    const row = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest(".diff-row") as HTMLElement | null;
+    const n = row && section?.contains(row) ? row.dataset[attr] : "";
+    if (n && Number(n) !== head) {
+      head = Number(n);
+      ui.selectMove(file, side, anchor, head);
+    }
+  }
   const move = (ev: MouseEvent): void => {
     lastXY = [ev.clientX, ev.clientY];
     if (raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0;
       if (!lastXY) return;
-      const row = (document.elementFromPoint(lastXY[0], lastXY[1]) as HTMLElement | null)?.closest("tr.diff-row") as HTMLElement | null;
-      const n = row && section?.contains(row) ? row.dataset[attr] : "";
-      if (n && Number(n) !== head) {
-        head = Number(n);
-        ui.selectMove(file, side, anchor, head);
-      }
+      updateHead(...lastXY);
     });
   };
-  const stop = (): void => {
+  const stop = (ev: MouseEvent): void => {
     document.removeEventListener("mousemove", move);
     document.removeEventListener("mouseup", stop);
     document.body.classList.remove("selecting");
     cancelAnimationFrame(raf);
+    updateHead(ev.clientX, ev.clientY);
     ui.selectCommit(file, side, Math.min(anchor, head), Math.max(anchor, head));
   };
   document.addEventListener("mousemove", move);

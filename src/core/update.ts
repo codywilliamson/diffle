@@ -3,13 +3,15 @@
 // servers so agents relaunch them on the new version. refuses when a package manager owns the
 // install, or when running from a source checkout.
 
-import { chmodSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { PRODUCT } from "./product";
 import { checkForUpdate } from "./updateCheck";
 import { fetchReleaseStatus, updateCheckReport } from "./updateNotice";
 import { assetName, detectPackageManager, managerCommand, parseChecksum } from "./updateTarget";
+import { retireBinary } from "./retireBinary";
+import { formatNextSteps, updateNextSteps } from "./updateNextSteps";
 import { isProductBinary } from "../utils/installRoot";
 import { restartMcpAfterUpdate } from "../utils/mcpCli";
 
@@ -26,8 +28,8 @@ async function download(url: string): Promise<Buffer> {
 }
 
 // unix can replace a running binary in place. windows locks a running exe (this process and any
-// MCP server) against overwrite but not rename, so move it aside first; the next update removes
-// the retired copy.
+// MCP server) against overwrite but not rename, so move it aside first; later updates remove
+// retired copies once nothing holds them.
 function replaceBinary(bytes: Buffer): void {
   const target = process.execPath;
   const sibling = (suffix: string) => join(dirname(target), `.${basename(target)}.${suffix}`);
@@ -38,9 +40,7 @@ function replaceBinary(bytes: Buffer): void {
     renameSync(staged, target);
     return;
   }
-  const retired = sibling("old");
-  rmSync(retired, { force: true });
-  renameSync(target, retired);
+  retireBinary(target);
   renameSync(staged, target);
 }
 
@@ -72,6 +72,7 @@ export async function runUpdate(loupeRoot: string, check = false): Promise<void>
   if (actual !== expected) throw new Error(`checksum mismatch for ${exe}`);
 
   replaceBinary(binary);
-  console.log(`${tag} updated to v${status.latest}. restart any open ${PRODUCT.name} review to use it.`);
-  await restartMcpAfterUpdate(process.execPath);
+  console.log(`${tag} updated to v${status.latest}.`);
+  const outcome = await restartMcpAfterUpdate(process.execPath);
+  console.log(formatNextSteps(updateNextSteps(outcome)));
 }

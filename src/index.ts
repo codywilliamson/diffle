@@ -2,7 +2,7 @@
 // diffle cli entry point: launch a browser review or run the local MCP server.
 
 import { join } from "node:path";
-import { parseCliArgs, USAGE } from "./utils/cli";
+import { helpFor, parseCliArgs } from "./utils/cli";
 import { launchReview } from "./core/reviewLaunch";
 import { currentVersion } from "./core/updateCheck";
 import { runMcpServer } from "./mcp";
@@ -49,7 +49,7 @@ export async function main(): Promise<void> {
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
   }
-  if (opts.help) return console.log(USAGE);
+  if (opts.help) return console.log(helpFor(opts.command, opts.spec));
   if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(loupeRoot)}`);
   if (opts.license) return console.log(resolveLicenseText(loupeRoot).trimEnd());
   if (opts.mcpAction === "serve") return runMcpServer(cwd);

@@ -119,7 +119,7 @@ export const DRIVERS: Driver[] = [
       await glideTo(split);
       await beat(300);
       await split.click();
-      await page.locator("table.split-table").first().waitFor();
+      await page.locator(".split-diff").first().waitFor();
       captions.push({ text: "…or side-by-side", fromSec: since(), toSec: 0 });
       await beat(1400);
 
@@ -130,8 +130,21 @@ export const DRIVERS: Driver[] = [
       await beat(1000);
       captions[1].toSec = since();
 
+      const divider = page.getByRole("separator", { name: "Old version pane width" }).first();
+      await glideTo(divider);
+      const handle = (await divider.boundingBox())!;
+      const canvas = (await page.locator(".split-diff").first().boundingBox())!;
+      captions.push({ text: "Resize either side — wrapped lines stay aligned", fromSec: since(), toSec: 0 });
+      await page.mouse.down();
+      await page.mouse.move(canvas.x + canvas.width * 0.62, handle.y + handle.height / 2, { steps: 30 });
+      await page.mouse.up();
+      await beat(1100);
+      await divider.dblclick();
+      await beat(500);
+      captions[2].toSec = since();
+
       await split.click(); // back to unified
-      await page.locator("table.split-table").first().waitFor({ state: "detached" });
+      await page.locator(".split-diff").first().waitFor({ state: "detached" });
       await beat(900);
       return { zooms: [], captions };
     },

@@ -7,6 +7,16 @@ sidebar:
 
 diffle reviews whichever git repo you run it from. Each command prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 
+## Getting help
+
+`diffle --help` prints an overview with common tasks and examples. Every command also takes `--help` (or `-h`) for its own options, examples, and related commands:
+
+```sh
+diffle update --help
+diffle mcp --help
+diffle setup -h
+```
+
 ## Commands
 
 ### `diffle`
@@ -118,7 +128,7 @@ diffle cleanup --all --yes
 
 ### `diffle update [--check]`
 
-Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. After installing, it stops MCP servers still running the old binary (the same as `diffle mcp restart`) as long as no review session is live; otherwise it tells you to run `diffle mcp restart` later. `--check` only reports whether a newer release exists and never downloads; it also works in a source checkout. See [Configuration](/reference/configuration/) for the full update behavior.
+Download and install the latest release. It verifies the download's SHA-256 and refuses when a package manager owns the install. After installing, it stops MCP servers still running the old binary (the same as `diffle mcp restart`) as long as no review session is live; otherwise it tells you to run `diffle mcp restart` later. It ends with a numbered list of the next steps that apply to you: restart any open review (it still runs the old version), reconnect your agents if their MCP servers were stopped (Claude Code: `/mcp` → reconnect, or a new session), run `diffle mcp restart` once live reviews finish if they blocked it, and confirm with `diffle --version` in a new shell. On Windows a copy of the old binary still held by a running MCP server can't be deleted, so it is retired under a unique name and cleaned up by a later update. `--check` only reports whether a newer release exists and never downloads; it also works in a source checkout. See [Configuration](/reference/configuration/) for the full update behavior.
 
 ```sh
 diffle update

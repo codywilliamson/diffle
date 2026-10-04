@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseCliArgs, USAGE } from "../src/utils/cli";
+import { helpFor, parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
@@ -61,12 +61,12 @@ describe("parseCliArgs", () => {
   });
 
   test("usage documents browse", () => {
-    expect(USAGE).toContain("browse [path]");
+    expect(helpFor("review", "review")).toContain("browse [path]");
   });
 
   test("usage covers every option", () => {
     for (const flag of ["--port", "--no-open", "--review-id", "--version", "--license", "--help"]) {
-      expect(USAGE).toContain(flag);
+      expect(helpFor("review", "review")).toContain(flag);
     }
   });
 
@@ -118,8 +118,8 @@ describe("parseCliArgs", () => {
     expect(USAGE).toContain("diffle sessions");
     expect(USAGE).toContain("diffle cleanup");
     expect(USAGE).toContain("diffle update");
-    expect(USAGE).toContain("--yes");
-    expect(USAGE).toContain("--all");
+    expect(helpFor("cleanup")).toContain("--yes");
+    expect(helpFor("cleanup")).toContain("--all");
   });
 
   test("parses the doctor command with --fix and --yes", () => {
@@ -138,9 +138,9 @@ describe("parseCliArgs", () => {
   });
 
   test("usage documents diagnostics", () => {
-    expect(USAGE).toContain("Diagnostics");
+    expect(USAGE).toContain("doctor");
     expect(USAGE).toContain("diffle doctor");
-    expect(USAGE).toContain("--fix");
+    expect(helpFor("doctor")).toContain("--fix");
   });
 
   test("update takes only --check", () => {
@@ -185,6 +185,38 @@ describe("parseCliArgs", () => {
 
   test("usage documents update --check and the launch-notice opt-out", () => {
     expect(USAGE).toContain("diffle update [--check]");
-    expect(USAGE).toContain("DIFFLE_NO_UPDATE_CHECK=1");
+    expect(helpFor("update")).toContain("DIFFLE_NO_UPDATE_CHECK=1");
+  });
+
+  test("help is valid after any command, including mcp and hook without a subcommand", () => {
+    for (const command of ["mcp", "hook", "sessions", "cleanup", "update", "doctor", "setup"] as const) {
+      for (const flag of ["--help", "-h"]) {
+        const opts = parseCliArgs([command, flag]);
+        expect(opts.help).toBe(true);
+        expect(opts.command).toBe(command);
+      }
+    }
+    expect(parseCliArgs(["mcp", "restart", "--help"]).mcpAction).toBe("restart");
+    expect(parseCliArgs(["mcp", "--help"]).mcpAction).toBeUndefined();
+    expect(() => parseCliArgs(["mcp", "bogus"])).toThrow("mcp requires one of");
+  });
+
+  test("per-command help covers usage, options, examples, and related commands", () => {
+    const mcp = helpFor("mcp");
+    expect(mcp).toContain("diffle mcp restart [--yes]");
+    expect(mcp).toContain("--yes");
+    expect(mcp).toContain("Examples");
+    expect(mcp).toContain("See also: diffle update");
+    expect(helpFor("update")).toContain("--check");
+    expect(helpFor("setup")).toContain("--agents <ids>");
+  });
+
+  test("overview lists every command, common tasks, examples, and the docs footer", () => {
+    for (const text of ["Common tasks", "Examples", "diffle mcp restart", "diffle setup", "diffle cleanup", "diffle <command> --help", "https://diffle.dev/reference/cli/"]) {
+      expect(USAGE).toContain(text);
+    }
+    expect(helpFor("review")).toBe(USAGE);
+    expect(helpFor("review", "main")).toBe(USAGE);
+    expect(helpFor("review", "review")).toContain("review a diff in the browser");
   });
 });

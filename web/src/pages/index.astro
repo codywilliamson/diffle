@@ -14,6 +14,13 @@ const loop = [
   ["approve", "Sign off on a durable Review Record."],
 ];
 
+const tenets = [
+  ["Your name is on the commit.", "An agent can't be accountable. When it breaks, it's on you, so read what ships under your name."],
+  ["Unread code is unknown code.", "Every diff you skip erodes your model of the system, and with it your ability to make the critical calls: architecture, tradeoffs, what to rip out. Agent or not."],
+  ["Only you know what it's for.", "Agents optimize for passing. Intent, naming, boundaries, and what shouldn't exist at all still come from you."],
+  ["Judgment is the job now.", "Generating code got cheap. Deciding what's right didn't. Review isn't the chore to automate away; it's where the engineering happens."],
+];
+
 const cli = [
   ["diffle", "working tree vs HEAD"],
   ["diffle staged", "staged changes only"],
@@ -132,8 +139,48 @@ const cli = [
     </ol>
   </section>
 
+  <!-- ===================== WHY REVIEW ===================== -->
+  <section class="why wrap" data-reveal>
+    <div class="why-head">
+      <span class="eyebrow">why review</span>
+      <h2>Read the code. <span class="accent-ink">Still.</span></h2>
+      <p>Agents write faster than ever. That's exactly why someone has to read it.</p>
+    </div>
+    <ol class="why-tenets" data-stagger>
+      {tenets.map(([claim, gloss]) => (
+        <li>
+          <h3>{claim}</h3>
+          <p>{gloss}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <!-- ===================== WALKTHROUGH (media placeholder) ===================== -->
+  <section class="showcase wrap" data-reveal>
+    <div class="showcase-head">
+      <span class="eyebrow">see it in action</span>
+      <h2>Watch a review happen.</h2>
+      <p>Open a diff, redline the exact code, and export a feedback bundle you can hand straight to an agent.</p>
+    </div>
+    <div class="media-frame">
+      <video
+        class="walkthrough"
+        autoplay
+        loop
+        muted
+        playsinline
+        preload="metadata"
+        poster="/media/walkthrough-poster.png"
+        aria-label="Walkthrough of a diffle review"
+      >
+        <source src="/media/walkthrough.mp4" type="video/mp4" />
+      </video>
+    </div>
+  </section>
+
   <!-- ===================== SPREAD: REVIEW ===================== -->
-  <section class="spread wrap" data-reveal>
+  <section class="spread reverse wrap" data-reveal>
     <div class="spread-copy">
       <h2>Review any comparison</h2>
       <p>
@@ -157,7 +204,7 @@ const cli = [
   </section>
 
   <!-- ===================== SPREAD: COMMENT ===================== -->
-  <section class="spread reverse wrap" data-reveal>
+  <section class="spread wrap" data-reveal>
     <div class="spread-copy">
       <h2>Comment on the exact code</h2>
       <p>
@@ -197,7 +244,7 @@ const cli = [
   </section>
 
   <!-- ===================== SPREAD: AGENT ===================== -->
-  <section class="spread wrap" data-reveal>
+  <section class="spread reverse wrap" data-reveal>
     <div class="spread-copy">
       <h2>Close the loop with your agent</h2>
       <p>
@@ -222,29 +269,6 @@ const cli = [
 <span class="md-loc">client/src/lib/api.ts:88</span> <span class="pill pill-open">unresolved</span>
 <span class="md-q">&gt; fetch has no timeout; agents hang on a dead server.</span></pre>
       </div>
-    </div>
-  </section>
-
-  <!-- ===================== WALKTHROUGH (media placeholder) ===================== -->
-  <section class="showcase wrap" data-reveal>
-    <div class="showcase-head">
-      <span class="eyebrow">see it in action</span>
-      <h2>A full review, start to finish.</h2>
-      <p>Open a diff, redline the exact code, and export a feedback bundle you can hand straight to an agent.</p>
-    </div>
-    <div class="media-frame">
-      <video
-        class="walkthrough"
-        autoplay
-        loop
-        muted
-        playsinline
-        preload="metadata"
-        poster="/media/walkthrough-poster.png"
-        aria-label="A diffle review, start to finish"
-      >
-        <source src="/media/walkthrough.mp4" type="video/mp4" />
-      </video>
     </div>
   </section>
 
@@ -671,6 +695,60 @@ const cli = [
       line-height: 1.45;
     }
 
+    /* ============ WHY REVIEW ============ */
+    .why {
+      padding-block: clamp(3rem, 6vw, 5rem);
+      border-top: 1px solid var(--divider);
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: clamp(2rem, 5vw, 4.5rem);
+    }
+    .why-head {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .why-head h2 {
+      font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+    }
+    .why-head p {
+      color: var(--muted);
+      max-width: 32ch;
+    }
+    .why-tenets {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.6rem 2rem;
+      counter-reset: tenet;
+    }
+    .why-tenets li {
+      counter-increment: tenet;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .why-tenets h3 {
+      font-size: 1.05rem;
+      margin: 0 0 0.45rem;
+    }
+    .why-tenets h3::before {
+      content: counter(tenet, decimal-leading-zero);
+      display: block;
+      margin-bottom: 0.4rem;
+      font-family: var(--ff-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .why-tenets p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
     /* ============ SPREADS ============ */
     .spread {
       padding-block: clamp(3rem, 6vw, 5rem);
@@ -1015,6 +1093,7 @@ const cli = [
     /* ============ RESPONSIVE ============ */
     @media (max-width: 900px) {
       .hero-grid,
+      .why,
       .spread {
         grid-template-columns: 1fr;
       }
@@ -1050,6 +1129,7 @@ const cli = [
       .loop-steps li:nth-child(2n) {
         border-right: none;
       }
+      .why-tenets,
       .close-cmds,
       .close-points {
         grid-template-columns: 1fr;
