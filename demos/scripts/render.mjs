@@ -11,8 +11,12 @@ const ids = readdirSync(join(demos, "public", "footage"))
   .filter((f) => f.endsWith(".json"))
   .map((f) => f.replace(".json", ""));
 
+// remotion defaults to half the cores, each a headless chrome decoding 2x footage — enough to
+// starve the machine of memory. two tabs is slower but leaves room for everything else.
+const RENDER_CONCURRENCY = 2;
+
 const remotion = (args) =>
-  execFileSync("npx", ["remotion", ...args], { cwd: demos, stdio: "inherit", shell: true });
+  execFileSync("npx", ["remotion", ...args, "--concurrency", String(RENDER_CONCURRENCY)], { cwd: demos, stdio: "inherit", shell: true });
 
 for (const id of ids) {
   remotion(["render", "src/index.ts", `take-${id}`, `out/${id}.mp4`, "--crf", "23", "--log=error"]);
