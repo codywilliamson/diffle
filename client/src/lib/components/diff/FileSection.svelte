@@ -55,7 +55,7 @@
   }
 </script>
 
-<section id={fileAnchorId(file.path)} class="file-section mb-4 rounded-lg border border-border bg-surface">
+<section id={fileAnchorId(file.path)} data-file-path={file.path} class="file-section mb-4 rounded-lg border border-border bg-surface">
   <header data-file-header class="sticky top-0 z-10 flex items-center gap-2 rounded-t-lg border-b border-divider bg-surface-2 px-3 py-2">
     <button
       type="button"
