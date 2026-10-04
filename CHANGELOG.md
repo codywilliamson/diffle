@@ -2,6 +2,20 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.27.0](https://github.com/codywilliamson/diffle/compare/v0.26.0...v0.27.0) (2026-10-04)
+
+
+### Features
+
+* **ui:** add an expandable review view with a markdown agent update ([5d5ae95](https://github.com/codywilliamson/diffle/commit/5d5ae95c14867f83538126417c771d00e48f0835))
+* **ui:** render comments and replies as markdown ([aed9b3d](https://github.com/codywilliamson/diffle/commit/aed9b3d840c2b5343a254a220a92b4375e94528a))
+
+
+### Bug Fixes
+
+* **tests:** keep e2e and demo review data out of the real data dir ([25c691a](https://github.com/codywilliamson/diffle/commit/25c691a1e17a7090d80906c664974c75f2e237e7))
+* **ui:** restore list markers in rendered markdown ([372f592](https://github.com/codywilliamson/diffle/commit/372f592cf7099a1c84cb270c877f4384ad9937d1))
+
 ## [0.26.0](https://github.com/codywilliamson/diffle/compare/v0.25.1...v0.26.0) (2026-10-04)
 
 
