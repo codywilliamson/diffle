@@ -58,4 +58,13 @@ describe("currentFile", () => {
     document.querySelector("[data-file-path='b.ts']")?.append(section("b.ts", -500, -400));
     expect(currentFile(["a.ts", "b.ts"], null)).toBe("a.ts");
   });
+
+  it("ignores a nested copy of the section list inside rendered content", () => {
+    layout({ top: 0, bottom: 500 }, { "a.ts": [-900, 400], "b.ts": [400, 900] });
+    const fake = document.createElement("div");
+    fake.dataset.fileSections = "";
+    fake.append(section("b.ts", -500, -400));
+    document.querySelector("[data-file-path='b.ts']")?.append(fake);
+    expect(currentFile(["a.ts", "b.ts"], null)).toBe("a.ts");
+  });
 });
