@@ -1,0 +1,44 @@
+import { describe, it, expect, afterEach } from "vitest";
+import { currentFile } from "./currentFile";
+import { fileAnchorId } from "./tree";
+
+const PATHS = ["a.ts", "b.ts", "c.ts"];
+
+// mount a pane plus one section per path, each stubbed to the given top/bottom.
+function layout(pane: { top: number; bottom: number }, sections: Record<string, [number, number]>): void {
+  const root = document.createElement("section");
+  root.dataset.diffPane = "";
+  root.getBoundingClientRect = () => ({ ...pane, height: pane.bottom - pane.top }) as DOMRect;
+  for (const [path, [top, bottom]] of Object.entries(sections)) {
+    const el = document.createElement("section");
+    el.id = fileAnchorId(path);
+    el.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
+    root.append(el);
+  }
+  document.body.append(root);
+}
+
+afterEach(() => document.body.replaceChildren());
+
+describe("currentFile", () => {
+  it("falls back to the selection without a laid-out pane", () => {
+    expect(currentFile(PATHS, "b.ts")).toBe("b.ts");
+    expect(currentFile(PATHS, null)).toBe("a.ts");
+  });
+
+  it("keeps the selected file while it's still on screen", () => {
+    layout({ top: 0, bottom: 500 }, { "a.ts": [-900, -100], "b.ts": [-100, 300], "c.ts": [300, 600] });
+    expect(currentFile(PATHS, "c.ts")).toBe("c.ts");
+  });
+
+  it("uses the section at the pane top once the reviewer scrolls away", () => {
+    layout({ top: 0, bottom: 500 }, { "a.ts": [-2000, -1000], "b.ts": [-1000, 800], "c.ts": [800, 1200] });
+    expect(currentFile(PATHS, "a.ts")).toBe("b.ts");
+    expect(currentFile(PATHS, null)).toBe("b.ts");
+  });
+
+  it("tolerates a section scrolled to a fractional offset below the pane top", () => {
+    layout({ top: 0, bottom: 500 }, { "a.ts": [-800, 0.5], "b.ts": [0.5, 400], "c.ts": [400, 900] });
+    expect(currentFile(PATHS, null)).toBe("b.ts");
+  });
+});
