@@ -106,7 +106,7 @@
           disabled={terminal || !awaiting}
           placeholder="Optional reviewer summary"
           aria-label="Reviewer summary"
-          class="mb-2 min-h-[3rem] w-full resize-none rounded-md border border-border bg-surface-2 p-2 text-sm text-text outline-none placeholder:text-dim focus:border-focus disabled:opacity-50"
+          class="mb-2 min-h-[3rem] max-h-[60vh] w-full resize-y rounded-md border border-border bg-surface-2 p-2 text-sm text-text outline-none placeholder:text-dim focus:border-focus disabled:opacity-50"
         ></textarea>
         <div class="flex gap-2">
           <button class="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40" onclick={() => act("feedback")} disabled={!canReturn}>Return Feedback</button>
