@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { currentFile } from "./currentFile";
-import { fileAnchorId } from "./tree";
 
 const PATHS = ["a.ts", "b.ts", "c.ts"];
 
@@ -11,7 +10,7 @@ function layout(pane: { top: number; bottom: number }, sections: Record<string, 
   root.getBoundingClientRect = () => ({ ...pane, height: pane.bottom - pane.top }) as DOMRect;
   for (const [path, [top, bottom]] of Object.entries(sections)) {
     const el = document.createElement("section");
-    el.id = fileAnchorId(path);
+    el.dataset.filePath = path;
     el.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
     root.append(el);
   }
@@ -40,5 +39,12 @@ describe("currentFile", () => {
   it("tolerates a section scrolled to a fractional offset below the pane top", () => {
     layout({ top: 0, bottom: 500 }, { "a.ts": [-800, 0.5], "b.ts": [0.5, 400], "c.ts": [400, 900] });
     expect(currentFile(PATHS, null)).toBe("b.ts");
+  });
+
+  it("tells apart paths whose anchor ids collide", () => {
+    const paths = ["a/b.ts", "a-b.ts"];
+    layout({ top: 0, bottom: 500 }, { "a/b.ts": [-900, -100], "a-b.ts": [-100, 600] });
+    expect(currentFile(paths, null)).toBe("a-b.ts");
+    expect(currentFile(paths, "a/b.ts")).toBe("a-b.ts");
   });
 });
