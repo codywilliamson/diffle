@@ -19,9 +19,13 @@
   const app = setAppState(createAppState());
   const { diff, ui, prefs, comments } = app;
 
-  // right after j/k the pane is still smooth-scrolling, so trust the selection over the scroll position.
+  // right after any selection (j/k or the sidebar) the pane is still smooth-scrolling to it, so
+  // trust the selection over the scroll position.
   const SMOOTH_SCROLL_MS = 600;
-  let lastStepAt = -Infinity;
+  let lastSelectAt = -Infinity;
+  $effect(() => {
+    if (ui.activeFile) lastSelectAt = performance.now();
+  });
 
   // global shortcuts, ignored while typing in a field.
   function onKeydown(e: KeyboardEvent): void {
@@ -31,14 +35,12 @@
     }
     if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
     const paths = diff.files.map((file) => file.path);
-    const followScroll = prefs.fileView === "all" && performance.now() - lastStepAt > SMOOTH_SCROLL_MS;
+    const followScroll = prefs.fileView === "all" && performance.now() - lastSelectAt > SMOOTH_SCROLL_MS;
     const current = followScroll ? currentFile(paths, ui.activeFile) : ui.activeFile ?? paths[0];
     const index = paths.indexOf(current ?? "");
     const stepFile = (delta: number): void => {
       const next = paths[Math.min(paths.length - 1, Math.max(0, index + delta))];
-      if (!next) return;
-      lastStepAt = performance.now();
-      ui.selectFile(next);
+      if (next) ui.selectFile(next);
     };
     switch (e.key) {
       case "j": stepFile(1); break;
