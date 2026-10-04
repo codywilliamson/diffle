@@ -13,10 +13,15 @@
   import { getState } from "$lib/api/meta";
   import { WHATS_NEW } from "$lib/whatsNew";
   import { isEditable } from "$lib/shortcuts";
+  import { currentFile } from "$lib/diff/currentFile";
 
   // compose the five domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
   const { diff, ui, prefs, comments } = app;
+
+  // right after j/k the pane is still smooth-scrolling, so trust the selection over the scroll position.
+  const SMOOTH_SCROLL_MS = 600;
+  let lastStepAt = -Infinity;
 
   // global shortcuts, ignored while typing in a field.
   function onKeydown(e: KeyboardEvent): void {
@@ -25,11 +30,15 @@
       return;
     }
     if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-    const current = ui.activeFile ?? diff.files[0]?.path;
-    const index = diff.files.findIndex((file) => file.path === current);
+    const paths = diff.files.map((file) => file.path);
+    const followScroll = prefs.fileView === "all" && performance.now() - lastStepAt > SMOOTH_SCROLL_MS;
+    const current = followScroll ? currentFile(paths, ui.activeFile) : ui.activeFile ?? paths[0];
+    const index = paths.indexOf(current ?? "");
     const stepFile = (delta: number): void => {
-      const next = diff.files[Math.min(diff.files.length - 1, Math.max(0, index + delta))];
-      if (next) ui.selectFile(next.path);
+      const next = paths[Math.min(paths.length - 1, Math.max(0, index + delta))];
+      if (!next) return;
+      lastStepAt = performance.now();
+      ui.selectFile(next);
     };
     switch (e.key) {
       case "j": stepFile(1); break;
@@ -81,7 +90,7 @@
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
-      <section class="min-w-0 flex-1 overflow-auto">
+      <section data-diff-pane class="min-w-0 flex-1 overflow-auto">
         <DiffView />
       </section>
     </div>
