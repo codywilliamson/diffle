@@ -23,7 +23,7 @@ For feedback that isn't tied to a specific line â€” an overall note on a file â€
 
 ## Replies and resolving
 
-Comments support **threaded replies**, so a discussion stays attached to its line.
+Comments support **threaded replies**, so a discussion stays attached to its line. Comments and replies render as Markdown, so lists, `code`, code blocks, and links from you or the agent display formatted.
 
 **Resolve** a comment when it's handled. Resolving keeps it on the record but drops it from returned feedback and from open-comment counts. Reopen a resolved comment any time.
 
