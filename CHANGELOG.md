@@ -2,6 +2,20 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.26.0](https://github.com/codywilliamson/diffle/compare/v0.25.1...v0.26.0) (2026-10-04)
+
+
+### Features
+
+* **ui:** let the reviewer summary box resize vertically ([67e1934](https://github.com/codywilliamson/diffle/commit/67e193440ab16d611293088532444882ca8a3f3a)), closes [#131](https://github.com/codywilliamson/diffle/issues/131)
+
+
+### Bug Fixes
+
+* **client:** find file sections by exact path, not sanitized anchor ([56588c7](https://github.com/codywilliamson/diffle/commit/56588c7a80904776aaff61bbf3ffa0e0c7e0ded4))
+* **client:** step j/k from the scrolled-to file in all-files view ([7b444aa](https://github.com/codywilliamson/diffle/commit/7b444aa4f5cc1071b9924032dfdd6395ebc59719)), closes [#128](https://github.com/codywilliamson/diffle/issues/128)
+* **client:** trust any fresh selection while the pane smooth-scrolls ([0e75538](https://github.com/codywilliamson/diffle/commit/0e75538390a0ac6bc94090d90e467660774461b7))
+
 ## [0.25.1](https://github.com/codywilliamson/diffle/compare/v0.25.0...v0.25.1) (2026-09-30)
 
 
