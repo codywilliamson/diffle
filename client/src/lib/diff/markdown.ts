@@ -5,9 +5,10 @@ import { resolveRepoPath } from "$lib/format";
 // render a markdown file to SANITIZED html (ADR 0007). marked dropped its own sanitizer, so we
 // run its output through DOMPurify's allowlist before it ever reaches the dom — raw <script> and
 // event-handler attributes in a reviewed .md never execute. relative images resolve through
-// /api/raw (repo-contained); external links open in a new tab.
-export function renderMarkdown(content: string, fromPath: string): string {
-  const raw = marked.parse(content, { async: false }) as string;
+// /api/raw (repo-contained); external links open in a new tab. `breaks` keeps single newlines as
+// line breaks, like a github comment, for chat-style text.
+export function renderMarkdown(content: string, fromPath: string, { breaks = false } = {}): string {
+  const raw = marked.parse(content, { async: false, breaks }) as string;
   const clean = DOMPurify.sanitize(raw, { ADD_ATTR: ["target"] });
 
   const tpl = document.createElement("template");

@@ -7,6 +7,7 @@
   import CommentEditor from "./CommentEditor.svelte";
   import CommentReplies from "./CommentReplies.svelte";
   import ReplyComposer from "./ReplyComposer.svelte";
+  import Markdown from "../Markdown.svelte";
 
   let { comment }: { comment: Comment } = $props();
   const { comments, review } = getAppState();
@@ -44,8 +45,8 @@
         <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
       </span>
     </div>
-    <div class="comment-body mt-1 whitespace-pre-wrap">{comment.text}</div>
-    {#if comment.replies?.length}<CommentReplies replies={comment.replies} />{/if}
+    <Markdown text={comment.text} from={comment.file} class="comment-body mt-1" />
+    {#if comment.replies?.length}<CommentReplies replies={comment.replies} from={comment.file} />{/if}
     {#if replying && !resolved}
       <ReplyComposer onSend={(text) => comments.reply(comment.id, text)} onDone={() => (replying = false)} />
     {/if}
