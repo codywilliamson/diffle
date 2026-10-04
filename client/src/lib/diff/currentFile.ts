@@ -1,9 +1,10 @@
 // slack for a section scrolled to the pane top, which can land on a fractional pixel.
 const PANE_TOP_SLACK_PX = 8;
 
-// keyed by exact path, since sanitized anchor ids can collide (a/b.ts vs a-b.ts).
+// keyed by exact path, since sanitized anchor ids can collide (a/b.ts vs a-b.ts). direct children
+// only, so a data-file-path inside rendered markdown can't pose as a section.
 function sectionRects(pane: Element): Map<string, DOMRect> {
-  const sections = pane.querySelectorAll<HTMLElement>("[data-file-path]");
+  const sections = pane.querySelectorAll<HTMLElement>("[data-file-sections] > [data-file-path]");
   return new Map([...sections].map((el) => [el.dataset.filePath ?? "", el.getBoundingClientRect()]));
 }
 

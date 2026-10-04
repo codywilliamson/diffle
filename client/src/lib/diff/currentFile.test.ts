@@ -8,13 +8,18 @@ function layout(pane: { top: number; bottom: number }, sections: Record<string, 
   const root = document.createElement("section");
   root.dataset.diffPane = "";
   root.getBoundingClientRect = () => ({ ...pane, height: pane.bottom - pane.top }) as DOMRect;
-  for (const [path, [top, bottom]] of Object.entries(sections)) {
-    const el = document.createElement("section");
-    el.dataset.filePath = path;
-    el.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
-    root.append(el);
-  }
+  const list = document.createElement("div");
+  list.dataset.fileSections = "";
+  for (const [path, [top, bottom]] of Object.entries(sections)) list.append(section(path, top, bottom));
+  root.append(list);
   document.body.append(root);
+}
+
+function section(path: string, top: number, bottom: number): HTMLElement {
+  const el = document.createElement("section");
+  el.dataset.filePath = path;
+  el.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
+  return el;
 }
 
 afterEach(() => document.body.replaceChildren());
@@ -46,5 +51,11 @@ describe("currentFile", () => {
     layout({ top: 0, bottom: 500 }, { "a/b.ts": [-900, -100], "a-b.ts": [-100, 600] });
     expect(currentFile(paths, null)).toBe("a-b.ts");
     expect(currentFile(paths, "a/b.ts")).toBe("a-b.ts");
+  });
+
+  it("ignores data-file-path markers nested inside a section's rendered content", () => {
+    layout({ top: 0, bottom: 500 }, { "a.ts": [-900, 400], "b.ts": [400, 900] });
+    document.querySelector("[data-file-path='b.ts']")?.append(section("b.ts", -500, -400));
+    expect(currentFile(["a.ts", "b.ts"], null)).toBe("a.ts");
   });
 });
