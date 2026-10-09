@@ -52,7 +52,7 @@ const LEFTOVER_RULES: LineRule[] = [
 
 export function typescriptFlags(file: DiffFile): ChangeFlag[] {
   const flags = [...commonFlags(file)];
-  if (baseName(file.path) === "package.json") flags.push(...dependencyFlags(file, parsePackageJsonDependency));
+  if (baseName(file.path) === "package.json") flags.push(...dependencyFlags(file, () => parsePackageJsonDependency));
   else if (!isTypescriptTest(file.path)) flags.push(...apiFlags(file, parseTypescriptExport));
   flags.push(...leftoverFlags(file, LEFTOVER_RULES));
   return flags;

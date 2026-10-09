@@ -38,22 +38,30 @@ export interface DependencyEntry {
   version: string;
 }
 
+// sees every line on one side of a hunk in order (context included), so it may remember an open element;
+// only entries parsed from changed lines are reported
 export type DependencyParser = (text: string) => DependencyEntry | null;
+export type DependencyParserFactory = () => DependencyParser;
 
-function entriesOf(lines: LineRef[], parse: DependencyParser): Map<string, LineRef & DependencyEntry> {
+function entriesOf(file: DiffFile, side: "addition" | "deletion", makeParser: DependencyParserFactory): Map<string, LineRef & DependencyEntry> {
   const out = new Map<string, LineRef & DependencyEntry>();
-  for (const ref of lines) {
-    const entry = parse(ref.text);
-    if (entry) out.set(entry.name, { ...ref, ...entry });
+  for (const hunk of file.hunks) {
+    const parse = makeParser();
+    for (const l of hunk.lines) {
+      const line = side === "addition" ? l.newLine : l.oldLine;
+      if (line == null || (l.type !== side && l.type !== "context")) continue;
+      const entry = parse(l.content);
+      if (entry && l.type === side) out.set(entry.name, { line, text: l.content, ...entry });
+    }
   }
   return out;
 }
 
 const shown = (version: string): string => (version ? ` ${version}` : "");
 
-export function dependencyFlags(file: DiffFile, parse: DependencyParser): ChangeFlag[] {
-  const added = entriesOf(addedLines(file), parse);
-  const removed = entriesOf(deletedLines(file), parse);
+export function dependencyFlags(file: DiffFile, makeParser: DependencyParserFactory): ChangeFlag[] {
+  const added = entriesOf(file, "addition", makeParser);
+  const removed = entriesOf(file, "deletion", makeParser);
   const flags: ChangeFlag[] = [];
   const flag = (reason: string, line: number): void => {
     flags.push({ kind: "dependency", reason, line });

@@ -84,6 +84,19 @@ describe("csharp dependency flags", () => {
     ]);
   });
 
+  it("reads Version before Include, in any attribute order", () => {
+    expect(csproj(['-    <PackageReference Version="3.0.0" Include="Serilog" />', '+    <PackageReference PrivateAssets="all" Version="3.1.1" Include="Serilog" />'])).toEqual([
+      "changed dependency Serilog from 3.0.0 to 3.1.1",
+    ]);
+    expect(csproj(['+<PackageReference Version="2.1.0" Include="Dapper" />'])).toEqual(["added dependency Dapper 2.1.0"]);
+  });
+
+  it("reads a <Version> child of a multi-line package element", () => {
+    const rows = ['     <PackageReference Include="Serilog">', "-      <Version>3.0.0</Version>", "+      <Version>3.1.1</Version>", "     </PackageReference>"];
+    expect(csproj(rows)).toEqual(["changed dependency Serilog from 3.0.0 to 3.1.1"]);
+    expect(csproj(["+<PropertyGroup>", "+  <Version>1.2.3</Version>", "+</PropertyGroup>"])).toEqual([]);
+  });
+
   it("handles central package management and global.json", () => {
     expect(reasons("Directory.Packages.props", ['-<PackageVersion Include="Xunit" Version="2.5.0" />', '+<PackageVersion Include="Xunit" Version="2.9.0" />'], "dependency")).toHaveLength(1);
     expect(reasons("global.json", ['-    "version": "8.0.100"', '+    "version": "10.0.100"'], "dependency")[0]).toContain("10.0.100");
