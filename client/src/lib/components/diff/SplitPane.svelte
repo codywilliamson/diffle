@@ -9,6 +9,9 @@
   } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import { horizontalWheel } from "$lib/diff/horizontalWheel";
+  import { PLAIN_ANNOTATIONS, hunkOfRowKey, type DiffAnnotations } from "$lib/diff/annotations";
+  import type { MovedMark } from "$lib/diff/movedLines";
+  import MovedMarker from "./MovedMarker.svelte";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
 
@@ -18,9 +21,10 @@
     side: Side;
     id: string;
     highlighted: (line: DiffLine) => string;
+    annotations?: DiffAnnotations;
   }
 
-  let { file, rows, side, id, highlighted }: Props = $props();
+  let { file, rows, side, id, highlighted, annotations = PLAIN_ANNOTATIONS }: Props = $props();
   const { ui, comments } = getAppState();
   const fileComments = $derived(comments.comments.filter((comment) => comment.file === file.path));
 
@@ -37,6 +41,13 @@
     const html = highlighted(line);
     const mark = marks.get(line);
     return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
+  }
+
+  function movedAt(line: DiffLine | null | undefined): MovedMark | null {
+    if (!line) return null;
+    if (side === "new" && line.type === "addition" && line.newLine != null) return annotations.moved.mark("new", line.newLine);
+    if (side === "old" && line.type === "deletion" && line.oldLine != null) return annotations.moved.mark("old", line.oldLine);
+    return null;
   }
 
   async function saveComment(line: DiffLine, text: string, tag?: CommentTag): Promise<string | null> {
@@ -67,14 +78,20 @@
   <div class="split-label">{side === "old" ? "Old" : "New"}</div>
   {#each rows as row (row.key)}
     {#if row.kind === "header"}
-      <div class="split-hunk" title={row.text}>{row.text}</div>
+      <div class="split-hunk" title={row.text}>
+        {row.text}{#if annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}<span class="ws-label">whitespace only</span>{/if}
+      </div>
     {:else if row.kind === "code"}
       {@const line = side === "old" ? row.pair.left : row.pair.right}
       {@const number = (side === "old" ? line?.oldLine : line?.newLine) ?? null}
+      {@const moved = movedAt(line)}
+      {@const interactive = number != null && !annotations.readonly}
       {@const selected = number != null && isPending(ui.adding, ui.selecting, file.path, side, number)}
       {@const ranged = number != null && inSavedRange(fileComments, side, number)}
       <div
         class="diff-row split-line row-{line?.type ?? 'empty'}"
+        class:row-moved={moved}
+        class:ws-only={annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}
         class:range-selected={selected}
         class:in-range={ranged}
         data-oldline={side === "old" ? number ?? "" : ""}
@@ -82,7 +99,7 @@
       >
         <div class="split-gutter">
           <span class="bubble-gutter">
-            {#if number != null}
+            {#if interactive}
               <button
                 type="button"
                 class="bubble-btn"
@@ -95,7 +112,7 @@
               </button>
             {/if}
           </span>
-          {#if number != null}
+          {#if interactive}
             <button
               type="button"
               class="lineno sel"
@@ -104,11 +121,11 @@
               onclick={(event) => keyboardComment(event, number)}
             >{number}</button>
           {:else}
-            <span class="lineno"></span>
+            <span class="lineno">{number ?? ""}</span>
           {/if}
         </div>
         <div class="code code-{line?.type ?? 'empty'}">
-          <span class="code-inner">{#if line}{@html renderCode(line, row.marks)}{/if}</span>
+          {#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="code-inner">{#if line}{@html renderCode(line, row.marks)}{/if}</span>
         </div>
       </div>
     {:else}
