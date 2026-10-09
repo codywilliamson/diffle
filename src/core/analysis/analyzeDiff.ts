@@ -10,6 +10,7 @@ import { editedMovedLines } from "./movedEdits";
 import { dropMovedApiFlags } from "./movedApi";
 import { linguistGenerated } from "./noise";
 import { whitespaceOnlyHunks } from "./whitespace";
+import { createSnapshotReader } from "./snapshotReader";
 import { orderReview } from "./reviewOrder";
 import { buildCategories } from "./scorecardBands";
 import { pairTests } from "./testPairs";
@@ -60,7 +61,7 @@ export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScore
     pairs: pairTests(diff.files),
     changedSince: opts.round ? changedSinceRound(opts.round, opts.cwd, opts.newRef, paths) : null,
   };
-  const { groups, ordered } = orderReview(dropMovedApiFlags(diff.files.map((f) => analyzeFile(f, ctx)), moved), opts.cwd);
+  const { groups, ordered } = orderReview(dropMovedApiFlags(diff.files.map((f) => analyzeFile(f, ctx)), moved), opts.cwd, createSnapshotReader(opts.cwd, opts.newRef));
   const additions = diff.files.reduce((n, f) => n + f.additions, 0);
   const deletions = diff.files.reduce((n, f) => n + f.deletions, 0);
   const effectiveLines = ordered.reduce((n, f) => n + f.effectiveLines, 0);
