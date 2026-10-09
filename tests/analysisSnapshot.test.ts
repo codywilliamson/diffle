@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { createSnapshotReader } from "../src/core/analysis/snapshotReader";
+import { createSnapshot } from "../src/core/analysis/snapshot";
 import { orderReview } from "../src/core/analysis/reviewOrder";
 import { runGit } from "../src/utils/git";
 import { analysis } from "./fixtures/analysis/fileAnalysis";
@@ -20,7 +20,7 @@ const put = (rel: string, body: string) => {
   writeFileSync(join(root, rel), body);
 };
 const groupLabels = (newRef: string | null) =>
-  orderReview([analysis("A/X.cs"), analysis("B/Y.cs")], root, createSnapshotReader(root, newRef)).groups.map((g) => g.label);
+  orderReview([analysis("A/X.cs"), analysis("B/Y.cs")], root, createSnapshot(root, newRef)).groups.map((g) => g.label);
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), "snapshot-"));
@@ -43,11 +43,11 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe("snapshot reader", () => {
   it("reads the working tree, the index, and a ref, and returns null for missing files", () => {
-    expect(createSnapshotReader(root, null)(B)).toBe(proj([]));
-    expect(createSnapshotReader(root, "")(B)).toBe(proj(["../A/A.csproj"]));
-    expect(createSnapshotReader(root, refSha)(B)).toBe(proj([]));
-    expect(createSnapshotReader(root, refSha)("nope.csproj")).toBeNull();
-    expect(createSnapshotReader(root, null)("nope.csproj")).toBeNull();
+    expect(createSnapshot(root, null).read(B)).toBe(proj([]));
+    expect(createSnapshot(root, "").read(B)).toBe(proj(["../A/A.csproj"]));
+    expect(createSnapshot(root, refSha).read(B)).toBe(proj([]));
+    expect(createSnapshot(root, refSha).read("nope.csproj")).toBeNull();
+    expect(createSnapshot(root, null).read("nope.csproj")).toBeNull();
   });
 
   it("orders a staged review by the staged reference", () => {

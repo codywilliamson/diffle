@@ -5,6 +5,7 @@ import { CHURN_WINDOW_DAYS } from "./churn";
 import { editedKey } from "./movedEdits";
 import { fileNoise } from "./noise";
 import { adapterFor } from "./languages";
+import type { Snapshot } from "./snapshot";
 import { whitespaceOnlyHunks } from "./whitespace";
 
 export const CODE_EXTENSIONS = new Set([
@@ -17,6 +18,7 @@ export const MAX_LEFTOVERS_PER_FILE = 5;
 
 export interface FileContext {
   cwd: string;
+  snapshot: Snapshot;
   generated: Set<string>; // linguist-generated paths
   churn: Record<string, number>;
   moved: MovedBlock[];
@@ -99,7 +101,7 @@ export function analyzeFile(file: DiffFile, ctx: FileContext): FileAnalysis {
   return {
     path: file.path,
     language: adapter.id,
-    group: adapter.groupOf(file.path, ctx.cwd).label,
+    group: adapter.groupOf(file.path, ctx.cwd, ctx.snapshot).label,
     noise,
     whitespaceOnlyHunks: wsHunks,
     noiseLines,

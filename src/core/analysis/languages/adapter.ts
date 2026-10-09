@@ -1,7 +1,7 @@
 // the per-language seam for the deterministic scorecard. the core (noise, moved, churn, scoring)
 // is language-agnostic; anything that needs to know a language's conventions lives behind this.
 
-import type { SnapshotReader } from "../snapshotReader";
+import type { Snapshot } from "../snapshot";
 import type { ChangeFlag, DiffFile, FileNoise } from "../../../types";
 
 export interface ReviewGroupKey {
@@ -15,8 +15,8 @@ export interface LanguageAdapter {
   noise(path: string): FileNoise | null; // language-specific generated files / lockfiles
   isTest(path: string): boolean;
   subjectName(path: string): string; // lowercased stem with test suffixes stripped; a test and its source share it
-  groupOf(path: string, cwd: string): ReviewGroupKey;
+  groupOf(path: string, cwd: string, snapshot: Snapshot): ReviewGroupKey;
   // groups each group depends on (e.g. csproj ProjectReference); dependencies are reviewed first
-  groupDependencies?(groupIds: string[], cwd: string, read: SnapshotReader): Record<string, string[]>;
+  groupDependencies?(groupIds: string[], cwd: string, snapshot: Snapshot): Record<string, string[]>;
   flags(file: DiffFile): ChangeFlag[]; // public api, dependency, leftover, sensitive-path flags
 }

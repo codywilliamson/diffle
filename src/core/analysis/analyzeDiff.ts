@@ -4,13 +4,12 @@ import type { DiffFile, DiffMeta, DiffResult, MovedBlock, ReviewRound, ReviewSco
 import { changedSinceRound } from "../reviewRounds";
 import { analyzeFile } from "./analyzeFile";
 import { fileChurn } from "./churn";
-import { resetLanguageCaches } from "./languages";
 import { detectMovedBlocks } from "./moved";
 import { editedMovedLines } from "./movedEdits";
 import { dropMovedApiFlags } from "./movedApi";
 import { linguistGenerated } from "./noise";
 import { whitespaceOnlyHunks } from "./whitespace";
-import { createSnapshotReader } from "./snapshotReader";
+import { createSnapshot } from "./snapshot";
 import { orderReview } from "./reviewOrder";
 import { buildCategories } from "./scorecardBands";
 import { pairTests } from "./testPairs";
@@ -48,12 +47,13 @@ function isReindent(block: MovedBlock, byPath: Map<string, WhitespaceFile>): boo
 }
 
 export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScorecard {
-  resetLanguageCaches();
   const paths = diff.files.map((f) => f.path);
   const byPath = new Map(diff.files.map((file) => [file.path, { file, wsHunks: whitespaceOnlyHunks(file) }]));
   const moved = detectMovedBlocks(diff.files).filter((b) => !isReindent(b, byPath));
+  const snapshot = createSnapshot(opts.cwd, opts.newRef);
   const ctx = {
     cwd: opts.cwd,
+    snapshot,
     generated: linguistGenerated(paths, opts.cwd),
     churn: fileChurn(paths, opts.cwd, opts.churnBase),
     moved,
@@ -61,7 +61,7 @@ export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScore
     pairs: pairTests(diff.files),
     changedSince: opts.round ? changedSinceRound(opts.round, opts.cwd, opts.newRef, paths) : null,
   };
-  const { groups, ordered } = orderReview(dropMovedApiFlags(diff.files.map((f) => analyzeFile(f, ctx)), moved), opts.cwd, createSnapshotReader(opts.cwd, opts.newRef));
+  const { groups, ordered } = orderReview(dropMovedApiFlags(diff.files.map((f) => analyzeFile(f, ctx)), moved), opts.cwd, snapshot);
   const additions = diff.files.reduce((n, f) => n + f.additions, 0);
   const deletions = diff.files.reduce((n, f) => n + f.deletions, 0);
   const effectiveLines = ordered.reduce((n, f) => n + f.effectiveLines, 0);
