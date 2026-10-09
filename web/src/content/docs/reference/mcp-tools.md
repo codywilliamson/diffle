@@ -21,6 +21,7 @@ If the `diffle` server doesn't show up in your agent, run `diffle doctor` — a 
 | --- | --- | --- |
 | `start_review` | start a review of a git comparison and open it in the browser | `cwd` (required), `ref` (required — use `"working"` for current tracked+untracked changes; otherwise a staged/branch/range comparison), `policy` (optional: `required` \| `handoff` \| `off`), `origin` (optional agent/session metadata) |
 | `get_review` | inspect the durable status and feedback of a review | `reviewId` |
+| `get_scorecard` | deterministic review scorecard (order, noise, risk flags) for a review's target | `reviewId` |
 | `reply_to_comment` | reply to an unresolved review comment as the agent | `reviewId`, `commentId`, `text` |
 | `mark_comment_addressed` | mark a reviewer comment addressed after making the change | `reviewId`, `commentId` |
 | `request_rereview` | tell the reviewer changes are ready for another pass (reopens an approved review rather than failing) | `reviewId`, `summary` (optional) |

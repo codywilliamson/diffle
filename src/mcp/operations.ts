@@ -1,4 +1,4 @@
-import type { ReviewOrigin, ReviewPolicy, ReviewRecord } from "../types";
+import type { ReviewOrigin, ReviewPolicy, ReviewRecord, ReviewScorecard } from "../types";
 
 export interface StartReviewInput {
   cwd: string;
@@ -17,6 +17,7 @@ export interface ReviewOperationResult {
 export interface ReviewOperations {
   startReview(input: StartReviewInput): Promise<ReviewOperationResult>;
   getReview(reviewId: string): Promise<ReviewOperationResult>;
+  getScorecard(reviewId: string): Promise<ReviewScorecard>;
   replyToComment(input: { reviewId: string; commentId: string; text: string }): Promise<ReviewOperationResult>;
   markCommentAddressed(input: { reviewId: string; commentId: string }): Promise<ReviewOperationResult>;
   requestRereview(input: { reviewId: string; summary?: string }): Promise<ReviewOperationResult>;

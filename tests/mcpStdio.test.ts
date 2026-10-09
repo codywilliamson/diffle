@@ -23,7 +23,7 @@ describe("MCP stdio entry", () => {
       await client.connect(transport);
       const tools = await client.listTools();
       expect(tools.tools.map((tool) => tool.name)).toContain("start_review");
-      expect(tools.tools).toHaveLength(6);
+      expect(tools.tools).toHaveLength(7);
       const started = await client.callTool({ name: "start_review", arguments: { cwd: repo, ref: "HEAD" } });
       expect(started.isError).not.toBe(true);
       const content = started.structuredContent as { url: string; review: { id: string } };

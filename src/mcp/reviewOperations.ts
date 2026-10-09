@@ -7,6 +7,7 @@ import {
   requestRereview,
 } from "../core/reviewRecords";
 import type { ReviewOperationResult, ReviewOperations } from "./operations";
+import { scorecardForReview } from "./scorecardOperation";
 
 function found(reviewId: string): ReviewOperationResult {
   const review = readReviewRecord(reviewId);
@@ -28,6 +29,7 @@ export function createReviewOperations(loupeRoot: string): ReviewOperations {
       return { review: launch.review, url: launch.url, staleSessions: stale.length };
     },
     async getReview(reviewId) { return found(reviewId); },
+    async getScorecard(reviewId) { return scorecardForReview(reviewId); },
     async replyToComment(input) {
       return { review: replyToComment(input.reviewId, input.commentId, input.text, "agent") };
     },
