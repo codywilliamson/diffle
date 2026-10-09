@@ -124,6 +124,13 @@ export interface ReviewActivity {
   summary?: string;
 }
 
+// new-side git blob shas captured when the reviewer last returned feedback (null = file absent).
+// the interdiff ("changed since last review") compares the current content against these.
+export interface ReviewRound {
+  capturedAt: string;
+  blobs: Record<string, string | null>;
+}
+
 export interface ReviewRecord {
   schemaVersion: typeof REVIEW_SCHEMA_VERSION;
   id: string;
@@ -137,6 +144,7 @@ export interface ReviewRecord {
   viewed: string[];
   comments: Comment[];
   activity: ReviewActivity[];
+  lastRound?: ReviewRound;
 }
 
 export interface FeedbackBundle {
@@ -202,6 +210,80 @@ export interface CompilePromptResponse {
 export interface FileContentResponse {
   path: string;
   content: string;
+}
+
+// ── analysis (deterministic scorecard) ───────────────────────────────────────
+
+// whole-file noise that the ui collapses by default
+export type FileNoise = "generated" | "lockfile";
+
+export type ScoreBand = "low" | "medium" | "high"; // green / amber / red
+
+export type FlagKind =
+  | "sensitive-path"
+  | "public-api-removed"
+  | "public-api-added"
+  | "dependency"
+  | "leftover"
+  | "untested"
+  | "hotspot"
+  | "large";
+
+export interface ChangeFlag {
+  kind: FlagKind;
+  reason: string; // plain-english, names the rule that fired
+  line?: number | null; // new-side line (old-side for removals) when the flag points at one
+}
+
+// a block of deleted lines that reappears as added lines (same or another file)
+export interface MovedBlock {
+  from: { file: string; start: number; end: number }; // old-side lines, inclusive
+  to: { file: string; start: number; end: number }; // new-side lines, inclusive
+  edited: boolean; // false = moved verbatim (ignoring indentation)
+}
+
+export interface FileAnalysis {
+  path: string;
+  language: string; // adapter id, e.g. "csharp" | "typescript" | "generic"
+  group: string; // review group label, e.g. a .csproj name or a top-level folder
+  noise: FileNoise | null;
+  whitespaceOnlyHunks: number[]; // indices into DiffFile.hunks that only change whitespace
+  noiseLines: number; // changed lines inside whitespace-only hunks or moved blocks
+  effectiveLines: number; // additions + deletions minus noiseLines (0 when the whole file is noise)
+  testPair: string | null; // the paired test (or source) file when it is also in the diff
+  isTest: boolean;
+  churn: number; // commits touching the file in the churn window, excluding the change itself
+  changedSinceReview: boolean | null; // null when there is no previous round to compare
+  flags: ChangeFlag[];
+}
+
+export interface ScorecardCategory {
+  id: "size" | "tests" | "api" | "dependencies" | "hotspots" | "flags";
+  label: string;
+  band: ScoreBand;
+  summary: string; // one line, e.g. "412 effective lines across 9 files"
+  reasons: string[]; // the signals behind the band
+}
+
+export interface ReviewGroup {
+  id: string;
+  label: string;
+  files: string[]; // paths in suggested review order
+}
+
+// GET /api/scorecard
+export interface ReviewScorecard {
+  totals: { files: number; additions: number; deletions: number; effectiveLines: number; noiseLines: number };
+  categories: ScorecardCategory[];
+  groups: ReviewGroup[]; // groups in suggested order; together they cover every diff file once
+  files: FileAnalysis[]; // flattened in suggested review order
+  moved: MovedBlock[];
+}
+
+// GET /api/interdiff?path= — what changed in one file since the reviewer's last round
+export interface InterdiffResponse {
+  path: string;
+  file: DiffFile | null; // null when the file is unchanged since the round
 }
 
 // error envelope returned with any non-2xx status
