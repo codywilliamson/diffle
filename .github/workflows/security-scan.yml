@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   security-scan:
-    uses: codywilliamson/repo-sentinel/.github/workflows/security-scan.yml@v0.3.3
+    uses: codywilliamson/repo-sentinel/.github/workflows/security-scan.yml@v0.3.5
     with:
       severity-threshold: "MEDIUM"
       codeql-languages: "javascript-typescript"
@@ -26,6 +26,7 @@ jobs:
       trivy-scanners: "vuln,secret,misconfig"
       trivy-skip-dirs: "node_modules,web/node_modules,demos/node_modules,dist"
       label: "security"
+      close-resolved-issues: true
     permissions:
       contents: read
       security-events: write
