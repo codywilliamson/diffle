@@ -28,6 +28,14 @@ const cli = [
   ["diffle v1.0..v1.1", "a commit range"],
   ["diffle browse src/", "the whole subtree"],
 ];
+
+const scorecard = [
+  ["high", "Public API", "removed public method GetUser(int id)"],
+  ["medium", "Dependencies", "Serilog 3.0.0 → 3.1.1"],
+  ["medium", "Tests", "OrderService.cs has no matching test"],
+  ["low", "Hotspots", "no frequently changed files"],
+  ["low", "Flags", "nothing sensitive or left over"],
+];
 ---
 
 <Landing>
@@ -268,6 +276,38 @@ const cli = [
 
 <span class="md-loc">client/src/lib/api.ts:88</span> <span class="pill pill-open">unresolved</span>
 <span class="md-q">&gt; fetch has no timeout; agents hang on a dead server.</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SPREAD: SCORECARD ===================== -->
+  <section class="spread wrap" data-reveal>
+    <div class="spread-copy">
+      <h2>Triage before you read</h2>
+      <p>
+        A deterministic scorecard flags what deserves your attention: size, untested
+        code, public API and dependency changes, hotspots, and risky leftovers. Files
+        come in review order, grouped by project with dependencies first. Lockfiles and
+        generated code collapse, and moved code is marked. Same diff, same score, no AI.
+        C# is first-class.
+      </p>
+      <a class="text-link" href="/guides/review-scorecard/">
+        How the scorecard works
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </a>
+    </div>
+    <div class="spread-proof">
+      <div class="frame score-frame">
+        <div class="frame-bar"><span class="frame-path">review scorecard</span><span class="frame-count">412 effective lines</span></div>
+        <ul class="score-rows">
+          {scorecard.map(([band, label, why]) => (
+            <li>
+              <span class={`band band-${band}`}>{band}</span>
+              <span class="score-label">{label}</span>
+              <span class="score-why">{why}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   </section>
@@ -643,6 +683,62 @@ const cli = [
     .pill-open {
       background: var(--mod-badge-bg);
       color: var(--mod-badge-text);
+    }
+    .score-rows {
+      list-style: none;
+      margin: 0;
+      padding: 0.35rem 0;
+    }
+    .score-rows li {
+      display: grid;
+      grid-template-columns: 4.6rem 7.5rem minmax(0, 1fr);
+      align-items: baseline;
+      gap: 0.75rem;
+      padding: 0.6rem 1rem;
+      border-top: 1px solid var(--divider);
+      font-size: 0.875rem;
+    }
+    .score-rows li:first-child {
+      border-top: 0;
+    }
+    .band {
+      justify-self: start;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      font-family: var(--ff-mono);
+      font-size: 0.72rem;
+      text-transform: capitalize;
+    }
+    .band-high {
+      background: var(--del-bg);
+      color: var(--del-text);
+    }
+    .band-medium {
+      background: var(--mod-badge-bg);
+      color: var(--mod-badge-text);
+    }
+    .band-low {
+      background: var(--add-bg);
+      color: var(--add-text);
+    }
+    .score-label {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .score-why {
+      min-width: 0;
+      color: var(--muted);
+      font-family: var(--ff-mono);
+      font-size: 0.8rem;
+      overflow-wrap: anywhere;
+    }
+    @media (max-width: 560px) {
+      .score-rows li {
+        grid-template-columns: 4.6rem minmax(0, 1fr);
+      }
+      .score-why {
+        grid-column: 2;
+      }
     }
     .pill-done {
       background: var(--add-gutter);
