@@ -1,10 +1,12 @@
 <script lang="ts">
   import { getAppState } from "$lib/state/context";
   import { fileAnchorId } from "$lib/diff/tree";
+  import { useOrderedFiles } from "$lib/state/orderedFiles.svelte";
   import FileSection from "./FileSection.svelte";
   import StaleComments from "../StaleComments.svelte";
 
   const { diff, ui, prefs } = getAppState();
+  const ordered = useOrderedFiles();
 
   // in all-files mode, selecting a file scrolls its section into view.
   $effect(() => {
@@ -15,10 +17,10 @@
   // single-file mode shows the active file (falling back to the first); all-files shows every file.
   const files = $derived.by(() => {
     if (prefs.fileView === "single") {
-      const active = diff.files.find((f) => f.path === ui.activeFile) ?? diff.files[0];
+      const active = ordered.files.find((f) => f.path === ui.activeFile) ?? ordered.files[0];
       return active ? [active] : [];
     }
-    return diff.files;
+    return ordered.files;
   });
 </script>
 

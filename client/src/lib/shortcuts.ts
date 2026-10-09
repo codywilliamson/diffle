@@ -13,6 +13,8 @@ export const SHORTCUTS: Shortcut[] = [
   { key: "w", label: "Wrap long lines" },
   { key: "o", label: "Single-file / all files" },
   { key: "r", label: "Re-run the diff" },
+  { key: "g", label: "Open the review scorecard" },
+  { key: "m", label: "File list: tree / review order" },
   { key: "c", label: "Preview review feedback" },
   { key: "n", label: "What's new" },
   { key: "?", label: "Keyboard shortcuts" },

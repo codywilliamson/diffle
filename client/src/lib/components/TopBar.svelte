@@ -13,11 +13,13 @@
   import { PRODUCT } from "$product";
   import { getAppState } from "$lib/state/context";
   import { withViewTransition } from "$lib/viewTransition";
+  import { BAND_DOT, worstBand } from "$lib/scorecard/bands";
   import OverflowMenu from "./OverflowMenu.svelte";
   import ReviewPanel from "./review/ReviewPanel.svelte";
   import UpdateBadge from "./UpdateBadge.svelte";
 
-  const { diff, prefs, ui } = getAppState();
+  const { diff, prefs, ui, analysis } = getAppState();
+  const scoreBand = $derived(analysis.scorecard ? worstBand(analysis.scorecard.categories.map((c) => c.band)) : null);
 
   const fileCount = $derived(`${diff.files.length} ${diff.files.length === 1 ? "file" : "files"}`);
   const delta = $derived.by(() => {
@@ -56,6 +58,17 @@
 
   <div class="flex w-full shrink-0 items-center justify-end gap-1 min-[701px]:w-auto">
     <UpdateBadge />
+    {#if analysis.scorecard && scoreBand}
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-text"
+        title="Review scorecard (g)"
+        aria-label="Review scorecard, overall {scoreBand} risk"
+        onclick={() => ui.toggleOverlay("scorecard")}
+      >
+        <span class="size-2 rounded-full {BAND_DOT[scoreBand]}" aria-hidden="true"></span>Scorecard
+      </button>
+    {/if}
     <ReviewPanel />
     <OverflowMenu
       fileView={prefs.fileView}

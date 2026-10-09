@@ -3,7 +3,7 @@
 
 import type { AddTarget, SelectTarget, Side } from "$lib/diff/threads";
 
-export type OverlayName = "help" | "whatsNew" | "compile";
+export type OverlayName = "help" | "whatsNew" | "compile" | "scorecard";
 
 export function createUiStore() {
   let activeOverlay = $state<OverlayName | null>(null);

@@ -13,11 +13,20 @@
   import { getState } from "$lib/api/meta";
   import { WHATS_NEW } from "$lib/whatsNew";
   import { isEditable } from "$lib/shortcuts";
+  import ScorecardPanel from "$lib/components/scorecard/ScorecardPanel.svelte";
+  import { useOrderedFiles } from "$lib/state/orderedFiles.svelte";
   import { currentFile } from "$lib/diff/currentFile";
 
-  // compose the five domain stores once at the root and share them through context.
+  // compose the domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui, prefs, comments } = app;
+  const { diff, ui, prefs, comments, analysis } = app;
+
+  const ordered = useOrderedFiles();
+
+  // re-score whenever a fresh diff lands.
+  $effect(() => {
+    if (diff.state.status === "ready" && diff.state.diff) void analysis.refresh();
+  });
 
   // right after any selection (j/k or the sidebar) the pane is still smooth-scrolling to it, so
   // trust the selection over the scroll position.
@@ -34,7 +43,7 @@
       return;
     }
     if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-    const paths = diff.files.map((file) => file.path);
+    const paths = ordered.files.map((file) => file.path);
     const followScroll = prefs.fileView === "all" && performance.now() - lastSelectAt > SMOOTH_SCROLL_MS;
     const current = followScroll ? currentFile(paths, ui.activeFile) : ui.activeFile ?? paths[0];
     const index = paths.indexOf(current ?? "");
@@ -51,6 +60,8 @@
       case "w": prefs.toggleWrap(); break;
       case "o": prefs.setFileView(prefs.fileView === "single" ? "all" : "single"); break;
       case "r": void diff.refresh(); break;
+      case "g": if (analysis.scorecard) ui.toggleOverlay("scorecard"); break;
+      case "m": prefs.setFileOrder(prefs.fileOrder === "review" ? "tree" : "review"); break;
       case "c": ui.openOverlay("compile"); break;
       case "n": ui.toggleOverlay("whatsNew"); break;
       case "?": ui.toggleOverlay("help"); break;
@@ -105,5 +116,6 @@
 
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
+  {#if ui.activeOverlay === "scorecard" && analysis.scorecard}<ScorecardPanel scorecard={analysis.scorecard} />{/if}
   {#if ui.activeOverlay === "compile"}<FeedbackPreview />{/if}
 </main>
