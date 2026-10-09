@@ -1,3 +1,4 @@
+import { createSnapshot } from "../src/core/analysis/snapshot";
 import { afterAll, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -77,11 +78,11 @@ describe("typescript groups", () => {
   writeFileSync(join(root, "package.json"), "{}");
 
   it("uses a nested package folder, else the first two folders", () => {
-    expect(ts.groupOf("web/src/a.ts", root)).toEqual({ id: "web", label: "web" });
-    expect(ts.groupOf("src/core/a.ts", root)).toEqual({ id: "src/core", label: "src/core" });
-    expect(ts.groupOf("client/src/lib/a.ts", root)).toEqual({ id: "client/src", label: "client/src" });
-    expect(ts.groupOf("src/index.ts", root)).toEqual({ id: "src", label: "src" });
-    expect(ts.groupOf("vite.config.ts", root)).toEqual({ id: "(root)", label: "(root)" });
+    expect(ts.groupOf("web/src/a.ts", root, createSnapshot(root, null))).toEqual({ id: "web", label: "web" });
+    expect(ts.groupOf("src/core/a.ts", root, createSnapshot(root, null))).toEqual({ id: "src/core", label: "src/core" });
+    expect(ts.groupOf("client/src/lib/a.ts", root, createSnapshot(root, null))).toEqual({ id: "client/src", label: "client/src" });
+    expect(ts.groupOf("src/index.ts", root, createSnapshot(root, null))).toEqual({ id: "src", label: "src" });
+    expect(ts.groupOf("vite.config.ts", root, createSnapshot(root, null))).toEqual({ id: "(root)", label: "(root)" });
   });
 });
 

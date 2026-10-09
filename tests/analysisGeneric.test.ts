@@ -1,3 +1,4 @@
+import { createSnapshot } from "../src/core/analysis/snapshot";
 import { describe, expect, it } from "bun:test";
 import { ADAPTERS, adapterFor } from "../src/core/analysis/languages";
 import { genericAdapter as gen } from "../src/core/analysis/languages/generic";
@@ -26,8 +27,8 @@ describe("generic adapter", () => {
   });
 
   it("groups by top-level folder or (root)", () => {
-    expect(gen.groupOf("cmd/main.go", "/x")).toEqual({ id: "cmd", label: "cmd" });
-    expect(gen.groupOf("Makefile", "/x")).toEqual({ id: "(root)", label: "(root)" });
+    expect(gen.groupOf("cmd/main.go", "/x", createSnapshot("/x", null))).toEqual({ id: "cmd", label: "cmd" });
+    expect(gen.groupOf("Makefile", "/x", createSnapshot("/x", null))).toEqual({ id: "(root)", label: "(root)" });
   });
 
   it("flags todo markers on added lines only", () => {

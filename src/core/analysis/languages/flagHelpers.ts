@@ -43,6 +43,13 @@ export const baseName = (path: string): string => segmentsOf(path).at(-1) ?? "";
 export const stemOf = (name: string): string => name.replace(/\.[^./]*$/, "");
 export const dirSegments = (path: string): string[] => segmentsOf(path).slice(0, -1);
 
+// the file's folders from nearest to the root (""), or none when the path climbs out of the root
+export function ancestorDirs(path: string): string[] {
+  const dirs = dirSegments(path);
+  if (dirs.includes("..")) return [];
+  return dirs.map((_, i) => dirs.slice(0, dirs.length - i).join("/")).concat("");
+}
+
 export function topLevelGroup(path: string): ReviewGroupKey {
   const segs = segmentsOf(path);
   const id = segs.length > 1 ? segs[0]! : ROOT_GROUP;

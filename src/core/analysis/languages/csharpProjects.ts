@@ -1,61 +1,41 @@
 // maps c# files to their owning .csproj and reads project references between them.
 
-import { readdirSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import type { SnapshotReader } from "../snapshotReader";
+import { dirname, relative, resolve } from "node:path";
+import type { Snapshot } from "../snapshot";
 import type { ReviewGroupKey } from "./adapter";
-import { isInside, stemOf, topLevelGroup } from "./flagHelpers";
+import { ancestorDirs, stemOf, topLevelGroup } from "./flagHelpers";
 
 const PROJECT_REFERENCE = /<ProjectReference\s[^>]*?Include="([^"]+)"/g;
 
-// cwd -> directory -> owning project (null = none), so walking up is paid once per folder
-const projectCache = new Map<string, Map<string, ReviewGroupKey | null>>();
-
-export const resetCsharpProjectCache = (): void => projectCache.clear();
-
 const toPosix = (p: string): string => p.replace(/\\/g, "/");
 
-function projectIn(dir: string, root: string): ReviewGroupKey | null {
-  let names: string[];
-  try {
-    names = readdirSync(dir).filter((n) => n.toLowerCase().endsWith(".csproj")).sort();
-  } catch {
-    return null; // folder is gone (deleted file) — keep walking up
+function projectIn(dir: string, snapshot: Snapshot): ReviewGroupKey | null {
+  const name = snapshot.list(dir).filter((n) => n.toLowerCase().endsWith(".csproj")).sort()[0];
+  return name ? { id: dir ? `${dir}/${name}` : name, label: stemOf(name) } : null;
+}
+
+export function csharpGroupOf(path: string, _cwd: string, snapshot: Snapshot): ReviewGroupKey {
+  for (const dir of ancestorDirs(path)) {
+    const found = projectIn(dir, snapshot);
+    if (found) return found;
   }
-  const name = names[0];
-  return name ? { id: toPosix(relative(root, join(dir, name))), label: stemOf(name) } : null;
+  return topLevelGroup(path);
 }
 
-function findProject(dir: string, root: string, cache: Map<string, ReviewGroupKey | null>): ReviewGroupKey | null {
-  if (cache.has(dir)) return cache.get(dir) ?? null;
-  let found = projectIn(dir, root);
-  if (!found && dir !== root && isInside(root, dirname(dir))) found = findProject(dirname(dir), root, cache);
-  cache.set(dir, found);
-  return found;
-}
-
-export function csharpGroupOf(path: string, cwd: string): ReviewGroupKey {
-  const root = resolve(cwd);
-  let cache = projectCache.get(root);
-  if (!cache) projectCache.set(root, (cache = new Map()));
-  const dir = dirname(resolve(root, path));
-  return (isInside(root, dir) ? findProject(dir, root, cache) : null) ?? topLevelGroup(path);
-}
-
-function referencedProjects(projectId: string, root: string, read: SnapshotReader): string[] {
+function referencedProjects(projectId: string, root: string, snapshot: Snapshot): string[] {
   const abs = resolve(root, projectId);
-  const xml = read(projectId);
+  const xml = snapshot.read(projectId);
   if (xml === null) return [];
   return [...xml.matchAll(PROJECT_REFERENCE)].map((m) => toPosix(relative(root, resolve(dirname(abs), toPosix(m[1]!)))));
 }
 
-export function csharpGroupDependencies(groupIds: string[], cwd: string, read: SnapshotReader): Record<string, string[]> {
+export function csharpGroupDependencies(groupIds: string[], cwd: string, snapshot: Snapshot): Record<string, string[]> {
   const root = resolve(cwd);
   const known = new Set(groupIds);
   const out: Record<string, string[]> = {};
   for (const id of groupIds) {
     const isProject = id.toLowerCase().endsWith(".csproj");
-    out[id] = isProject ? referencedProjects(id, root, read).filter((ref) => known.has(ref) && ref !== id) : [];
+    out[id] = isProject ? referencedProjects(id, root, snapshot).filter((ref) => known.has(ref) && ref !== id) : [];
   }
   return out;
 }
