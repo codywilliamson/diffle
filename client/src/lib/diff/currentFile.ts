@@ -1,10 +1,13 @@
 // slack for a section scrolled to the pane top, which can land on a fractional pixel.
 const PANE_TOP_SLACK_PX = 8;
 
-// keyed by exact path, since sanitized anchor ids can collide (a/b.ts vs a-b.ts).
+// keyed by exact path, since sanitized anchor ids can collide (a/b.ts vs a-b.ts). only the direct
+// children of the real list (the first in document order, an ancestor of any rendered markdown),
+// so markers copied into a reviewed file's preview can't pose as sections.
 function sectionRects(pane: Element): Map<string, DOMRect> {
-  const sections = pane.querySelectorAll<HTMLElement>("[data-file-path]");
-  return new Map([...sections].map((el) => [el.dataset.filePath ?? "", el.getBoundingClientRect()]));
+  const list = pane.querySelector("[data-file-sections]");
+  const sections = [...(list?.children ?? [])].filter((el): el is HTMLElement => el instanceof HTMLElement && !!el.dataset.filePath);
+  return new Map(sections.map((el) => [el.dataset.filePath ?? "", el.getBoundingClientRect()]));
 }
 
 // the file the reviewer is looking at in all-files view: the selected one while it's still on
