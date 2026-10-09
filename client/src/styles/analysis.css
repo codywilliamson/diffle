@@ -1,0 +1,139 @@
+/* in-diff analysis: noise, whitespace-only hunks, moved blocks, interdiff */
+
+/* file header chips */
+.flags {
+  position: relative;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.chip.band-low {
+  color: var(--add-text);
+  background: var(--add-bg);
+  border-color: var(--add-gutter);
+}
+.chip.band-medium {
+  color: var(--mod-badge-text);
+  background: var(--mod-badge-bg);
+  border-color: transparent;
+}
+.chip.band-high {
+  color: var(--del-text);
+  background: var(--del-bg);
+  border-color: var(--del-gutter);
+}
+.chip-changed {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.chip-btn {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chip-btn:hover {
+  color: var(--text);
+}
+.chip-btn[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--surface);
+}
+.flag-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(360px, 80vw);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+  font-family: var(--ff-sans);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.flag-pop ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 14px;
+  list-style: disc;
+}
+
+/* collapsed noise file note */
+.noise-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* whitespace-only hunks: dim the changed rows, keep the header readable */
+.ws-only .row-addition,
+.ws-only .row-deletion {
+  opacity: 0.5;
+}
+.ws-label {
+  margin-left: 10px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+/* moved blocks: a dashed accent edge and a faint wash instead of full add/del colour */
+.row-moved {
+  background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.row-moved .lineno,
+.row-moved .split-gutter {
+  opacity: 0.85;
+}
+.moved-anchor {
+  position: sticky;
+  right: 8px;
+  float: right;
+  width: 0;
+  height: 0;
+  z-index: 1;
+}
+.moved-label {
+  position: absolute;
+  top: 1px;
+  right: 0;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font: 10px/1.6 var(--ff-sans);
+  white-space: nowrap;
+}
+.moved-label:hover {
+  background: var(--surface-2);
+}

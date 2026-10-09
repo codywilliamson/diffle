@@ -6,10 +6,13 @@
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
   import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
+  import { PLAIN_ANNOTATIONS, type DiffAnnotations } from "$lib/diff/annotations";
+  import type { MovedMark } from "$lib/diff/movedLines";
+  import MovedMarker from "./MovedMarker.svelte";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
 
-  let { file }: { file: DiffFile } = $props();
+  let { file, annotations = PLAIN_ANNOTATIONS }: { file: DiffFile; annotations?: DiffAnnotations } = $props();
   const { ui, comments } = getAppState();
   const highlighted = createFileHighlight(() => file);
 
@@ -29,6 +32,12 @@
     return null;
   }
 
+  function movedAt(line: DiffLine): MovedMark | null {
+    if (line.type === "addition" && line.newLine != null) return annotations.moved.mark("new", line.newLine);
+    if (line.type === "deletion" && line.oldLine != null) return annotations.moved.mark("old", line.oldLine);
+    return null;
+  }
+
   async function saveAdd(side: Side, line: DiffLine, text: string, tag?: CommentTag): Promise<string | null> {
     const range = selectedRange(ui.adding, file.path, side);
     if (!range) return "The selected range is no longer available.";
@@ -41,16 +50,18 @@
 <table class="diff-table">
   {#each file.hunks as hunk, hi (hi)}
     {@const marks = hunkMarks(hunk.lines)}
-    <tbody>
-      {#if hunk.header}
-        <tr class="hunk-header"><td colspan="4">{hunk.header}</td></tr>
+    {@const whitespaceOnly = annotations.whitespaceHunks.has(hi)}
+    <tbody class:ws-only={whitespaceOnly}>
+      {#if hunk.header || whitespaceOnly}
+        <tr class="hunk-header"><td colspan="4">{hunk.header}{#if whitespaceOnly}<span class="ws-label">whitespace only</span>{/if}</td></tr>
       {/if}
       {#each hunk.lines as line, li (li)}
-        {@const a = anchorOf(line)}
+        {@const a = annotations.readonly ? null : anchorOf(line)}
+        {@const moved = movedAt(line)}
         {@const selected = a ? isPending(ui.adding, ui.selecting, file.path, a.side, a.line) : false}
         {@const ranged = a ? inSavedRange(fileComments, a.side, a.line) : false}
         <tr
-          class="diff-row row-{line.type}{selected ? ' range-selected' : ''}{ranged ? ' in-range' : ''}"
+          class="diff-row row-{line.type}{moved ? ' row-moved' : ''}{selected ? ' range-selected' : ''}{ranged ? ' in-range' : ''}"
           data-oldline={line.oldLine ?? ""}
           data-newline={line.newLine ?? ""}
         >
@@ -67,7 +78,7 @@
           </td>
           <td class="lineno" class:sel={a} onmousedown={a ? (e) => startSelect(e, ui, file.path, a.side, a.line) : undefined}>{line.oldLine ?? ""}</td>
           <td class="lineno" class:sel={a} onmousedown={a ? (e) => startSelect(e, ui, file.path, a.side, a.line) : undefined}>{line.newLine ?? ""}</td>
-          <td class="code"><span class="sign">{SIGN[line.type]}</span><span class="code-inner">{@html render(line, marks)}</span></td>
+          <td class="code">{#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="sign">{SIGN[line.type]}</span><span class="code-inner">{@html render(line, marks)}</span></td>
         </tr>
         {#if a}
           {@const list = commentsForLine(fileComments, a.side, a.line)}
