@@ -25,7 +25,7 @@ export interface ReviewRecordInput {
   viewed?: string[];
   comments?: Comment[];
 }
-export type ReviewRecordPatch = Partial<Pick<ReviewRecord, "summary" | "viewed" | "comments" | "origin" | "target" | "policy">>;
+export type ReviewRecordPatch = Partial<Pick<ReviewRecord, "summary" | "viewed" | "comments" | "origin" | "target" | "policy" | "lastRound">>;
 export type ReviewRecordUpdater = ReviewRecordPatch | ((record: ReviewRecord) => ReviewRecordPatch);
 
 const root = () => join(dataDir(), "reviews");
