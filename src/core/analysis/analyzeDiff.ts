@@ -46,6 +46,12 @@ function isReindent(block: MovedBlock, byPath: Map<string, WhitespaceFile>): boo
   });
 }
 
+// a renamed file's history lives under its old path; count that and attribute it to the new path
+function renamedChurn(files: DiffFile[], cwd: string, base: string | null): Record<string, number> {
+  const counts = fileChurn(files.map((f) => f.oldPath ?? f.path), cwd, base);
+  return Object.fromEntries(files.map((f) => [f.path, counts[f.oldPath ?? f.path] ?? 0]));
+}
+
 export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScorecard {
   const paths = diff.files.map((f) => f.path);
   const byPath = new Map(diff.files.map((file) => [file.path, { file, wsHunks: whitespaceOnlyHunks(file) }]));
@@ -55,7 +61,7 @@ export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScore
     cwd: opts.cwd,
     snapshot,
     generated: linguistGenerated(paths, opts.cwd),
-    churn: fileChurn(paths, opts.cwd, opts.churnBase),
+    churn: renamedChurn(diff.files, opts.cwd, opts.churnBase),
     moved,
     editedMoved: editedMovedLines(diff.files, moved),
     pairs: pairTests(diff.files),
