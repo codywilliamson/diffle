@@ -1,12 +1,14 @@
 // ts/js change flags: exported api, package.json dependencies, leftovers, generic sensitive paths.
 
 import type { ChangeFlag, DiffFile } from "../../../types";
-import { apiFlags, dependencyFlags, type DependencyParser, type DeclParser } from "./declDiff";
+import { apiFlags, dependencyFlags, type DependencyParser, type DeclParser, type Declaration } from "./declDiff";
 import { baseName, commonFlags, leftoverFlags, type LineRule } from "./flagHelpers";
 import { isTypescriptTest } from "./typescriptPaths";
 
 const EXPORT_DEFAULT = /^export\s+default\b/;
-const EXPORT_DECL = /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(function\*?|class|const|let|var|interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)/;
+const DEFAULT_CLASS = /^export default (?:abstract )?class\b\s*([A-Za-z_$][\w$]*)?/;
+const DEFAULT_FUNCTION = /^export default (?:async )?function\*?\s*([\w$]*\s*(?:<.*>)?\s*\([^)]*\))/;
+const EXPORT_DECL =/^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(function\*?|class|const|let|var|interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)/;
 const FUNCTION_SIGNATURE = /function\*?\s+([\w$]+\s*(?:<.*>)?\s*\([^)]*\))/;
 const DEPENDENCY_ENTRY = /^\s*"([^"]+)"\s*:\s*"([^"]+)",?\s*$/;
 const VERSION_SPEC = /^[\^~<>=*\d]|^(workspace|npm|file|link|git|github):|^latest$/;
@@ -19,9 +21,18 @@ const signatureOf = (t: string, found: RegExpExecArray | null): string => {
   return t.slice(0, headEnd) + t.slice(headEnd).split("{")[0]!.trimEnd();
 };
 
+// default declarations key on their signature like named exports; anything else keys on the whole line
+function parseDefaultExport(t: string): Declaration {
+  const fn = DEFAULT_FUNCTION.exec(t);
+  if (fn) return { key: signatureOf(t, fn), label: `exported default function \`${fn[1]!.trim()}\`` };
+  const cls = DEFAULT_CLASS.exec(t);
+  if (cls) return { key: `default class ${cls[1] ?? ""}`, label: `exported default class${cls[1] ? ` \`${cls[1]}\`` : ""}` };
+  return { key: t, label: "exported default" };
+}
+
 export const parseTypescriptExport: DeclParser = (raw) => {
   const t = raw.trim().replace(/\s+/g, " ").replace(/\s*\{$/, "");
-  if (EXPORT_DEFAULT.test(t)) return { key: t, label: "exported default" };
+  if (EXPORT_DEFAULT.test(t)) return parseDefaultExport(t);
   const m = EXPORT_DECL.exec(t);
   if (!m) return null;
   const [, kind, name] = m as unknown as [string, string, string];
