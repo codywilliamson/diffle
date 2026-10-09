@@ -43,15 +43,28 @@ export function fileNoise(path: string): FileNoise | null {
   return null;
 }
 
-// paths marked `linguist-generated` in .gitattributes, via one git call. any failure -> empty set.
-export function linguistGenerated(paths: string[], cwd: string): Set<string> {
+// check-attr flags that read attributes from the reviewed side: staged index or a ref (git >= 2.40)
+function attrSourceFlags(newRef: string | null): string[] {
+  if (newRef === null) return [];
+  return newRef === "" ? ["--cached"] : [`--source=${newRef}`];
+}
+
+function runCheckAttr(paths: string[], cwd: string, flags: string[]) {
+  return Bun.spawnSync(["git", "check-attr", ...flags, "-z", "--stdin", LINGUIST_ATTR], {
+    cwd,
+    stdin: Buffer.from(paths.join("\0") + "\0"),
+  });
+}
+
+// paths marked `linguist-generated` in .gitattributes of the reviewed side (newRef: null = working tree,
+// "" = staged, else a ref), via one git call. any failure -> empty set.
+export function linguistGenerated(paths: string[], cwd: string, newRef: string | null = null): Set<string> {
   const generated = new Set<string>();
   if (!paths.length) return generated;
   try {
-    const proc = Bun.spawnSync(["git", "check-attr", "-z", "--stdin", LINGUIST_ATTR], {
-      cwd,
-      stdin: Buffer.from(paths.join("\0") + "\0"),
-    });
+    let proc = runCheckAttr(paths, cwd, attrSourceFlags(newRef));
+    // git older than 2.40 has no --source: fall back to the checkout's attributes
+    if (proc.exitCode !== 0 && newRef) proc = runCheckAttr(paths, cwd, []);
     if (proc.exitCode !== 0) return generated;
     const fields = proc.stdout.toString().split("\0");
     // output is repeating (path, attr, value) triples
