@@ -12,6 +12,13 @@ const DEPENDENCY_ENTRY = /^\s*"([^"]+)"\s*:\s*"([^"]+)",?\s*$/;
 const VERSION_SPEC = /^[\^~<>=*\d]|^(workspace|npm|file|link|git|github):|^latest$/;
 const NOT_DEPENDENCY_KEYS = new Set(["version", "name", "main", "module", "types", "license", "packageManager"]);
 
+// declaration up to the body (params and return type), so editing a one-line body keeps its identity
+const signatureOf = (t: string, found: RegExpExecArray | null): string => {
+  if (!found) return t;
+  const headEnd = found.index + found[0].length;
+  return t.slice(0, headEnd) + t.slice(headEnd).split("{")[0]!.trimEnd();
+};
+
 export const parseTypescriptExport: DeclParser = (raw) => {
   const t = raw.trim().replace(/\s+/g, " ").replace(/\s*\{$/, "");
   if (EXPORT_DEFAULT.test(t)) return { key: t, label: "exported default" };
@@ -19,8 +26,9 @@ export const parseTypescriptExport: DeclParser = (raw) => {
   if (!m) return null;
   const [, kind, name] = m as unknown as [string, string, string];
   if (kind.startsWith("function")) {
-    const sig = FUNCTION_SIGNATURE.exec(t)?.[1] ?? name;
-    return { key: t, label: `exported function \`${sig}\`` };
+    const found = FUNCTION_SIGNATURE.exec(t);
+    const sig = found?.[1] ?? name;
+    return { key: signatureOf(t, found), label: `exported function \`${sig}\`` };
   }
   return { key: `${kind} ${name}`, label: `exported ${kind} \`${name}\`` };
 };

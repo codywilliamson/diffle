@@ -84,3 +84,22 @@ describe("typescript groups", () => {
     expect(ts.groupOf("vite.config.ts", root)).toEqual({ id: "(root)", label: "(root)" });
   });
 });
+
+describe("typescript export identity", () => {
+  const apiFlags = (rows: string[]) => ts.flags(makeFile("src/a.ts", rows)).filter((f) => f.kind.startsWith("public-api"));
+
+  it("ignores a one-line function body edit", () => {
+    expect(apiFlags(["-export function answer() { return 1; }", "+export function answer() { return 2; }"])).toEqual([]);
+  });
+
+  it("still flags a changed one-line signature", () => {
+    expect(apiFlags(["-export function answer() { return 1; }", "+export function answer(n: number) { return 1; }"]).map((f) => f.kind)).toEqual([
+      "public-api-removed",
+      "public-api-added",
+    ]);
+  });
+
+  it("keys arrow function consts on the name only", () => {
+    expect(apiFlags(["-export const f = (a) => a + 1;", "+export const f = (a) => a + 2;"])).toEqual([]);
+  });
+});
