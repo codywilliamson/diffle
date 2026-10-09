@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ReviewPolicy } from "../types";
-import type { McpRootProvider, ReviewOperationResult, ReviewOperations } from "./operations";
+import type { McpRootProvider, ReviewOperations } from "./operations";
 import { PRODUCT } from "../core/product";
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
@@ -12,7 +12,7 @@ const summary = z.string().trim().max(10_000).optional();
 const reviewRef = z.string().trim().min(1).max(500)
   .describe('Use "working" for current tracked and untracked changes; otherwise pass the explicitly requested staged, branch, or range comparison.');
 
-function result(value: ReviewOperationResult) {
+function result(value: Record<string, unknown>) {
   return {
     structuredContent: value,
     content: [{ type: "text" as const, text: JSON.stringify(value) }],
@@ -48,6 +48,11 @@ export function createMcpServer(operations: ReviewOperations, roots: McpRootProv
     title: "Get review", description: "Inspect the durable status and feedback for a review.",
     inputSchema: { reviewId: id }, annotations: { title: "Get review", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, async ({ reviewId }) => { try { return result(await operations.getReview(reviewId)); } catch (e) { return failure(e); } });
+
+  server.registerTool("get_scorecard", {
+    title: "Get scorecard", description: "Deterministic review scorecard (order, noise, risk flags) for the review's target: the same flags the reviewer sees.",
+    inputSchema: { reviewId: id }, annotations: { title: "Get scorecard", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+  }, async ({ reviewId }) => { try { return result({ ...await operations.getScorecard(reviewId) }); } catch (e) { return failure(e); } });
 
   server.registerTool("reply_to_comment", {
     title: "Reply to comment", description: "Reply to an unresolved review comment as the agent.",
