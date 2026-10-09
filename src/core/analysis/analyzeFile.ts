@@ -2,6 +2,7 @@
 
 import type { ChangeFlag, DiffFile, FileAnalysis, FileNoise, MovedBlock } from "../../types";
 import { CHURN_WINDOW_DAYS } from "./churn";
+import { editedKey } from "./movedEdits";
 import { fileNoise } from "./noise";
 import { adapterFor } from "./languages";
 import { whitespaceOnlyHunks } from "./whitespace";
@@ -19,6 +20,7 @@ export interface FileContext {
   generated: Set<string>; // linguist-generated paths
   churn: Record<string, number>;
   moved: MovedBlock[];
+  editedMoved: Set<string>; // changed lines inside edited moved blocks, which stay effective
   pairs: Map<string, string>;
   changedSince: Set<string> | null; // null = no previous round
 }
@@ -38,15 +40,17 @@ function movedKeys(moved: MovedBlock[], path: string): Set<string> {
   return keys;
 }
 
-function countNoiseLines(file: DiffFile, wsHunks: number[], moved: MovedBlock[]): number {
+function countNoiseLines(file: DiffFile, wsHunks: number[], moved: MovedBlock[], editedMoved: Set<string>): number {
   const covered = movedKeys(moved, file.path);
   const lineKey = (l: DiffFile["hunks"][number]["lines"][number]): string =>
     l.type === "addition" ? `+${l.newLine}` : `-${l.oldLine}`;
+  const isEdited = (l: DiffFile["hunks"][number]["lines"][number]): boolean =>
+    editedMoved.has(editedKey(file.path, l.type === "addition" ? "+" : "-", (l.type === "addition" ? l.newLine : l.oldLine) ?? 0));
   let count = 0;
   file.hunks.forEach((hunk, index) => {
     const wholeHunk = wsHunks.includes(index);
     for (const l of hunk.lines) {
-      if (l.type !== "context" && (wholeHunk || covered.has(lineKey(l)))) count++;
+      if (l.type !== "context" && (wholeHunk || (covered.has(lineKey(l)) && !isEdited(l)))) count++;
     }
   });
   return count;
@@ -82,7 +86,7 @@ export function analyzeFile(file: DiffFile, ctx: FileContext): FileAnalysis {
   const adapter = adapterFor(file.path);
   const noise: FileNoise | null = adapter.noise(file.path) ?? fileNoise(file.path) ?? (ctx.generated.has(file.path) ? "generated" : null);
   const wsHunks = whitespaceOnlyHunks(file);
-  const noiseLines = countNoiseLines(file, wsHunks, ctx.moved);
+  const noiseLines = countNoiseLines(file, wsHunks, ctx.moved, ctx.editedMoved);
   const effectiveLines = noise ? 0 : Math.max(0, file.additions + file.deletions - noiseLines);
   const isTest = adapter.isTest(file.path);
   const testPair = ctx.pairs.get(file.path) ?? null;

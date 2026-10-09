@@ -6,6 +6,7 @@ import { analyzeFile } from "./analyzeFile";
 import { fileChurn } from "./churn";
 import { resetLanguageCaches } from "./languages";
 import { detectMovedBlocks } from "./moved";
+import { editedMovedLines } from "./movedEdits";
 import { dropMovedApiFlags } from "./movedApi";
 import { linguistGenerated } from "./noise";
 import { whitespaceOnlyHunks } from "./whitespace";
@@ -55,6 +56,7 @@ export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScore
     generated: linguistGenerated(paths, opts.cwd),
     churn: fileChurn(paths, opts.cwd, opts.churnBase),
     moved,
+    editedMoved: editedMovedLines(diff.files, moved),
     pairs: pairTests(diff.files),
     changedSince: opts.round ? changedSinceRound(opts.round, opts.cwd, opts.newRef, paths) : null,
   };
