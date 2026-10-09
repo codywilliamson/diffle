@@ -77,6 +77,15 @@ describe("typescript groups", () => {
   writeFileSync(join(root, "web/package.json"), "{}");
   writeFileSync(join(root, "package.json"), "{}");
 
+  it("treats the root package.json as no group, even with a nested package beside it", () => {
+    mkdirSync(join(root, "packages/x/src"), { recursive: true });
+    writeFileSync(join(root, "packages/x/package.json"), "{}");
+    const snap = createSnapshot(root, null);
+    expect(ts.groupOf("packages/x/src/a.ts", root, snap)).toEqual({ id: "packages/x", label: "packages/x" });
+    expect(ts.groupOf("packages/y/b.ts", root, snap)).toEqual({ id: "packages/y", label: "packages/y" });
+    expect(ts.groupOf("src/lib/c.ts", root, snap)).toEqual({ id: "src/lib", label: "src/lib" });
+  });
+
   it("uses a nested package folder, else the first two folders", () => {
     expect(ts.groupOf("web/src/a.ts", root, createSnapshot(root, null))).toEqual({ id: "web", label: "web" });
     expect(ts.groupOf("src/core/a.ts", root, createSnapshot(root, null))).toEqual({ id: "src/core", label: "src/core" });

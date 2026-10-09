@@ -65,7 +65,7 @@ Whitespace-only hunks and moved code are also left out of the line counts.
 Switch the file list from **Tree** to **Review order** with the sidebar toggle or `m`. Files are grouped so you read one project at a time:
 
 - **C#**: grouped by the nearest `.csproj`. Projects are ordered by `ProjectReference`, so dependencies come first.
-- **TypeScript and JavaScript**: grouped by the nearest `package.json`, or by top-level folder.
+- **TypeScript and JavaScript**: files inside a nested `package.json` folder group under that folder. Files owned only by the repository root's `package.json` group by their top-level folders.
 - **Other languages**: grouped by top-level folder.
 
 Within a group, each source file is followed by its test. Generated files and lockfiles go to a final **Generated & lockfiles** group. `j` and `k` follow the active order.
