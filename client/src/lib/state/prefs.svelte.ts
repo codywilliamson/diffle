@@ -7,6 +7,7 @@ import { DEFAULT_SPLIT_RATIO, clampSplitRatio } from "$lib/diff/splitRatio";
 
 export type Theme = "light" | "dark";
 export type FileView = "all" | "single";
+export type FileOrder = "tree" | "review";
 
 const THEMES: Theme[] = ["light", "dark"];
 const LEGACY_THEMES: Record<string, Theme> = { claude: "light", "claude-dark": "dark" };
@@ -72,6 +73,8 @@ export function createPrefsStore(deps: PrefsDeps = {}) {
   let wrap = $state(resolveBool(storage, "wrap"));
   let fileView = $state<FileView>(readMigrated(storage, "view") === "single" ? "single" : "all");
 
+  let fileOrder = $state<FileOrder>(readMigrated(storage, "file-order") === "review" ? "review" : "tree");
+
   function applyTheme(next: Theme): void {
     try {
       document.documentElement.dataset.theme = next;
@@ -136,6 +139,13 @@ export function createPrefsStore(deps: PrefsDeps = {}) {
     setWrap,
     toggleWrap(): void {
       setWrap(!wrap);
+    },
+    get fileOrder(): FileOrder {
+      return fileOrder;
+    },
+    setFileOrder(next: FileOrder): void {
+      fileOrder = next;
+      writeKey(storage, "file-order", next);
     },
     setFileView(next: FileView): void {
       fileView = next;

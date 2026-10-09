@@ -36,6 +36,15 @@ describe("prefs store", () => {
     expect(prefs.splitRatio).toBe(50);
     expect(prefs.wrap).toBe(false);
     expect(prefs.fileView).toBe("all");
+    expect(prefs.fileOrder).toBe("tree");
+  });
+  it("persists the file order and ignores junk", () => {
+    const storage = fakeStorage();
+    createPrefsStore({ storage, matchMedia: media(false) }).setFileOrder("review");
+    expect(storage.data[`${PREFS_PREFIX}file-order`]).toBe("review");
+    expect(createPrefsStore({ storage, matchMedia: media(false) }).fileOrder).toBe("review");
+    const junk = fakeStorage({ [`${PREFS_PREFIX}file-order`]: "bogus" });
+    expect(createPrefsStore({ storage: junk, matchMedia: media(false) }).fileOrder).toBe("tree");
   });
 
   it("follows OS dark preference when no theme is saved", () => {
