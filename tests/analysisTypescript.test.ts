@@ -35,7 +35,7 @@ describe("typescript flags", () => {
     expect(reasons("src/a.ts", ["+export function load(id: string): Item {", "+export const MAX = 3;", "+export default class X {}", "+function hidden() {}"], "public-api-added")).toEqual([
       "added exported function `load(id: string)`",
       "added exported const `MAX`",
-      "added exported default",
+      "added exported default class `X`",
     ]);
     expect(reasons("src/a.ts", ["-export interface Item {"], "public-api-removed")).toEqual(["removed exported interface `Item`"]);
     expect(ts.flags(makeFile("src/a.ts", ["-export const MAX = 3;", "+export const MAX = 4;"])).filter((f) => f.kind.startsWith("public-api"))).toEqual([]);
@@ -107,6 +107,20 @@ describe("typescript export identity", () => {
       "public-api-removed",
       "public-api-added",
     ]);
+  });
+
+  it("ignores a body-only edit of a default function or class", () => {
+    expect(apiFlags(["-export default function answer() { return 1; }", "+export default function answer() { return 2; }"])).toEqual([]);
+    expect(apiFlags(["-export default async function load(id: string) { return 1; }", "+export default async function load(id: string) { return 2; }"])).toEqual([]);
+    expect(apiFlags(["-export default class Box { a = 1; }", "+export default class Box { a = 2; }"])).toEqual([]);
+  });
+
+  it("flags a changed default function signature and keeps other defaults whole-line", () => {
+    expect(apiFlags(["-export default function answer() { return 1; }", "+export default function answer(n: number) { return 1; }"]).map((f) => f.reason)).toEqual([
+      "removed exported default function `answer()`",
+      "added exported default function `answer(n: number)`",
+    ]);
+    expect(apiFlags(["-export default 1;", "+export default 2;"]).map((f) => f.kind)).toEqual(["public-api-removed", "public-api-added"]);
   });
 
   it("keys arrow function consts on the name only", () => {
