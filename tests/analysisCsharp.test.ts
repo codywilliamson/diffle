@@ -60,6 +60,18 @@ describe("csharp public api flags", () => {
     expect(cs.flags(sig).map((f) => f.kind).sort()).toEqual(["public-api-added", "public-api-removed"]);
   });
 
+  it("flags a delegate whose parameters or return type changed", () => {
+    const params = makeFile("src/A.cs", ["-public delegate void Changed(int value);", "+public delegate void Changed(string value);"]);
+    expect(cs.flags(params).map((f) => f.kind).sort()).toEqual(["public-api-added", "public-api-removed"]);
+    const ret = makeFile("src/A.cs", ["-public delegate void Changed(int value);", "+public delegate int Changed(int value);"]);
+    expect(cs.flags(ret).map((f) => f.kind).sort()).toEqual(["public-api-added", "public-api-removed"]);
+  });
+
+  it("ignores a delegate that only moved", () => {
+    const file = makeFile("src/A.cs", ["-public delegate void Changed(int value);", "     // other", "+public delegate void  Changed(int value);"]);
+    expect(cs.flags(file).filter((f) => f.kind.startsWith("public-api"))).toEqual([]);
+  });
+
   it("skips test files", () => {
     expect(reasons("tests/FooTests.cs", ["+public class FooTests"], "public-api-added")).toEqual([]);
   });
