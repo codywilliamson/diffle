@@ -1,21 +1,36 @@
 // c# change flags: public api, build/dependency changes, leftovers, sensitive paths.
 
 import type { ChangeFlag, DiffFile } from "../../../types";
-import { apiFlags, dependencyFlags, type DependencyParser } from "./declDiff";
+import { apiFlags, dependencyFlags, type DependencyParser, type DependencyParserFactory } from "./declDiff";
 import { parseCsharpDeclaration } from "./csharpApi";
 import { isCsharpTest } from "./csharpPaths";
 import { baseName, commonFlags, dirSegments, leftoverFlags, type LineRule } from "./flagHelpers";
 
-const PACKAGE = /<(?:Package(?:Reference|Version)|GlobalPackageReference)\s[^>]*?\b(?:Include|Update)="([^"]+)"(?:[^>]*?\bVersion="([^"]*)")?/;
+const PACKAGE_TAG = /<(?:Package(?:Reference|Version)|GlobalPackageReference)\b([^>]*?)(\/?)>/;
+const PACKAGE_END = /<\/(?:Package(?:Reference|Version)|GlobalPackageReference)>/;
+const PACKAGE_NAME = /\b(?:Include|Update)="([^"]+)"/;
+const VERSION_ATTR = /\bVersion="([^"]*)"/;
+const VERSION_CHILD = /<Version>([^<]*)<\/Version>/;
 const TARGET = /<TargetFrameworks?>([^<]+)<\/TargetFrameworks?>/;
 const SDK_VERSION = /"version"\s*:\s*"([^"]+)"/;
 const NUGET_ENTRY = /<add\s+key="([^"]+)"\s+value="([^"]*)"/;
 
-const parsePackages: DependencyParser = (text) => {
-  const pkg = PACKAGE.exec(text);
-  if (pkg) return { name: pkg[1]!, version: pkg[2] ?? "" };
-  const target = TARGET.exec(text);
-  return target ? { name: "TargetFramework", version: target[1]!.trim() } : null;
+// attributes in any order; a non-self-closing element can carry its version in a <Version> child
+const packagesParser: DependencyParserFactory = () => {
+  let openName: string | null = null;
+  return (text) => {
+    const tag = PACKAGE_TAG.exec(text);
+    const name = tag ? PACKAGE_NAME.exec(tag[1]!)?.[1] : undefined;
+    if (tag && name) {
+      openName = tag[2] || PACKAGE_END.test(text) ? null : name;
+      return { name, version: VERSION_ATTR.exec(tag[1]!)?.[1] ?? "" };
+    }
+    if (PACKAGE_END.test(text)) openName = null;
+    const child = openName ? VERSION_CHILD.exec(text) : null;
+    if (child) return { name: openName!, version: child[1]!.trim() };
+    const target = TARGET.exec(text);
+    return target ? { name: "TargetFramework", version: target[1]!.trim() } : null;
+  };
 };
 
 const parseSdk: DependencyParser = (text) => {
@@ -28,12 +43,12 @@ const parseNuget: DependencyParser = (text) => {
   return m ? { name: `nuget ${m[1]}`, version: m[2]! } : null;
 };
 
-function dependencyParserFor(name: string): DependencyParser | null {
+function dependencyParserFor(name: string): DependencyParserFactory | null {
   const lower = name.toLowerCase();
-  if (lower === "global.json") return parseSdk;
-  if (lower === "nuget.config") return parseNuget;
+  if (lower === "global.json") return () => parseSdk;
+  if (lower === "nuget.config") return () => parseNuget;
   const isBuildFile = lower.endsWith(".csproj") || /^directory\.(packages|build)\.props$/.test(lower);
-  return isBuildFile ? parsePackages : null;
+  return isBuildFile ? packagesParser : null;
 }
 
 const LEFTOVER_RULES: LineRule[] = [
