@@ -65,6 +65,10 @@ Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--rev
 
 diffle reviews whichever git repo you run it from, then prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 
+## Review scorecard
+
+The **Scorecard** (`g`) summarizes a diff before you read it: size, test coverage, public API, dependencies, hotspots, and risk flags. Each category is Low, Medium, or High from fixed rules, not AI. **Review order** (`m`) groups files by project, with dependencies first and each source file before its test. See [the review scorecard guide](https://diffle.dev/guides/review-scorecard/).
+
 ## Keyboard shortcuts
 
 Press `?` in the UI for this list at any time.
@@ -74,6 +78,9 @@ Press `?` in the UI for this list at any time.
 | `j` / `k` | next / previous file |
 | `v` | toggle viewed on the current file |
 | `s` | unified ↔ side-by-side (added and deleted files stay unified) |
+| `w` | wrap long lines |
+| `g` | open the review scorecard |
+| `m` | file list: tree ↔ review order |
 | `o` | single-file ↔ all-files view |
 | `t` | toggle light / dark mode |
 | `r` | re-run the diff |

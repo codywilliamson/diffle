@@ -15,7 +15,7 @@ See the [CLI reference](/reference/cli/) for the full ref syntax.
 
 ## The file tree
 
-Every changed file appears in the sidebar tree. Click a file to jump to it. Filter the tree by typing in the filter box to narrow the list to matching paths — useful in large diffs.
+Every changed file appears in the sidebar tree. Click a file to jump to it. Filter the tree by typing in the filter box to narrow the list to matching paths — useful in large diffs. Press `m` (or use the sidebar toggle) to switch to **Review order**, which groups files by project and puts each source file before its test. See the [review scorecard](/guides/review-scorecard/).
 
 ## Unified vs side-by-side
 
@@ -58,7 +58,10 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 | `j` / `k` | next / previous file |
 | `v` | toggle viewed on the current file |
 | `s` | unified ↔ side-by-side |
+| `w` | wrap long lines |
 | `o` | single-file ↔ all-files view |
+| `g` | open the review scorecard |
+| `m` | file list: tree ↔ review order |
 | `t` | toggle light / dark |
 | `r` | re-run the diff |
 | `c` | preview review feedback |
@@ -68,5 +71,6 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 
 ## Next steps
 
+- Triage a large change with the [Review scorecard](/guides/review-scorecard/).
 - Leave feedback on the diff with [Inline comments](/guides/inline-comments/).
 - Return your comments to an agent with [Agent feedback](/guides/agent-feedback/).
