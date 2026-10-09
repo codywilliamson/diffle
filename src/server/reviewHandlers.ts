@@ -1,7 +1,10 @@
 import {
   approveReview, cancelReview, detectLegacyReview, importLegacyReview, readReviewRecord,
-  removeLegacyReview, replyToComment, returnFeedback, setCommentStatus,
+  removeLegacyReview, replyToComment, returnFeedback, setCommentStatus, updateReviewRecord,
 } from "../core/reviewRecords";
+import { captureRound } from "../core/reviewRounds";
+import type { ReviewRecord } from "../types";
+import type { ServerContext } from "./handlers";
 import { apiError, json } from "./respond";
 
 function bodyError(message: string): Response { return apiError(message, 400); }
@@ -31,13 +34,22 @@ export function handleGetReview(url: URL, selectedId?: string): Response {
   return record ? json(record) : apiError("review record not found", 404);
 }
 
-export async function handleReviewOutcome(req: Request): Promise<Response> {
+// remembers the new-side content at hand-off so the next round can show an interdiff; never blocks feedback
+function withRound(record: ReviewRecord, ctx?: ServerContext): ReviewRecord {
+  if (!ctx) return record;
+  try {
+    const lastRound = captureRound(ctx.cwd, ctx.newRef, ctx.diff.files.map((file) => file.path));
+    return updateReviewRecord(record.id, { lastRound });
+  } catch { return record; }
+}
+
+export async function handleReviewOutcome(req: Request, ctx?: ServerContext): Promise<Response> {
   const body = await readBody(req); if (body instanceof Response) return body;
   const id = idOf(body); if (id instanceof Response) return id;
   const outcome = body.outcome;
   const summary = text(body.summary, "summary", false); if (summary instanceof Response) return summary;
   try {
-    if (outcome === "feedback") return json(returnFeedback(id, summary));
+    if (outcome === "feedback") return json(withRound(returnFeedback(id, summary), ctx));
     if (outcome === "approved") return json(approveReview(id, body.acknowledgeUnresolved === true));
     if (outcome === "cancelled") return json(cancelReview(id, summary));
     return bodyError("outcome must be feedback, approved, or cancelled");
