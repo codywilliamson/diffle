@@ -1,7 +1,8 @@
 // maps c# files to their owning .csproj and reads project references between them.
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import type { SnapshotReader } from "../snapshotReader";
 import type { ReviewGroupKey } from "./adapter";
 import { isInside, stemOf, topLevelGroup } from "./flagHelpers";
 
@@ -41,24 +42,20 @@ export function csharpGroupOf(path: string, cwd: string): ReviewGroupKey {
   return (isInside(root, dir) ? findProject(dir, root, cache) : null) ?? topLevelGroup(path);
 }
 
-function referencedProjects(projectId: string, root: string): string[] {
+function referencedProjects(projectId: string, root: string, read: SnapshotReader): string[] {
   const abs = resolve(root, projectId);
-  let xml: string;
-  try {
-    xml = readFileSync(abs, "utf8");
-  } catch {
-    return [];
-  }
+  const xml = read(projectId);
+  if (xml === null) return [];
   return [...xml.matchAll(PROJECT_REFERENCE)].map((m) => toPosix(relative(root, resolve(dirname(abs), toPosix(m[1]!)))));
 }
 
-export function csharpGroupDependencies(groupIds: string[], cwd: string): Record<string, string[]> {
+export function csharpGroupDependencies(groupIds: string[], cwd: string, read: SnapshotReader): Record<string, string[]> {
   const root = resolve(cwd);
   const known = new Set(groupIds);
   const out: Record<string, string[]> = {};
   for (const id of groupIds) {
     const isProject = id.toLowerCase().endsWith(".csproj");
-    out[id] = isProject ? referencedProjects(id, root).filter((ref) => known.has(ref) && ref !== id) : [];
+    out[id] = isProject ? referencedProjects(id, root, read).filter((ref) => known.has(ref) && ref !== id) : [];
   }
   return out;
 }

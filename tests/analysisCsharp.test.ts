@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { adapterFor } from "../src/core/analysis/languages";
 import { csharpAdapter as cs } from "../src/core/analysis/languages/csharp";
+import { createSnapshotReader } from "../src/core/analysis/snapshotReader";
 import { makeFile } from "./fixtures/languages/makeFile";
 
 const reasons = (path: string, rows: string[], kind: string): string[] =>
@@ -147,7 +148,7 @@ describe("csharp groups", () => {
 
   it("maps project references to other listed groups", () => {
     const ids = ["src/Core/Core.csproj", "src/Api/Api.csproj", "tests/Api.Tests/Api.Tests.csproj", "docs"];
-    expect(cs.groupDependencies?.(ids, root)).toEqual({
+    expect(cs.groupDependencies?.(ids, root, createSnapshotReader(root, null))).toEqual({
       "src/Core/Core.csproj": [],
       "src/Api/Api.csproj": ["src/Core/Core.csproj"],
       "tests/Api.Tests/Api.Tests.csproj": ["src/Api/Api.csproj"],

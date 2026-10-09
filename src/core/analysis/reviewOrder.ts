@@ -3,6 +3,7 @@
 import type { FileAnalysis, ReviewGroup } from "../../types";
 import { adapterFor } from "./languages";
 import type { LanguageAdapter } from "./languages/adapter";
+import { createSnapshotReader, type SnapshotReader } from "./snapshotReader";
 
 export const NOISE_GROUP: ReviewGroup = { id: "noise", label: "Generated & lockfiles", files: [] };
 
@@ -31,12 +32,12 @@ function bucketize(files: FileAnalysis[], cwd: string): Bucket[] {
 }
 
 // bucket id -> bucket ids it depends on, as reported by each adapter
-function dependencyMap(buckets: Bucket[], cwd: string): Map<string, Set<string>> {
+function dependencyMap(buckets: Bucket[], cwd: string, read: SnapshotReader): Map<string, Set<string>> {
   const deps = new Map<string, Set<string>>(buckets.map((b) => [b.id, new Set<string>()]));
   const adapters = new Set(buckets.flatMap((b) => [...b.adapters]));
   for (const adapter of adapters) {
     const ids = buckets.filter((b) => b.adapters.has(adapter)).map((b) => b.id);
-    const found = adapter.groupDependencies?.(ids, cwd) ?? {};
+    const found = adapter.groupDependencies?.(ids, cwd, read) ?? {};
     for (const [from, tos] of Object.entries(found)) {
       for (const to of tos) deps.get(from)?.add(to);
     }
@@ -78,11 +79,11 @@ function orderWithin(files: FileAnalysis[]): FileAnalysis[] {
   return out;
 }
 
-export function orderReview(files: FileAnalysis[], cwd: string): { groups: ReviewGroup[]; ordered: FileAnalysis[] } {
+export function orderReview(files: FileAnalysis[], cwd: string, read: SnapshotReader = createSnapshotReader(cwd, null)): { groups: ReviewGroup[]; ordered: FileAnalysis[] } {
   const buckets = bucketize(files, cwd);
   const groups: ReviewGroup[] = [];
   const ordered: FileAnalysis[] = [];
-  for (const bucket of sortBuckets(buckets, dependencyMap(buckets, cwd))) {
+  for (const bucket of sortBuckets(buckets, dependencyMap(buckets, cwd, read))) {
     const inOrder = orderWithin(bucket.files);
     groups.push({ id: bucket.id, label: bucket.label, files: inOrder.map((f) => f.path) });
     ordered.push(...inOrder);
