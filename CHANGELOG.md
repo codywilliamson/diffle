@@ -2,6 +2,34 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.28.0](https://github.com/codywilliamson/diffle/compare/v0.27.0...v0.28.0) (2026-10-09)
+
+
+### Features
+
+* **server:** add a get_scorecard mcp tool ([ac3211c](https://github.com/codywilliamson/diffle/commit/ac3211cbd21fd4c7f875270d2db460c718981031))
+* **server:** add c#, typescript and generic language adapters ([16c675f](https://github.com/codywilliamson/diffle/commit/16c675f95c9d9c590e8e1551f8839d2dc7306dda))
+* **server:** detect noise, whitespace-only hunks and moved code ([000ab3d](https://github.com/codywilliamson/diffle/commit/000ab3d1203ecaee322702b8dd1fb975dc122120))
+* **server:** record review rounds for a since-last-review interdiff ([725d356](https://github.com/codywilliamson/diffle/commit/725d356bf8441591ce4290c556adeab148c9904b))
+* **server:** serve a deterministic review scorecard ([96409b8](https://github.com/codywilliamson/diffle/commit/96409b80b35a5be20cfe896d68bf9da7ec12312a))
+* **ui:** add the scorecard panel and a review order sidebar ([996bc5c](https://github.com/codywilliamson/diffle/commit/996bc5cb55196533d31c17bd2c9343e4b744eec9))
+* **ui:** mark noise, moved code and changes since last review ([3cd2710](https://github.com/codywilliamson/diffle/commit/3cd2710380df2331000807259f3cee6e2161754d))
+
+
+### Bug Fixes
+
+* **server:** count rename churn under the old path ([8fc9b12](https://github.com/codywilliamson/diffle/commit/8fc9b12b34ac78a7ef9e76929ef97021c8bf3c80))
+* **server:** keep edited lines of a moved block as effective ([1a72175](https://github.com/codywilliamson/diffle/commit/1a721752f4ce21c71e2d599c494545339fc0870a))
+* **server:** key csharp delegates on their full signature ([17852b5](https://github.com/codywilliamson/diffle/commit/17852b513063823650388c3114efe1c0bf23a6b0))
+* **server:** key default function and class exports on signature ([89365f9](https://github.com/codywilliamson/diffle/commit/89365f95cfb1f5d044e61ceaed965d072ca21735))
+* **server:** key exported functions on signature, not body ([5dde772](https://github.com/codywilliamson/diffle/commit/5dde772f79d9aa47c50c279fd123a58cb05ae89b))
+* **server:** pair a test with its closest same-named source ([95983c8](https://github.com/codywilliamson/diffle/commit/95983c88f77dc8a4d787df78a5e2402010ad9ad3))
+* **server:** parse nuget version attributes in any order and child form ([e16fc99](https://github.com/codywilliamson/diffle/commit/e16fc992c5d19d268af451f2bee1672ee719e146))
+* **server:** read csproj references from the reviewed snapshot ([6cb29a5](https://github.com/codywilliamson/diffle/commit/6cb29a5027300fced879602ebcc38072b8bac0a2))
+* **server:** read linguist attrs from the reviewed side ([043c6ee](https://github.com/codywilliamson/diffle/commit/043c6ee8af9f41e1ce24ba438a9d33fa8c37f95b))
+* **server:** resolve scorecard groups from the reviewed snapshot ([0fef17b](https://github.com/codywilliamson/diffle/commit/0fef17bc2f6ce37541b417cd9b07f66b65bca4cd))
+* **server:** state and test the root package.json grouping rule ([0b43740](https://github.com/codywilliamson/diffle/commit/0b437409119e0caf00adf99219584b89eb8e111d))
+
 ## [0.27.0](https://github.com/codywilliamson/diffle/compare/v0.26.0...v0.27.0) (2026-10-04)
 
 
