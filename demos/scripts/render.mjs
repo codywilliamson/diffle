@@ -14,9 +14,12 @@ const ids = readdirSync(join(demos, "public", "footage"))
 // remotion defaults to half the cores, each a headless chrome decoding 2x footage — enough to
 // starve the machine of memory. two tabs is slower but leaves room for everything else.
 const RENDER_CONCURRENCY = 2;
+// offthreadvideo's frame cache otherwise grows with free memory; the long reel starved the machine
+// even at concurrency 1 until this was capped.
+const VIDEO_CACHE_BYTES = 1_000_000_000;
 
 const remotion = (args) =>
-  execFileSync("npx", ["remotion", ...args, "--concurrency", String(RENDER_CONCURRENCY)], { cwd: demos, stdio: "inherit", shell: true });
+  execFileSync("npx", ["remotion", ...args, "--concurrency", String(RENDER_CONCURRENCY), "--offthreadvideo-cache-size-in-bytes", String(VIDEO_CACHE_BYTES)], { cwd: demos, stdio: "inherit", shell: true });
 
 for (const id of ids) {
   remotion(["render", "src/index.ts", `take-${id}`, `out/${id}.mp4`, "--crf", "23", "--log=error"]);
