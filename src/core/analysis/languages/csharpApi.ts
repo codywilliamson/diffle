@@ -5,6 +5,7 @@ import type { Declaration } from "./declDiff";
 const VISIBLE = /^(public|protected)\b/;
 const EVENT = /\bevent\s+[^;=(]+?\s(\w+)\s*(?:;|\{|=|$)/;
 const DELEGATE = /\bdelegate\s+.+?\s(\w+)\s*(?:<[^>]*>)?\s*\(/;
+const DELEGATE_SIGNATURE = /^[^;]*?\)/;
 const TYPE = /\b(class|interface|record\s+struct|record|struct|enum)\s+([A-Za-z_]\w*)/;
 const CALL = /([A-Za-z_]\w*)\s*(?:<[^>(]*>)?\s*\(/;
 const MEMBER_NAME = /(\w+)\s*(?:\{|=>|=|;|$)/;
@@ -20,7 +21,7 @@ export function parseCsharpDeclaration(raw: string): Declaration | null {
   const event = EVENT.exec(t);
   if (event) return decl(t, label("event", event[1]!));
   const delegate = DELEGATE.exec(t);
-  if (delegate) return decl(`delegate ${delegate[1]}`, label("delegate", delegate[1]!));
+  if (delegate) return decl(DELEGATE_SIGNATURE.exec(t)?.[0] ?? t, label("delegate", delegate[1]!));
 
   const call = CALL.exec(t);
   const type = TYPE.exec(t);
