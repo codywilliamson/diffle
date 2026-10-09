@@ -56,4 +56,38 @@ describe("linguistGenerated", () => {
       rmSync(outside, { recursive: true, force: true });
     }
   });
+
+  describe("reviewed side attributes", () => {
+    const RULE = "*.gen.txt linguist-generated\n";
+    const SOURCE_MIN_GIT = [2, 40];
+    const gitVersion = (Bun.spawnSync(["git", "--version"]).stdout.toString().match(/(\d+)\.(\d+)/) ?? []).slice(1).map(Number);
+    const supportsSource = gitVersion[0]! > SOURCE_MIN_GIT[0]! || (gitVersion[0] === SOURCE_MIN_GIT[0] && gitVersion[1]! >= SOURCE_MIN_GIT[1]!);
+    const repo = mkdtempSync(join(tmpdir(), "diffle-attr-side-"));
+    const git = (...args: string[]) => {
+      const proc = Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: repo });
+      if (proc.exitCode !== 0) throw new Error(proc.stderr.toString());
+    };
+    afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+    test("staged review reads the index attributes, not the checkout", () => {
+      git("init", "-q");
+      writeFileSync(join(repo, ".gitattributes"), RULE);
+      git("add", ".gitattributes");
+      writeFileSync(join(repo, ".gitattributes"), "");
+      expect([...linguistGenerated(["a.gen.txt"], repo, "")]).toEqual(["a.gen.txt"]);
+      expect(linguistGenerated(["a.gen.txt"], repo, null).size).toBe(0);
+    });
+
+    test.skipIf(!supportsSource)("ref review reads that ref's attributes", () => {
+      git("commit", "-q", "-m", "rule");
+      writeFileSync(join(repo, ".gitattributes"), "");
+      expect([...linguistGenerated(["a.gen.txt"], repo, "HEAD")]).toEqual(["a.gen.txt"]);
+      expect(linguistGenerated(["a.gen.txt"], repo, null).size).toBe(0);
+    });
+
+    test("ref review falls back to the checkout when --source is unsupported", () => {
+      writeFileSync(join(repo, ".gitattributes"), RULE);
+      expect([...linguistGenerated(["a.gen.txt"], repo, "HEAD")]).toEqual(["a.gen.txt"]);
+    });
+  });
 });

@@ -60,7 +60,7 @@ export function analyzeDiff(diff: DiffResult, opts: AnalyzeOptions): ReviewScore
   const ctx = {
     cwd: opts.cwd,
     snapshot,
-    generated: linguistGenerated(paths, opts.cwd),
+    generated: linguistGenerated(paths, opts.cwd, opts.newRef),
     churn: renamedChurn(diff.files, opts.cwd, opts.churnBase),
     moved,
     editedMoved: editedMovedLines(diff.files, moved),
