@@ -14,6 +14,8 @@ import {
 import { handleGetFile, handleGetRaw, serveStatic, notFound } from "./fileHandlers";
 import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
+import { handleGetInterdiff } from "./interdiffHandlers";
+import { handleGetScorecard } from "./analysisHandlers";
 import { handleSessionStop } from "./sessionHandlers";
 import { apiError } from "./respond";
 import { isLoopbackHttpOrigin } from "../utils/origin";
@@ -41,6 +43,8 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/raw") return handleGetRaw(ctx, new URL(req.url));
     if (pathname === "/api/review") return handleGetReview(new URL(req.url), ctx.reviewId);
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
+    if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
+    if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 
@@ -50,7 +54,7 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/comments") return handlePostComments(ctx, req);
     if (pathname === "/api/viewed") return handlePostViewed(ctx, req);
     if (pathname === "/api/state") return handlePostState(req);
-    if (pathname === "/api/review/outcome") return handleReviewOutcome(req);
+    if (pathname === "/api/review/outcome") return handleReviewOutcome(req, ctx);
     if (pathname === "/api/review/reply") return handleReviewReply(req);
     if (pathname === "/api/review/status") return handleReviewStatus(req);
     if (pathname === "/api/review/legacy") return handleLegacyReview(req, ctx.cwd);
