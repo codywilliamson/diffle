@@ -6,13 +6,11 @@ import { PRODUCT } from "$product";
 const cmd = (args: string) => `"${PRODUCT.name} ${args}"`;
 
 export const WHATS_NEW = {
-  version: "0.25.0",
+  version: "0.28.0",
   highlights: [
-    "Side-by-side diffs now have independent horizontal scrolling and a divider you can drag or resize with arrow keys. Your width choice is remembered, wrapped rows stay aligned, and line numbers and comments stay visible as you scroll.",
-    `New ${cmd("setup")} wires ${PRODUCT.name} into your coding agents: the Claude Code plugin, or an MCP config for others like Cursor. The installers offer it at the end, and ${cmd("setup --remove")} unwires it again.`,
-    "The diff feels smoother: rows stagger in, the file tree row morphs into the diff header in single-file view, and the diff and comment counts animate as they change.",
-    `Installing or updating on Windows now works even while ${PRODUCT.name} MCP servers or reviews are running; the running exe is moved aside instead of blocking the install.`,
-    `${cmd("<command> --help")} now shows what each command does, with examples.`,
-    `${cmd("update")} ends with a next-steps list, such as ${cmd("mcp restart")} so your agents pick up the new version.`,
+    "New review scorecard (press g): size, tests, public API, dependency, hotspot and risk-flag bands for the change, each with the reasons behind it. It's fully deterministic, no AI involved, and C# is a first-class language.",
+    "Review order (press m) groups files by project, puts dependencies first using csproj ProjectReferences, and follows each file with its test. Generated files and lockfiles go last.",
+    "Generated files and lockfiles start collapsed, whitespace-only hunks are dimmed, and moved code is marked with links to where it came from or went.",
+    "When an agent sends changes back after your feedback, files that changed show a \"Changed since last review\" chip and can show only what's new since your last round.",
   ],
 };
