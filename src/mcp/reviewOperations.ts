@@ -7,6 +7,7 @@ import {
   requestRereview,
 } from "../core/reviewRecords";
 import { DEFAULT_WAIT_SECONDS, waitForComments } from "../core/reviewInbox";
+import { addAgentComment } from "../core/agentComments";
 import type { ReviewOperationResult, ReviewOperations } from "./operations";
 import { scorecardForReview } from "./scorecardOperation";
 
@@ -34,6 +35,7 @@ export function createReviewOperations(loupeRoot: string): ReviewOperations {
     async waitForComments(input, signal) {
       return waitForComments(input.reviewId, (input.timeoutSeconds ?? DEFAULT_WAIT_SECONDS) * 1000, signal);
     },
+    async addComment({ reviewId, ...input }) { return { review: addAgentComment(reviewId, input) }; },
     async replyToComment(input) {
       return { review: replyToComment(input.reviewId, input.commentId, input.text, "agent") };
     },

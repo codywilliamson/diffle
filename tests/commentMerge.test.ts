@@ -46,4 +46,21 @@ describe("mergeReviewerComments", () => {
     expect(merged[0]!.status).toBe("addressed");
     expect(merged[0]!.replies).toEqual(incoming[0]!.replies);
   });
+
+  it("keeps the stored agent comment over an incoming edit", () => {
+    const agent: Comment = { ...base, id: "a1", author: "agent", lineContent: null, text: "open point" };
+    const merged = mergeReviewerComments([agent], [{ ...agent, text: "rewritten", author: undefined }]);
+    expect(merged).toEqual([agent]);
+  });
+
+  it("keeps an agent comment that a stale save does not carry", () => {
+    const agent: Comment = { ...base, id: "a1", author: "agent", lineContent: null, text: "open point" };
+    const merged = mergeReviewerComments([base, agent], [{ ...base, text: "edited" }]);
+    expect(merged.map((comment) => [comment.id, comment.text])).toEqual([["c1", "edited"], ["a1", "open point"]]);
+  });
+
+  it("strips an author the browser claims", () => {
+    const merged = mergeReviewerComments([base], [{ ...base, author: "agent" }, { ...base, id: "c2", author: "agent" }]);
+    expect(merged.map((comment) => comment.author)).toEqual([undefined, undefined]);
+  });
 });

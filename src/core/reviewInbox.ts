@@ -1,6 +1,7 @@
 // the interactive review inbox: which comments still wait on the agent, and a bounded wait for
-// them. a comment waits when it is unresolved and the reviewer spoke last — the comment itself
-// is the reviewer's first message, so an addressed comment with no replies does not wait.
+// them. a comment waits when it is unresolved and someone other than the agent spoke last —
+// the comment itself is its author's first message, so an addressed comment with no replies,
+// or an agent's own comment nobody answered, does not wait.
 
 import type { Comment, ReviewRecord } from "../types";
 import { readReviewRecord } from "./reviewRecords";
@@ -22,7 +23,7 @@ export function pendingComments(record: ReviewRecord): Comment[] {
     if (status === "resolved") return false;
     const last = comment.replies?.at(-1);
     if (last) return last.author !== "agent";
-    return status === "open";
+    return comment.author !== "agent" && status === "open";
   });
 }
 

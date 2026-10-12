@@ -29,8 +29,10 @@ describe("pendingComments", () => {
       comment("addressed-followed-up", { status: "addressed", replies: [reply("agent"), reply("reviewer")] }),
       comment("resolved", { status: "resolved", replies: [reply("reviewer")] }),
       comment("legacy-resolved", { resolved: true }),
+      comment("agent-unanswered", { author: "agent", status: "open" }),
+      comment("agent-answered", { author: "agent", status: "open", replies: [reply("reviewer")] }),
     ]);
-    expect(ids(pendingComments(record))).toEqual(["fresh", "legacy-open", "followed-up", "addressed-followed-up"]);
+    expect(ids(pendingComments(record))).toEqual(["fresh", "legacy-open", "followed-up", "addressed-followed-up", "agent-answered"]);
   });
 });
 

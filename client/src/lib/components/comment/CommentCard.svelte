@@ -17,6 +17,8 @@
 
   const status = $derived(comment.status ?? (comment.resolved ? "resolved" : "open"));
   const resolved = $derived(status === "resolved");
+  // agent comments are agent-owned: the reviewer replies or resolves, but cannot edit or delete
+  const byAgent = $derived(comment.author === "agent");
 </script>
 
 {#if editing}
@@ -33,16 +35,19 @@
 {:else}
   <div class="comment-card" class:resolved>
     <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+      {#if byAgent}<span class="comment-chip bg-surface-2">Agent</span>{/if}
       {#if resolved}<span class="comment-chip bg-surface-2"><Check size={12} strokeWidth={2.5} aria-hidden="true" />Resolved</span>{/if}
       {#if status === "addressed"}<span class="comment-chip bg-mod-badge-bg text-mod-badge-text">Addressed</span>{/if}
       {#if comment.tag}<span class="comment-chip comment-chip-tag">{comment.tag}</span>{/if}
       <time datetime={comment.createdAt}>{relativeTime(comment.createdAt)}</time>
       <span class="-mr-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
         <button class="comment-btn" onclick={() => (resolved ? comments.reopen(comment.id) : comments.resolve(comment.id))}>{resolved ? "Reopen" : "Resolve"}</button>
-        {#if !resolved}<button class="comment-btn" onclick={() => (editing = true)}>Edit</button>{/if}
+        {#if !resolved && !byAgent}<button class="comment-btn" onclick={() => (editing = true)}>Edit</button>{/if}
         {#if !review.isLegacy && !resolved}<button class="comment-btn" onclick={() => (replying = true)}>Reply</button>{/if}
-        <span class="mx-1 h-4 w-px bg-border" aria-hidden="true"></span>
-        <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
+        {#if !byAgent}
+          <span class="mx-1 h-4 w-px bg-border" aria-hidden="true"></span>
+          <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
+        {/if}
       </span>
     </div>
     <Markdown text={comment.text} from={comment.file} class="comment-body mt-1" />

@@ -23,7 +23,7 @@ describe("MCP stdio entry", () => {
       await client.connect(transport);
       const tools = await client.listTools();
       expect(tools.tools.map((tool) => tool.name)).toContain("start_review");
-      expect(tools.tools).toHaveLength(8);
+      expect(tools.tools).toHaveLength(9);
       const started = await client.callTool({ name: "start_review", arguments: { cwd: repo, ref: "HEAD" } });
       expect(started.isError).not.toBe(true);
       const content = started.structuredContent as { url: string; review: { id: string } };
@@ -43,6 +43,15 @@ describe("MCP stdio entry", () => {
       const idle = await client.callTool({ name: "wait_for_comments", arguments: { reviewId: content.review.id, timeoutSeconds: 1 } });
       expect(idle.structuredContent).toMatchObject({ pending: [], timedOut: true });
 
+      // an agent-opened comment survives a stale browser save that never saw it
+      await client.callTool({ name: "add_comment", arguments: { reviewId: content.review.id, file: "a.ts", line: 1, text: "self-review: untested" } });
+      await fetch(`${baseUrl}/api/comments`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: [{ id: "c1", file: "a.ts", line: 1, lineContent: "+two", text: "fix it", createdAt: new Date().toISOString() }] }),
+      });
+      const afterSave = await client.callTool({ name: "get_review", arguments: { reviewId: content.review.id } });
+      const saved = (afterSave.structuredContent as { review: { comments: { text: string; author?: string }[] } }).review.comments;
+      expect(saved.map((item) => [item.text, item.author])).toEqual([["fix it", undefined], ["self-review: untested", "agent"]]);
 
       await fetch(`${baseUrl}/api/review/outcome`, {
         method: "POST", headers: { "Content-Type": "application/json" },

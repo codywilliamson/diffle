@@ -11,6 +11,8 @@ Apply each returned Review Comment, reply with what changed, mark it addressed, 
 
 An agent may call `get_scorecard` to see the same deterministic flags the reviewer sees.
 
+To raise a point of your own, such as an open item from a self-review, call `add_comment` with the file, an optional `line`/`endLine` (omit for a file-level comment) and the text. It shows as an Agent comment; the reviewer replies to or resolves it, and a reviewer reply brings it into `wait_for_comments`.
+
 If the user asks for further changes after approval, make them and call `request_rereview` on the same review to reopen it rather than starting a new review.
 
 Diffle's server stops with the agent session; when `start_review` returns a non-zero `staleSessions`, mention that `diffle cleanup` will close old ones.

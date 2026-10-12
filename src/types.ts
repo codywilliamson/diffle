@@ -53,15 +53,20 @@ export type CommentTag = "nit" | "issue" | "question" | "praise";
 
 export type ReviewCommentStatus = "open" | "addressed" | "resolved";
 
+// who wrote a comment or reply. rules test `=== "agent"`, so any later non-agent author
+// (e.g. an imported external reviewer) behaves like the reviewer without new branches.
+export type CommentAuthor = "reviewer" | "agent";
+
 export interface CommentReply {
   id: string;
-  author: "agent" | "reviewer";
+  author: CommentAuthor;
   text: string;
   createdAt: string;
 }
 
 export interface Comment {
   id: string;
+  author?: CommentAuthor; // absent = reviewer; agent comments are opened over mcp and carry no lineContent
   file: string;
   side?: "old" | "new"; // which side `line` counts on; defaults to "new" (old = removed lines)
   line: number | null; // line number on `side` (range START), or null for a file-level comment
