@@ -99,6 +99,8 @@ To comment on a range, drag across the line numbers or shift-click a second line
 4. Agent replies and rereview requests appear in diffle as they happen; choose **Refresh diff** from the notice to load the new changes.
 5. Verify the changes, reply in a thread or resolve it, then approve or return more feedback. Asking the agent for more after approval reopens the same review.
 
+For a live review, ask `Review my current changes with diffle interactively.` instead: the agent waits on `wait_for_comments` and answers or fixes each comment as you write it, with no Return Feedback round trip.
+
 Install the agent integration first — see [Agent integrations](#agent-integrations).
 
 ## Review records

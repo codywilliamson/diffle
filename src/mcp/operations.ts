@@ -1,4 +1,5 @@
 import type { ReviewOrigin, ReviewPolicy, ReviewRecord, ReviewScorecard } from "../types";
+import type { InboxResult } from "../core/reviewInbox";
 
 export interface StartReviewInput {
   cwd: string;
@@ -18,6 +19,7 @@ export interface ReviewOperations {
   startReview(input: StartReviewInput): Promise<ReviewOperationResult>;
   getReview(reviewId: string): Promise<ReviewOperationResult>;
   getScorecard(reviewId: string): Promise<ReviewScorecard>;
+  waitForComments(input: { reviewId: string; timeoutSeconds?: number }, signal?: AbortSignal): Promise<InboxResult>;
   replyToComment(input: { reviewId: string; commentId: string; text: string }): Promise<ReviewOperationResult>;
   markCommentAddressed(input: { reviewId: string; commentId: string }): Promise<ReviewOperationResult>;
   requestRereview(input: { reviewId: string; summary?: string }): Promise<ReviewOperationResult>;

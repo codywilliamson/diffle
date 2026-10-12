@@ -22,6 +22,7 @@ function setup() {
     startReview: async () => { calls.push("start"); return { review: record(), url: "http://localhost:1", staleSessions: 0 }; },
     getReview: async () => { calls.push("get"); return { review: record() }; },
     getScorecard: async () => { calls.push("scorecard"); return { totals: { files: 0, additions: 0, deletions: 0, effectiveLines: 0, noiseLines: 0 }, categories: [], groups: [], files: [], moved: [] }; },
+    waitForComments: async (input) => { calls.push(`wait:${input.reviewId}:${input.timeoutSeconds ?? "default"}`); return { review: record(), pending: [], timedOut: true }; },
     replyToComment: async () => { calls.push("reply"); return { review: record() }; },
     markCommentAddressed: async () => { calls.push("address"); return { review: record() }; },
     requestRereview: async () => { calls.push("rereview"); return { review: record() }; },
@@ -34,12 +35,12 @@ function setup() {
 }
 
 describe("Loupe MCP server", () => {
-  test("registers only the seven agent actions", async () => {
+  test("registers only the eight agent actions", async () => {
     const { server, client } = setup();
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
     const listed = await client.listTools();
-    expect(listed.tools.map((tool) => tool.name)).toEqual(["start_review", "get_review", "get_scorecard", "reply_to_comment", "mark_comment_addressed", "request_rereview", "cancel_review"]);
+    expect(listed.tools.map((tool) => tool.name)).toEqual(["start_review", "get_review", "wait_for_comments", "get_scorecard", "reply_to_comment", "mark_comment_addressed", "request_rereview", "cancel_review"]);
     await server.close();
   });
 
@@ -52,6 +53,26 @@ describe("Loupe MCP server", () => {
     expect(calls).toEqual(["start"]);
     expect(response.structuredContent).toEqual({ review: record(), url: "http://localhost:1", staleSessions: 0 });
     expect(response).toHaveProperty("content");
+    await server.close();
+  });
+
+  test("wait_for_comments passes the review id and timeout through", async () => {
+    const { server, client, calls } = setup();
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    await client.callTool({ name: "wait_for_comments", arguments: { reviewId: "r1" } });
+    await client.callTool({ name: "wait_for_comments", arguments: { reviewId: "r1", timeoutSeconds: 30 } });
+    expect(calls).toEqual(["wait:r1:default", "wait:r1:30"]);
+    await server.close();
+  });
+
+  test("wait_for_comments rejects a timeout above the cap", async () => {
+    const { server, client, calls } = setup();
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    const response = await client.callTool({ name: "wait_for_comments", arguments: { reviewId: "r1", timeoutSeconds: 601 } });
+    expect(response.isError).toBe(true);
+    expect(calls).toEqual([]);
     await server.close();
   });
 

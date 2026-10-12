@@ -3,12 +3,14 @@ import { z } from "zod";
 import type { ReviewPolicy } from "../types";
 import type { McpRootProvider, ReviewOperations } from "./operations";
 import { PRODUCT } from "../core/product";
+import { MAX_WAIT_SECONDS } from "../core/reviewInbox";
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
 const policy = z.enum(["required", "handoff", "off"] satisfies [ReviewPolicy, ...ReviewPolicy[]]);
 const id = z.string().trim().min(1).max(200);
 const summary = z.string().trim().max(10_000).optional();
+const text = z.string().trim().min(1).max(20_000);
 const reviewRef = z.string().trim().min(1).max(500)
   .describe('Use "working" for current tracked and untracked changes; otherwise pass the explicitly requested staged, branch, or range comparison.');
 
@@ -49,6 +51,12 @@ export function createMcpServer(operations: ReviewOperations, roots: McpRootProv
     inputSchema: { reviewId: id }, annotations: { title: "Get review", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, async ({ reviewId }) => { try { return result(await operations.getReview(reviewId)); } catch (e) { return failure(e); } });
 
+  server.registerTool("wait_for_comments", {
+    title: "Wait for comments", description: "Interactive review: block until a reviewer comment needs the agent or the review leaves awaiting_human. Returns pending comments; on timedOut, call again.",
+    inputSchema: { reviewId: id, timeoutSeconds: z.number().int().min(1).max(MAX_WAIT_SECONDS).optional() },
+    annotations: { title: "Wait for comments", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+  }, async (input, extra) => { try { return result(await operations.waitForComments(input, extra.signal)); } catch (e) { return failure(e); } });
+
   server.registerTool("get_scorecard", {
     title: "Get scorecard", description: "Deterministic review scorecard (order, noise, risk flags) for the review's target: the same flags the reviewer sees.",
     inputSchema: { reviewId: id }, annotations: { title: "Get scorecard", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
@@ -56,7 +64,7 @@ export function createMcpServer(operations: ReviewOperations, roots: McpRootProv
 
   server.registerTool("reply_to_comment", {
     title: "Reply to comment", description: "Reply to an unresolved review comment as the agent.",
-    inputSchema: { reviewId: id, commentId: id, text: z.string().trim().min(1).max(20_000) },
+    inputSchema: { reviewId: id, commentId: id, text },
     annotations: { title: "Reply to comment", readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   }, async (input) => { try { return result(await operations.replyToComment(input)); } catch (e) { return failure(e); } });
 
