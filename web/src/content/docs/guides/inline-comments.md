@@ -17,6 +17,10 @@ Optionally tag the comment as a **nit**, **issue**, **question**, or **praise** 
 
 To cover several lines, **drag across the line numbers**, or **shift-click** a second line number to extend the selection from the first. The comment anchors to the whole range.
 
+## Comment on hidden context
+
+The arrows on a hunk separator reveal the unchanged lines git hides, 20 at a time or all of them. You can comment on a revealed line too. diffle reveals that line again whenever it shows the diff. In side-by-side view, revealed lines take comments in the new pane.
+
 ## File-level comments
 
 For feedback that isn't tied to a specific line — an overall note on a file — add a **file-level comment** from the file header.
@@ -27,11 +31,15 @@ Comments support **threaded replies**, so a discussion stays attached to its lin
 
 **Resolve** a comment when it's handled. Resolving keeps it on the record but drops it from returned feedback and from open-comment counts. Reopen a resolved comment any time.
 
+A resolved thread collapses to a small bubble at the end of its line. Click the bubble to open the thread, or **Hide** to collapse an open one. Press `l` to list every thread and jump to one.
+
+An agent can open its own comments, for example points from a self-review. They carry an **Agent** label and you can reply to them, but you cannot edit or delete them.
+
 ![A saved inline comment thread anchored to a line, with resolve, edit, reply, and delete actions](/media/thread.png)
 
 ## Orphaned comments
 
-When a comment's line or file leaves the current diff — because the code changed and you [re-ran the diff](/guides/reviewing-changes/) — the comment isn't lost. It stays saved but **unanchored**.
+When a comment's line or file leaves the current diff (or a comment on hidden context runs past the file's new end) — because the code changed and you [re-ran the diff](/guides/reviewing-changes/) — the comment isn't lost. It stays saved but **unanchored**.
 
 **Preview Feedback** gathers orphaned comments under a **From earlier reviews** section, where you can **resolve** or **delete** each one.
 

@@ -65,6 +65,7 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 | `t` | toggle light / dark |
 | `r` | re-run the diff |
 | `c` | preview review feedback |
+| `l` | list all threads |
 | `?` | shortcut overlay |
 | `Ctrl`/`⌘` + `Enter` | save the open comment |
 | `Esc` | close dialogs, cancel an open comment |
