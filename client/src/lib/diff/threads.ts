@@ -38,6 +38,13 @@ export function commentsForLine(comments: Comment[], side: Side, line: number): 
   return comments.filter((c) => c.line != null && sideOf(c) === side && endOf(c) === line);
 }
 
+// the line thread a comment renders in (every comment sharing its side + end line), or just the
+// comment itself when it is file-level.
+export function threadOf(comments: Comment[], comment: Comment): Comment[] {
+  if (comment.line == null) return [comment];
+  return commentsForLine(comments.filter((c) => c.file === comment.file), sideOf(comment), endOf(comment));
+}
+
 export function fileComments(comments: Comment[]): Comment[] {
   return comments.filter((c) => c.line == null);
 }

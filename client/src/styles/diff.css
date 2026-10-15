@@ -303,3 +303,29 @@ body.selecting {
     --syn-meta: #5e667f;
   }
 }
+
+/* context expansion controls on a hunk separator */
+.gap-expander {
+  display: inline-flex;
+  gap: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.gap-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--surface);
+}
+.gap-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.gap-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

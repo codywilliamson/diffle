@@ -9,6 +9,8 @@
   import Rows3 from "@lucide/svelte/icons/rows-3";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
+  import MessagesSquare from "@lucide/svelte/icons/messages-square";
+  import { countUnresolved } from "$lib/state/reviewRecord";
   import NumberFlow from "@number-flow/svelte";
   import { PRODUCT } from "$product";
   import { getAppState } from "$lib/state/context";
@@ -18,7 +20,8 @@
   import ReviewPanel from "./review/ReviewPanel.svelte";
   import UpdateBadge from "./UpdateBadge.svelte";
 
-  const { diff, prefs, ui, analysis } = getAppState();
+  const { diff, prefs, ui, analysis, comments } = getAppState();
+  const openThreads = $derived(countUnresolved(comments.comments));
   const scoreBand = $derived(analysis.scorecard ? worstBand(analysis.scorecard.categories.map((c) => c.band)) : null);
 
   const fileCount = $derived(`${diff.files.length} ${diff.files.length === 1 ? "file" : "files"}`);
@@ -67,6 +70,17 @@
         onclick={() => ui.toggleOverlay("scorecard")}
       >
         <span class="size-2 rounded-full {BAND_DOT[scoreBand]}" aria-hidden="true"></span>Scorecard
+      </button>
+    {/if}
+    {#if comments.comments.length > 0}
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-text"
+        title="All threads (l)"
+        aria-label="All threads, {openThreads} open"
+        onclick={() => ui.toggleOverlay("threads")}
+      >
+        <MessagesSquare size={14} aria-hidden="true" />{openThreads}
       </button>
     {/if}
     <ReviewPanel />

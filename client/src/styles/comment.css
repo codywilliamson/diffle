@@ -150,3 +150,46 @@
   line-height: 18px;
   color: var(--accent);
 }
+
+/* collapsed line thread: a zero-size sticky anchor at the code cell's right edge holds the pip,
+   so it takes no row, does not widen the line, and stays in view on horizontal scroll */
+.thread-pip-anchor {
+  float: right;
+  position: sticky;
+  right: 0;
+  width: 0;
+  height: 0;
+}
+.thread-pip {
+  position: absolute;
+  right: 6px;
+  top: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  user-select: none;
+}
+.thread-pip:hover {
+  background: var(--surface-2);
+}
+.thread-pip.resolved {
+  border-color: var(--border);
+  color: var(--muted);
+}
+.thread-pip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+/* the thread a threads-panel jump landed on */
+.comment-card.comment-focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

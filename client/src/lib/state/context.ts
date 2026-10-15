@@ -6,6 +6,7 @@ import { createDiffStore, type DiffStore } from "./diff.svelte";
 import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
+import { createThreadsStore, type ThreadsStore } from "./threads.svelte";
 
 // the domain stores, composed once at the app root and shared through svelte context
 // so components read them without prop drilling or a process-global singleton.
@@ -16,6 +17,7 @@ export interface AppState {
   review: ReviewStore;
   comments: CommentsStore;
   analysis: AnalysisStore;
+  threads: ThreadsStore;
 }
 
 const KEY = Symbol("diffle-app-state");
@@ -37,7 +39,8 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
   };
   const comments = createCommentsStore(review, currentDiff);
   const analysis = createAnalysisStore();
-  return { prefs, ui, diff, review, comments, analysis };
+  const threads = createThreadsStore(reviewId);
+  return { prefs, ui, diff, review, comments, analysis, threads };
 }
 
 // call during component init at the app root.

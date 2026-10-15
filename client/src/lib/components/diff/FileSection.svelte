@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
   import type { CommentTag, DiffFile } from "$types";
   import { getAppState } from "$lib/state/context";
   import { changeBadge } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
-  import { fileComments, newComment } from "$lib/diff/threads";
+  import { fileComments, newComment, threadOf } from "$lib/diff/threads";
   import { lineCountOf, estimatedHeight, GIANT_FILE_LINES } from "$lib/diff/metrics";
   import {
     canOverrideFileSplit,
@@ -19,6 +19,7 @@
   import { movedLookup } from "$lib/diff/movedLines";
   import { PLAIN_ANNOTATIONS, type DiffAnnotations } from "$lib/diff/annotations";
   import { createInterdiff } from "$lib/diff/interdiff.svelte";
+  import { createExpansion } from "$lib/diff/expansion.svelte";
   import { nearViewport } from "$lib/actions";
   import { revealRows } from "$lib/motion";
   import UnifiedDiff from "./UnifiedDiff.svelte";
@@ -30,7 +31,7 @@
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file }: { file: DiffFile } = $props();
-  const { ui, comments, prefs, diff, analysis } = getAppState();
+  const { ui, comments, prefs, diff, analysis, threads } = getAppState();
   const NOISE_LABEL = { generated: "Generated file", lockfile: "Lockfile" } as const;
   // deleted files collapse by default (github-style) — the removal is rarely re-read line by line.
   let collapsed = $state(untrack(() => file.changeType === "deleted"));
@@ -65,6 +66,13 @@
   const giant = $derived(lineCountOf(shown) > GIANT_FILE_LINES);
   const canToggleSplit = $derived(canOverrideFileSplit(file, diff.meta?.mode));
   const useSplit = $derived(resolveFileSplit(splitState, file, diff.meta?.mode));
+  // context expansion: the same files the split override applies to (a text diff of a file that
+  // exists on both sides), only once the body renders, never for the interdiff or a preview.
+  const expansion = createExpansion(
+    () => shown,
+    () => canToggleSplit && !interdiffOn && !collapsed && (mounted || loaded) && !(isMd && preview),
+    () => comments.comments,
+  );
 
   // noise files start collapsed once the scorecard knows about them, unless the reader already chose.
   $effect(() => {
@@ -82,6 +90,39 @@
     untrack(() => (splitState = syncGlobalSplit(splitState, globalSplit)));
   });
 
+  // a jump from the threads panel: open and mount this file, expand the thread, then scroll to it.
+  // the thread can render a moment later (a hidden context line is revealed once the file text
+  // loads), so look for it for up to a second.
+  const FOCUS_TRIES = 20;
+  const FOCUS_RETRY_MS = 50;
+  const FOCUS_FLASH_MS = 1500;
+  let sectionEl = $state<HTMLElement>();
+  $effect(() => {
+    const target = ui.focus;
+    if (!target || target.file !== file.path) return;
+    untrack(() => {
+      const comment = comments.comments.find((c) => c.id === target.commentId);
+      if (comment) threads.setCollapsed(threadOf(comments.comments, comment), false);
+      setCollapsed(false);
+      preview = false;
+      sinceReview = false;
+      loaded = true;
+      mounted = true;
+      ui.clearFocus();
+    });
+    const find = (tries: number): void => {
+      const el = sectionEl?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(target.commentId)}"]`);
+      if (!el) {
+        if (tries > 0) setTimeout(() => find(tries - 1), FOCUS_RETRY_MS);
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("comment-focus");
+      setTimeout(() => el.classList.remove("comment-focus"), FOCUS_FLASH_MS);
+    };
+    void tick().then(() => find(FOCUS_TRIES));
+  });
+
   async function saveFileComment(text: string, tag?: CommentTag): Promise<string | null> {
     const error = await comments.add(newComment({ file: file.path, line: null, lineContent: null, text, tag }));
     if (!error) ui.cancelAdd();
@@ -89,7 +130,7 @@
   }
 </script>
 
-<section id={fileAnchorId(file.path)} data-file-path={file.path} class="file-section mb-4 rounded-lg border border-border bg-surface">
+<section bind:this={sectionEl} id={fileAnchorId(file.path)} data-file-path={file.path} class="file-section mb-4 rounded-lg border border-border bg-surface">
   <header data-file-header class="sticky top-0 z-10 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-t-lg border-b border-divider bg-surface-2 px-3 py-2">
     <button
       type="button"
@@ -156,7 +197,7 @@
       <div style="height:{estimatedHeight(shown)}px" use:nearViewport={() => (mounted = true)}></div>
     {:else}
       <div class="diff-scroll {useSplit ? 'split-scroll' : 'overflow-x-auto'} {prefs.wrap ? 'wrap' : ''}" use:revealRows>
-        {#if useSplit}<SplitDiff file={shown} {annotations} />{:else}<UnifiedDiff file={shown} {annotations} />{/if}
+        {#if useSplit}<SplitDiff file={expansion.file} {annotations} expansion={expansion.controls} />{:else}<UnifiedDiff file={expansion.file} {annotations} expansion={expansion.controls} />{/if}
       </div>
     {/if}
 

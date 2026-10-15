@@ -7,6 +7,7 @@ import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
 import { compileReviewPrompt } from "../core/promptCompiler";
 import { parseDiff } from "../core/diffParser";
+import { withLineCounts } from "../core/lineCounts";
 import { checkForUpdate } from "../core/updateCheck";
 import { scanProject } from "../core/projectScan";
 import { collectDiff } from "../utils/git";
@@ -62,7 +63,7 @@ export function handleGetDiff(ctx: ServerContext): Response {
     const fresh =
       ctx.mode === "browse"
         ? scanProject(ctx.cwd, ctx.scope)
-        : { ...parseDiff(collectDiff(ctx.diffArgs, ctx.cwd, ctx.includeUntracked, false), ctx.diff.ref), meta: ctx.meta };
+        : withLineCounts({ ...parseDiff(collectDiff(ctx.diffArgs, ctx.cwd, ctx.includeUntracked, false), ctx.diff.ref), meta: ctx.meta }, ctx.cwd, ctx.newRef);
     ctx.diff = excludeReviewFile(fresh, false);
   } catch {
     // keep the previous diff

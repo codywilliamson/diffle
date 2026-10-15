@@ -64,12 +64,19 @@ function fileLevelSection(file: string, comments: Comment[]): string {
   return `### ${file} — File-level\n\n${joinTexts(comments)}`;
 }
 
+// the raw line (marker + content) a comment recorded, at its end line; empty when none did.
+function recordedLineBlock(end: number, comments: Comment[]): string {
+  const raw = comments.find((c) => c.lineContent)?.lineContent;
+  return raw ? `\`\`\`\n  > ${end} | ${raw}\n\`\`\`` : "";
+}
+
 function lineSection(file: string, diffFile: DiffFile | undefined, side: Side, start: number, end: number, comments: Comment[]): string {
   // new side uses "Line n" / "Lines a–b"; old side prefixes with "Old" for removed lines.
   const one = side === "old" ? "Old line" : "Line";
   const many = side === "old" ? "Old lines" : "Lines";
   const header = start === end ? `### ${file} — ${one} ${start}` : `### ${file} — ${many} ${start}–${end}`;
-  const block = diffFile ? buildContextBlock(diffFile, side, start, end) : "";
+  // a comment on expanded context has no hunk lines around it; show the line it recorded instead.
+  const block = (diffFile ? buildContextBlock(diffFile, side, start, end) : "") || recordedLineBlock(end, comments);
   // comments sharing the exact side+range share one block; different ranges are separate sections.
   return `${header}\n\n${block}\n\n${joinTexts(comments)}`;
 }

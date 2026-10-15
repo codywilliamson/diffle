@@ -24,7 +24,9 @@ test("add, edit, and resolve a line comment", async ({ page }) => {
     await expect(page.getByText("actually looks fine")).toBeVisible();
 
     // resolve it (exact — "unresolved" in the review trigger would otherwise collide)
+    // a resolved thread collapses to a pip; opening it shows the resolved chip
     await page.getByRole("button", { name: "Resolve", exact: true }).click();
+    await page.getByRole("button", { name: "Show resolved thread (1 message)" }).click();
     await expect(page.getByText("Resolved", { exact: true })).toBeVisible();
   } finally {
     await stop(server);

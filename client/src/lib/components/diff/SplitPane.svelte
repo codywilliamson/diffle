@@ -5,7 +5,7 @@
   import type { SplitDisplayRow } from "$lib/diff/splitRows";
   import { markRange, type CharRange } from "$lib/diff/wordDiff";
   import {
-    inSavedRange, isPending, rawLine, newComment, selectedRange, type Side,
+    commentsForLine, inSavedRange, isPending, rawLine, newComment, selectedRange, type Side,
   } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import { horizontalWheel } from "$lib/diff/horizontalWheel";
@@ -14,6 +14,9 @@
   import MovedMarker from "./MovedMarker.svelte";
   import CommentThread from "../comment/CommentThread.svelte";
   import CommentEditor from "../comment/CommentEditor.svelte";
+  import ThreadPip from "../comment/ThreadPip.svelte";
+  import GapExpander from "./GapExpander.svelte";
+  import type { ExpansionControls } from "$lib/diff/expansion.svelte";
 
   interface Props {
     file: DiffFile;
@@ -22,10 +25,11 @@
     id: string;
     highlighted: (line: DiffLine) => string;
     annotations?: DiffAnnotations;
+    expansion?: ExpansionControls;
   }
 
-  let { file, rows, side, id, highlighted, annotations = PLAIN_ANNOTATIONS }: Props = $props();
-  const { ui, comments } = getAppState();
+  let { file, rows, side, id, highlighted, annotations = PLAIN_ANNOTATIONS, expansion }: Props = $props();
+  const { ui, comments, threads } = getAppState();
   const fileComments = $derived(comments.comments.filter((comment) => comment.file === file.path));
 
   function keyboardComment(event: MouseEvent, number: number): void {
@@ -79,15 +83,17 @@
   {#each rows as row (row.key)}
     {#if row.kind === "header"}
       <div class="split-hunk" title={row.text}>
-        {row.text}{#if annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}<span class="ws-label">whitespace only</span>{/if}
+        {#if expansion && row.gap}<GapExpander view={row.gap} onReveal={(how) => expansion.reveal(row.gapIndex, how)} />{/if}{row.text}{#if annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}<span class="ws-label">whitespace only</span>{/if}
       </div>
     {:else if row.kind === "code"}
       {@const line = side === "old" ? row.pair.left : row.pair.right}
       {@const number = (side === "old" ? line?.oldLine : line?.newLine) ?? null}
       {@const moved = movedAt(line)}
-      {@const interactive = number != null && !annotations.readonly}
+      {@const revealedOld = side === "old" && line?.newLine != null && expansion?.revealed(line.newLine) === true}
+      {@const interactive = number != null && !annotations.readonly && !revealedOld}
       {@const selected = number != null && isPending(ui.adding, ui.selecting, file.path, side, number)}
       {@const ranged = number != null && inSavedRange(fileComments, side, number)}
+      {@const thread = number != null && !annotations.readonly ? commentsForLine(fileComments, side, number) : []}
       <div
         class="diff-row split-line row-{line?.type ?? 'empty'}"
         class:row-moved={moved}
@@ -125,7 +131,7 @@
           {/if}
         </div>
         <div class="code code-{line?.type ?? 'empty'}">
-          {#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="code-inner">{#if line}{@html renderCode(line, row.marks)}{/if}</span>
+          {#if threads.isCollapsed(thread)}<ThreadPip comments={thread} onExpand={() => threads.setCollapsed(thread, false)} />{/if}{#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="code-inner">{#if line}{@html renderCode(line, row.marks)}{/if}</span>
         </div>
       </div>
     {:else}
@@ -136,7 +142,7 @@
         {#if list.length || adding}
           <div class="comment-box">
             {#if list.length}
-              <CommentThread comments={list} />
+              <CommentThread comments={list} onHide={() => threads.setCollapsed(list, true)} />
             {/if}
             {#if adding && line}
               <CommentEditor

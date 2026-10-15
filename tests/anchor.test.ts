@@ -83,3 +83,27 @@ describe("partitionComments", () => {
     expect(partitionComments([], diff)).toEqual({ anchored: [], stale: [] });
   });
 });
+
+describe("isAnchored on expanded context", () => {
+  it("anchors a comment on an unchanged new-side line outside every hunk while its file is present", () => {
+    expect(isAnchored(comment({ line: 40, lineContent: " forty" }), diff)).toBe(true);
+    expect(isAnchored(comment({ line: 40, endLine: 42, lineContent: " forty-two" }), diff)).toBe(true);
+    expect(isAnchored(comment({ file: "gone.ts", line: 40, lineContent: " forty" }), diff)).toBe(false);
+  });
+
+  it("still needs the line in a hunk for changed lines, old-side lines, and comments without a recorded line", () => {
+    expect(isAnchored(comment({ line: 40, lineContent: "+added" }), diff)).toBe(false);
+    expect(isAnchored(comment({ side: "old", line: 40, lineContent: " forty" }), diff)).toBe(false);
+    expect(isAnchored(comment({ line: 40, lineContent: null }), diff)).toBe(false);
+  });
+});
+
+describe("isAnchored past the file's end", () => {
+  const counted: DiffResult = { ref: "wt", files: [{ ...file, lineCount: 50 }] };
+
+  it("goes stale once an unchanged-line comment's range runs past the known line count", () => {
+    expect(isAnchored(comment({ line: 50, lineContent: " fifty" }), counted)).toBe(true);
+    expect(isAnchored(comment({ line: 51, lineContent: " gone" }), counted)).toBe(false);
+    expect(isAnchored(comment({ line: 49, endLine: 51, lineContent: " gone" }), counted)).toBe(false);
+  });
+});

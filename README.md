@@ -85,11 +85,14 @@ Press `?` in the UI for this list at any time.
 | `t` | toggle light / dark mode |
 | `r` | re-run the diff |
 | `c` | preview review feedback |
+| `l` | list all threads (click one to jump to it) |
 | `?` | show the shortcut overlay |
 | `Ctrl`/`⌘` + `Enter` | save the open comment |
 | `Esc` | close dialogs, cancel an open comment |
 
 To comment on a range, drag across the line numbers or shift-click a second line.
+
+Resolved threads collapse to a small bubble at the end of their line; click it to open the thread, or **Hide** to collapse an open one. The arrows on a hunk separator reveal hidden unchanged lines 20 at a time (or all of them), and you can comment on revealed lines too.
 
 ## Review with an agent
 

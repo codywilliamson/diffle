@@ -33,7 +33,7 @@
     onCancel={() => (editing = false)}
   />
 {:else}
-  <div class="comment-card" class:resolved>
+  <div class="comment-card" class:resolved data-comment-id={comment.id}>
     <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
       {#if byAgent}<span class="comment-chip bg-surface-2">Agent</span>{/if}
       {#if resolved}<span class="comment-chip bg-surface-2"><Check size={12} strokeWidth={2.5} aria-hidden="true" />Resolved</span>{/if}

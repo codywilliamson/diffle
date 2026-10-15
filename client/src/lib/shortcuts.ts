@@ -16,6 +16,7 @@ export const SHORTCUTS: Shortcut[] = [
   { key: "g", label: "Open the review scorecard" },
   { key: "m", label: "File list: tree / review order" },
   { key: "c", label: "Preview review feedback" },
+  { key: "l", label: "List all threads" },
   { key: "n", label: "What's new" },
   { key: "?", label: "Keyboard shortcuts" },
   { key: "Esc", label: "Close the open overlay" },

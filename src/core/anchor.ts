@@ -18,13 +18,21 @@ export function rangeEnd(c: Comment): number {
   return c.endLine != null ? Math.max(c.line as number, c.endLine) : (c.line as number);
 }
 
+// a new-side comment written on an unchanged line (its recorded line carries the context
+// marker). it may sit on context the reader expanded, outside every hunk.
+const CONTEXT_MARKER = " ";
+const onUnchangedLine = (c: Comment): boolean => sideOf(c) === "new" && c.lineContent?.startsWith(CONTEXT_MARKER) === true;
+
 // a comment is anchored if its file is in the diff and (for line comments) some hunk line
 // on its side still carries a number within [line, endLine]. a range counts as anchored
-// when ANY line in it survives. file-level comments are anchored iff the file is present.
+// when ANY line in it survives. file-level comments are anchored iff the file is present;
+// comments on unchanged lines (which expanded context can show anywhere in the file) also
+// need their range inside the file's known line count.
 export function isAnchored(comment: Comment, diff: DiffResult): boolean {
   const file = diff.files.find((f) => f.path === comment.file);
   if (!file) return false;
   if (comment.line == null) return true;
+  if (onUnchangedLine(comment)) return file.lineCount == null || rangeEnd(comment) <= file.lineCount;
   const side = sideOf(comment);
   const start = comment.line;
   const end = rangeEnd(comment);

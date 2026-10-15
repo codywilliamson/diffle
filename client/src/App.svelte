@@ -10,6 +10,7 @@
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
   import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
+  import ThreadsPanel from "$lib/components/review/ThreadsPanel.svelte";
   import { getState } from "$lib/api/meta";
   import { WHATS_NEW } from "$lib/whatsNew";
   import { isEditable } from "$lib/shortcuts";
@@ -63,6 +64,7 @@
       case "g": if (analysis.scorecard) ui.toggleOverlay("scorecard"); break;
       case "m": prefs.setFileOrder(prefs.fileOrder === "review" ? "tree" : "review"); break;
       case "c": ui.openOverlay("compile"); break;
+      case "l": ui.toggleOverlay("threads"); break;
       case "n": ui.toggleOverlay("whatsNew"); break;
       case "?": ui.toggleOverlay("help"); break;
       default: return;
@@ -118,4 +120,5 @@
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
   {#if ui.activeOverlay === "scorecard" && analysis.scorecard}<ScorecardPanel scorecard={analysis.scorecard} />{/if}
   {#if ui.activeOverlay === "compile"}<FeedbackPreview />{/if}
+  {#if ui.activeOverlay === "threads"}<ThreadsPanel />{/if}
 </main>

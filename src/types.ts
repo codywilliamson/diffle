@@ -27,6 +27,7 @@ export interface DiffFile {
   deletions: number;
   binary?: boolean; // true for binary files; hunks is then empty
   hunks: DiffHunk[];
+  lineCount?: number; // new-side line count, when the server read it; bounds comments on unchanged lines
 }
 
 // structured review context for the top bar (repo + what's being compared)

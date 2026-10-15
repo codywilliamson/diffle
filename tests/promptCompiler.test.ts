@@ -368,3 +368,18 @@ describe("compileReviewPrompt", () => {
     expect(out).not.toContain("Reviewer summary");
   });
 });
+
+describe("compileReviewPrompt on expanded context", () => {
+  it("includes a comment on an unchanged line outside the hunks, showing the line it recorded", () => {
+    const out = run([comment({ line: 40, lineContent: " const forty = 40;", text: "rename this too" })]);
+    expect(out).toContain("### a.ts — Line 40");
+    expect(out).toContain("```\n  > 40 |  const forty = 40;\n```");
+    expect(out).toContain("rename this too");
+  });
+
+  it("uses the range end for a multi-line comment's recorded line", () => {
+    const out = run([comment({ line: 40, endLine: 42, lineContent: " }", text: "extract" })]);
+    expect(out).toContain("### a.ts — Lines 40–42");
+    expect(out).toContain("  > 42 |  }");
+  });
+});
