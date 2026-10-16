@@ -2,6 +2,15 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.28.1](https://github.com/codywilliamson/diffle/compare/v0.28.0...v0.28.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** bump vulnerable docs site dependencies ([6053415](https://github.com/codywilliamson/diffle/commit/605341559ace735b2f5fd803302222d6ca99a080))
+* **deps:** bump vulnerable root dependencies ([2c90d2c](https://github.com/codywilliamson/diffle/commit/2c90d2c19807d1a55415163b3443560779ff5237))
+* **deps:** override tmp to 0.2.7 for mcpb cli ([98707e2](https://github.com/codywilliamson/diffle/commit/98707e23370d7685394e4a597c44925a0f271b11))
+
 ## [0.28.0](https://github.com/codywilliamson/diffle/compare/v0.27.0...v0.28.0) (2026-10-09)
 
 
