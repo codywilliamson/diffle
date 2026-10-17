@@ -42,9 +42,11 @@ Register-ArgumentCompleter -Native -CommandName ${PROGRAM}, ${PROGRAM}.exe -Scri
   $refCommands = ${list(refCommands)}
   $reviewWords = ${list(review.words)}
 
-  # the words before the cursor, program excluded; the command is the first one, as in the parser
-  $typed = @($commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() })
-  if ($wordToComplete -ne '' -and $typed.Count -gt 0) { $typed = @($typed | Select-Object -SkipLast 1) }
+  # only the words that end at or before the cursor count (program excluded; the command is the first
+  # one, as in the parser). a word ending exactly at the cursor is the one being completed, so it goes too.
+  $before = @($commandAst.CommandElements | Where-Object { $_.Extent.EndOffset -le $cursorPosition })
+  if ($before.Count -gt 0 -and $before[-1].Extent.EndOffset -eq $cursorPosition) { $before = @($before | Select-Object -SkipLast 1) }
+  $typed = @($before | Select-Object -Skip 1 | ForEach-Object { $_.ToString() })
   $cmd = 'review'
   $lead = 0
   if ($typed.Count -gt 0 -and $commands.ContainsKey($typed[0])) { $cmd = $typed[0]; $lead = 1 }

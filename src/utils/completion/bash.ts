@@ -11,7 +11,8 @@ function valueCases(model: CompletionCommand[]): string {
     const pattern = flag.names.join("|");
     if (seen.has(pattern)) continue;
     seen.add(pattern);
-    const offer = flag.values.length ? `for word in ${flag.values.join(" ")}; do _${PROGRAM}_offer "$word"; done; ` : "";
+    const call = flag.list ? `_${PROGRAM}_offer_list` : `_${PROGRAM}_offer`;
+    const offer = flag.values.length ? `for word in ${flag.values.join(" ")}; do ${call} "$word"; done; ` : "";
     cases.push(`    ${pattern}) ${offer}return ;;`);
   }
   return cases.join("\n");
@@ -39,6 +40,11 @@ export function renderBash(): string {
 # install: eval "$(${PROGRAM} completion --shell bash)"
 _${PROGRAM}_offer() {
   [[ "$1" == "$cur"* ]] && COMPREPLY+=("$1")
+}
+# a comma-separated list value: keep what was typed through the last comma, complete the rest
+_${PROGRAM}_offer_list() {
+  local head="\${cur%"\${cur##*,}"}" tail="\${cur##*,}"
+  [[ "$1" == "$tail"* ]] && COMPREPLY+=("$head$1")
 }
 _${PROGRAM}() {
   local cur prev cmd=review sub="" scope lead=0 flags="" subs="" words="" wantsrefs=0 npos=0 skip=0 word ref i
