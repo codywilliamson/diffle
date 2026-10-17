@@ -3,7 +3,9 @@
 // file reads) when no agent carries a retired plugin or config. anything it can't finish is left
 // for `nittle doctor`, and the next run retries.
 
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
+import { isAbsolute } from "node:path";
 import { agentTargets, serverCommand, type AgentEnv, type AgentTarget } from "../agentTargets";
 import { runQuiet, type RunCommand } from "../agentSetup";
 import { stopLegacyMcpServers } from "../mcpProcesses";
@@ -18,6 +20,7 @@ export interface AgentPluginsDeps {
   which: (bin: string) => string | null;
   log: (line: string) => void;
   stopServers: () => unknown;
+  binaryExists: (path: string) => boolean; // configs never get pointed at a binary that is not there
 }
 
 export interface AgentFinding { target: AgentTarget; steps: PluginSwapStep[]; config: ConfigState; }
@@ -29,7 +32,7 @@ export function defaultAgentPluginsDeps(): AgentPluginsDeps {
   const home = homedir();
   return {
     agentEnv: { home, platform: process.platform, env: process.env, command: serverCommand(process.execPath, home) },
-    run: runQuiet, which: (bin) => Bun.which(bin), log: (line) => console.error(line), stopServers: stopLegacyMcpServers,
+    run: runQuiet, which: (bin) => Bun.which(bin), log: (line) => console.error(line), stopServers: stopLegacyMcpServers, binaryExists: existsSync,
   };
 }
 
@@ -54,8 +57,11 @@ export function migrateFinding({ target, steps, config }: AgentFinding, deps: Ag
       left.push(...outcome.failed.map((label) => `${label} failed`));
     }
   }
-  if (config !== "clean") {
-    const result = rewriteConfig(target, deps.agentEnv.command ?? PRODUCT.name);
+  const command = deps.agentEnv.command ?? PRODUCT.name;
+  if (config !== "clean" && isAbsolute(command) && !deps.binaryExists(command)) {
+    left.push(`${command} is not installed yet, so ${configPath(target)} still points at ${PRODUCT.legacyName}`);
+  } else if (config !== "clean") {
+    const result = rewriteConfig(target, command);
     if (result === "rewritten") parts.push(`${configPath(target)} now launches ${PRODUCT.name}`);
     else if (result === "unreadable") left.push(`${configPath(target)} can't be edited automatically`);
   }
