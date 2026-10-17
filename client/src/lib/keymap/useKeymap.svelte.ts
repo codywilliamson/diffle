@@ -71,13 +71,16 @@ export function useKeymap(): Keymap {
       case "ignored":
         return;
       case "escape":
-        // nothing pending: a visual or search mode would exit here first. the open dialog closes
+        // nothing pending: leave search first (one layer per press). an open dialog closes
         // itself on this same Esc (Modal), so its own dismiss logic (what's new) still runs.
-        return;
+        if (ui.activeOverlay || !app.search.open) return;
+        app.search.close();
+        break;
       case "dispatch": {
         const { binding, count } = outcome;
         // motion is paused behind an open dialog
-        if (binding.group !== "Move" || !ui.activeOverlay) actions[binding.action]?.(count);
+        const paused = (binding.group === "Move" || binding.group === "Search") && ui.activeOverlay;
+        if (!paused) actions[binding.action]?.(count);
         break;
       }
       default:

@@ -4,6 +4,7 @@
   import { getAppState } from "$lib/state/context";
   import type { SplitDisplayRow } from "$lib/diff/splitRows";
   import { markRange, type CharRange } from "$lib/diff/wordDiff";
+  import { markHits } from "$lib/diff/search";
   import {
     inSavedRange, isPending, rawLine, newComment, selectedRange, type Side,
   } from "$lib/diff/threads";
@@ -26,7 +27,7 @@
   }
 
   let { file, rows, side, id, highlighted, annotations = PLAIN_ANNOTATIONS }: Props = $props();
-  const { ui, comments, cursor } = getAppState();
+  const { ui, comments, cursor, search } = getAppState();
   const here = $derived(cursor.posFor(file.path));
   const fileComments = $derived(comments.comments.filter((comment) => comment.file === file.path));
 
@@ -42,7 +43,8 @@
   function renderCode(line: DiffLine, marks: Map<DiffLine, CharRange>): string {
     const html = highlighted(line);
     const mark = marks.get(line);
-    return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
+    const marked = mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
+    return markHits(marked, search.hitsFor(file.path, line.oldLine, line.newLine), search.active);
   }
 
   function movedAt(line: DiffLine | null | undefined): MovedMark | null {

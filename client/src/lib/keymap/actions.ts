@@ -3,6 +3,7 @@
 
 import type { AppState } from "$lib/state/context";
 import { pagePosition } from "./pageMove";
+import { selectedSearchText } from "./selectionText";
 import type { ActionId } from "./types";
 
 export type ActionHandler = (count: number | null) => void;
@@ -14,7 +15,7 @@ export interface ActionEnv {
 }
 
 export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Partial<Record<ActionId, ActionHandler>> {
-  const { ui, prefs, diff, comments, analysis, cursor } = app;
+  const { ui, prefs, diff, comments, analysis, cursor, search } = app;
   const n = (count: number | null): number => count ?? 1;
   return {
     "line.next": (c) => cursor.lines(currentPath(), n(c)),
@@ -31,6 +32,10 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "side.new": () => cursor.switchTo(currentPath(), "new"),
     "jump.back": () => cursor.back(currentPath()),
     "jump.forward": () => cursor.forward(currentPath()),
+
+    "search.file": () => search.start(currentPath(), selectedSearchText()),
+    "search.next": (c) => search.next(n(c)),
+    "search.prev": (c) => search.prev(n(c)),
 
     "review.viewed": () => {
       const path = currentPath();
