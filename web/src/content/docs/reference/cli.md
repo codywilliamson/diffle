@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-diffle reviews whichever git repo you run it from. Each command prints a `http://localhost:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
+diffle reviews whichever git repo you run it from. Each command prints a `http://127.0.0.1:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
 
 ## Getting help
 
