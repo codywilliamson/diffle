@@ -4,7 +4,7 @@ import { EMPTY_STATE, splitKeys, step } from "./parser";
 import type { KeyInput, Mode, Outcome, ParserState } from "./types";
 
 const key = (k: string, extra: Partial<KeyInput> = {}): KeyInput => ({
-  key: k, ctrl: false, shift: false, alt: false, meta: false, editable: false, ...extra,
+  key: k, ctrl: false, shift: false, alt: false, altGraph: false, meta: false, editable: false, ...extra,
 });
 
 // feed keys one after another, 10ms apart unless a time is given.
@@ -107,10 +107,17 @@ describe("chords", () => {
     expect(dispatched(result.outcome)?.action).toBe("goto.top");
   });
 
-  it("expires a pending count too", () => {
+  it("keeps a pending count however long it waits", () => {
     let result = step(EMPTY_STATE, key("5"), "normal", 0);
-    result = step(result.state, key("j"), "normal", CHORD_TIMEOUT_MS + 1);
-    expect(dispatched(result.outcome)).toEqual({ action: "line.next", count: null });
+    result = step(result.state, key("j"), "normal", CHORD_TIMEOUT_MS * 60);
+    expect(dispatched(result.outcome)).toEqual({ action: "line.next", count: 5 });
+  });
+
+  it("times out only the g of a counted chord and keeps the count", () => {
+    let result = step(EMPTY_STATE, key("3"), "normal", 0);
+    result = step(result.state, key("g"), "normal", 10);
+    result = step(result.state, key("j"), "normal", 10 + CHORD_TIMEOUT_MS + 1);
+    expect(dispatched(result.outcome)).toEqual({ action: "line.next", count: 3 });
   });
 
   it("splits binding keys into tokens", () => {
@@ -146,6 +153,15 @@ describe("modifiers and editable fields", () => {
     expect(last(run([["j", { meta: true }]]).outcomes).kind).toBe("ignored");
     expect(last(run([["j", { alt: true }]]).outcomes).kind).toBe("ignored");
     expect(last(run([["D", { ctrl: true, shift: true }]]).outcomes).kind).toBe("ignored");
+  });
+
+  it("treats AltGr symbols as the plain key", () => {
+    const altGr = { ctrl: true, alt: true, altGraph: true };
+    expect(dispatched(last(run([["]", altGr]]).outcomes))?.action).toBe("hunk.next");
+    expect(dispatched(last(run([["[", altGr]]).outcomes))?.action).toBe("hunk.prev");
+    // a real ctrl+alt chord without AltGraph, or an AltGr letter, stays ignored
+    expect(last(run([["]", { ctrl: true, alt: true }]]).outcomes).kind).toBe("ignored");
+    expect(last(run([["j", altGr]]).outcomes).kind).toBe("ignored");
   });
 
   it("ignores every key in an editable field except Esc", () => {
