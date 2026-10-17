@@ -6,6 +6,9 @@ import { createDiffStore, type DiffStore } from "./diff.svelte";
 import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
+import { createCursorStore, type CursorStore } from "./cursor.svelte";
+import { reviewOrder } from "$lib/diff/reviewOrder";
+import { canOverrideFileSplit } from "$lib/diff/fileMode";
 
 // the domain stores, composed once at the app root and shared through svelte context
 // so components read them without prop drilling or a process-global singleton.
@@ -16,6 +19,7 @@ export interface AppState {
   review: ReviewStore;
   comments: CommentsStore;
   analysis: AnalysisStore;
+  cursor: CursorStore;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -37,7 +41,13 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
   };
   const comments = createCommentsStore(review, currentDiff);
   const analysis = createAnalysisStore();
-  return { prefs, ui, diff, review, comments, analysis };
+  const cursor = createCursorStore({
+    files: () => (prefs.fileOrder === "review" ? reviewOrder(diff.files, analysis.scorecard) : diff.files),
+    defaultSplit: (file) => prefs.split && canOverrideFileSplit(file, diff.meta?.mode),
+    activePath: () => ui.activeFile,
+    follow: (path) => ui.followFile(path),
+  });
+  return { prefs, ui, diff, review, comments, analysis, cursor };
 }
 
 // call during component init at the app root.
