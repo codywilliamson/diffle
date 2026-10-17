@@ -22,7 +22,7 @@ import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations 
 import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
 import { EXIT_INTERRUPTED } from "./core/waitExit";
-import { resumeHint, runWait } from "./utils/waitCli";
+import { resumeHint, runWait, stoppedExit } from "./utils/waitCli";
 
 // ansi styling, skipped when stdout isn't a terminal.
 const tty = process.stdout.isTTY === true;
@@ -100,6 +100,7 @@ export async function main(): Promise<void> {
     if (opts.wait) console.error(`${tag} ${resumeHint(launch.review.id)}`);
     process.exit(interruptCode);
   };
+  if (opts.wait) launch.ctx.exitCodeOnStop = () => stoppedExit(launch.review.id, (line) => console.error(`${tag} ${line}`));
   process.on("SIGINT", onInterrupt);
   process.on("SIGTERM", onInterrupt);
   process.on("exit", stopSelf);

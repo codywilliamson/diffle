@@ -7,7 +7,7 @@ import { compileReviewPrompt } from "../core/promptCompiler";
 import { readReviewRecord } from "../core/reviewRecords";
 import { waitForReview, TAB_CLOSE_GRACE_MS, type WaitOutcome } from "../core/waitForReview";
 import { found } from "../mcp/reviewOperations";
-import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_TAB_CLOSED } from "../core/waitExit";
+import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_STOPPED, EXIT_TAB_CLOSED } from "../core/waitExit";
 import { productEnv } from "./env";
 
 const RESPONSE_FLUSH_MS = 100;
@@ -45,4 +45,10 @@ export async function runWait(launch: ReviewLaunch, json: boolean, say: (line: s
   if (outcome === "closed") say(`tab closed without returning feedback. ${resumeHint(id)}`);
   else say(`review ${outcome === "feedback" ? "sent back with feedback" : outcome}`);
   return EXIT_BY_OUTCOME[outcome];
+}
+
+// a remote stop must not look like an approval: say so on stderr and exit with its own code.
+export function stoppedExit(reviewId: string, say: (line: string) => void): number {
+  say(`session stopped from outside before feedback was returned. ${resumeHint(reviewId)}`);
+  return EXIT_STOPPED;
 }
