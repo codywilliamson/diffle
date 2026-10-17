@@ -79,7 +79,7 @@ Within a group, each source file is followed by its test. Generated files and lo
 
 ## Changed since last review
 
-When a reviewer returns feedback, diffle saves each file's content. On the next round, files that changed since then show a **Changed since last review** chip. Turn on the toggle to show only those changes. The view is read-only, so use it to check the agent's follow-up work without rereading the whole diff.
+When a reviewer returns feedback, nittle saves each file's content. On the next round, files that changed since then show a **Changed since last review** chip. Turn on the toggle to show only those changes. The view is read-only, so use it to check the agent's follow-up work without rereading the whole diff.
 
 ## Over MCP
 

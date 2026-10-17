@@ -89,7 +89,7 @@ const year = new Date().getFullYear();
       OWN-WORLD: D5 blended-indigo, dark-first. #0B0E16 ground, #6F82F0 indigo accent,
         green/red diff washes. Source Serif 4 display, DM Sans UI, IBM Plex Mono
         coordinates. squared galley panels, 1px hairline rules, flat-by-default.
-      STORY: a dev running agents locally sees diffle render a real diff with an anchored
+      STORY: a dev running agents locally sees nittle render a real diff with an anchored
         comment, understands it is a local proof-and-return loop, copies the install line.
       FIRST VIEWPORT: asymmetric split — left serif headline + tagline + mono install
         command w/ copy + two actions; right a squared window frame showing a real diff
@@ -101,9 +101,9 @@ const year = new Date().getFullYear();
 
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="/" aria-label="diffle home">
+        <a class="brand" href="/" aria-label="nittle home">
           <Mark size={26} animated />
-          <span class="wordmark">diffle</span>
+          <span class="wordmark">nittle</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
           <a href="/getting-started/installation/">Docs</a>
@@ -138,17 +138,13 @@ const year = new Date().getFullYear();
     <footer class="site-footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <a class="brand" href="/" aria-label="diffle home">
+          <a class="brand" href="/" aria-label="nittle home">
             <Mark size={24} />
-            <span class="wordmark">diffle</span>
+            <span class="wordmark">nittle</span>
           </a>
           <p class="footer-tag">
             Review a diff, redline it, and hand structured feedback back to your agent,
             locally, in your browser.
-          </p>
-          <p class="footer-backronym">
-            the <em>Deterministic Inspection &amp; Feedback Framework for Language-model
-            Engineering</em>. yes, really.
           </p>
         </div>
 
@@ -169,7 +165,7 @@ const year = new Date().getFullYear();
           <div class="footer-col">
             <h2>Project</h2>
             <a href={repo} rel="noopener">GitHub</a>
-            <a href="/guides/migrating-from-loupe/">Migrating from loupe</a>
+            <a href="/guides/migrating-from-diffle/">Migrating from diffle</a>
           </div>
         </nav>
       </div>
