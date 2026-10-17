@@ -9,7 +9,7 @@ import { delimiter, join } from "node:path";
 export const REPO_ROOT = join(import.meta.dir, "..", "..");
 export const TAG = "v9.9.9";
 export const ASSET = "nittle-linux-x64";
-const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "nittle ${TAG}"\n`;
+const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "\${NITTLE_LEGACY_INSTALL_DIR:-}" >> "$FAKE_LOG.legacy"\necho "nittle ${TAG}"\n`;
 
 const UNAME_SHIM = `#!/bin/sh\ncase "$1" in -m) echo x86_64 ;; *) echo Linux ;; esac\n`;
 const CURL_SHIM = `#!/bin/sh
@@ -57,7 +57,8 @@ export function createInstallSandbox(options: SandboxOptions = {}): InstallSandb
   return {
     home, fixture, log,
     async run(args = [], env = {}) {
-      const base: Record<string, string | undefined> = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config"), FIXTURE: fixture, FAKE_LOG: log, SHELL: "/bin/zsh", PATH: `${shims}${delimiter}${process.env.PATH}`, ...env };
+      const base: Record<string, string | undefined> = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config"), FIXTURE: fixture, FAKE_LOG: log, SHELL: "/bin/zsh", PATH: [env.EXTRA_PATH, shims, process.env.PATH].filter(Boolean).join(delimiter), ...env };
+      delete base.EXTRA_PATH;
       for (const key of Object.keys(base)) if (/^(NITTLE|DIFFLE)_/.test(key) && !(key in env)) delete base[key];
       delete base.GITHUB_TOKEN;
       delete base.ZDOTDIR;

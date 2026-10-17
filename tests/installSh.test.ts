@@ -12,6 +12,8 @@ afterEach(() => sandbox?.cleanup());
 
 const write = (path: string, text: string) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); };
 const read = (path: string) => readFileSync(path, "utf8");
+// same dir on posix and under git bash on windows (drive letters, slashes)
+const norm = (path: string) => path.replaceAll("\\", "/").replace(/^\/?([A-Za-z]):?\//, "$1/").toLowerCase();
 const OLD_BLOCK = (dir: string) => `\n# >>> diffle >>>\nexport PATH="${dir}:$PATH"\n# <<< diffle <<<\n`;
 
 describe.skipIf(!sh)("install.sh", () => {
@@ -71,6 +73,40 @@ describe.skipIf(!sh)("install.sh", () => {
     expect(read(box.log).trim().split("\n")).toEqual(["--version"]);
     // the binary owns the migration: the installer did not touch the diffle binary or its block
     expect(existsSync(join(box.home, ".diffle", "bin", "diffle"))).toBe(true);
+  });
+
+  test("a custom-dir diffle install is found from the old installer's marker block and handed to the binary", async () => {
+    const box = open();
+    const custom = join(box.home, "tools", "diffle-bin");
+    write(join(custom, "diffle"), "old");
+    write(join(box.home, ".zshrc"), `alias a=b\n${OLD_BLOCK(custom)}`);
+    const result = await box.run();
+    expect(result.code).toBe(0);
+    expect(norm(read(`${box.log}.legacy`).trim())).toBe(norm(custom));
+  });
+
+  test("a custom-dir diffle install is found from PATH, but system dirs are not", async () => {
+    const box = open();
+    const custom = join(box.home, "tools", "on-path");
+    write(join(custom, "diffle"), "old");
+    const result = await box.run([], { EXTRA_PATH: custom });
+    expect(result.code).toBe(0);
+    expect(read(`${box.log}.legacy`).trim().endsWith("tools/on-path")).toBe(true);
+    box.cleanup();
+    const plain = open();
+    await plain.run();
+    expect(existsSync(`${plain.log}.legacy`)).toBe(false);
+  });
+
+  test("--uninstall removes a custom-dir diffle install it discovered", async () => {
+    const box = open();
+    const custom = join(box.home, "tools", "diffle-bin");
+    write(join(custom, "diffle"), "old");
+    write(join(box.home, ".zshrc"), OLD_BLOCK(custom));
+    const result = await box.run(["--uninstall"]);
+    expect(result.code).toBe(0);
+    expect(existsSync(join(custom, "diffle"))).toBe(false);
+    expect(read(join(box.home, ".zshrc")).trim()).toBe("");
   });
 
   test("a dry run with a diffle install does not run the binary", async () => {
