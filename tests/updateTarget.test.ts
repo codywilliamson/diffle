@@ -1,4 +1,5 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, test } from "bun:test";
+import { transitionAssetName } from "../src/core/transitionAssets";
 import { assetName, detectPackageManager, managerCommand, parseChecksum, platformTarget } from "../src/core/updateTarget";
 
 describe("platformTarget / assetName", () => {
@@ -11,6 +12,16 @@ describe("platformTarget / assetName", () => {
   it("adds .exe only for windows targets", () => {
     expect(assetName("windows-arm64")).toBe("nittle-windows-arm64.exe");
     expect(assetName("linux-x64")).toBe("nittle-linux-x64");
+  });
+});
+
+describe("updater asset names", () => {
+  test("every platform downloads the nittle asset, never the diffle transition copy", () => {
+    for (const [platform, arch] of [["win32", "x64"], ["win32", "arm64"], ["darwin", "x64"], ["darwin", "arm64"], ["linux", "x64"], ["linux", "arm64"]] as const) {
+      const asset = assetName(platformTarget(platform, arch));
+      expect(asset.startsWith("nittle-")).toBe(true);
+      expect(transitionAssetName(asset)).toBe(asset.replace("nittle-", "diffle-"));
+    }
   });
 });
 
