@@ -3,6 +3,8 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { installedBinaryPath } from "../src/core/installedBinary";
+import { readUserState } from "../src/core/userState";
+import { isLeftover } from "../src/core/migration/installDirCopy";
 import { installNittleBinary, migrateInstallDir, removeDiffleInstall, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
 import { swapPathEntry, type UserPathStore } from "../src/core/migration/installDirWinPath";
@@ -259,6 +261,39 @@ describe("install dir migration from the diffle binary", () => {
     write(join(home, ".nittle", "bin", "nittle"), "n");
     setup({ execPath: join(home, ".nittle", "bin", "nittle"), env: { NITTLE_LEGACY_INSTALL_DIR: custom } }).run();
     expect(existsSync(custom)).toBe(false);
+  });
+
+  test("cleanup deletes only what the installer left behind: .diffle-notes in a shared dir survives", () => {
+    const shared = join(home, "tools", "shared");
+    write(join(shared, "diffle"), BINARY);
+    write(join(shared, ".diffle-notes"), "mine");
+    write(join(shared, ".diffle.new-123"), "staged");
+    write(join(shared, ".diffle.exe.old-1760000000000"), "retired");
+    setup({ execPath: join(shared, "diffle"), env: { NITTLE_INSTALL_DIR: shared, PATH: shared } }).run();
+    expect(readdirSync(shared).sort()).toEqual([".diffle-notes", "nittle"]);
+  });
+
+  test("isLeftover matches the staging and retired names exactly", () => {
+    for (const name of [".diffle.new-1", ".diffle.new-12-ab34", ".diffle.exe.new", ".diffle.exe.old", ".diffle.exe.old-1760000000000", ".diffle.old"]) expect(isLeftover(name)).toBe(true);
+    for (const name of [".diffle-notes", ".diffle.notes", ".diffle", ".diffle.exe", ".diffle.settings", "diffle.exe.old", ".nittle.new-1"]) expect(isLeftover(name)).toBe(false);
+  });
+
+  test("a retry with neither env var finds the dirs the first run remembered", () => {
+    const custom = join(home, "tools", "old");
+    const target = join(home, "tools", "new");
+    write(join(custom, "diffle"), BINARY);
+    const cursor = join(home, ".cursor", "mcp.json");
+    write(cursor, `{\n  // jsonc\n  "mcpServers": { "diffle": { "command": "x" } }\n}\n`);
+    const env = { NITTLE_LEGACY_INSTALL_DIR: custom, NITTLE_INSTALL_DIR: target, PATH: target };
+    setup({ execPath: join(custom, "diffle"), env }).run();
+    expect(existsSync(join(custom, "diffle"))).toBe(true);
+    expect(readUserState(home).migration).toEqual({ legacyDir: custom, installDir: target });
+
+    rmSync(cursor); // the user fixed the config; the next launch is the installed nittle, with no env vars
+    const retry = setup({ execPath: join(target, "nittle"), env: { PATH: target } });
+    retry.run();
+    expect(existsSync(custom)).toBe(false);
+    expect(readUserState(home).migration).toBeUndefined();
   });
 
   test("a failed copy keeps the diffle install and reports", () => {
