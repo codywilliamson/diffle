@@ -6,12 +6,18 @@ import { join } from "node:path";
 import { PRODUCT } from "./product";
 import { productEnv } from "../utils/env";
 
-// the product data dir for new users; an existing legacy dir (with no new one) is kept in place so an
-// upgrade never strands records — never copied or deleted. `home` is injectable for tests.
+// older data dirs, newest first. the startup migration (core/migration/dataDir.ts) moves these into
+// ~/.nittle; they only matter here when that migration could not finish.
+export const LEGACY_HOME_DATA_DIRS: readonly string[] = [PRODUCT.legacyDataDir, PRODUCT.loupeDataDir];
+
+// ~/.nittle once migrated. if the migration failed before ~/.nittle was created, read the old dir
+// for this run so the user still sees their records (the migration retries on the next launch).
+// `home` is injectable for tests.
 export function homeDataDir(home = homedir()): string {
   const next = join(home, PRODUCT.dataDir);
-  const legacy = join(home, PRODUCT.legacyDataDir);
-  return !existsSync(next) && existsSync(legacy) ? legacy : next;
+  if (existsSync(next)) return next;
+  const old = LEGACY_HOME_DATA_DIRS.map((name) => join(home, name)).find(existsSync);
+  return old ?? next;
 }
 
 // NITTLE_DATA_DIR / legacy DIFFLE_DATA_DIR wins; else the resolved home data dir.

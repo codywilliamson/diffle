@@ -15,6 +15,7 @@ export const PRODUCT = {
   legacyEnvPrefix: "DIFFLE_",
   dataDir: ".nittle",
   legacyDataDir: ".diffle",
+  loupeDataDir: ".loupe", // pre-diffle data dir; 0.28.x kept using it in place, so it is still a migration source
   accent: "38;5;105", // nittle indigo (ansi 256)
   author: { name: "Cody Williamson", url: "https://github.com/codywilliamson" },
   site: "https://nittle.dev", // docs site + the `curl https://nittle.dev/install | sh` host
