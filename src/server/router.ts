@@ -16,6 +16,7 @@ import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleGetInterdiff } from "./interdiffHandlers";
 import { handleGetScorecard } from "./analysisHandlers";
+import { handleGetLspStatus } from "./lspHandlers";
 import { handleSessionStop } from "./sessionHandlers";
 import { apiError } from "./respond";
 import { isLoopbackHttpOrigin } from "../utils/origin";
@@ -45,6 +46,7 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
     if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
+    if (pathname === "/api/lsp/status") return handleGetLspStatus(ctx);
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 

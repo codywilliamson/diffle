@@ -3,6 +3,7 @@
 import type { DiffResult, DiffMeta, ReviewFile, Comment, CompilePromptResponse } from "../types";
 import type { AssetSource } from "./assetSource";
 import type { SessionHost } from "../core/sessions";
+import type { LspPool } from "../core/lsp/pool";
 import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
 import { compileReviewPrompt } from "../core/promptCompiler";
@@ -29,6 +30,7 @@ export interface ServerContext {
   reviewId?: string; // durable Review Record selected by the MCP/CLI integration
   host: SessionHost; // which integration launched this server; read by /api/session/stop
   sessionId?: string; // this server's session registry id; set by reviewLaunch, checked by /api/session/stop
+  lsp?: LspPool; // language server pool; absent in tests that don't exercise it
   shutdown?: () => void | Promise<void>; // set by reviewLaunch once the server exists; mutable by design
 }
 
