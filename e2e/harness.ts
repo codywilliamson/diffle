@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Page } from "@playwright/test";
 
-const LOUPE_ROOT = process.cwd();
+const REPO_ROOT = process.cwd();
 const URL_PATTERN = /http:\/\/localhost:\d+\/\?review=[\w-]+/;
 
 // one file in the fixture repo: `base` is committed (omit for an added file), `work` is the
@@ -46,7 +46,7 @@ const dataDirFor = (fixture: string): string => `${fixture}-data`;
 
 // launch the real bun backend in the fixture and return the review url it prints.
 export function startPreview(fixture: string): { server: ChildProcess; url: Promise<string> } {
-  const server = spawn("bun", [join(LOUPE_ROOT, "src", "index.ts"), "--no-open"], {
+  const server = spawn("bun", [join(REPO_ROOT, "src", "index.ts"), "--no-open"], {
     cwd: fixture,
     env: { ...process.env, NITTLE_SESSION_HOST: "cli", NITTLE_DATA_DIR: dataDirFor(fixture) },
     stdio: ["ignore", "pipe", "pipe"],
