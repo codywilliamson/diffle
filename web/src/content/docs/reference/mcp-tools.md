@@ -1,19 +1,19 @@
 ---
 title: MCP tools
-description: The tools diffle's local MCP server exposes to coding agents.
+description: The tools nittle's local MCP server exposes to coding agents.
 sidebar:
   order: 3
 ---
 
-`diffle mcp serve` runs a local stdio MCP server (server name `diffle`). The agent integrations for Claude Code and Codex use it; see [Agent feedback](/guides/agent-feedback/) for setup.
+`nittle mcp serve` runs a local stdio MCP server (server name `nittle`). The agent integrations for Claude Code and Codex use it; see [Agent feedback](/guides/agent-feedback/) for setup.
 
-The server only operates on a cwd inside an approved root (see `DIFFLE_ROOT` in [Configuration](/reference/configuration/)).
+The server only operates on a cwd inside an approved root (see `NITTLE_ROOT` in [Configuration](/reference/configuration/)).
 
 ```sh
-diffle mcp serve
+nittle mcp serve
 ```
 
-If the `diffle` server doesn't show up in your agent, run `diffle doctor` — a stale `loupe-review` plugin keeps the old server wired in its place.
+If the `nittle` server doesn't show up in your agent, run `nittle doctor` — a stale `diffle-review` or `loupe-review` plugin keeps the old server wired in its place.
 
 ## Tools
 

@@ -2,8 +2,8 @@
 import Landing from "../layouts/Landing.astro";
 
 const repo = "https://github.com/codywilliamson/diffle";
-const installUnix = "curl -fsSL https://diffle.dev/install | sh";
-const installWin = "irm https://diffle.dev/install.ps1 | iex";
+const installUnix = "curl -fsSL https://nittle.dev/install | sh";
+const installWin = "irm https://nittle.dev/install.ps1 | iex";
 
 const loop = [
   ["inspect", "Render a live git comparison in the browser."],
@@ -22,11 +22,11 @@ const tenets = [
 ];
 
 const cli = [
-  ["diffle", "working tree vs HEAD"],
-  ["diffle staged", "staged changes only"],
-  ["diffle main", "this branch vs main"],
-  ["diffle v1.0..v1.1", "a commit range"],
-  ["diffle browse src/", "the whole subtree"],
+  ["nittle", "working tree vs HEAD"],
+  ["nittle staged", "staged changes only"],
+  ["nittle main", "this branch vs main"],
+  ["nittle v1.0..v1.1", "a commit range"],
+  ["nittle browse src/", "the whole subtree"],
 ];
 
 const scorecard = [
@@ -49,9 +49,13 @@ const scorecard = [
           >
         </h1>
         <p class="lede">
-          diffle turns a local git diff into a close, exact read, the way a printer
+          nittle turns a local git diff into a close, exact read, the way a printer
           proofs a page. Comment on the precise code, then return structured feedback
           your coding agent can act on. No forge, no account, no hosted AI.
+        </p>
+        <p class="lineage">
+          nittle, fka diffle (the Deterministic Inspection &amp; Feedback Framework for
+          Language-model Engineering, per ADR 0004, which we stand by), fka loupe
         </p>
 
         <div class="install">
@@ -180,7 +184,7 @@ const scorecard = [
         playsinline
         preload="metadata"
         poster="/media/walkthrough-poster.png"
-        aria-label="Walkthrough of a diffle review"
+        aria-label="Walkthrough of a nittle review"
       >
         <source src="/media/walkthrough.mp4" type="video/mp4" />
       </video>
@@ -315,7 +319,7 @@ const scorecard = [
   <!-- ===================== INSTALL CLOSE ===================== -->
   <section class="close" data-reveal>
     <div class="close-inner wrap">
-      <h2>Install diffle</h2>
+      <h2>Install nittle</h2>
       <p class="close-lede">
         One self-contained binary. It embeds its own web client and needs no checkout,
         no Node, and no sidecar files. <code>git</code> on your <code>PATH</code> is the
@@ -349,7 +353,7 @@ const scorecard = [
 
       <ul class="close-points" aria-label="What you get" data-stagger>
         <li><strong>Stays local.</strong> No forge, no database, no hosted AI service.</li>
-        <li><strong>Always current.</strong> <code>diffle update</code> verifies and swaps in place.</li>
+        <li><strong>Always current.</strong> <code>nittle update</code> verifies and swaps in place.</li>
         <li><strong>Yours to keep.</strong> Review Records live under your data directory.</li>
       </ul>
 
@@ -410,6 +414,15 @@ const scorecard = [
       max-width: 46ch;
       color: var(--muted);
       font-size: 1.08rem;
+    }
+
+    .lineage {
+      margin-top: 0.9rem;
+      max-width: 52ch;
+      color: var(--dim);
+      font-family: var(--ff-mono);
+      font-size: 0.78rem;
+      line-height: 1.55;
     }
 
     .install {
