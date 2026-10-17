@@ -25,7 +25,8 @@ export interface SessionEntry {
 const PROBE_TIMEOUT_MS = 1500;
 const JSON_EXT = ".json";
 
-const sessionsDir = () => join(dataDir(), "sessions");
+const sessionsDirIn = (root: string) => join(root, "sessions");
+const sessionsDir = () => sessionsDirIn(dataDir());
 const pathFor = (sessionId: string) => join(sessionsDir(), `${sessionId}${JSON_EXT}`);
 
 export function registerSession(entry: SessionEntry): void {
@@ -58,14 +59,18 @@ function isValidEntry(raw: unknown, filenameStem: string): raw is SessionEntry {
   );
 }
 
-export function listSessions(): SessionEntry[] {
-  if (!existsSync(sessionsDir())) return [];
+export const listSessions = (): SessionEntry[] => listSessionsIn(dataDir());
+
+// session entries registered under an arbitrary data dir (the migration inspects legacy dirs).
+export function listSessionsIn(root: string): SessionEntry[] {
+  const dir = sessionsDirIn(root);
+  if (!existsSync(dir)) return [];
   const entries: SessionEntry[] = [];
-  for (const name of readdirSync(sessionsDir())) {
+  for (const name of readdirSync(dir)) {
     if (!name.endsWith(JSON_EXT)) continue;
     const stem = name.slice(0, -JSON_EXT.length);
     try {
-      const parsed: unknown = JSON.parse(readFileSync(join(sessionsDir(), name), "utf8"));
+      const parsed: unknown = JSON.parse(readFileSync(join(dir, name), "utf8"));
       if (isValidEntry(parsed, stem)) entries.push(parsed);
     } catch { /* skip unparseable files */ }
   }
