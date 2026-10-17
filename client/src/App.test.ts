@@ -161,6 +161,69 @@ describe("App shell", () => {
     await waitFor(() => expect(animate.mock.calls.length).toBeGreaterThan(before));
   });
 
+  describe("Esc layers with visual mode and the editor", () => {
+    function setup(): void {
+      Element.prototype.scrollIntoView = vi.fn();
+      Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
+      globalThis.IntersectionObserver = class { observe(): void {} disconnect(): void {} unobserve(): void {} } as unknown as typeof IntersectionObserver;
+      vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+      const lines = [1, 2, 3].map((n) => ({ type: "context" as const, oldLine: n, newLine: n, content: `l${n}` }));
+      const one: DiffResult = { ref: "HEAD", files: [{ path: "a.ts", oldPath: null, changeType: "modified", additions: 1, deletions: 0, hunks: [{ header: "@@", lines }] }] };
+      vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input);
+        if (path === "/api/diff") return jsonResponse(one, 200);
+        if (path === "/api/comments") return jsonResponse({ meta: { ref: "HEAD", createdAt: "", updatedAt: "" }, viewed: [], comments: [] }, 200);
+        if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
+        return jsonResponse({}, 404);
+      }));
+    }
+    const picked = (): number => document.querySelectorAll(".range-selected").length;
+
+    it("closes the dialog first and leaves visual mode on the next Esc", async () => {
+      setup();
+      render(App);
+      await screen.findByText(/1 file\b/);
+      await fireEvent.keyDown(window, { key: "j" });
+      await fireEvent.keyDown(window, { key: "V" });
+      await waitFor(() => expect(picked()).toBe(1));
+      await fireEvent.keyDown(window, { key: "?" });
+      expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+      const before = (Element.prototype.animate as ReturnType<typeof vi.fn>).mock.calls.length;
+      await fireEvent.keyDown(window, { key: "Escape" });
+      // the dialog starts its closing transition; visual mode is untouched
+      await waitFor(() => expect((Element.prototype.animate as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(before));
+      expect(picked()).toBe(1);
+      await fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(picked()).toBe(0));
+      await waitFor(() => expect(document.querySelector("[data-cursor-announcer]")).toHaveTextContent("visual cancelled"));
+    });
+
+    it("announces the visual range as it grows", async () => {
+      setup();
+      render(App);
+      await screen.findByText(/1 file\b/);
+      await fireEvent.keyDown(window, { key: "j" });
+      await fireEvent.keyDown(window, { key: "V" });
+      await fireEvent.keyDown(window, { key: "j" });
+      await waitFor(() => expect(document.querySelector("[data-cursor-announcer]")).toHaveTextContent("visual range, a.ts new lines 1 to 2"));
+    });
+
+    it("one Esc in the editor closes it and also clears a pending count", async () => {
+      setup();
+      render(App);
+      await screen.findByText(/1 file\b/);
+      await fireEvent.keyDown(window, { key: "j" });
+      await fireEvent.keyDown(window, { key: "c" });
+      const editor = await screen.findByRole("textbox", { name: "Comment text" });
+      await fireEvent.keyDown(window, { key: "5" }); // a count typed outside the field
+      await fireEvent.keyDown(editor, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("textbox", { name: "Comment text" })).toBeNull());
+      await fireEvent.keyDown(window, { key: "j" });
+      // 5j would have run to line 3; the count is gone, so j moves one line
+      await waitFor(() => expect(document.querySelector("[data-cursor]")?.getAttribute("data-newline")).toBe("2"));
+    });
+  });
+
   it("expands the review menu into a modal that keeps the draft and renders the agent update", async () => {
     Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));

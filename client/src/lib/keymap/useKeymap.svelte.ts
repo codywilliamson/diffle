@@ -65,8 +65,9 @@ export function useKeymap(): Keymap {
   const onKeydownCapture = (event: KeyboardEvent): void => {
     if (event.key !== "Escape") return;
     const pending = state.count !== "" || state.prefix !== null;
-    // layer order: a pending count or chord, then the visual mode, then the dialog
-    if (!pending && !(cursor.visual && !isEditable(event.target))) return;
+    // a pending count or chord goes first; otherwise Esc closes the topmost layer: an open dialog
+    // sits above visual mode, so visual mode only ends once no dialog is open
+    if (!pending && !(cursor.visual && !ui.activeOverlay && !isEditable(event.target))) return;
     state = EMPTY_STATE;
     if (!pending) exitVisual();
     if (isEditable(event.target)) return;

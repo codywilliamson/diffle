@@ -115,3 +115,26 @@ test("line, range and file comments from the keyboard alone", async ({ page }) =
     cleanup(fixture);
   }
 });
+
+test("in single-file mode a range at the end of a file stays in it and opens the editor", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await gotoApp(page, await url);
+    await expect(page.locator("tr.diff-row").first()).toBeVisible();
+    await page.keyboard.press("o");
+    await page.keyboard.press("G");
+    await page.keyboard.press("V");
+    await page.keyboard.press("j"); // past the end: the cursor stays on a.ts
+    await page.keyboard.press("c");
+    await expect(page.getByRole("textbox", { name: "Comment text" })).toBeFocused();
+    await page.keyboard.type("end of a");
+    await page.keyboard.press("Control+Enter");
+    await expect(page.getByText("end of a")).toBeVisible();
+    const saved = await savedComments(page);
+    expect(saved.find((c) => c.text === "end of a")).toMatchObject({ file: "a.ts", side: "new" });
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
