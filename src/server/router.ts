@@ -46,7 +46,11 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
     if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
-    if (pathname === "/api/lsp/status") return handleGetLspStatus(ctx);
+    if (pathname === "/api/lsp/status") {
+      // reveals installed tooling and local paths, so it also refuses a foreign Host (dns rebinding)
+      if (!hasAllowedOrigin(req, serverPort) || !isLoopbackHttpOrigin(new URL(req.url), serverPort)) return apiError("origin mismatch", 403);
+      return handleGetLspStatus(ctx);
+    }
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 
