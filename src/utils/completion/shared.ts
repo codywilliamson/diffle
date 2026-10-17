@@ -5,9 +5,9 @@ import { REF_LIST_ARGS, type CompletionCommand, type CompletionFlag, type Comple
 
 export const PROGRAM = PRODUCT.name;
 
-export const shSingleQuote = (text: string) => `'${text.replace(/'/g, "'\\''")}'`;
+export const shSingleQuote = (text: string) => `'${text.split("'").join("'\\''")}'`;
 export const fishSingleQuote = (text: string) => `'${text.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
-export const psSingleQuote = (text: string) => `'${text.replace(/'/g, "''")}'`;
+export const psSingleQuote = (text: string) => `'${text.split("'").join("''")}'`;
 
 // the ref listing as one command line, per quoting style (bash, zsh and fish share the posix form).
 export const posixRefCommand = () => `command git ${REF_LIST_ARGS.map((arg) => (arg.includes("%") ? shSingleQuote(arg) : arg)).join(" ")} 2>/dev/null`;
