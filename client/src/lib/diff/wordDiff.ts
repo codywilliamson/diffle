@@ -108,5 +108,6 @@ export function markRange(html: string, start: number, end: number, cls: string)
     pos++;
   }
   if (marking) out += "</mark>";
-  return out;
+  // reopening at a tag boundary can leave an empty mark behind
+  return out.replaceAll(`${open}</mark>`, "");
 }
