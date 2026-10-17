@@ -22,6 +22,7 @@ export interface ServerContext {
   assets: AssetSource; // source for the built client (index.html + assets)
   productRoot: string; // nittle's own repo root, for the release-update check
   newRef: string | null; // ref for new-side file content; null = read working tree from disk
+  diffGeneration?: number; // bumped each time diff is replaced; lsp answers computed under an older one are stale
   diffArgs: string[]; // git args to re-run the diff on demand (refresh)
   includeUntracked: boolean; // working-tree mode also surfaces untracked files
   meta?: DiffMeta; // stable review context (repo + refs); reused across refreshes
@@ -69,6 +70,7 @@ export function handleGetDiff(ctx: ServerContext): Response {
         ? scanProject(ctx.cwd, ctx.scope)
         : { ...parseDiff(collectDiff(ctx.diffArgs, ctx.cwd, ctx.includeUntracked, false), ctx.diff.ref), meta: ctx.meta };
     ctx.diff = excludeReviewFile(fresh, false);
+    ctx.diffGeneration = (ctx.diffGeneration ?? 0) + 1;
   } catch {
     // keep the previous diff
   }

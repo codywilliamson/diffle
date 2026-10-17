@@ -7,6 +7,7 @@ import { closeSync, constants, fstatSync, openSync, readSync, realpathSync } fro
 import { join, resolve } from "node:path";
 import { containsPath } from "../utils/pathWithin";
 import { runGitBytes } from "../utils/git";
+import { ByteLru } from "./byteLru";
 import type { ServerContext } from "./handlers";
 
 export const MAX_TARGET_FILE_BYTES = 2 * 1024 * 1024;
@@ -35,34 +36,42 @@ export function readRegularFile(path: string, known?: Stamp): Stamp | undefined 
 
 export const readOutsideRepo = (absolutePath: string): string | undefined => readRegularFile(absolutePath)?.text;
 
-const stamps = new WeakMap<ServerContext, Map<string, Stamp>>();
-const blobs = new WeakMap<object, Map<string, string>>(); // keyed by the diff object: a refresh starts over
+export const MAX_RETAINED_TEXT_BYTES = 64 * 1024 * 1024; // all contexts together, in memory (2 bytes per char)
+const BYTES_PER_CHAR = 2;
+const retained = new ByteLru<Stamp>(MAX_RETAINED_TEXT_BYTES);
+export const retainedTextBytes = (): number => retained.retainedBytes;
+
+// entries from an older diff generation are never asked for again and simply age out
+const contextIds = new WeakMap<ServerContext, number>();
+let nextContextId = 1;
+const contextId = (ctx: ServerContext): number => {
+  let id = contextIds.get(ctx);
+  if (!id) contextIds.set(ctx, (id = nextContextId++));
+  return id;
+};
 
 export const repoRootOf = (ctx: ServerContext): string => resolve(ctx.lsp?.root ?? ctx.cwd);
 
 // the reviewed (new) side of a repo file: disk, the index or a ref blob, matching the diff. throws when absent.
+// blobs are cached per diff generation, working-tree files by mtime + size.
 export function readRepoText(ctx: ServerContext, path: string): string {
   const root = repoRootOf(ctx);
   if (ctx.newRef !== null) {
-    const cache = blobs.get(ctx.diff) ?? new Map<string, string>();
-    blobs.set(ctx.diff, cache);
-    const key = `${ctx.newRef}\0${path}`;
-    let text = cache.get(key);
-    if (text === undefined) {
-      const bytes = runGitBytes(["show", `${ctx.newRef}:${path}`], root);
-      if (bytes.length > MAX_TARGET_FILE_BYTES) throw new Error("file too large");
-      text = bytes.toString("utf8");
-      cache.set(key, text);
-    }
+    const key = `blob\0${contextId(ctx)}\0${ctx.diffGeneration ?? 0}\0${ctx.newRef}\0${path}`;
+    const cached = retained.get(key);
+    if (cached) return cached.text;
+    const bytes = runGitBytes(["show", `${ctx.newRef}:${path}`], root);
+    if (bytes.length > MAX_TARGET_FILE_BYTES) throw new Error("file too large");
+    const text = bytes.toString("utf8");
+    retained.set(key, { mtimeMs: 0, size: bytes.length, text }, text.length * BYTES_PER_CHAR);
     return text;
   }
   const real = realpathSync(join(root, path));
   if (!containsPath(realpathSync(root), real)) throw new Error("outside repo");
-  const known = stamps.get(ctx)?.get(real);
+  const key = `file\0${real}`;
+  const known = retained.get(key);
   const read = readRegularFile(real, known);
   if (!read) throw new Error("not a readable regular file");
-  const table = stamps.get(ctx) ?? new Map<string, Stamp>();
-  stamps.set(ctx, table);
-  table.set(real, read);
+  if (read !== known) retained.set(key, read, read.text.length * BYTES_PER_CHAR);
   return read.text;
 }
