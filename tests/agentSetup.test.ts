@@ -76,7 +76,7 @@ test("a failing uninstall is reported while the plugin is still installed", () =
   const claude = byId(home, "claude");
   if (claude.integration.kind !== "plugin") throw new Error("expected plugin");
   mkdirSync(dirname(claude.integration.registry), { recursive: true });
-  writeFileSync(claude.integration.registry, JSON.stringify({ plugins: { "diffle-review@diffle-local": [] } }));
+  writeFileSync(claude.integration.registry, JSON.stringify({ plugins: { "nittle-review@nittle-local": [] } }));
   const { calls, run } = recorder(() => 1);
   const results = applyAgent(claude, "remove", true, run);
   expect(results).toEqual([expect.objectContaining({ status: "failed", text: expect.stringContaining("still registered") })]);

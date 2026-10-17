@@ -9,9 +9,9 @@ import { createReviewRecord } from "../src/core/reviewRecords";
 import { applyCleanupPlan, buildCleanupPlan } from "../src/utils/sessionsCli";
 
 const dirs: string[] = [];
-function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "loupe-cleanup-")); dirs.push(dir); return dir; }
-beforeEach(() => { process.env.LOUPE_DATA_DIR = tempDir(); });
-afterEach(() => { delete process.env.LOUPE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
+function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "diffle-cleanup-")); dirs.push(dir); return dir; }
+beforeEach(() => { process.env.NITTLE_DATA_DIR = tempDir(); });
+afterEach(() => { delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 function entry(overrides: Partial<SessionEntry> = {}): SessionEntry {
   return {

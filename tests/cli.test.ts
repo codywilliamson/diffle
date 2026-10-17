@@ -115,9 +115,9 @@ describe("parseCliArgs", () => {
   });
 
   test("usage documents sessions, cleanup, and update", () => {
-    expect(USAGE).toContain("diffle sessions");
-    expect(USAGE).toContain("diffle cleanup");
-    expect(USAGE).toContain("diffle update");
+    expect(USAGE).toContain("nittle sessions");
+    expect(USAGE).toContain("nittle cleanup");
+    expect(USAGE).toContain("nittle update");
     expect(helpFor("cleanup")).toContain("--yes");
     expect(helpFor("cleanup")).toContain("--all");
   });
@@ -139,7 +139,7 @@ describe("parseCliArgs", () => {
 
   test("usage documents diagnostics", () => {
     expect(USAGE).toContain("doctor");
-    expect(USAGE).toContain("diffle doctor");
+    expect(USAGE).toContain("nittle doctor");
     expect(helpFor("doctor")).toContain("--fix");
   });
 
@@ -180,12 +180,12 @@ describe("parseCliArgs", () => {
   });
 
   test("usage documents setup", () => {
-    expect(USAGE).toContain("diffle setup [--remove] [--agents <ids>] [--yes]");
+    expect(USAGE).toContain("nittle setup [--remove] [--agents <ids>] [--yes]");
   });
 
   test("usage documents update --check and the launch-notice opt-out", () => {
-    expect(USAGE).toContain("diffle update [--check]");
-    expect(helpFor("update")).toContain("DIFFLE_NO_UPDATE_CHECK=1");
+    expect(USAGE).toContain("nittle update [--check]");
+    expect(helpFor("update")).toContain("NITTLE_NO_UPDATE_CHECK=1");
   });
 
   test("help is valid after any command, including mcp and hook without a subcommand", () => {
@@ -203,16 +203,16 @@ describe("parseCliArgs", () => {
 
   test("per-command help covers usage, options, examples, and related commands", () => {
     const mcp = helpFor("mcp");
-    expect(mcp).toContain("diffle mcp restart [--yes]");
+    expect(mcp).toContain("nittle mcp restart [--yes]");
     expect(mcp).toContain("--yes");
     expect(mcp).toContain("Examples");
-    expect(mcp).toContain("See also: diffle update");
+    expect(mcp).toContain("See also: nittle update");
     expect(helpFor("update")).toContain("--check");
     expect(helpFor("setup")).toContain("--agents <ids>");
   });
 
   test("overview lists every command, common tasks, examples, and the docs footer", () => {
-    for (const text of ["Common tasks", "Examples", "diffle mcp restart", "diffle setup", "diffle cleanup", "diffle <command> --help", "https://diffle.dev/reference/cli/"]) {
+    for (const text of ["Common tasks", "Examples", "nittle mcp restart", "nittle setup", "nittle cleanup", "nittle <command> --help", "https://nittle.dev/reference/cli/"]) {
       expect(USAGE).toContain(text);
     }
     expect(helpFor("review")).toBe(USAGE);

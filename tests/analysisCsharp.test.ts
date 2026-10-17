@@ -146,7 +146,7 @@ describe("csharp leftover and sensitive flags", () => {
 });
 
 describe("csharp groups", () => {
-  const root = mkdtempSync(join(tmpdir(), "diffle-cs-"));
+  const root = mkdtempSync(join(tmpdir(), "nittle-cs-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   const write = (rel: string, body: string): void => {
     mkdirSync(dirname(join(root, rel)), { recursive: true });

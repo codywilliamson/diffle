@@ -6,7 +6,7 @@ import type { ServerContext } from "../src/server/handlers";
 import { handleGetFile, handleGetRaw } from "../src/server/fileHandlers";
 
 const PNG_HEADER = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const url = (path: string) => new URL(`http://loupe/api/raw?path=${encodeURIComponent(path)}`);
+const url = (path: string) => new URL(`http://nittle/api/raw?path=${encodeURIComponent(path)}`);
 const git = (cwd: string, ...args: string[]) =>
   Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd });
 
@@ -17,14 +17,14 @@ let workingTree: ServerContext;
 let committed: ServerContext;
 
 beforeAll(() => {
-  cwd = mkdtempSync(join(tmpdir(), "loupe-files-"));
+  cwd = mkdtempSync(join(tmpdir(), "nittle-files-"));
   mkdirSync(join(cwd, "docs"));
   writeFileSync(join(cwd, "docs", "shot.png"), PNG_HEADER);
   writeFileSync(join(cwd, "README.md"), "# Hello\n");
   git(cwd, "init", "-q");
   git(cwd, "add", ".");
   git(cwd, "commit", "-q", "-m", "seed");
-  outside = mkdtempSync(join(tmpdir(), "loupe-outside-"));
+  outside = mkdtempSync(join(tmpdir(), "nittle-outside-"));
   writeFileSync(join(outside, "secret.png"), PNG_HEADER);
   try {
     symlinkSync(join(outside, "secret.png"), join(cwd, "docs", "escape.png"), "file");
@@ -61,7 +61,7 @@ describe("handleGetRaw", () => {
     expect(handleGetRaw(workingTree, url("../escape.png")).status).toBe(400);
     expect(handleGetRaw(workingTree, url("C:/Windows/win.ini")).status).toBe(400);
     expect(handleGetRaw(workingTree, url("/etc/passwd")).status).toBe(400);
-    expect(handleGetRaw(workingTree, new URL("http://loupe/api/raw")).status).toBe(400);
+    expect(handleGetRaw(workingTree, new URL("http://nittle/api/raw")).status).toBe(400);
   });
 
   it("refuses a symlink that leaves the repo", () => {

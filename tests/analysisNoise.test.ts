@@ -37,7 +37,7 @@ describe("fileNoise", () => {
 });
 
 describe("linguistGenerated", () => {
-  const dir = mkdtempSync(join(tmpdir(), "diffle-attr-"));
+  const dir = mkdtempSync(join(tmpdir(), "nittle-attr-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   test("returns paths marked linguist-generated", () => {
@@ -49,7 +49,7 @@ describe("linguistGenerated", () => {
 
   test("empty input and non-repo fail soft", () => {
     expect(linguistGenerated([], dir).size).toBe(0);
-    const outside = mkdtempSync(join(tmpdir(), "diffle-norepo-"));
+    const outside = mkdtempSync(join(tmpdir(), "nittle-norepo-"));
     try {
       expect(linguistGenerated(["a.ts"], outside).size).toBe(0);
     } finally {
@@ -62,7 +62,7 @@ describe("linguistGenerated", () => {
     const SOURCE_MIN_GIT = [2, 40];
     const gitVersion = (Bun.spawnSync(["git", "--version"]).stdout.toString().match(/(\d+)\.(\d+)/) ?? []).slice(1).map(Number);
     const supportsSource = gitVersion[0]! > SOURCE_MIN_GIT[0]! || (gitVersion[0] === SOURCE_MIN_GIT[0] && gitVersion[1]! >= SOURCE_MIN_GIT[1]!);
-    const repo = mkdtempSync(join(tmpdir(), "diffle-attr-side-"));
+    const repo = mkdtempSync(join(tmpdir(), "nittle-attr-side-"));
     const git = (...args: string[]) => {
       const proc = Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: repo });
       if (proc.exitCode !== 0) throw new Error(proc.stderr.toString());

@@ -10,11 +10,11 @@ import {
 
 const dirs: string[] = [];
 const comment = { id: "c1", file: "src/a.ts", line: 4, lineContent: "+new", text: "please fix", createdAt: "2026-01-01T00:00:00.000Z" };
-function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "loupe-records-")); dirs.push(dir); return dir; }
+function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "diffle-records-")); dirs.push(dir); return dir; }
 function makeRecord(cwd = tempDir()) { return createReviewRecord({ target: { cwd, ref: "main" }, comments: [comment], viewed: ["src/a.ts"] }); }
 
-beforeEach(() => { process.env.LOUPE_DATA_DIR = tempDir(); });
-afterEach(() => { delete process.env.LOUPE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
+beforeEach(() => { process.env.NITTLE_DATA_DIR = tempDir(); });
+afterEach(() => { delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 describe("review records", () => {
   it("creates, reads, updates, and atomically stores a record under the user root", () => {
@@ -22,7 +22,7 @@ describe("review records", () => {
     expect(readReviewRecord(record.id)).toEqual(record);
     const updated = updateReviewRecord(record.id, { summary: "needs work" });
     expect(updated.summary).toBe("needs work");
-    const path = join(process.env.LOUPE_DATA_DIR!, "reviews", record.id, "review.json");
+    const path = join(process.env.NITTLE_DATA_DIR!, "reviews", record.id, "review.json");
     expect(existsSync(path)).toBe(true); expect(readFileSync(path, "utf8")).toContain('"schemaVersion": 1');
   });
 

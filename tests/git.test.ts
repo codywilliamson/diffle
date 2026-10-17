@@ -12,7 +12,7 @@ function git(args: string[], cwd: string): void {
 let repo: string;
 
 beforeAll(() => {
-  repo = mkdtempSync(join(tmpdir(), "loupe-git-"));
+  repo = mkdtempSync(join(tmpdir(), "nittle-git-"));
   git(["init", "-q", "-b", "main"], repo);
   git(["config", "user.name", "t"], repo);
   git(["config", "user.email", "t@e.com"], repo);
@@ -45,7 +45,7 @@ describe("collectDiff", () => {
     expect(paths).not.toContain("fresh.txt");
   });
 
-  it("hides loupe's own .review file by default", () => {
+  it("hides nittle's own .review file by default", () => {
     writeFileSync(join(repo, ".review"), "{}\n");
     try {
       const paths = parseDiff(collectDiff(["diff", "HEAD"], repo, true), "wt").files.map((f) => f.path);

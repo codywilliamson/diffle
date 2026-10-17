@@ -44,12 +44,12 @@ let cwd: string;
 let clientDir: string;
 
 beforeAll(() => {
-  cwd = mkdtempSync(join(tmpdir(), "loupe-cwd-"));
-  clientDir = mkdtempSync(join(tmpdir(), "loupe-client-"));
-  writeFileSync(join(clientDir, "index.html"), "<!doctype html><title>loupe</title>");
-  writeFileSync(join(clientDir, "app.js"), "console.log('loupe');");
+  cwd = mkdtempSync(join(tmpdir(), "diffle-cwd-"));
+  clientDir = mkdtempSync(join(tmpdir(), "diffle-client-"));
+  writeFileSync(join(clientDir, "index.html"), "<!doctype html><title>diffle</title>");
+  writeFileSync(join(clientDir, "app.js"), "console.log('diffle');");
   writeFileSync(join(cwd, "readme.md"), "# Hello\n");
-  server = createServer({ diff, cwd, assets: directoryAssets(clientDir), loupeRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: false, served: false, host: "cli" });
+  server = createServer({ diff, cwd, assets: directoryAssets(clientDir), productRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: false, served: false, host: "cli" });
   base = `http://localhost:${server.port}`;
 });
 

@@ -7,14 +7,14 @@ import { createServer as createReviewServer } from "../src/server/router";
 import { directoryAssets } from "../src/server/assetSource";
 
 it("Vite proxies same-origin POSTs and leaves foreign Origin requests blocked", async () => {
-  const cwd = mkdtempSync(join(tmpdir(), "diffle-dev-proxy-"));
-  const previousTarget = process.env.DIFFLE_API_TARGET;
+  const cwd = mkdtempSync(join(tmpdir(), "nittle-dev-proxy-"));
+  const previousTarget = process.env.NITTLE_API_TARGET;
   const backend = createReviewServer({
     diff: { ref: "working tree", files: [] }, cwd, assets: directoryAssets(cwd),
-    loupeRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"],
+    productRoot: cwd, newRef: null, diffArgs: ["diff", "HEAD"],
     includeUntracked: false, served: false, host: "mcp",
   });
-  process.env.DIFFLE_API_TARGET = `http://localhost:${backend.port}`;
+  process.env.NITTLE_API_TARGET = `http://localhost:${backend.port}`;
   let vite: Awaited<ReturnType<typeof createViteServer>> | undefined;
 
   try {
@@ -48,7 +48,7 @@ it("Vite proxies same-origin POSTs and leaves foreign Origin requests blocked", 
     await vite?.close();
     backend.stop(true);
     rmSync(cwd, { recursive: true, force: true });
-    if (previousTarget === undefined) delete process.env.DIFFLE_API_TARGET;
-    else process.env.DIFFLE_API_TARGET = previousTarget;
+    if (previousTarget === undefined) delete process.env.NITTLE_API_TARGET;
+    else process.env.NITTLE_API_TARGET = previousTarget;
   }
 });
