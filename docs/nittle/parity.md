@@ -1,5 +1,7 @@
 # diffle client parity contract
 
+> Written when the product was called diffle (and loupe before it). Kept as history; the name is now nittle, see [ADR 0008](../adr/0008-rename-diffle-to-nittle.md).
+
 The Svelte client may change the presentation, but it does not ship until these loupe behaviors still work. This is an acceptance reference, not a component map: Svelte modules may be shaped differently from the current Preact files.
 
 ## Review targets and navigation

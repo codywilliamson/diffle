@@ -1,5 +1,38 @@
 # diffle — implementation handoff (Phases 0–9 done → gated release actions)
 
+> Written when the product was called diffle (and loupe before it). Kept as history; the name is now nittle, see [ADR 0008](../adr/0008-rename-diffle-to-nittle.md).
+
+## Rename to nittle (2026-10-17)
+
+Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008-rename-diffle-to-nittle.md)). This section is the resume ledger. The lead updates it after each merge. Everything below it is the diffle-era history and stays as written.
+
+State: set R (slices #207 to #213) is in progress. #214 (manual steps) is Cody's.
+
+| slice | what | state |
+| --- | --- | --- |
+| #207 | product identity, binary, `src/core/migration/` runner (PR #215) | open, pending merge |
+| #208 | data dir, env vars, browser prefs | not recorded here yet |
+| #209 | plugin, MCP server, doctor migration | not recorded here yet |
+| #210 | installers, release assets, `diffle-<os>-<arch>` transition asset | not recorded here yet |
+| #211 | client UI name, mark, what's-new | not recorded here yet |
+| #212 | docs site to nittle.dev, diffle.dev redirect | not recorded here yet |
+| #213 | repo docs, ADR 0008, `docs/diffle` to `docs/nittle` (this slice) | in review |
+| #214 | repo rename, registries, Cloudflare | Cody, manual |
+
+Decisions with evidence:
+- No `diffle` or `loupe` alias, first-run migration, `DIFFLE_*` fallback: epic #206 update of 2026-10-17.
+- Name availability, checked 2026-10-16: nittle free on npm, crates.io and GitHub. nittle.dev registered on Cloudflare.
+- The repo slug stays `codywilliamson/diffle` (badges, marketplace add, advisories) until the GitHub rename. `PRODUCT.repository` flips with it.
+
+Cloudflare commands run: none recorded yet.
+
+Cody's manual list (#214): rename the GitHub repo, point nittle.dev at the Worker, redirect diffle.dev, claim the nittle package names on npm and crates.io, cut the first nittle release.
+
+Open risks:
+- The `diffle-<os>-<arch>` transition asset must keep shipping for the set number of releases, or 0.28.x updaters strand.
+- The upgrade smoke job on three OSes is the proof that nothing named diffle survives an update. Until it is green, treat the migration as unproven.
+- Published demo media still shows the diffle wordmark until the demos are rebuilt (`demos/` sources are renamed, nothing re-rendered).
+
 > Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please), an **Astro Starlight docs site** (`web/`, live at diffle.dev via Cloudflare) is built + polished with real demo media, and **Phase 8 product demos** ship a Playwright-capture + Remotion pipeline under `demos/`. The domain **diffle.dev is registered** and the **GitHub repo is `codywilliamson/diffle`**. Phases 0–9 are committed and verified. **All that remains are the user's gated external actions: cut the first GitHub release, and — only once that ships — remove the loupe/`LOUPE_*`/`~/.loupe` compatibility layer.** This doc lets a fresh session confirm state without re-deriving it.
 
 ## Status — what's done
@@ -18,7 +51,7 @@
 
 The three parity contradictions from the Phase 0 audit are all **implemented** (not just decided): sanitized markdown preview (ADR 0007), focus-trapping dialogs, and empty/no-diff states.
 
-**Post-review polish (dogfooding pass, all committed):** rebuilt the **feedback preview modal** (`review/FeedbackPreview.svelte`, rendered/raw + copy, opened from the review popover); **restored the sidebar resize handle** (`Resizer.svelte`); fixed the **sticky file header** (`overflow-hidden` was breaking `position: sticky`); **collapse deleted files by default** (GitHub-style); **side-by-side panes locked 50/50** with per-cell horizontal scroll (`table-layout: fixed` + colgroup — a long line no longer shoves the new pane off-screen); pinned + width-capped the **inline comment box** on wide diffs; readable comment **tag badges**; **refresh icon spins** while re-running; a **theme crossfade** (View Transitions API); folder **collapse animation**; and a general **motion pass** (cubic-out easing, popover/diff reveals). `DESIGN.md` now holds the full D5 system; `docs/diffle/design.md` points to it.
+**Post-review polish (dogfooding pass, all committed):** rebuilt the **feedback preview modal** (`review/FeedbackPreview.svelte`, rendered/raw + copy, opened from the review popover); **restored the sidebar resize handle** (`Resizer.svelte`); fixed the **sticky file header** (`overflow-hidden` was breaking `position: sticky`); **collapse deleted files by default** (GitHub-style); **side-by-side panes locked 50/50** with per-cell horizontal scroll (`table-layout: fixed` + colgroup — a long line no longer shoves the new pane off-screen); pinned + width-capped the **inline comment box** on wide diffs; readable comment **tag badges**; **refresh icon spins** while re-running; a **theme crossfade** (View Transitions API); folder **collapse animation**; and a general **motion pass** (cubic-out easing, popover/diff reveals). `DESIGN.md` now holds the full D5 system; `docs/nittle/design.md` points to it.
 
 **Gate (all green):** `bun test` 204 · server `tsc` 0 · Vitest 83 · svelte-check 0 · Playwright 7 · client build · binary compile · MCPB validate. Browser-verified at desktop + phone, light + dark, including the review/comment/feedback flows. **Phase 4 also verified the compiled `dist/loupe.exe` from a temp dir with the source tree unavailable:** `--version`, CLI review (embedded `index.html`/JS/CSS served with correct MIME + a 404 for missing/traversal paths), `/api/diff`, `/api/update` (no crash on the non-repo install root), and `mcp serve` all work from only the binary.
 
@@ -93,8 +126,8 @@ Stop before any domain registration, repo rename, deploy, tag, or release unless
 
 ### Doc state (for a fresh session)
 - **`AGENTS.md`** — refreshed for diffle (identity via `src/core/product.ts`, self-contained binary, release channel, `web/`, current layout). Current.
-- **`docs/diffle/handoff.md`** (this file) — the living status doc; keep it current each phase.
-- **`docs/diffle/plan.md`** — the original phase plan; still the roadmap for phases 8–9. Retire or fold into README/handoff in Phase 9.
+- **`docs/nittle/handoff.md`** (this file) — the living status doc; keep it current each phase.
+- **`docs/nittle/plan.md`** — the original phase plan; still the roadmap for phases 8–9. Retire or fold into README/handoff in Phase 9.
 - **`README.md`** — refreshed for diffle in Phase 9 (curl/irm install, `diffle` command, `~/.diffle`, Phase-8 media). Current.
 - **`web/`** docs site — live at diffle.dev, polished in Phase 9 with the Phase-8 hero video + screenshots. Current.
 - Explicitly **out of scope** (dropped by the user): install scripts detecting/cleaning old `~/.loupe` dirs — not worth it for a tiny user base.

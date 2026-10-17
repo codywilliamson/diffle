@@ -1,5 +1,7 @@
 # diffle — implementation plan (loupe → diffle evolution)
 
+> Written when the product was called diffle (and loupe before it). Kept as history; the name is now nittle, see [ADR 0008](../adr/0008-rename-diffle-to-nittle.md).
+
 > Branch: `evolve`. Rewrite the frontend, rebrand, and modernize distribution and docs. Implementation runs through bounded Claude UltraCode workflows, one phase at a time. Decisions: [ADR 0004](../adr/0004-rename-loupe-to-diffle.md), [ADR 0005](../adr/0005-svelte-vite-drop-buildless.md), [ADR 0006](../adr/0006-distribution-binaries-install-script.md). Visual system: [design.md](design.md). Behavioral acceptance: [parity.md](parity.md).
 
 **Goal:** Replace the buildless Preact client with a Svelte 5 + Vite + Tailwind + shadcn-svelte SPA in the dark-first diffle brand, keep the Bun server/CLI/MCP core and `src/types.ts` contract, ship self-contained cross-platform executables, move docs to Astro Starlight, and add Remotion product demos without regressing the review workflow.
