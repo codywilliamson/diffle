@@ -5,9 +5,12 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { PRODUCT } from "./product";
+import { readUserState } from "./userState";
 
+// an unfinished migration remembers the dir it chose (state.json), so a retry without the env vars
+// lands in the same place
 export function installDir(home = homedir(), env: NodeJS.ProcessEnv = process.env): string {
-  return env[`${PRODUCT.envPrefix}INSTALL_DIR`] || env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] || join(home, PRODUCT.dataDir, "bin");
+  return env[`${PRODUCT.envPrefix}INSTALL_DIR`] || env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] || readUserState(home).migration?.installDir || join(home, PRODUCT.dataDir, "bin");
 }
 
 export function installedBinaryPath(home = homedir(), platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string {

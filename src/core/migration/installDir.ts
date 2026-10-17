@@ -15,6 +15,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, join } from "node:path";
 import { installDir } from "../installedBinary";
+import { readUserState, writeUserState } from "../userState";
 import { detectPackageManager } from "../updateTarget";
 import { stopLegacyMcpServers } from "../mcpProcesses";
 import { PRODUCT } from "../product";
@@ -24,6 +25,7 @@ import { removeEmptyLegacyDirs } from "./dataDir";
 import { clearLegacyInstall, installBinaryCopy, sameBytes } from "./installDirCopy";
 import { hasNittleBlock, swapRcBlocks } from "./installDirRc";
 import { defaultUserPathStore, swapUserPath, userPathHas, type UserPathStore } from "./installDirWinPath";
+import type { MigrationRecord } from "../../types";
 import type { MigrationStep } from "./runner";
 
 export interface InstallDirDeps {
@@ -99,7 +101,7 @@ function plan(deps: InstallDirDeps): Plan | null {
   const fromLegacyDir = isNamed(execPath, PRODUCT.legacyName) && !detectPackageManager(execPath);
   const installedNittle = isNamed(execPath, PRODUCT.name) && !detectPackageManager(execPath) && samePath(dirname(execPath), installDir(home, env), platform);
   if (!fromLegacyDir && !installedNittle) return null;
-  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.envPrefix}LEGACY_INSTALL_DIR`] ?? env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? join(home, PRODUCT.legacyDataDir, "bin");
+  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.envPrefix}LEGACY_INSTALL_DIR`] ?? env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? readUserState(home).migration?.legacyDir ?? join(home, PRODUCT.legacyDataDir, "bin");
   if (!existsSync(legacyDir)) return null;
 
   // the transition asset installs itself; an installed nittle is already in place
@@ -140,7 +142,31 @@ export function installNittleBinary(overrides: Partial<InstallDirDeps> = {}): st
 export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): string {
   const deps = defaultDeps(overrides);
   const found = plan(deps);
-  if (!found) return "";
+  if (!found) {
+    // a remembered install that is gone by now needs no retry
+    const remembered = readUserState(deps.home).migration;
+    if (remembered && !existsSync(remembered.legacyDir)) rememberMigration(deps, undefined);
+    return "";
+  }
+  let complete = false;
+  try {
+    const outcome = finishRemoval(deps, found);
+    complete = outcome.done;
+    return outcome.lines;
+  } finally {
+    rememberMigration(deps, complete ? undefined : { legacyDir: found.legacyDir, installDir: found.newDir });
+  }
+}
+
+// persists (or clears) where an unfinished migration will resume; best effort
+function rememberMigration(deps: InstallDirDeps, record: MigrationRecord | undefined): void {
+  try {
+    if (record || readUserState(deps.home).migration) writeUserState({ migration: record }, deps.home);
+  } catch { /* the retry just falls back to the env vars and defaults */ }
+}
+
+// done = false when work is left for a later run (diffle kept, or a locked exe still to delete)
+function finishRemoval(deps: InstallDirDeps, found: Plan): { lines: string; done: boolean } {
   const { platform, home } = deps;
   const { legacyDir, binaryName, hasBinary, newDir, target } = found;
   if (!existsSync(target)) throw new Error(`${target} is missing; keeping the ${PRODUCT.legacyName} install`);
@@ -152,12 +178,12 @@ export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): st
     const pending = stillLaunchingDiffle(deps);
     if (pending.length > 0) {
       deps.log(`${TAG} ${PRODUCT.legacyName} stays: ${pending.join(", ")} still launch${pending.length === 1 ? "es" : ""} it. run \`${PRODUCT.name} doctor --fix\`, then ${PRODUCT.name} removes it`);
-      return "";
+      return { lines: "", done: false };
     }
   }
 
   // leftovers alone (a windows retry) mean the PATH was already handled by the run that retired the binary
-  if (hasBinary && !samePath(legacyDir, newDir, platform) && !swapPath(deps, legacyDir, newDir)) return "";
+  if (hasBinary && !samePath(legacyDir, newDir, platform) && !swapPath(deps, legacyDir, newDir)) return { lines: "", done: false };
 
   const lines: string[] = [];
   const say = (line: string) => { deps.log(`${TAG} ${line}`); lines.push(line); };
@@ -166,7 +192,7 @@ export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): st
   if (cleanup.deferred.length) say(`${cleanup.deferred.join(", ")} is still in use; the next ${PRODUCT.name} run removes it`);
   if (cleanup.dirRemoved) say(`removed ${legacyDir}`);
   removeEmptyLegacyDirs(home);
-  return lines.join("\n");
+  return { lines: lines.join("\n"), done: cleanup.deferred.length === 0 };
 }
 
 // both phases in one call, for `update` and tests
