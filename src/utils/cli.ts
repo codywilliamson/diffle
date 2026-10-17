@@ -3,14 +3,14 @@
 
 export { USAGE, helpFor } from "./usage";
 import { COMMIT_SPEC_SUFFIX } from "./commitTarget";
+import { HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type HookAgent, type McpAction } from "./cliVocabulary";
 
-const MCP_ACTIONS = ["serve", "list", "restart"] as const;
-export type McpAction = (typeof MCP_ACTIONS)[number];
+export type { McpAction };
 
 export interface CliOptions {
   command: "review" | "show" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup";
   mcpAction: McpAction | undefined; // mcp only
-  agent: "codex" | "claude-code" | undefined;
+  agent: HookAgent | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
   scope: string | undefined; // path scope for `browse`; ignored otherwise
   reviewId: string | undefined; // durable Review Record supplied by an integration
@@ -62,7 +62,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     const helpOnly = args[0] === "-h" || args[0] === "--help"; // `mcp --help` needs no subcommand
     const subcommand = helpOnly ? undefined : args.shift();
     if (!helpOnly && command === "mcp" && !MCP_ACTIONS.includes(subcommand as McpAction)) throw new Error(`mcp requires one of: ${MCP_ACTIONS.join(", ")}`);
-    if (!helpOnly && command === "hook" && subcommand !== "stop") throw new Error("hook requires the stop command");
+    if (!helpOnly && command === "hook" && !HOOK_SUBCOMMANDS.includes(subcommand as (typeof HOOK_SUBCOMMANDS)[number])) throw new Error("hook requires the stop command");
   } else if (command !== "review") {
     args.shift();
   }
@@ -93,8 +93,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
     }
     else if (arg === "--agent") {
       const agent = args[++i];
-      if (agent !== "codex" && agent !== "claude-code") throw new Error("--agent must be codex or claude-code");
-      opts.agent = agent;
+      if (!HOOK_AGENTS.includes(agent as HookAgent)) throw new Error("--agent must be codex or claude-code");
+      opts.agent = agent as HookAgent;
     }
     else if (arg === "-p" || arg === "--port") {
       const raw = args[++i];
