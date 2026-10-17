@@ -193,9 +193,9 @@ describe("router", () => {
     expect(mixedHost.status).toBe(403);
   });
 
-  it("keeps GET requests available with a foreign Origin", async () => {
+  it("refuses a foreign Origin on GET too (one central guard)", async () => {
     const res = await fetch(`${base}/api/comments`, { headers: { Origin: "https://example.com" } });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it("GET /api/file returns new-side content (working tree reads disk)", async () => {

@@ -76,7 +76,7 @@ export async function startWait(repo: string, args: string[] = [], env: Record<s
       Bun.connect({
         hostname: "localhost", port: Number(new URL(origin).port),
         socket: {
-          open(socket) { socket.write("GET /api/presence HTTP/1.1\r\nHost: localhost\r\nAccept: text/event-stream\r\n\r\n"); },
+          open(socket) { socket.write(`GET /api/presence HTTP/1.1\r\nHost: localhost:${new URL(origin).port}\r\nAccept: text/event-stream\r\n\r\n`); },
           // a real tab lives longer than a few ms; closing the instant the first byte lands races bun's disconnect handling.
           data(socket) { setTimeout(() => resolve({ close: () => socket.terminate() }), TAB_SETTLE_MS); },
           error(_socket, error) { reject(error); },
