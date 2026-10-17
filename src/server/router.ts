@@ -19,7 +19,7 @@ import { handleGetScorecard } from "./analysisHandlers";
 import { handleSessionStop } from "./sessionHandlers";
 import { handleGetSearch } from "./searchHandlers";
 import { apiError } from "./respond";
-import { isLoopbackHttpOrigin } from "../utils/origin";
+import { isLoopbackHttpOrigin, isLoopbackRequest } from "../utils/origin";
 
 export type { ServerContext } from "./handlers";
 
@@ -46,7 +46,7 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
     if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
-    if (pathname === "/api/search") return hasAllowedOrigin(req, serverPort) ? handleGetSearch(ctx, new URL(req.url)) : apiError("origin mismatch", 403);
+    if (pathname === "/api/search") return isLoopbackRequest(req, serverPort) ? handleGetSearch(ctx, new URL(req.url)) : apiError("host or origin mismatch", 403);
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 
