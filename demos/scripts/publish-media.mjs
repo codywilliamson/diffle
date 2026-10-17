@@ -1,5 +1,5 @@
 // copies the final rendered walkthrough + refreshed stills into the two places that consume
-// them — docs/screenshots (README, github) and web/public/media (the diffle.dev site). the
+// them — docs/screenshots (README, github) and web/public/media (the nittle.dev site). the
 // raw captures and out/ renders stay gitignored; only these committed copies are shipped.
 import { copyFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";

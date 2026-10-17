@@ -1,4 +1,4 @@
-// records REAL motion footage of diffle being used: Playwright drives the live app with a
+// records REAL motion footage of nittle being used: Playwright drives the live app with a
 // visible synthetic cursor and paced typing, one take per driver. each take gets its own fresh
 // backend + fixture (clean review state) and emits footage/<id>.webm + footage/<id>.json (zoom
 // windows + captions). node/tsx only (playwright + bun + windows hangs).

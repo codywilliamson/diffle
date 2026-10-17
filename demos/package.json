@@ -1,9 +1,9 @@
 {
-  "name": "diffle-demos",
+  "name": "nittle-demos",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "description": "Playwright-captured, Remotion-composited product demos for diffle (build-only, isolated from the app)",
+  "description": "Playwright-captured, Remotion-composited product demos for nittle (build-only, isolated from the app)",
   "scripts": {
     "capture": "tsx src/capture.ts",
     "shots": "tsx src/screenshots.ts",

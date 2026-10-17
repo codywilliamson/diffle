@@ -46,7 +46,7 @@ export function TitleCard({
             color: THEME.text,
           }}
         >
-          diffle
+          nittle
         </div>
         {subtitle && (
           <div style={{ marginTop: 14, fontSize: 30, color: THEME.muted, fontWeight: 500 }}>
