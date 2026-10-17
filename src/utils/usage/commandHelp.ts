@@ -2,6 +2,7 @@
 
 import { PRODUCT } from "../../core/product";
 import { UPDATE_CHECK_OPT_OUT } from "../../core/updateNotice";
+import { WAIT_EXIT_HELP } from "../../core/waitExit";
 import type { CliOptions } from "../cli";
 
 export type HelpTopic = CliOptions["command"];
@@ -21,7 +22,7 @@ const YES: [string, string] = ["--yes", "skip the confirmation prompt"];
 export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
   review: {
     summary: "review a diff in the browser (the default command)",
-    usage: [`${n} [ref] [options]`],
+    usage: [`${n} [ref] [options]`, `${n} --wait [ref] [--json]`],
     details: [
       "Refs:",
       "  (none)            working tree vs HEAD, untracked files included",
@@ -32,16 +33,24 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "",
       `Comments are saved to durable Review Records under ~/${PRODUCT.dataDir}/reviews and`,
       "compile into a structured review prompt from the UI.",
+      "",
+      "--wait is for agents without MCP: it opens the review and blocks until the reviewer",
+      "sends feedback, approves or cancels, then prints the compiled prompt on stdout.",
+      "Status lines go to stderr. --json prints the get_review structure instead.",
+      "",
+      ...WAIT_EXIT_HELP,
     ],
     options: [
       ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
       ["--no-open", "don't open the browser automatically"],
+      ["--wait", "block until feedback is returned, then print the prompt on stdout"],
+      ["--json", "with --wait, print the review record as JSON instead of the prompt"],
       ["--review-id <id>", "open an existing durable Review Record"],
       ["-v, --version", "print the installed version"],
       ["--license", "print the bundled MIT license notice"],
       ["-h, --help", "show help"],
     ],
-    examples: [`${n}`, `${n} staged --no-open`, `${n} main`, `${n} browse src/`],
+    examples: [`${n}`, `${n} staged --no-open`, `${n} main`, `${n} browse src/`, `${n} --wait > feedback.md`],
     related: ["sessions", "cleanup"],
   },
   show: {
