@@ -1,12 +1,12 @@
 // worker entry: runs a regex search off the main thread so a pathological pattern can be terminated
 // instead of freezing the server. receives the text up front, streams partial results back.
 
-import type { DiffFile, SearchCase, SearchResponse } from "../types";
+import type { SearchCase, SearchResponse } from "../types";
 import { compilePattern } from "./search";
-import { searchDiffFiles } from "./searchDiff";
+import { searchDiffFiles, type SearchFileRef } from "./searchDiff";
 
 export interface SearchWorkerRequest {
-  files: DiffFile[];
+  files: SearchFileRef[]; // just what picks the sides to search; hunk text never crosses to the worker
   contents: Record<string, ArrayBuffer>; // keyed by contentKey(side, path); transferred, not copied
   query: string;
   caseMode: SearchCase;

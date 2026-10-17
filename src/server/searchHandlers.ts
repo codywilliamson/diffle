@@ -5,7 +5,7 @@ import type { SearchCase, SearchResponse } from "../types";
 import { compilePattern, SearchPatternError } from "../core/search";
 import { collectSides, readerFor } from "../core/searchCollect";
 import { searchDiffFiles } from "../core/searchDiff";
-import { runSearchInWorker, SearchBusyError, SearchTimeoutError, SEARCH_TOTAL_BUDGET_MS, withSearchSlot } from "../core/searchRunner";
+import { runSearchInWorker, SearchBusyError, SearchTimeoutError, SEARCH_TOTAL_BUDGET_MS, toWorkerRequest, withSearchSlot } from "../core/searchRunner";
 import type { ServerContext } from "./handlers";
 import { searchSource } from "./searchSource";
 import { apiError, json } from "./respond";
@@ -21,7 +21,7 @@ function searchInWorker(ctx: ServerContext, query: string, caseMode: SearchCase)
     const collected = collectSides(ctx.diff.files, searchSource(ctx), started + SEARCH_TOTAL_BUDGET_MS);
     const remaining = SEARCH_TOTAL_BUDGET_MS - (performance.now() - started);
     if (remaining <= 0) throw new SearchTimeoutError("preparing the search took too long; try again");
-    const response = await runSearchInWorker({ files: ctx.diff.files, contents: collected.contents, query, caseMode }, remaining);
+    const response = await runSearchInWorker(toWorkerRequest(ctx.diff.files, collected.contents, query, caseMode), remaining);
     return { ...response, truncated: response.truncated || collected.truncated };
   });
 }
