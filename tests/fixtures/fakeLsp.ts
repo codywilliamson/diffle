@@ -8,7 +8,7 @@
 // requests: fake/echo, fake/slow {ms} (answers -32800 when cancelled), fake/state, fake/crash,
 // fake/partial (answers in tiny pieces with multibyte text), fake/burst (two frames in one write).
 // navigation: responses {method: result} answers any other method with that canned result,
-// hang [methods] never answers those until cancelled (-32800). fake/state also reports
+// hang [methods] never answers those until cancelled (-32800), delay {method: ms} answers a canned response late. fake/state also reports
 // docs {uri: {version, text}}, changes [{uri, version, text}] and requests [{method, params}].
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -16,7 +16,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 interface Config {
   initDelayMs?: number; encoding?: string; stderrOnStart?: string; exitOnInitialize?: number;
   crashFirstN?: number; counterFile?: string; progress?: { delayMs: number; durationMs: number };
-  clientRequests?: boolean; responses?: Record<string, unknown>; hang?: string[]; ignoreExit?: boolean; ignoreShutdown?: boolean; ignoreTerm?: boolean; spawnChild?: boolean;
+  clientRequests?: boolean; responses?: Record<string, unknown>; hang?: string[]; delay?: Record<string, number>; ignoreExit?: boolean; ignoreShutdown?: boolean; ignoreTerm?: boolean; spawnChild?: boolean;
 }
 interface Msg { id?: number | string; method?: string; params?: any; result?: unknown; error?: unknown }
 
@@ -98,6 +98,8 @@ function onRequest(msg: Msg): unknown {
     default: {
       requests.push({ method: msg.method!, params: msg.params });
       if (config.hang?.includes(msg.method!)) return void slow.set(id, setTimeout(() => { slow.delete(id); respond(id, null); }, 600_000));
+      const wait = config.delay?.[msg.method!];
+      if (wait && config.responses && msg.method! in config.responses) return void setTimeout(() => respond(id, config.responses![msg.method!]), wait);
       if (config.responses && msg.method! in config.responses) return respond(id, config.responses[msg.method!]);
       return fail(id, -32601, `no such method ${msg.method}`);
     }
