@@ -15,13 +15,23 @@ export function isCommitSpec(spec: string): boolean {
   return spec.length > COMMIT_SPEC_SUFFIX.length && spec.endsWith(COMMIT_SPEC_SUFFIX);
 }
 
+// a single plain rev only: no options, ranges, exclusions or revision sets.
+function assertSingleRev(rev: string): void {
+  if (rev.startsWith("-")) throw new Error(`invalid commit: ${rev} (a commit can't start with "-")`);
+  if (rev.startsWith("^") || rev.includes("..") || /\s/.test(rev)) {
+    throw new Error(`show takes one commit, not a range or revision set: ${rev}`);
+  }
+}
+
 function readCommit(rev: string, cwd: string): CommitInfo & { parents: string[] } {
-  let raw: string;
+  assertSingleRev(rev);
+  let fullHash: string;
   try {
-    raw = runGit(["log", "-1", `--format=${COMMIT_FORMAT}`, `${rev}^{commit}`, "--"], cwd);
+    fullHash = runGit(["rev-parse", "--verify", "--end-of-options", `${rev}^{commit}`], cwd).trim();
   } catch {
     throw new Error(`unknown commit: ${rev}`);
   }
+  const raw = runGit(["log", "-1", `--format=${COMMIT_FORMAT}`, fullHash, "--"], cwd);
   const [hash = "", shortHash = "", author = "", date = "", subject = "", parentList = "", ...bodyParts] = raw.split(FIELD_SEPARATOR);
   const parents = parentList.split(" ").filter(Boolean);
   return { hash, shortHash, author, date, subject, body: bodyParts.join(FIELD_SEPARATOR).trim(), isMerge: parents.length > 1, baseShortHash: null, parents };
