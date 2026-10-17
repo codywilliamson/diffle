@@ -188,6 +188,7 @@ export interface UserState {
   seenVersion?: string; // nittle version whose what's-new highlights the user has dismissed
   updateCheckedAt?: string; // iso time of the last launch-time release check (throttles the notice)
   latestKnownVersion?: string; // newest release seen by that check
+  legacyEnvNoticed?: string; // the DIFFLE_* rename notice already shown, keyed by the sorted var set
 }
 
 export interface StateUpdateRequest {
