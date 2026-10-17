@@ -64,7 +64,8 @@ describe("resolveVisual", () => {
 describe("cursor visual mode", () => {
   function store() {
     let active: string | null = null;
-    return createCursorStore({ files: () => [A, B], defaultSplit: () => false, activePath: () => active, follow: (p) => (active = p) });
+    const cursor = createCursorStore({ files: () => [A, B], defaultSplit: () => false, activePath: () => active, follow: (p) => (active = p) });
+    return Object.assign(cursor, { select: (p: string) => (active = p) }); // the sidebar picks a file
   }
 
   it("extends with motions and ends cleanly", () => {
@@ -92,5 +93,32 @@ describe("cursor visual mode", () => {
     const cursor = store();
     cursor.startVisual("a.ts");
     expect(cursor.visualRange).toEqual({ path: "a.ts", side: "new", from: 1, to: 1 });
+  });
+
+  it("after the sidebar picks another file, c and V start on that file's first line", () => {
+    const cursor = store();
+    cursor.lines("a.ts", 2); // moved in a.ts
+    cursor.select("b.ts");
+    expect(cursor.commentPos("b.ts")).toEqual({ path: "b.ts", side: "new", line: 1 });
+    cursor.select("a.ts");
+    cursor.select("b.ts");
+    cursor.startVisual("b.ts");
+    expect(cursor.visualRange).toEqual({ path: "b.ts", side: "new", from: 1, to: 1 });
+  });
+
+  it("the cursor stays in the anchor file while a range is open (single-file and all-files alike)", () => {
+    const cursor = store();
+    cursor.bottom("a.ts"); // G
+    cursor.startVisual("a.ts");
+    cursor.lines("a.ts", 1); // j past the end of a.ts
+    expect(cursor.pos).toMatchObject({ path: "a.ts", line: 4 });
+    cursor.files("a.ts", 1); // J
+    expect(cursor.pos).toMatchObject({ path: "a.ts", line: 4 });
+    expect(cursor.visualRange).toEqual({ path: "a.ts", side: "new", from: 4, to: 4 });
+    cursor.hunks("a.ts", 1);
+    expect(cursor.pos?.path).toBe("a.ts");
+    cursor.top("a.ts");
+    cursor.lines("a.ts", -3); // k past the start, same file
+    expect(cursor.pos).toMatchObject({ path: "a.ts", line: 1 });
   });
 });
