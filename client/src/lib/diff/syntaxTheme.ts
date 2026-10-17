@@ -8,7 +8,7 @@ const rule = (scope: string[], color: string, fontStyle?: string) => ({ scope, s
 // textmate scopes → the D5 --syn-* tokens (defined per theme in diff.css), so one grammar pass
 // serves light and dark.
 export const SYNTAX_THEME: ThemeRegistration = {
-  name: "diffle",
+  name: "nittle",
   type: "dark",
   fg: INHERIT,
   bg: "transparent",

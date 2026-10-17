@@ -1,4 +1,4 @@
-/* D5 blended-indigo semantic tokens — the single color source of truth (docs/diffle/design.md).
+/* D5 blended-indigo semantic tokens — the single color source of truth (docs/nittle/design.md).
    dark is the default; light applies on an explicit choice or the OS preference when unforced.
    tailwind + shadcn tokens alias these in app.css; nothing defines a parallel palette. */
 
@@ -90,7 +90,7 @@
 }
 
 :root {
-  /* typography (docs/diffle/design.md) — serif reads, sans controls, mono coordinates */
+  /* typography (docs/nittle/design.md) — serif reads, sans controls, mono coordinates */
   --ff-serif: "Source Serif 4", ui-serif, Georgia, serif;
   --ff-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --ff-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
