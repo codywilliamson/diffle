@@ -15,6 +15,7 @@ import { fileUriOf, readRepoText, repoRootOf, splitLines, TargetResolver } from 
 import { fileURLToPath } from "node:url";
 import { syncDocument } from "./lspSync";
 
+const STALE_RETRIES = 1;
 export const CANCELLED_STATUS = 499; // nginx's "client closed request"; no standard code fits
 const OLD_SIDE_HINT = "navigating the old side needs a detached worktree (#186)";
 
@@ -47,12 +48,28 @@ export async function guarded(ctx: ServerContext, language: LspLanguage | undefi
   }
 }
 
+// opens the document and runs `answer` on it. positions in the answer are only meaningful for the
+// text they were computed from, so when the document moved while the server was working the
+// answer is dropped and the whole step retried once; a second miss is a 409 "stale".
+export async function onDocument(
+  ctx: ServerContext, path: unknown, side: unknown, answer: (doc: LspDoc) => Promise<Response> | Response,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= STALE_RETRIES; attempt++) {
+    const doc = await openDocument(ctx, path, side);
+    if (doc instanceof Response) return doc;
+    const response = await guarded(ctx, doc.language, async () => answer(doc));
+    if (response.status === CANCELLED_STATUS || doc.bridge.documentVersion(doc.uri) === doc.version) return response;
+  }
+  return lspError("stale", "the file changed while the language server was answering; try again", 409);
+}
+
 export interface LspDoc {
   language: LspLanguage;
   languageId: string;
   bridge: LspBridge;
   uri: string;
   path: string;
+  version: number; // the document version `text` and every position below were computed from
   text: string;
   lines: string[];
   targets: TargetResolver;
@@ -68,15 +85,16 @@ export async function openDocument(ctx: ServerContext, path: unknown, side: unkn
   if (side === "old") return lspError("old-side-unsupported", OLD_SIDE_HINT, 409, { hint: OLD_SIDE_HINT });
   const match = languageForPath(path);
   if (!match || !ctx.lsp?.enabled) return unavailable(ctx, match?.language);
-  let text: string;
-  try { text = readRepoText(ctx, path); } catch { return lspError("file-not-found", "file not found", 404); }
+  try { readRepoText(ctx, path); } catch { return lspError("file-not-found", "file not found", 404); }
   const bridge = await ctx.lsp.ensure(match.language);
   if (!bridge) return unavailable(ctx, match.language);
   const uri = fileUriOf(ctx, path);
-  await syncDocument(ctx, bridge, uri, match.languageId, text);
+  let synced: { text: string; version: number };
+  try { synced = await syncDocument(ctx, bridge, { uri, languageId: match.languageId, path }); } catch { return lspError("file-not-found", "file not found", 404); }
+  const { text, version } = synced;
   const targets = new TargetResolver(ctx, bridge.encoding);
   targets.seed(fileURLToPath(uri), text);
-  return { language: match.language, languageId: match.languageId, bridge, uri, path, text, lines: splitLines(text), targets };
+  return { language: match.language, languageId: match.languageId, bridge, uri, path, version, text, lines: splitLines(text), targets };
 }
 
 // client position (1-based line, utf-16 character) -> wire position in the negotiated encoding.

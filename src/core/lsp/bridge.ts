@@ -97,6 +97,8 @@ export class LspBridge {
   syncDocument(uri: string, languageId: string, text: string): number {
     const known = this.documents.get(uri);
     if (!known) return this.openDocument(uri, languageId, text);
+    this.documents.delete(uri); // re-insert: iteration order is least recently used first
+    this.documents.set(uri, known);
     if (known.text === text) return known.version;
     known.version++;
     known.text = text;

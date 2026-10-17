@@ -351,6 +351,7 @@ export type LspErrorCode =
   | "file-not-found" // 404
   | "forbidden" // 403: /api/lsp/file only serves paths the server returned as targets
   | "cancelled" // 499: superseded or aborted
+  | "stale" // 409: the file changed under the request twice; retry
   | "request-failed"; // 502: the server answered with an error
 
 export interface LspErrorResponse extends ApiError {

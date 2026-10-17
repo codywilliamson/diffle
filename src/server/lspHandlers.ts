@@ -7,7 +7,7 @@ import { hoverToMarkdown, isOnDefinition, normalizeTargets } from "../core/lsp/p
 import { languagesInPaths } from "../core/lsp/registry";
 import type { ServerContext } from "./handlers";
 import { json } from "./respond";
-import { guarded, invalid, openDocument, readJsonBody, toWirePosition } from "./lspSession";
+import { invalid, onDocument, readJsonBody, toWirePosition } from "./lspSession";
 import { sameFile } from "./lspTargets";
 
 const DEFINITION_METHODS = { definition: "textDocument/definition", typeDefinition: "textDocument/typeDefinition" } as const;
@@ -26,11 +26,9 @@ export async function handleLspDefinition(ctx: ServerContext, req: Request): Pro
   if (body instanceof Response) return body;
   const kind = body.kind ?? "definition";
   if (kind !== "definition" && kind !== "typeDefinition") return invalid("kind must be definition or typeDefinition");
-  const doc = await openDocument(ctx, body.path, body.side);
-  if (doc instanceof Response) return doc;
-  const position = toWirePosition(doc, body.line, body.character);
-  if (position instanceof Response) return position;
-  return guarded(ctx, doc.language, async () => {
+  return onDocument(ctx, body.path, body.side, async (doc) => {
+    const position = toWirePosition(doc, body.line, body.character);
+    if (position instanceof Response) return position;
     const result = await doc.bridge.request(DEFINITION_METHODS[kind], { textDocument: { uri: doc.uri }, position }, { signal: req.signal });
     const wire = normalizeTargets(result);
     const seen = new Set<string>();
@@ -54,17 +52,15 @@ const hoverInFlight = new WeakMap<ServerContext, Map<string, AbortController>>()
 export async function handleLspHover(ctx: ServerContext, req: Request): Promise<Response> {
   const body = await readJsonBody(req);
   if (body instanceof Response) return body;
-  const doc = await openDocument(ctx, body.path, body.side);
-  if (doc instanceof Response) return doc;
-  const position = toWirePosition(doc, body.line, body.character);
-  if (position instanceof Response) return position;
   const live = hoverInFlight.get(ctx) ?? new Map<string, AbortController>();
   hoverInFlight.set(ctx, live);
   const client = req.headers.get(CLIENT_HEADER) ?? "";
   live.get(client)?.abort();
   const mine = new AbortController();
   live.set(client, mine);
-  return guarded(ctx, doc.language, async () => {
+  return onDocument(ctx, body.path, body.side, async (doc) => {
+    const position = toWirePosition(doc, body.line, body.character);
+    if (position instanceof Response) return position;
     try {
       const result = await doc.bridge.request<{ contents?: unknown; range?: unknown } | null>(
         "textDocument/hover", { textDocument: { uri: doc.uri }, position }, { signal: AbortSignal.any([req.signal, mine.signal]) },
