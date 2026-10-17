@@ -34,22 +34,26 @@ function writeTarget(path: string): string {
   return existsSync(path) ? realpathSync(path) : resolve(dirname(path), readlinkSync(path));
 }
 
-function writeJson(path: string, data: Json, original = ""): void {
-  const eol = original.includes("\r\n") ? "\r\n" : "\n";
-  const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
-  // write a sibling then rename, so a failed or interrupted write never truncates the real config.
-  // a symlink is followed (the link survives) and the file's mode is kept (configs can hold secrets)
+// write a sibling then rename, so a failed or interrupted write never truncates the real config.
+// a symlink is followed (the link survives) and the file's mode is kept (configs can hold secrets)
+export function writeTextAtomic(path: string, body: string): void {
   const target = writeTarget(path);
   mkdirSync(dirname(target), { recursive: true });
   const mode = existsSync(target) ? statSync(target).mode & PERMISSION_BITS : NEW_FILE_MODE;
   const staged = `${target}.${process.pid}.tmp`;
   try {
-    writeFileSync(staged, body + eol, { mode });
+    writeFileSync(staged, body, { mode });
     chmodSync(staged, mode); // writeFileSync's mode is masked by the umask
     renameSync(staged, target);
   } finally {
     rmSync(staged, { force: true });
   }
+}
+
+function writeJson(path: string, data: Json, original = ""): void {
+  const eol = original.includes("\r\n") ? "\r\n" : "\n";
+  const body = JSON.stringify(data, null, detectIndent(original)).replace(/\n/g, eol);
+  writeTextAtomic(path, body + eol);
 }
 
 function parseObject(text: string): Json | undefined {
@@ -103,6 +107,22 @@ export function removeMcpEntry(path: string, key: string, name: string): ConfigA
   delete servers[name];
   writeJson(path, root, text);
   return "removed";
+}
+
+// applies `transform` to the servers object of a plain-json config. transform returns the new
+// servers, or undefined when nothing needs to change. "skipped" = not plain json (comments etc).
+export function rewriteMcpServers(path: string, key: string, transform: (servers: Json) => Json | undefined): ConfigAction {
+  if (!existsSync(path)) return "not-found";
+  const text = readFileSync(path, "utf8");
+  const root = parseObject(text);
+  if (!root) return "skipped";
+  const servers = root[key];
+  if (!isObject(servers)) return key in root ? "skipped" : "unchanged";
+  const next = transform(servers);
+  if (!next) return "unchanged";
+  root[key] = next;
+  writeJson(path, root, text);
+  return "updated";
 }
 
 // what to paste by hand when a file was skipped

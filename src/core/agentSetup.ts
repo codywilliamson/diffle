@@ -15,6 +15,10 @@ export type RunCommand = (cli: string, args: string[]) => number;
 export const runInherited: RunCommand = (cli, args) =>
   Bun.spawnSync({ cmd: [cli, ...args], stdio: ["inherit", "inherit", "inherit"] }).exitCode;
 
+// same as runInherited but silent, for automatic passes that report their own summary
+export const runQuiet: RunCommand = (cli, args) =>
+  Bun.spawnSync({ cmd: [cli, ...args], stdio: ["ignore", "ignore", "ignore"] }).exitCode;
+
 const isMarketplaceStep = (args: string[]) => args[1] === "marketplace";
 const MARKETPLACE: string = PRODUCT.plugin.marketplace;
 const SPAWN_FAILED = -1;

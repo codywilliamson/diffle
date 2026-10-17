@@ -3,6 +3,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { isProductBinary } from "../utils/installRoot";
+import { installedBinaryPath } from "./installedBinary";
 import { hasOurMarketplace } from "./marketplaceState";
 import { hasMcpEntry, isMissingFile } from "./mcpConfigFile";
 import { PRODUCT, repositorySlug } from "./product";
@@ -22,15 +24,18 @@ export interface AgentEnv { home: string; platform: NodeJS.Platform; env: Record
 
 export const MCP_SERVER_NAME: string = PRODUCT.name;
 
-const MCP_ARGS = ["mcp", "serve"];
+export const MCP_ARGS = ["mcp", "serve"];
 const PLUGIN_REF = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
 const MARKETPLACE_ADD = ["plugin", "marketplace", "add", repositorySlug()];
 const MARKETPLACE_REMOVE = ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace];
 
-// gui-launched agents don't source shell rc files, so the installed binary is written by
-// absolute path; running from source (or the legacy alias) falls back to the bare name.
-export function serverCommand(execPath = process.execPath): string {
-  return basename(execPath).toLowerCase().startsWith(PRODUCT.name) ? execPath : PRODUCT.name;
+// gui-launched agents don't source shell rc files, so a compiled binary is written by absolute
+// path. the nittle binary pins itself; the transition binary (still named diffle) pins the
+// installed nittle path instead, since it is about to be replaced. source checkouts use the bare name.
+export function serverCommand(execPath = process.execPath, home = homedir(), platform: NodeJS.Platform = process.platform): string {
+  const name = basename(execPath).toLowerCase();
+  if (name.startsWith(PRODUCT.name)) return execPath;
+  return isProductBinary(name) ? installedBinaryPath(home, platform) : PRODUCT.name;
 }
 
 function defaultEnv(): AgentEnv {
@@ -49,7 +54,7 @@ function pluginTarget(id: string, displayName: string, home: string, integration
 }
 
 export function agentTargets(agentEnv: AgentEnv = defaultEnv()): AgentTarget[] {
-  const { home, platform, env, command = serverCommand() } = agentEnv;
+  const { home, platform, env, command = serverCommand(process.execPath, home, platform) } = agentEnv;
   const commandEntry = { command, args: MCP_ARGS };
   const xdg = env.XDG_CONFIG_HOME || join(home, ".config");
   const appData = env.APPDATA || join(home, "AppData", "Roaming");
