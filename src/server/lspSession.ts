@@ -58,7 +58,8 @@ export async function onDocument(
     const doc = await openDocument(ctx, path, side);
     if (doc instanceof Response) return doc;
     const response = await guarded(ctx, doc.language, async () => answer(doc));
-    if (response.status === CANCELLED_STATUS || doc.bridge.documentVersion(doc.uri) === doc.version) return response;
+    const unchanged = doc.bridge.documentVersion(doc.uri) === doc.version && (ctx.diffGeneration ?? 0) === doc.generation;
+    if (response.status === CANCELLED_STATUS || unchanged) return response;
   }
   return lspError("stale", "the file changed while the language server was answering; try again", 409);
 }
@@ -69,6 +70,7 @@ export interface LspDoc {
   bridge: LspBridge;
   uri: string;
   path: string;
+  generation: number; // ctx.diffGeneration when the text was read; a diff refresh makes the answer stale
   version: number; // the document version `text` and every position below were computed from
   text: string;
   lines: string[];
@@ -89,12 +91,13 @@ export async function openDocument(ctx: ServerContext, path: unknown, side: unkn
   const bridge = await ctx.lsp.ensure(match.language);
   if (!bridge) return unavailable(ctx, match.language);
   const uri = fileUriOf(ctx, path);
+  const generation = ctx.diffGeneration ?? 0; // before reading, so a refresh during the read still reads as stale
   let synced: { text: string; version: number };
   try { synced = await syncDocument(ctx, bridge, { uri, languageId: match.languageId, path }); } catch { return lspError("file-not-found", "file not found", 404); }
   const { text, version } = synced;
   const targets = new TargetResolver(ctx, bridge.encoding);
   targets.seed(fileURLToPath(uri), text);
-  return { language: match.language, languageId: match.languageId, bridge, uri, path, version, text, lines: splitLines(text), targets };
+  return { language: match.language, languageId: match.languageId, bridge, uri, path, generation, version, text, lines: splitLines(text), targets };
 }
 
 // client position (1-based line, utf-16 character) -> wire position in the negotiated encoding.
