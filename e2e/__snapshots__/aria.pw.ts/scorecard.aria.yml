@@ -1,0 +1,26 @@
+- dialog "Review scorecard":
+  - heading "Review scorecard" [level=2]
+  - button "Close"
+  - paragraph: /\d+ effective lines · 2 files · 0 noise lines hidden/
+  - list:
+    - listitem:
+      - group: /Low Size \d+ effective lines across 2 files/
+    - listitem: Low Tests every changed code file has a test, or none needs one
+    - listitem:
+      - group: High Public API 1 removed, 2 added
+    - listitem: Low Dependencies no dependency changes
+    - listitem: Low Hotspots no frequently changed files
+    - listitem: Low Flags no sensitive paths, leftovers, or oversized files
+  - heading "Files" [level=3]
+  - list:
+    - listitem:
+      - button "src/greeter.ts"
+      - text: 1 recent commit
+      - list:
+        - listitem:
+          - 'button "Public API removed removed exported function `greet(name: string)`line 1"'
+        - listitem:
+          - 'button "Public API added added exported function `greet(name: string, punctuation = \"!\")`line 1"'
+        - listitem:
+          - 'button /Public API added added exported function `shout\(name: string\)`line \d+/'
+  - paragraph: 1 other file has nothing to flag.

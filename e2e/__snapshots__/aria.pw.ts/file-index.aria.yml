@@ -1,0 +1,12 @@
+- navigation "Changed files":
+  - searchbox "Filter changed files"
+  - group "File order":
+    - button "Tree" [pressed]
+    - button "Review order"
+  - text: 0/2 viewed
+  - button "src" [expanded]
+  - button "M greeter.ts 3 +8 −4"
+  - checkbox "Mark src/greeter.ts viewed"
+  - button /A greeter\.test\.ts \+\d+/
+  - checkbox "Mark src/greeter.test.ts viewed"
+  - separator "Resize sidebar"
