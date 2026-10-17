@@ -283,7 +283,7 @@ function Remove-Installed {
   $Path = Join-Path $Directory $Executable
   if (Test-Path -LiteralPath $Path) {
     try { Remove-Item -LiteralPath $Path -Force -ErrorAction Stop; Write-Log OK "removed $Path" }
-    catch { Move-ExistingAside $Path; Write-Log WARN "$Path is in use; it was renamed aside and goes away once it stops" }
+    catch { Write-Log WARN "could not remove $Path because it is in use. close whatever is running it, then delete it yourself: $Path" }
   }
   $Stem = [IO.Path]::GetFileNameWithoutExtension($Executable)
   if (Test-Path -LiteralPath $Directory) {
@@ -318,8 +318,23 @@ function Test-LegacyInstall {
 function Invoke-InstalledBinary {
   param([Parameter(Mandatory)][string[]] $Arguments)
   $global:LASTEXITCODE = 0
+  # tells the binary where the diffle install is, wherever it was put
+  $env:NITTLE_LEGACY_INSTALL_DIR = $LegacyBinDir
   try { & $Target @Arguments | Out-Host } catch { return 1 }
+  finally { Remove-Item Env:NITTLE_LEGACY_INSTALL_DIR -ErrorAction SilentlyContinue }
   return $LASTEXITCODE
+}
+
+# a 0.28.x install made once with a custom DIFFLE_INSTALL_DIR leaves no variable behind; its dir is
+# still on the user PATH. it is only trusted when it holds diffle.exe, and package-manager dirs never count
+function Find-LegacyBinDir {
+  if ($env:DIFFLE_INSTALL_DIR -or (Test-Path -LiteralPath $LegacyTarget)) { return $null }
+  foreach ($entry in ((Get-UserPath) -split ';')) {
+    $dir = [Environment]::ExpandEnvironmentVariables($entry.Trim())
+    if (-not $dir -or $dir -match '(?i)scoop|winget|WindowsApps|chocolatey|Program Files') { continue }
+    if (Test-Path -LiteralPath (Join-Path $dir "$LegacyName.exe")) { return $dir }
+  }
+  return $null
 }
 
 # the installed binary migrates data, plugins, PATH and the diffle binary on its first run; the
@@ -327,9 +342,16 @@ function Invoke-InstalledBinary {
 function Invoke-LegacyMigration {
   Write-Section "Migrate $LegacyName"
   if ($DryRun) { Write-Log INFO "dry run: would run '$Name --version' so the existing $LegacyName install migrates"; return }
+  Write-Log INFO "migrating the $LegacyName install in $LegacyBinDir"
   $code = Invoke-InstalledBinary -Arguments @('--version')
   if ($code -eq 0) { Write-Log OK "$LegacyName install migrated" }
   else { Write-Log WARN "'$Name --version' failed; the $LegacyName leftovers go on the next successful $Name run" }
+}
+
+$FoundLegacyDir = Find-LegacyBinDir
+if ($FoundLegacyDir) {
+  $LegacyBinDir = $FoundLegacyDir
+  $LegacyTarget = Join-Path $LegacyBinDir "$LegacyName.exe"
 }
 
 try {
