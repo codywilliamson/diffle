@@ -10,6 +10,7 @@ export const WHATS_NEW = {
   version: "0.29.0",
   highlights: [
     `Same app, new name: ${PRODUCT.name}, ${PRODUCT.lineage}. You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
+    `${PRODUCT.name} completion --shell zsh prints tab completion for commands, flags and branch names. Bash, zsh, fish and PowerShell are supported.`,
     `${PRODUCT.name} show reviews the last commit (or any commit with ${PRODUCT.name} show <rev>), with its message, author and hash above the files.`,
     `${PRODUCT.name} --wait opens a review and blocks until you send feedback, then prints the prompt on stdout. Any agent that can run a shell command can use it, no MCP needed.`,
     "New review scorecard (press g): size, tests, public API, dependency, hotspot and risk-flag bands for the change, each with the reasons behind it. It's fully deterministic, no AI involved, and C# is a first-class language.",
