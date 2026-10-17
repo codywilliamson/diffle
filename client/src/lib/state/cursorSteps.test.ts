@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { DiffFile, DiffLine, DiffHunk } from "$types";
 import {
-  FILE_LEVEL, contentAt, cursorOnLine, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
+  FILE_LEVEL, buildIndex, contentAt, cursorOnLine, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
   reanchor, switchSide, type CursorPos, type FileView,
 } from "./cursorSteps";
+
+const PERF_FILES = 200;
+const PERF_LINES_PER_FILE = 1000;
+const PERF_MOVES = 100;
+const PERF_BUDGET_MS = 50;
 
 const ctx = (n: number, text = `c${n}`): DiffLine => ({ type: "context", oldLine: n, newLine: n, content: text });
 const add = (n: number, text = `a${n}`): DiffLine => ({ type: "addition", oldLine: null, newLine: n, content: text });
@@ -177,9 +182,13 @@ describe("gg, G and {count}G", () => {
     expect(goToLineNumber(plain, "new", "a.ts", 900)).toEqual(at("a.ts", "new", 11));
   });
 
-  it("uses old-side numbers on the old pane of a split file", () => {
+  it("resolves against new-side numbers, then maps to the active pane's row", () => {
     const split = [view(A, { split: true })];
+    // new line 2 is the paired deletion/addition row: old pane shows old line 2
     expect(goToLineNumber(split, "old", "a.ts", 2)).toEqual(at("a.ts", "old", 2));
+    expect(goToLineNumber(split, "new", "a.ts", 2)).toEqual(at("a.ts", "new", 2));
+    // new line 11 has no old twin, so the old pane takes the nearest row that has one
+    expect(goToLineNumber(split, "old", "a.ts", 11)).toEqual(at("a.ts", "old", 10));
   });
 
   it("uses old numbers for a file that only deletes", () => {
@@ -216,5 +225,27 @@ describe("keeping the anchor across a refresh", () => {
   it("reads the text under the cursor", () => {
     expect(contentAt(plain, "new", at("a.ts", "old", 2))).toBe("d2");
     expect(contentAt(plain, "new", parked("a.ts"))).toBeNull();
+  });
+});
+
+describe("cost on a big diff", () => {
+  it(`makes ${PERF_MOVES} consecutive line moves over ${PERF_FILES} x ${PERF_LINES_PER_FILE} lines within ${PERF_BUDGET_MS}ms`, () => {
+    const views = Array.from({ length: PERF_FILES }, (_, f) =>
+      view(file(`f${f}.ts`, [hunk(...Array.from({ length: PERF_LINES_PER_FILE }, (_, n) => ctx(n + 1)))])),
+    );
+    const index = buildIndex(views, "new"); // built once, reused until the diff changes
+    let pos: CursorPos = at("f100.ts", "new", 500);
+    const started = performance.now();
+    for (let i = 0; i < PERF_MOVES; i++) pos = moveLines(views, "new", pos, 1, index)!;
+    const elapsed = performance.now() - started;
+    expect(pos).toEqual(at("f100.ts", "new", 600));
+    expect(elapsed).toBeLessThan(PERF_BUDGET_MS);
+  });
+
+  it("hunk jumps stay correct through the index", () => {
+    const views = [view(A), view(B)];
+    const index = buildIndex(views, "new");
+    expect(moveHunks(views, "new", at("a.ts", "new", 1), 2, index)).toEqual(at("b.ts", "new", 1));
+    expect(moveHunks(views, "new", at("b.ts", "new", 1), -2, index)).toEqual(at("a.ts", "new", 1));
   });
 });
