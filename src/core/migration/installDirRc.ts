@@ -59,9 +59,19 @@ export function swapBlocks(lines: string[], legacyDir: string, newDir: string): 
 function renameLegacyBackups(rc: string): void {
   const oldPrefix = `${basename(rc)}.${PRODUCT.legacyName}.bak-`;
   for (const name of readdirSync(dirname(rc)).filter((entry) => entry.startsWith(oldPrefix))) {
-    const renamed = join(dirname(rc), `${basename(rc)}.${PRODUCT.name}.bak-${name.slice(oldPrefix.length)}`);
-    try { if (!existsSync(renamed)) renameSync(join(dirname(rc), name), renamed); } catch { /* keep the old name */ }
+    const stem = join(dirname(rc), `${basename(rc)}.${PRODUCT.name}.bak-${name.slice(oldPrefix.length)}`);
+    // our own backup or an earlier rename may already hold the name (same-second stamp): count up
+    let renamed = stem;
+    for (let n = 1; existsSync(renamed); n++) renamed = `${stem}-${n}`;
+    try { renameSync(join(dirname(rc), name), renamed); } catch { /* keep the old name */ }
   }
+}
+
+// true when some rc file carries the nittle PATH block (the installer's, or this migration's)
+export function hasNittleBlock(home: string, env: NodeJS.ProcessEnv): boolean {
+  return rcCandidates(home, env).some((rc) => {
+    try { return readFileSync(rc, "utf8").split("\n").includes(CURRENT.start); } catch { return false; }
+  });
 }
 
 // returns the rc files that were rewritten

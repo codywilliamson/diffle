@@ -58,6 +58,8 @@ export function defaultUserPathStore(env: NodeJS.ProcessEnv = process.env): User
 
 const sameEntry = (entry: string, dir: string) => entry.trim().replace(/[\\/]+$/, "").toLowerCase() === dir.replace(/[\\/]+$/, "").toLowerCase();
 
+export const userPathHas = (store: UserPathStore, dir: string): boolean => store.read().split(PATH_SEPARATOR).some((entry) => sameEntry(entry, dir));
+
 // the PATH with `legacyDir` replaced by `newDir` in place; a nittle entry already present wins
 // and the legacy ones are just dropped. null when there is no legacy entry.
 export function swapPathEntry(value: string, legacyDir: string, newDir: string): string | null {
