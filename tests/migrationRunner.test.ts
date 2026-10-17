@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, type MigrationStep } from "../src/core/migration";
+import { homedir, tmpdir } from "node:os";
+import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations, type MigrationStep } from "../src/core/migration";
 
 describe("runLegacyMigrations", () => {
   it("ships with no steps yet and resolves to an empty report", async () => {
@@ -31,5 +32,20 @@ describe("runLegacyMigrations", () => {
       { name: "async-boom", ok: false, summary: "nope" },
       { name: "after", ok: true, summary: "ok" },
     ]);
+  });
+});
+
+describe("shouldRunLegacyMigrations", () => {
+  it("runs only from a compiled product binary", () => {
+    expect(shouldRunLegacyMigrations("/home/me/.nittle/bin/nittle")).toBe(true);
+    expect(shouldRunLegacyMigrations("/home/me/.diffle/bin/diffle.exe")).toBe(true);
+    expect(shouldRunLegacyMigrations("/usr/local/bin/bun")).toBe(false);
+    expect(shouldRunLegacyMigrations("/home/me/.bun/bin/bun.exe")).toBe(false);
+  });
+});
+
+describe("test isolation", () => {
+  it("points the home dir at a temp dir for every test", () => {
+    expect(homedir().startsWith(tmpdir())).toBe(true);
   });
 });
