@@ -2,3 +2,4 @@
 # vitest (bun test cannot run @testing-library/svelte or .svelte imports).
 [test]
 root = "tests"
+preload = ["./tests/helpers/isolateHome.ts"]
