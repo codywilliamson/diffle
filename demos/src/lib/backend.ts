@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = join(HERE, "..", "..", "..");
-const URL_PATTERN = /http:\/\/localhost:\d+\/\?review=[\w-]+/;
+const URL_PATTERN = /http:\/\/(?:localhost|127\.0\.0\.1):\d+\/\?review=[\w-]+/;
 
 // one file in the fixture: omit `base` for an added file; `work` is the working-tree content.
 export interface FixtureFile {

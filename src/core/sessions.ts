@@ -16,7 +16,7 @@ export interface SessionEntry {
   reviewId: string;
   pid: number;
   port: number;
-  url: string; // server origin only, e.g. http://localhost:5173 — no /?review= path
+  url: string; // server origin only, e.g. http://127.0.0.1:5173 — no /?review= path
   cwd: string;
   host: SessionHost;
   startedAt: string; // ISO 8601
