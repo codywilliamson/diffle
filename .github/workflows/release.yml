@@ -112,6 +112,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bun scripts/report-installer-failure.ts
 
+  # a real `diffle update` from 0.28.1 against the release that was just published. passes only while
+  # the release still carries the diffle-named transition assets (src/core/transitionAssets.ts)
+  upgrade-smoke:
+    needs: [release-please, assets]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/upgrade-smoke.yml
+    with:
+      mode: live
+
   release-pr:
     needs: [release-please, assets]
     # Wait for a draft release to publish; still run when no release means assets was skipped.
