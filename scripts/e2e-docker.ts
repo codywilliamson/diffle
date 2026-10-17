@@ -53,8 +53,9 @@ function innerCommand(playwrightArgs: string[], asCaller: boolean): string {
   const args = playwrightArgs.map((a) => `'${a.replaceAll("'", "'\\''")}'`).join(" ");
   return [
     "set -euo pipefail",
-    "git config --global --add safe.directory '*'",
     ...setup,
+    // after setup: the caller's home only exists once setup has created it
+    "git config --global --add safe.directory '*'",
     "bun install --frozen-lockfile",
     `bun run test:e2e:visual -- ${args}`,
   ].join("\n");
