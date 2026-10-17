@@ -26,8 +26,8 @@ _nittle() {
   esac
   scope="$cmd\${sub:+ $sub}"
   case "$scope" in
-    'review') flags="-p --port --no-open --wait --json --review-id -v --version --license -h --help" ;;
-    'show') flags="-p --port --no-open -v --version --license -h --help" ;;
+    'review') flags="-p --port --no-open --wait --json --no-lsp --review-id -v --version --license -h --help" ;;
+    'show') flags="-p --port --no-open --no-lsp -v --version --license -h --help" ;;
     'mcp') flags="-h --help" ;;
     'mcp serve') flags="-h --help" ;;
     'mcp list') flags="-h --help" ;;
@@ -108,8 +108,8 @@ _nittle() {
   esac
   scope="$cmd\${sub:+ $sub}"
   case "$scope" in
-    'review') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
-    'show') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'review') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--no-lsp:start no language servers' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'show') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--no-lsp:start no language servers' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'mcp') flags_=('-h:show help' '--help:show help') ;;
     'mcp serve') flags_=('-h:show help' '--help:show help') ;;
     'mcp list') flags_=('-h:show help' '--help:show help') ;;
@@ -246,12 +246,14 @@ complete -c nittle -n '__nittle_scope_is "review"' -s p -l port -x -d 'serve on 
 complete -c nittle -n '__nittle_scope_is "review"' -l no-open -d 'don\\'t open the browser automatically'
 complete -c nittle -n '__nittle_scope_is "review"' -l wait -d 'block until feedback is returned, then print the prompt on stdout'
 complete -c nittle -n '__nittle_scope_is "review"' -l json -d 'with --wait, print the review record as JSON instead of the prompt'
+complete -c nittle -n '__nittle_scope_is "review"' -l no-lsp -d 'start no language servers'
 complete -c nittle -n '__nittle_scope_is "review"' -l review-id -x -d 'open an existing durable Review Record'
 complete -c nittle -n '__nittle_scope_is "review"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "review"' -l license -d 'print the bundled MIT license notice'
 complete -c nittle -n '__nittle_scope_is "review"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_scope_is "show"' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
 complete -c nittle -n '__nittle_scope_is "show"' -l no-open -d 'don\\'t open the browser automatically'
+complete -c nittle -n '__nittle_scope_is "show"' -l no-lsp -d 'start no language servers'
 complete -c nittle -n '__nittle_scope_is "show"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "show"' -l license -d 'print the bundled MIT license notice'
 complete -c nittle -n '__nittle_scope_is "show"' -s h -l help -d 'show help'
@@ -302,8 +304,8 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'completion' = 'print a tab-completion script for your shell'
   }
   $scopes = @{
-    'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--review-id', '-v', '--version', '--license', '-h', '--help')
-    'show' = @('-p', '--port', '--no-open', '-v', '--version', '--license', '-h', '--help')
+    'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--no-lsp', '--review-id', '-v', '--version', '--license', '-h', '--help')
+    'show' = @('-p', '--port', '--no-open', '--no-lsp', '-v', '--version', '--license', '-h', '--help')
     'mcp' = @('-h', '--help')
     'mcp serve' = @('-h', '--help')
     'mcp list' = @('-h', '--help')
@@ -327,6 +329,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     '--no-open' = 'don''t open the browser automatically'
     '--wait' = 'block until feedback is returned, then print the prompt on stdout'
     '--json' = 'with --wait, print the review record as JSON instead of the prompt'
+    '--no-lsp' = 'start no language servers'
     '--review-id' = 'open an existing durable Review Record'
     '-v' = 'print the installed version'
     '--version' = 'print the installed version'
