@@ -32,18 +32,15 @@ for (const t of targets) if (!BUN_TARGET[t]) throw new Error(`unknown target: ${
 const { entryFile, version } = generateStandaloneEntry(root);
 mkdirSync(outDir, { recursive: true });
 
-const releaseTags = Bun.spawnSync(["git", "tag", "--list", "v*"], { cwd: root, stdout: "pipe", stderr: "ignore" }).stdout.toString().split("
-");
+const releaseTags = Bun.spawnSync(["git", "tag", "--list", "v*"], { cwd: root, stdout: "pipe", stderr: "ignore" }).stdout.toString().split("\n");
 const withTransition = carriesTransitionAssets(version, releaseTags);
 console.log(withTransition ? `release v${version} carries the ${PRODUCT.legacyName}-named transition assets` : `release v${version} is past the transition window: no ${PRODUCT.legacyName} assets`);
 
 const checksums: string[] = [];
 const addChecksum = (name: string) => {
-  addChecksum(name);
-  if (!withTransition) continue;
-  const legacy = transitionAssetName(name);
-  copyFileSync(join(outDir, name), join(outDir, legacy));
-  addChecksum(legacy);
+  const bytes = readFileSync(join(outDir, name));
+  checksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${name}`);
+  console.log(`built ${name} (${(statSync(join(outDir, name)).size / 1e6).toFixed(1)} MB)`);
 };
 for (const target of targets) {
   const name = assetName(target); // Bun appends .exe for windows targets, matching this name
