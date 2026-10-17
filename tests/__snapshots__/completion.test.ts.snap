@@ -3,97 +3,82 @@
 exports[`completion scripts bash output matches the snapshot 1`] = `
 "# bash completion for nittle
 # install: eval "$(nittle completion --shell bash)"
+_nittle_offer() {
+  [[ "$1" == "$cur"* ]] && COMPREPLY+=("$1")
+}
 _nittle() {
-  local cur prev cmd=review flags subs words refpos subpos candidates npos=0 skip=0 first="" word i
+  local cur prev cmd=review sub="" scope lead=0 flags="" subs="" words="" wantsrefs=0 npos=0 skip=0 word ref i
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   COMPREPLY=()
-  for (( i = 1; i < COMP_CWORD; i++ )); do
+  if (( COMP_CWORD > 1 )); then
+    case "\${COMP_WORDS[1]}" in
+      show|mcp|hook|sessions|cleanup|update|doctor|setup|completion) cmd="\${COMP_WORDS[1]}"; lead=1 ;;
+    esac
+  fi
+  case "$cmd" in
+    mcp)
+      subs="serve list restart"
+      if (( COMP_CWORD > 2 )); then case "\${COMP_WORDS[2]}" in serve|list|restart) sub="\${COMP_WORDS[2]}"; lead=2 ;; esac; fi ;;
+    hook)
+      subs="stop"
+      if (( COMP_CWORD > 2 )); then case "\${COMP_WORDS[2]}" in stop) sub="\${COMP_WORDS[2]}"; lead=2 ;; esac; fi ;;
+  esac
+  scope="$cmd\${sub:+ $sub}"
+  case "$scope" in
+    'review') flags="-p --port --no-open --wait --json --review-id -v --version --license -h --help" ;;
+    'show') flags="-p --port --no-open -v --version --license -h --help" ;;
+    'mcp') flags="-h --help" ;;
+    'mcp serve') flags="-h --help" ;;
+    'mcp list') flags="-h --help" ;;
+    'mcp restart') flags="--yes -h --help" ;;
+    'hook') flags="-h --help" ;;
+    'hook stop') flags="--agent -h --help" ;;
+    'sessions') flags="-h --help" ;;
+    'cleanup') flags="--yes --all -h --help" ;;
+    'update') flags="--check -h --help" ;;
+    'doctor') flags="--yes --fix -h --help" ;;
+    'setup') flags="--agents --remove --yes -h --help" ;;
+    'completion') flags="--shell -h --help" ;;
+  esac
+  case "$cmd" in
+    review) words="staged browse"; wantsrefs=1 ;;
+    show) words=""; wantsrefs=1 ;;
+  esac
+  case "$prev" in
+    -p|--port) return ;;
+    --review-id) return ;;
+    --agent) for word in codex claude-code; do _nittle_offer "$word"; done; return ;;
+    --agents) for word in claude codex cursor gemini vscode windsurf opencode zed copilot; do _nittle_offer "$word"; done; return ;;
+    --shell) for word in bash zsh fish powershell; do _nittle_offer "$word"; done; return ;;
+  esac
+  for (( i = lead + 1; i < COMP_CWORD; i++ )); do
     word="\${COMP_WORDS[i]}"
     if (( skip )); then skip=0; continue; fi
     case "$word" in
-      -p|--port|--review-id|--agent|--shell|--agents) skip=1 ;;
+      -p|--port|--review-id|--agent|--agents|--shell) skip=1 ;;
       -*) ;;
-      *) (( npos == 0 )) && first="$word"; npos=$(( npos + 1 )) ;;
+      *) npos=$(( npos + 1 )) ;;
     esac
   done
-  case "$first" in
-    show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="$first" ;;
-  esac
-  case "$prev" in
-    -p|--port) COMPREPLY=(); return ;;
-    --review-id) COMPREPLY=(); return ;;
-    --agent) COMPREPLY=($(compgen -W "codex claude-code" -- "$cur")); return ;;
-    --shell) COMPREPLY=($(compgen -W "bash zsh fish powershell" -- "$cur")); return ;;
-    --agents) COMPREPLY=($(compgen -W "claude codex cursor gemini vscode windsurf opencode zed copilot" -- "$cur")); return ;;
-  esac
-  case "$cmd" in
-    review)
-      flags="-p --port --no-open --wait --json --review-id -v --version --license -h --help"
-      subs=""
-      words="staged browse"
-      refpos=0; subpos=-1 ;;
-    show)
-      flags="-p --port --no-open -h --help"
-      subs=""
-      words=""
-      refpos=1; subpos=-1 ;;
-    mcp)
-      flags="--yes -h --help"
-      subs="serve list restart"
-      words=""
-      refpos=-1; subpos=1 ;;
-    hook)
-      flags="--agent -h --help"
-      subs="stop"
-      words=""
-      refpos=-1; subpos=1 ;;
-    sessions)
-      flags="-h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-    cleanup)
-      flags="--yes --all -h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-    update)
-      flags="--check -h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-    doctor)
-      flags="--fix --yes -h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-    completion)
-      flags="--shell -h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-    setup)
-      flags="--agents --remove --yes -h --help"
-      subs=""
-      words=""
-      refpos=-1; subpos=-1 ;;
-  esac
   if [[ "$cur" == -* ]]; then
-    COMPREPLY=($(compgen -W "$flags" -- "$cur"))
+    for word in $flags; do _nittle_offer "$word"; done
     return
   fi
   if [[ "$cmd" == review && "$prev" == browse ]]; then
-    COMPREPLY=($(compgen -d -- "$cur"))
+    while IFS= read -r word; do COMPREPLY+=("$word"); done < <(compgen -d -- "$cur")
     return
   fi
-  candidates=""
-  if (( npos == 0 )); then candidates="show mcp hook sessions cleanup update doctor completion setup"; fi
-  if (( subpos >= 0 && npos == subpos )); then candidates="$candidates $subs"; fi
-  if (( refpos >= 0 && npos == refpos )); then
-    candidates="$candidates $words $(command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null)"
+  if (( COMP_CWORD == 1 )); then
+    for word in show mcp hook sessions cleanup update doctor setup completion; do _nittle_offer "$word"; done
   fi
-  COMPREPLY=($(compgen -W "$candidates" -- "$cur"))
+  if (( COMP_CWORD == 2 )); then
+    for word in $subs; do _nittle_offer "$word"; done
+  fi
+  if (( wantsrefs && npos == 0 )); then
+    for word in $words; do _nittle_offer "$word"; done
+    while IFS= read -r ref; do _nittle_offer "$ref"; done < <(command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null)
+  fi
 }
 complete -F _nittle nittle
 "
@@ -103,99 +88,83 @@ exports[`completion scripts zsh output matches the snapshot 1`] = `
 "#compdef nittle
 # zsh completion for nittle
 # install: source <(nittle completion --shell zsh)    (after compinit)
+# or save the output as _nittle in a directory on your $fpath
 _nittle() {
-  local cmd=review refpos=-1 subpos=-1 npos=0 skip=0 first="" word i
+  local cmd=review sub="" scope lead=0 npos=0 skip=0 wantsrefs=0 word i
   local -a flags_ subs_ words_ refs cmds_
-  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'completion:print a tab-completion script for your shell' 'setup:wire nittle into your coding agents (plugin or MCP config)')
-  for (( i = 2; i < CURRENT; i++ )); do
+  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'setup:wire nittle into your coding agents (plugin or MCP config)' 'completion:print a tab-completion script for your shell')
+  if (( CURRENT > 2 )); then
+    case "\${words[2]}" in
+      show|mcp|hook|sessions|cleanup|update|doctor|setup|completion) cmd="\${words[2]}"; lead=1 ;;
+    esac
+  fi
+  case "$cmd" in
+    mcp)
+      subs_=(serve list restart)
+      if (( CURRENT > 3 )); then case "\${words[3]}" in serve|list|restart) sub="\${words[3]}"; lead=2 ;; esac; fi ;;
+    hook)
+      subs_=(stop)
+      if (( CURRENT > 3 )); then case "\${words[3]}" in stop) sub="\${words[3]}"; lead=2 ;; esac; fi ;;
+  esac
+  scope="$cmd\${sub:+ $sub}"
+  case "$scope" in
+    'review') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'show') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'mcp') flags_=('-h:show help' '--help:show help') ;;
+    'mcp serve') flags_=('-h:show help' '--help:show help') ;;
+    'mcp list') flags_=('-h:show help' '--help:show help') ;;
+    'mcp restart') flags_=('--yes:skip the confirmation prompt' '-h:show help' '--help:show help') ;;
+    'hook') flags_=('-h:show help' '--help:show help') ;;
+    'hook stop') flags_=('--agent:the agent calling the hook: codex or claude-code' '-h:show help' '--help:show help') ;;
+    'sessions') flags_=('-h:show help' '--help:show help') ;;
+    'cleanup') flags_=('--yes:skip the confirmation prompt' '--all:also stop active (not just finished/stale) sessions' '-h:show help' '--help:show help') ;;
+    'update') flags_=('--check:only report whether a newer release exists' '-h:show help' '--help:show help') ;;
+    'doctor') flags_=('--yes:skip the confirmation prompt' '--fix:run the repair commands through the \`claude\` cli' '-h:show help' '--help:show help') ;;
+    'setup') flags_=('--agents:comma-separated agent ids, skips the prompt (e.g. claude,cursor)' '--remove:unwire nittle instead' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help') ;;
+    'completion') flags_=('--shell:shell to generate for: bash, zsh, fish, powershell' '-h:show help' '--help:show help') ;;
+  esac
+  case "$cmd" in
+    review) words_=('staged' 'browse'); wantsrefs=1 ;;
+    show) words_=(); wantsrefs=1 ;;
+  esac
+  case "\${words[CURRENT-1]}" in
+    -p|--port) return 0 ;;
+    --review-id) return 0 ;;
+    --agent) compadd -- codex claude-code; return 0 ;;
+    --agents) compadd -- claude codex cursor gemini vscode windsurf opencode zed copilot; return 0 ;;
+    --shell) compadd -- bash zsh fish powershell; return 0 ;;
+  esac
+  for (( i = lead + 2; i < CURRENT; i++ )); do
     word="\${words[i]}"
     if (( skip )); then skip=0; continue; fi
     case "$word" in
-      -p|--port|--review-id|--agent|--shell|--agents) skip=1 ;;
+      -p|--port|--review-id|--agent|--agents|--shell) skip=1 ;;
       -*) ;;
-      *) (( npos == 0 )) && first="$word"; npos=$(( npos + 1 )) ;;
+      *) npos=$(( npos + 1 )) ;;
     esac
   done
-  case "$first" in
-    show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="$first" ;;
-  esac
-  case "\${words[CURRENT-1]}" in
-    -p|--port) return ;;
-    --review-id) return ;;
-    --agent) compadd -- codex claude-code; return ;;
-    --shell) compadd -- bash zsh fish powershell; return ;;
-    --agents) compadd -- claude codex cursor gemini vscode windsurf opencode zed copilot; return ;;
-  esac
-  case "$cmd" in
-    review)
-      flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help')
-      subs_=()
-      words_=('staged' 'browse')
-      refpos=0; subpos=-1 ;;
-    show)
-      flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=1; subpos=-1 ;;
-    mcp)
-      flags_=('--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
-      subs_=('serve' 'list' 'restart')
-      words_=()
-      refpos=-1; subpos=1 ;;
-    hook)
-      flags_=('--agent:the agent calling the hook: codex or claude-code' '-h:show help' '--help:show help')
-      subs_=('stop')
-      words_=()
-      refpos=-1; subpos=1 ;;
-    sessions)
-      flags_=('-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-    cleanup)
-      flags_=('--yes:skip the confirmation prompt' '--all:also stop active (not just finished/stale) sessions' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-    update)
-      flags_=('--check:only report whether a newer release exists' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-    doctor)
-      flags_=('--fix:run the repair commands through the \`claude\` cli' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-    completion)
-      flags_=('--shell:shell to generate for: bash, zsh, fish, powershell' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-    setup)
-      flags_=('--agents:comma-separated agent ids, skips the prompt (e.g. claude,cursor)' '--remove:unwire nittle instead' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
-      subs_=()
-      words_=()
-      refpos=-1; subpos=-1 ;;
-  esac
   if [[ "$PREFIX" == -* ]]; then
     _describe -t options 'option' flags_
-    return
+    return 0
   fi
   if [[ "$cmd" == review && "\${words[CURRENT-1]}" == browse ]]; then
     _path_files -/
-    return
+    return 0
   fi
-  (( npos == 0 )) && _describe -t commands 'command' cmds_
-  (( subpos >= 0 && npos == subpos )) && compadd -a subs_
-  if (( refpos >= 0 && npos == refpos )); then
+  (( CURRENT == 2 )) && _describe -t commands 'command' cmds_
+  (( CURRENT == 3 )) && compadd -a subs_
+  if (( wantsrefs && npos == 0 )); then
     refs=(\${(f)"$(command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null)"})
     compadd -a words_
     compadd -a refs
   fi
   return 0
 }
-if (( $+functions[compdef] )); then compdef _nittle nittle; fi
+if [[ "$funcstack[1]" == "_nittle" ]]; then
+  _nittle "$@"
+elif (( $+functions[compdef] )); then
+  compdef _nittle nittle
+fi
 "
 `;
 
@@ -203,42 +172,61 @@ exports[`completion scripts fish output matches the snapshot 1`] = `
 "# fish completion for nittle
 # install: nittle completion --shell fish | source
 # or save it as ~/.config/fish/completions/nittle.fish
+function __nittle_cmd
+    set -l words (commandline -opc)
+    set -e words[1]
+    if set -q words[1]; and contains -- $words[1] show mcp hook sessions cleanup update doctor setup completion
+        echo $words[1]
+    else
+        echo review
+    end
+end
+function __nittle_scope
+    set -l words (commandline -opc)
+    set -e words[1]
+    set -l cmd (__nittle_cmd)
+    if test "$cmd" = mcp; and set -q words[2]; and contains -- $words[2] serve list restart
+        echo "$cmd $words[2]"; return
+    end
+    if test "$cmd" = hook; and set -q words[2]; and contains -- $words[2] stop
+        echo "$cmd $words[2]"; return
+    end
+    echo $cmd
+end
+function __nittle_scope_is
+    test (__nittle_scope) = "$argv[1]"
+end
 function __nittle_args
     set -l words (commandline -opc)
     set -e words[1]
+    set -l scope (__nittle_scope)
+    set -l lead 0
+    test "$scope" != review; and set lead (count (string split ' ' -- $scope))
+    set -l seen 0
     set -l skip 0
     for word in $words
+        set seen (math $seen + 1)
+        test $seen -le $lead; and continue
         if test $skip -eq 1
             set skip 0
-        else if contains -- $word -p --port --review-id --agent --shell --agents
+        else if contains -- $word -p --port --review-id --agent --agents --shell
             set skip 1
         else if not string match -q -- '-*' $word
             echo $word
         end
     end
 end
-function __nittle_cmd
-    set -l args (__nittle_args)
-    if set -q args[1]; and contains -- $args[1] show mcp hook sessions cleanup update doctor completion setup
-        echo $args[1]
-    else
-        echo review
-    end
-end
-function __nittle_cmd_is
-    test (__nittle_cmd) = $argv[1]
-end
 function __nittle_at_start
-    test (count (__nittle_args)) -eq 0
+    test (count (commandline -opc)) -eq 1
 end
 function __nittle_needs_sub
-    set -l args (__nittle_args)
-    test (count $args) -eq 1; and test "$args[1]" = $argv[1]
+    test (count (commandline -opc)) -eq 2; and test (__nittle_cmd) = $argv[1]
 end
 function __nittle_wants_ref
-    set -l args (__nittle_args)
-    test (count $args) -eq 0; and return 0
-    test (count $args) -eq 1; and contains -- $args[1] show
+    contains -- (__nittle_cmd) review show; and test (count (__nittle_args)) -eq 0
+end
+function __nittle_wants_review_word
+    test (__nittle_cmd) = review; and test (count (__nittle_args)) -eq 0
 end
 function __nittle_refs
     command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null
@@ -252,41 +240,47 @@ complete -c nittle -n '__nittle_at_start' -a sessions -d 'list running review se
 complete -c nittle -n '__nittle_at_start' -a cleanup -d 'stop stale sessions and finished reviews'
 complete -c nittle -n '__nittle_at_start' -a update -d 'download and install the latest release'
 complete -c nittle -n '__nittle_at_start' -a doctor -d 'check the Claude Code plugin install for stale diffle leftovers'
-complete -c nittle -n '__nittle_at_start' -a completion -d 'print a tab-completion script for your shell'
 complete -c nittle -n '__nittle_at_start' -a setup -d 'wire nittle into your coding agents (plugin or MCP config)'
-complete -c nittle -n '__nittle_cmd_is review' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
-complete -c nittle -n '__nittle_cmd_is review' -l no-open -d 'don\\'t open the browser automatically'
-complete -c nittle -n '__nittle_cmd_is review' -l wait -d 'block until feedback is returned, then print the prompt on stdout'
-complete -c nittle -n '__nittle_cmd_is review' -l json -d 'with --wait, print the review record as JSON instead of the prompt'
-complete -c nittle -n '__nittle_cmd_is review' -l review-id -x -d 'open an existing durable Review Record'
-complete -c nittle -n '__nittle_cmd_is review' -s v -l version -d 'print the installed version'
-complete -c nittle -n '__nittle_cmd_is review' -l license -d 'print the bundled MIT license notice'
-complete -c nittle -n '__nittle_cmd_is review' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is show' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
-complete -c nittle -n '__nittle_cmd_is show' -l no-open -d 'don\\'t open the browser automatically'
-complete -c nittle -n '__nittle_cmd_is show' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is mcp' -l yes -d 'skip the confirmation prompt'
-complete -c nittle -n '__nittle_cmd_is mcp' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is hook' -l agent -x -a 'codex claude-code' -d 'the agent calling the hook: codex or claude-code'
-complete -c nittle -n '__nittle_cmd_is hook' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is sessions' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is cleanup' -l yes -d 'skip the confirmation prompt'
-complete -c nittle -n '__nittle_cmd_is cleanup' -l all -d 'also stop active (not just finished/stale) sessions'
-complete -c nittle -n '__nittle_cmd_is cleanup' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is update' -l check -d 'only report whether a newer release exists'
-complete -c nittle -n '__nittle_cmd_is update' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is doctor' -l fix -d 'run the repair commands through the \`claude\` cli'
-complete -c nittle -n '__nittle_cmd_is doctor' -l yes -d 'skip the confirmation prompt'
-complete -c nittle -n '__nittle_cmd_is doctor' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is completion' -l shell -x -a 'bash zsh fish powershell' -d 'shell to generate for: bash, zsh, fish, powershell'
-complete -c nittle -n '__nittle_cmd_is completion' -s h -l help -d 'show help'
-complete -c nittle -n '__nittle_cmd_is setup' -l agents -x -a 'claude codex cursor gemini vscode windsurf opencode zed copilot' -d 'comma-separated agent ids, skips the prompt (e.g. claude,cursor)'
-complete -c nittle -n '__nittle_cmd_is setup' -l remove -d 'unwire nittle instead'
-complete -c nittle -n '__nittle_cmd_is setup' -l yes -d 'skip the confirmation prompt'
-complete -c nittle -n '__nittle_cmd_is setup' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_at_start' -a completion -d 'print a tab-completion script for your shell'
+complete -c nittle -n '__nittle_scope_is "review"' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
+complete -c nittle -n '__nittle_scope_is "review"' -l no-open -d 'don\\'t open the browser automatically'
+complete -c nittle -n '__nittle_scope_is "review"' -l wait -d 'block until feedback is returned, then print the prompt on stdout'
+complete -c nittle -n '__nittle_scope_is "review"' -l json -d 'with --wait, print the review record as JSON instead of the prompt'
+complete -c nittle -n '__nittle_scope_is "review"' -l review-id -x -d 'open an existing durable Review Record'
+complete -c nittle -n '__nittle_scope_is "review"' -s v -l version -d 'print the installed version'
+complete -c nittle -n '__nittle_scope_is "review"' -l license -d 'print the bundled MIT license notice'
+complete -c nittle -n '__nittle_scope_is "review"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "show"' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
+complete -c nittle -n '__nittle_scope_is "show"' -l no-open -d 'don\\'t open the browser automatically'
+complete -c nittle -n '__nittle_scope_is "show"' -s v -l version -d 'print the installed version'
+complete -c nittle -n '__nittle_scope_is "show"' -l license -d 'print the bundled MIT license notice'
+complete -c nittle -n '__nittle_scope_is "show"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "mcp"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "mcp serve"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "mcp list"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "mcp restart"' -l yes -d 'skip the confirmation prompt'
+complete -c nittle -n '__nittle_scope_is "mcp restart"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "hook"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "hook stop"' -l agent -x -a 'codex claude-code' -d 'the agent calling the hook: codex or claude-code'
+complete -c nittle -n '__nittle_scope_is "hook stop"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "sessions"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "cleanup"' -l yes -d 'skip the confirmation prompt'
+complete -c nittle -n '__nittle_scope_is "cleanup"' -l all -d 'also stop active (not just finished/stale) sessions'
+complete -c nittle -n '__nittle_scope_is "cleanup"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "update"' -l check -d 'only report whether a newer release exists'
+complete -c nittle -n '__nittle_scope_is "update"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "doctor"' -l yes -d 'skip the confirmation prompt'
+complete -c nittle -n '__nittle_scope_is "doctor"' -l fix -d 'run the repair commands through the \`claude\` cli'
+complete -c nittle -n '__nittle_scope_is "doctor"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "setup"' -l agents -x -a 'claude codex cursor gemini vscode windsurf opencode zed copilot' -d 'comma-separated agent ids, skips the prompt (e.g. claude,cursor)'
+complete -c nittle -n '__nittle_scope_is "setup"' -l remove -d 'unwire nittle instead'
+complete -c nittle -n '__nittle_scope_is "setup"' -l yes -d 'skip the confirmation prompt'
+complete -c nittle -n '__nittle_scope_is "setup"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "completion"' -l shell -x -a 'bash zsh fish powershell' -d 'shell to generate for: bash, zsh, fish, powershell'
+complete -c nittle -n '__nittle_scope_is "completion"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_needs_sub mcp' -a 'serve list restart'
 complete -c nittle -n '__nittle_needs_sub hook' -a 'stop'
-complete -c nittle -n '__nittle_at_start' -a 'staged browse'
+complete -c nittle -n '__nittle_wants_review_word' -a 'staged browse'
 complete -c nittle -n '__nittle_wants_ref' -a '(__nittle_refs)'
 "
 `;
@@ -304,20 +298,24 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'cleanup' = 'stop stale sessions and finished reviews'
     'update' = 'download and install the latest release'
     'doctor' = 'check the Claude Code plugin install for stale diffle leftovers'
-    'completion' = 'print a tab-completion script for your shell'
     'setup' = 'wire nittle into your coding agents (plugin or MCP config)'
+    'completion' = 'print a tab-completion script for your shell'
   }
-  $flags = @{
+  $scopes = @{
     'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--review-id', '-v', '--version', '--license', '-h', '--help')
-    'show' = @('-p', '--port', '--no-open', '-h', '--help')
-    'mcp' = @('--yes', '-h', '--help')
-    'hook' = @('--agent', '-h', '--help')
+    'show' = @('-p', '--port', '--no-open', '-v', '--version', '--license', '-h', '--help')
+    'mcp' = @('-h', '--help')
+    'mcp serve' = @('-h', '--help')
+    'mcp list' = @('-h', '--help')
+    'mcp restart' = @('--yes', '-h', '--help')
+    'hook' = @('-h', '--help')
+    'hook stop' = @('--agent', '-h', '--help')
     'sessions' = @('-h', '--help')
     'cleanup' = @('--yes', '--all', '-h', '--help')
     'update' = @('--check', '-h', '--help')
-    'doctor' = @('--fix', '--yes', '-h', '--help')
-    'completion' = @('--shell', '-h', '--help')
+    'doctor' = @('--yes', '--fix', '-h', '--help')
     'setup' = @('--agents', '--remove', '--yes', '-h', '--help')
+    'completion' = @('--shell', '-h', '--help')
   }
   $subcommands = @{
     'mcp' = @('serve', 'list', 'restart')
@@ -340,56 +338,67 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     '--all' = 'also stop active (not just finished/stale) sessions'
     '--check' = 'only report whether a newer release exists'
     '--fix' = 'run the repair commands through the \`claude\` cli'
-    '--shell' = 'shell to generate for: bash, zsh, fish, powershell'
     '--agents' = 'comma-separated agent ids, skips the prompt (e.g. claude,cursor)'
     '--remove' = 'unwire nittle instead'
+    '--shell' = 'shell to generate for: bash, zsh, fish, powershell'
   }
   $choices = @{
     '--agent' = @('codex', 'claude-code')
-    '--shell' = @('bash', 'zsh', 'fish', 'powershell')
     '--agents' = @('claude', 'codex', 'cursor', 'gemini', 'vscode', 'windsurf', 'opencode', 'zed', 'copilot')
+    '--shell' = @('bash', 'zsh', 'fish', 'powershell')
   }
   $freeValue = @('-p', '--port', '--review-id')
-  $refCommands = @('show')
+  $refCommands = @('review', 'show')
   $reviewWords = @('staged', 'browse')
 
+  # the words before the cursor, program excluded; the command is the first one, as in the parser
   $typed = @($commandAst.CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.ToString() })
   if ($wordToComplete -ne '' -and $typed.Count -gt 0) { $typed = @($typed | Select-Object -SkipLast 1) }
   $cmd = 'review'
-  if ($typed.Count -gt 0 -and $commands.ContainsKey($typed[0])) { $cmd = $typed[0] }
+  $lead = 0
+  if ($typed.Count -gt 0 -and $commands.ContainsKey($typed[0])) { $cmd = $typed[0]; $lead = 1 }
+  $scope = $cmd
+  if ($subcommands.ContainsKey($cmd) -and $typed.Count -gt 1 -and $subcommands[$cmd] -contains $typed[1]) { $scope = "$cmd $($typed[1])"; $lead = 2 }
   $prev = ''
   if ($typed.Count -gt 0) { $prev = $typed[-1] }
 
-  $positionals = @()
+  $positionals = 0
   $skipNext = $false
-  foreach ($word in $typed) {
+  for ($i = $lead; $i -lt $typed.Count; $i++) {
     if ($skipNext) { $skipNext = $false; continue }
-    if ($freeValue -contains $word -or $choices.ContainsKey($word)) { $skipNext = $true; continue }
-    if ($word -notlike '-*') { $positionals += $word }
+    if ($freeValue -contains $typed[$i] -or $choices.ContainsKey($typed[$i])) { $skipNext = $true; continue }
+    if ($typed[$i] -notlike '-*') { $positionals++ }
   }
 
   $items = @()
   if ($choices.ContainsKey($prev)) {
-    foreach ($value in $choices[$prev]) { $items += [pscustomobject]@{ Text = $value; Tip = $value } }
+    foreach ($value in $choices[$prev]) { $items += [pscustomobject]@{ Text = $value; Insert = $value; Tip = $value } }
   } elseif ($freeValue -contains $prev) {
     return
   } elseif ($wordToComplete -like '-*') {
-    foreach ($flag in $flags[$cmd]) { $items += [pscustomobject]@{ Text = $flag; Tip = $tips[$flag] } }
+    if ($scopes.ContainsKey($scope)) {
+      foreach ($flag in $scopes[$scope]) { $items += [pscustomobject]@{ Text = $flag; Insert = $flag; Tip = $tips[$flag] } }
+    }
   } else {
-    if ($positionals.Count -eq 0) {
-      foreach ($name in $commands.Keys) { $items += [pscustomobject]@{ Text = $name; Tip = $commands[$name] } }
+    if ($typed.Count -eq 0) {
+      foreach ($name in $commands.Keys) { $items += [pscustomobject]@{ Text = $name; Insert = $name; Tip = $commands[$name] } }
     }
-    if ($subcommands.ContainsKey($cmd) -and $positionals.Count -eq 1) {
-      foreach ($sub in $subcommands[$cmd]) { $items += [pscustomobject]@{ Text = $sub; Tip = $sub } }
+    if ($typed.Count -eq 1 -and $subcommands.ContainsKey($cmd)) {
+      foreach ($sub in $subcommands[$cmd]) { $items += [pscustomobject]@{ Text = $sub; Insert = $sub; Tip = $sub } }
     }
-    $wantsRef = ($cmd -eq 'review' -and $positionals.Count -eq 0) -or ($refCommands -contains $cmd -and $positionals.Count -eq 1)
-    if ($wantsRef) {
-      if ($cmd -eq 'review') { foreach ($word in $reviewWords) { $items += [pscustomobject]@{ Text = $word; Tip = $word } } }
-      foreach ($ref in @(& git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>$null)) { if ($ref) { $items += [pscustomobject]@{ Text = $ref; Tip = $ref } } }
+    if ($refCommands -contains $cmd -and $positionals -eq 0) {
+      if ($cmd -eq 'review') { foreach ($word in $reviewWords) { $items += [pscustomobject]@{ Text = $word; Insert = $word; Tip = $word } } }
+      foreach ($ref in @(& git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>$null)) {
+        if (-not $ref) { continue }
+        $insert = $ref
+        if ($ref -notmatch '^[A-Za-z0-9_./+-]+$') { $insert = "'" + $ref.Replace("'", "''") + "'" }
+        $items += [pscustomobject]@{ Text = $ref; Insert = $insert; Tip = $ref }
+      }
     }
   }
-  $items | Where-Object { $_.Text -like "$wordToComplete*" } | Sort-Object Text | ForEach-Object {
-    [System.Management.Automation.CompletionResult]::new($_.Text, $_.Text, 'ParameterValue', $_.Tip)
+  $prefix = $wordToComplete.TrimStart("'", '"')
+  $items | Where-Object { $_.Text.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase) } | Sort-Object Text | ForEach-Object {
+    [System.Management.Automation.CompletionResult]::new($_.Insert, $_.Text, 'ParameterValue', $_.Tip)
   }
 }
 "

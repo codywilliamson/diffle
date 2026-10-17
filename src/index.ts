@@ -54,8 +54,9 @@ export async function main(): Promise<void> {
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
   }
-  // evaluated from shell profiles on every startup: no migration side effects, nothing but the script.
-  if (opts.command === "completion" && !opts.help) {
+  // evaluated from shell profiles on every startup: no migration side effects, nothing but the script or its help.
+  if (opts.command === "completion") {
+    if (opts.help) return console.log(helpFor(opts.command, opts.spec));
     if (!opts.shell) fail(`completion needs --shell ${COMPLETION_SHELLS.join("|")}`);
     return void process.stdout.write(renderCompletion(opts.shell));
   }
