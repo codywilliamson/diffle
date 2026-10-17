@@ -37,15 +37,14 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    outputs:
+      transition: ${{ steps.build.outputs.transition }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ needs.release-please.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          # build-release.ts counts release tags to decide whether this release still carries
-          # the diffle-named transition assets
-          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
@@ -53,8 +52,12 @@ jobs:
       # cross-compiles all six targets to dist/release/* and writes checksums.txt. the first
       # TRANSITION_ASSET_RELEASES releases after 0.28.1 (src/core/transitionAssets.ts) also get
       # byte-identical diffle-<os>-<arch>[.exe] copies so 0.28.x `diffle update` finds an asset;
-      # the 4th release after 0.28.1 is the first without them.
+      # the 4th release after 0.28.1 is the first without them. the window counts published
+      # releases (read-only GitHub API call with GH_TOKEN), never tags, so a failed or draft
+      # release can't use it up; if the API is unreadable the copies are published. the step
+      # reports `transition=true|false` for the jobs that depend on the diffle assets.
       - name: Build target binaries + checksum manifest
+        id: build
         run: bun scripts/build-release.ts
       # one self-contained MCPB per target (the binary already embeds the client)
       - name: Pack per-target MCPBs
@@ -116,7 +119,7 @@ jobs:
   # the release still carries the diffle-named transition assets (src/core/transitionAssets.ts)
   upgrade-smoke:
     needs: [release-please, assets]
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' && needs.assets.outputs.transition == 'true' }}
     permissions:
       contents: read
     uses: ./.github/workflows/upgrade-smoke.yml
