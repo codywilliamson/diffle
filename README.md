@@ -69,27 +69,38 @@ nittle reviews whichever git repo you run it from, then prints a `http://localho
 
 ## Review scorecard
 
-The **Scorecard** (`g`) summarizes a diff before you read it: size, test coverage, public API, dependencies, hotspots, and risk flags. Each category is Low, Medium, or High from fixed rules, not AI. **Review order** (`m`) groups files by project, with dependencies first and each source file before its test. See [the review scorecard guide](https://nittle.dev/guides/review-scorecard/).
+The **Scorecard** (`gc`) summarizes a diff before you read it: size, test coverage, public API, dependencies, hotspots, and risk flags. Each category is Low, Medium, or High from fixed rules, not AI. **Review order** (`m`) groups files by project, with dependencies first and each source file before its test. See [the review scorecard guide](https://nittle.dev/guides/review-scorecard/).
 
 ## Keyboard shortcuts
 
-Press `?` in the UI for this list at any time.
+Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord starting with `g`. `10j` moves ten lines. A pending count or `g` is dropped after one second, and so is a chord with an unknown second key. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
 
 | key | action |
 | --- | --- |
-| `j` / `k` | next / previous file |
-| `v` | toggle viewed on the current file |
+| `j` / `k` | next / previous line (takes a count) |
+| `J` / `K` | next / previous file (takes a count) |
+| `]` / `[` | next / previous hunk, across files (takes a count) |
+| `gg` / `G` | first / last line of the file; `42G` goes to line 42, or the nearest line |
+| `Ctrl+d` / `Ctrl+u` | half a page down / up (takes a count) |
+| `h` / `l` | side-by-side: move the cursor to the old / new side |
+| `Ctrl+o` / `Ctrl+i` | jump back / forward through earlier positions |
+| `m` | file list: tree ↔ review order |
+| `t` | toggle light / dark mode |
 | `s` | unified ↔ side-by-side (added and deleted files stay unified) |
 | `w` | wrap long lines |
-| `g` | open the review scorecard |
-| `m` | file list: tree ↔ review order |
 | `o` | single-file ↔ all-files view |
-| `t` | toggle light / dark mode |
-| `r` | re-run the diff |
-| `c` | preview review feedback |
+| `r` | re-run the diff; the cursor stays on its line when it still exists |
+| `v` | toggle viewed on the current file |
+| `P` | preview review feedback |
+| `gc` | open the review scorecard |
+| `gw` | what's new |
 | `?` | show the shortcut overlay |
 | `Ctrl`/`⌘` + `Enter` | save the open comment |
-| `Esc` | close dialogs, cancel an open comment |
+| `Esc` | cancel a count or chord, then close dialogs and cancel an open comment |
+
+The cursor is the highlighted row. Collapsed, binary and not-yet-loaded large files have no lines to rest on, so `j` and `k` skip them and `J` and `K` park on the file header.
+
+Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.
 
 To comment on a range, drag across the line numbers or shift-click a second line.
 
