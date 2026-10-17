@@ -5,8 +5,8 @@ import { PROGRAM, fishSingleQuote, posixRefCommand, valueFlagNames } from "./sha
 
 const FN = `__${PROGRAM}`;
 
-function flagLine(command: CompletionCommand, flag: CompletionFlag): string {
-  const parts = [`complete -c ${PROGRAM} -n '${FN}_cmd_is ${command.name}'`];
+function flagLine(scopeKey: string, flag: CompletionFlag): string {
+  const parts = [`complete -c ${PROGRAM} -n '${FN}_scope_is "${scopeKey}"'`];
   for (const name of flag.names) parts.push(name.startsWith("--") ? `-l ${name.slice(2)}` : `-s ${name.slice(1)}`);
   if (flag.takesValue) parts.push("-x");
   if (flag.values.length) parts.push(`-a ${fishSingleQuote(flag.values.join(" "))}`);
@@ -14,20 +14,60 @@ function flagLine(command: CompletionCommand, flag: CompletionFlag): string {
   return parts.join(" ");
 }
 
+// the scope of the line so far: the command, plus its subcommand when one has been typed.
+function scopeFunction(model: CompletionCommand[]): string[] {
+  const withSubs = model.filter((command) => command.subcommands.length);
+  return [
+    `function ${FN}_scope`,
+    `    set -l words (commandline -opc)`,
+    `    set -e words[1]`,
+    `    set -l cmd (${FN}_cmd)`,
+    ...withSubs.flatMap((command) => [
+      `    if test "$cmd" = ${command.name}; and set -q words[2]; and contains -- $words[2] ${command.subcommands.join(" ")}`,
+      `        echo "$cmd $words[2]"; return`,
+      `    end`,
+    ]),
+    `    echo $cmd`,
+    `end`,
+  ];
+}
+
 export function renderFish(): string {
   const model = completionModel();
   const named = namedCommands(model);
-  const refNamed = named.filter((command) => command.completesRefs).map((command) => command.name);
+  const names = named.map((command) => command.name).join(" ");
+  const refNamed = model.filter((command) => command.completesRefs).map((command) => command.name).join(" ");
   const review = model.find((command) => command.name === "review")!;
   const lines = [
     `# fish completion for ${PROGRAM}`,
     `# install: ${PROGRAM} completion --shell fish | source`,
     `# or save it as ~/.config/fish/completions/${PROGRAM}.fish`,
+    // the command is the first word, as in the parser; anything else is the default review command
+    `function ${FN}_cmd`,
+    `    set -l words (commandline -opc)`,
+    `    set -e words[1]`,
+    `    if set -q words[1]; and contains -- $words[1] ${names}`,
+    `        echo $words[1]`,
+    `    else`,
+    `        echo review`,
+    `    end`,
+    `end`,
+    ...scopeFunction(model),
+    `function ${FN}_scope_is`,
+    `    test (${FN}_scope) = "$argv[1]"`,
+    `end`,
+    // positional words after the command words, skipping the value that follows a value flag
     `function ${FN}_args`,
     `    set -l words (commandline -opc)`,
     `    set -e words[1]`,
+    `    set -l scope (${FN}_scope)`,
+    `    set -l lead 0`,
+    `    test "$scope" != review; and set lead (count (string split ' ' -- $scope))`,
+    `    set -l seen 0`,
     `    set -l skip 0`,
     `    for word in $words`,
+    `        set seen (math $seen + 1)`,
+    `        test $seen -le $lead; and continue`,
     `        if test $skip -eq 1`,
     `            set skip 0`,
     `        else if contains -- $word ${valueFlagNames(model).join(" ")}`,
@@ -37,28 +77,17 @@ export function renderFish(): string {
     `        end`,
     `    end`,
     `end`,
-    `function ${FN}_cmd`,
-    `    set -l args (${FN}_args)`,
-    `    if set -q args[1]; and contains -- $args[1] ${named.map((command) => command.name).join(" ")}`,
-    `        echo $args[1]`,
-    `    else`,
-    `        echo review`,
-    `    end`,
-    `end`,
-    `function ${FN}_cmd_is`,
-    `    test (${FN}_cmd) = $argv[1]`,
-    `end`,
     `function ${FN}_at_start`,
-    `    test (count (${FN}_args)) -eq 0`,
+    `    test (count (commandline -opc)) -eq 1`,
     `end`,
     `function ${FN}_needs_sub`,
-    `    set -l args (${FN}_args)`,
-    `    test (count $args) -eq 1; and test "$args[1]" = $argv[1]`,
+    `    test (count (commandline -opc)) -eq 2; and test (${FN}_cmd) = $argv[1]`,
     `end`,
     `function ${FN}_wants_ref`,
-    `    set -l args (${FN}_args)`,
-    `    test (count $args) -eq 0; and return 0`,
-    `    test (count $args) -eq 1; and contains -- $args[1] ${refNamed.join(" ")}`,
+    `    contains -- (${FN}_cmd) ${refNamed}; and test (count (${FN}_args)) -eq 0`,
+    `end`,
+    `function ${FN}_wants_review_word`,
+    `    test (${FN}_cmd) = review; and test (count (${FN}_args)) -eq 0`,
     `end`,
     `function ${FN}_refs`,
     `    ${posixRefCommand()}`,
@@ -66,10 +95,10 @@ export function renderFish(): string {
     ``,
     `complete -c ${PROGRAM} -f`,
     ...named.map((command) => `complete -c ${PROGRAM} -n '${FN}_at_start' -a ${command.name} -d ${fishSingleQuote(command.summary)}`),
-    ...model.flatMap((command) => command.flags.map((flag) => flagLine(command, flag))),
+    ...model.flatMap((command) => command.scopes.flatMap((scope) => scope.flags.map((flag) => flagLine(scope.key, flag)))),
     ...named.filter((command) => command.subcommands.length)
       .map((command) => `complete -c ${PROGRAM} -n '${FN}_needs_sub ${command.name}' -a ${fishSingleQuote(command.subcommands.join(" "))}`),
-    `complete -c ${PROGRAM} -n '${FN}_at_start' -a ${fishSingleQuote(review.words.join(" "))}`,
+    `complete -c ${PROGRAM} -n '${FN}_wants_review_word' -a ${fishSingleQuote(review.words.join(" "))}`,
     `complete -c ${PROGRAM} -n '${FN}_wants_ref' -a '(${FN}_refs)'`,
   ];
   return `${lines.join("\n")}\n`;
