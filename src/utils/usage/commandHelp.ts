@@ -4,6 +4,7 @@ import { PRODUCT } from "../../core/product";
 import { UPDATE_CHECK_OPT_OUT } from "../../core/updateNotice";
 import { WAIT_EXIT_HELP } from "../../core/waitExit";
 import type { CliOptions } from "../cli";
+import { COMPLETION_SHELLS } from "../cliVocabulary";
 
 export type HelpTopic = CliOptions["command"];
 
@@ -128,6 +129,23 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     usage: [`${n} doctor [--fix] [--yes]`],
     options: [["--fix", "run the repair commands through the `claude` cli"], YES],
     examples: [`${n} doctor`, `${n} doctor --fix`],
+    related: ["setup"],
+  },
+  completion: {
+    summary: "print a tab-completion script for your shell",
+    usage: [`${n} completion --shell <${COMPLETION_SHELLS.join("|")}>`],
+    details: [
+      "Completes commands, subcommands, flags and branch, tag and remote names. Branch",
+      "names are read from git when you press tab, not when the script is generated.",
+      "",
+      "Install (add the line to your shell profile):",
+      `  bash         eval "$(${n} completion --shell bash)"`,
+      `  zsh          source <(${n} completion --shell zsh)    (after compinit)`,
+      `  fish         ${n} completion --shell fish | source`,
+      `  powershell   ${n} completion --shell powershell | Out-String | Invoke-Expression`,
+    ],
+    options: [["--shell <shell>", `shell to generate for: ${COMPLETION_SHELLS.join(", ")}`]],
+    examples: [`${n} completion --shell zsh`, `${n} completion --shell powershell`],
     related: ["setup"],
   },
   setup: {
