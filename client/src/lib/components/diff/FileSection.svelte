@@ -51,7 +51,8 @@
   // search matches the real diff, so it steps aside while this file shows the interdiff
   $effect(() => {
     const path = file.path;
-    untrack(() => search.setInterdiff(path, interdiffOn));
+    const enabled = interdiffOn;
+    untrack(() => search.setInterdiff(path, enabled));
     return () => untrack(() => search.setInterdiff(path, false));
   });
   // the file the body renders: the full diff, or the interdiff once it has loaded.
