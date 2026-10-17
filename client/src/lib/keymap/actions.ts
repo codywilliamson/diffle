@@ -2,6 +2,7 @@
 // (comment, search, LSP) have no handler yet and dispatch nothing.
 
 import type { AppState } from "$lib/state/context";
+import { pagePosition } from "./pageMove";
 import type { ActionId } from "./types";
 
 export type ActionHandler = (count: number | null) => void;
@@ -24,8 +25,8 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "hunk.prev": (c) => cursor.hunks(currentPath(), -n(c)),
     "goto.top": () => cursor.top(currentPath()),
     "goto.bottom": (c) => (c === null ? cursor.bottom(currentPath()) : cursor.lineNumber(currentPath(), c)),
-    "page.down": (c) => cursor.lines(currentPath(), halfPageRows() * n(c)),
-    "page.up": (c) => cursor.lines(currentPath(), -halfPageRows() * n(c)),
+    "page.down": (c) => cursor.page(currentPath(), () => pagePosition(1, n(c)), halfPageRows() * n(c)),
+    "page.up": (c) => cursor.page(currentPath(), () => pagePosition(-1, n(c)), -halfPageRows() * n(c)),
     "side.old": () => cursor.switchTo(currentPath(), "old"),
     "side.new": () => cursor.switchTo(currentPath(), "new"),
     "jump.back": () => cursor.back(currentPath()),

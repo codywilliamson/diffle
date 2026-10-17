@@ -27,7 +27,7 @@
     if (diff.state.status === "ready" && diff.state.diff) void analysis.refresh();
   });
 
-  const onKeydown = useKeymap();
+  const { onKeydown, onKeydownCapture } = useKeymap();
   useCursorReconcile();
 
   onMount(() => {
@@ -44,7 +44,7 @@
   });
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} onkeydowncapture={onKeydownCapture} />
 
 <main class="flex h-dvh flex-col bg-bg font-sans text-text">
   {#if diff.state.status === "error"}
