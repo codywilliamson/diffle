@@ -79,7 +79,8 @@ export class JsonRpcConnection {
   private dispatch(message: Message): void {
     if (message.method !== undefined && message.id !== undefined) void this.answer(message.id, message.method, message.params);
     else if (message.method !== undefined) {
-      try { void this.notificationHandlers.get(message.method)?.(message.params); } catch { /* a bad handler must not kill the stream */ }
+      // a handler that throws or rejects must not kill the stream or raise an unhandled rejection
+      try { void Promise.resolve(this.notificationHandlers.get(message.method)?.(message.params)).catch(() => {}); } catch { /* sync throw */ }
     } else if (typeof message.id === "number") {
       const entry = this.pending.get(message.id);
       if (!entry) return;
