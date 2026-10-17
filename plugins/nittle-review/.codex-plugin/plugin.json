@@ -1,21 +1,21 @@
 {
-  "name": "diffle-review",
+  "name": "nittle-review",
   "version": "0.1.1",
-  "description": "Review local Git changes in diffle and return structured feedback to Codex.",
+  "description": "Review local Git changes in nittle and return structured feedback to Codex.",
   "author": { "name": "Cody Williamson", "url": "https://github.com/codywilliamson" },
-  "homepage": "https://diffle.dev",
+  "homepage": "https://nittle.dev",
   "repository": "https://github.com/codywilliamson/diffle",
   "keywords": ["code-review", "git", "mcp"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Diffle Review",
+    "displayName": "Nittle Review",
     "shortDescription": "Review local Git changes with structured feedback.",
-    "longDescription": "Launch diffle from Codex, review an explicit Git comparison in the browser, and return structured comments to the agent.",
+    "longDescription": "Launch nittle from Codex, review an explicit Git comparison in the browser, and return structured comments to the agent.",
     "developerName": "Cody Williamson",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
-    "websiteURL": "https://diffle.dev",
-    "defaultPrompt": ["Review my current changes with diffle."]
+    "websiteURL": "https://nittle.dev",
+    "defaultPrompt": ["Review my current changes with nittle."]
   }
 }

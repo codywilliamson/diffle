@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "diffle-local",
-  "description": "Local Diffle review integrations",
+  "name": "nittle-local",
+  "description": "Local Nittle review integrations",
   "owner": {
     "name": "Cody Williamson"
   },
   "plugins": [
     {
-      "name": "diffle-review",
-      "description": "Explicit Diffle review skill and MCP server.",
-      "source": "./integrations/claude-code/diffle-review",
+      "name": "nittle-review",
+      "description": "Explicit Nittle review skill and MCP server.",
+      "source": "./integrations/claude-code/nittle-review",
       "category": "development"
     }
   ]

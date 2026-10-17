@@ -1,10 +1,10 @@
 {
-  "name": "diffle-review",
+  "name": "nittle-review",
   "version": "0.1.1",
-  "description": "Review local Git changes in diffle and return structured feedback to Claude Code.",
+  "description": "Review local Git changes in nittle and return structured feedback to Claude Code.",
   "author": {
     "name": "Cody Williamson"
   },
-  "homepage": "https://diffle.dev",
+  "homepage": "https://nittle.dev",
   "repository": "https://github.com/codywilliamson/diffle"
 }

@@ -1,14 +1,14 @@
 {
-  "name": "diffle-local",
+  "name": "nittle-local",
   "interface": {
-    "displayName": "Diffle"
+    "displayName": "Nittle"
   },
   "plugins": [
     {
-      "name": "diffle-review",
+      "name": "nittle-review",
       "source": {
         "source": "local",
-        "path": "./plugins/diffle-review"
+        "path": "./plugins/nittle-review"
       },
       "policy": {
         "installation": "AVAILABLE",
