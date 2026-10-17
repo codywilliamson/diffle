@@ -1,6 +1,12 @@
 import type { Side } from "./threads";
 import type { UiStore } from "$lib/state/ui.svelte";
 
+// open the editor on the lines between two ends, whichever is higher: dragging up or extending
+// a visual range upward gives the same anchor as going down.
+export function commitRange(ui: UiStore, file: string, side: Side, a: number, b: number): void {
+  ui.selectCommit(file, side, Math.min(a, b), Math.max(a, b));
+}
+
 // mousedown on a bubble or line number: drag to select a line range on one side, then open the
 // editor on release. shift-click extends the open range instead. the range is scoped to `side`
 // so a drag only spans lines commentable on that side.
@@ -41,7 +47,7 @@ export function startSelect(e: MouseEvent, ui: UiStore, file: string, side: Side
     document.body.classList.remove("selecting");
     cancelAnimationFrame(raf);
     updateHead(ev.clientX, ev.clientY);
-    ui.selectCommit(file, side, Math.min(anchor, head), Math.max(anchor, head));
+    commitRange(ui, file, side, anchor, head);
   };
   document.addEventListener("mousemove", move);
   document.addEventListener("mouseup", stop);

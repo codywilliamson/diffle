@@ -87,6 +87,9 @@ export function createUiStore() {
     selectMove(file: string, side: Side, from: number, to: number): void {
       selecting = { file, side, from, to };
     },
+    clearSelect(): void {
+      selecting = null;
+    },
     selectCommit(file: string, side: Side, lo: number, hi: number): void {
       adding = { file, side, line: lo, endLine: hi };
       selecting = null;

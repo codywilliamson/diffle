@@ -179,7 +179,7 @@ describe("modifiers and editable fields", () => {
 
 describe("modes", () => {
   it("only matches bindings for the active mode, or any", () => {
-    expect(last(run(["j"], "visual").outcomes).kind).toBe("ignored");
+    expect(last(run(["t"], "visual").outcomes).kind).toBe("ignored");
     expect(dispatched(last(run(["?"], "visual").outcomes))?.action).toBe("help.keys");
   });
 });
@@ -199,10 +199,26 @@ describe("the table", () => {
     for (const b of BINDINGS) expect(prefixes.has(b.keys) && splitKeys(b.keys).length === 1, b.keys).toBe(false);
   });
 
-  it("keeps c reserved, not bound to the feedback preview", () => {
-    const c = BINDINGS.find((b) => b.keys === "c");
-    expect(c?.reserved).toBe(true);
+  it("binds c to comments, not the feedback preview", () => {
+    const c = BINDINGS.filter((b) => b.keys === "c");
+    expect(c.map((b) => [b.action, b.mode, b.reserved])).toEqual([
+      ["comment.line", "normal", undefined],
+      ["comment.range", "visual", undefined],
+    ]);
     expect(BINDINGS.find((b) => b.action === "review.preview")?.keys).toBe("P");
+  });
+
+  it("keeps motions in visual mode and swaps c for the range comment", () => {
+    const pick = (k: string, mode: Mode) => {
+      const out = last(run([k], mode).outcomes);
+      return out.kind === "dispatch" ? out.binding.action : out.kind;
+    };
+    expect(pick("c", "normal")).toBe("comment.line");
+    expect(pick("c", "visual")).toBe("comment.range");
+    expect(pick("j", "visual")).toBe("line.next");
+    expect(pick("]", "visual")).toBe("hunk.next");
+    expect(pick("V", "normal")).toBe("visual.start");
+    expect(pick("C", "visual")).toBe("ignored"); // nothing but motions and the range comment
   });
 
   it("hides reserved bindings from help and shows counts only where allowed", () => {
@@ -210,6 +226,6 @@ describe("the table", () => {
     expect(shown.some((b) => b.reserved)).toBe(false);
     expect(shown.find((b) => b.keys === "j")?.count).toBe(true);
     expect(shown.find((b) => b.keys === "t")?.count).toBe(false);
-    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "View", "Review", "Help"]);
+    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "Comment", "View", "Review", "Help"]);
   });
 });

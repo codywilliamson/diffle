@@ -63,7 +63,7 @@
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
-      <section data-diff-pane class="min-w-0 flex-1 overflow-auto">
+      <section data-diff-pane tabindex="-1" class="min-w-0 flex-1 overflow-auto outline-none">
         {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
         <DiffView />
       </section>
