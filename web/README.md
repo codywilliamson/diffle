@@ -1,6 +1,6 @@
-# diffle docs site
+# nittle docs site
 
-The [diffle.dev](https://diffle.dev) site — an [Astro](https://astro.build) + [Starlight](https://starlight.astro.build) docs site, themed with the D5 tokens so it reads as one system with the app. It's a **separate package** from the app so its build-only dependencies never touch the app's narrow runtime deps.
+The [nittle.dev](https://nittle.dev) site — an [Astro](https://astro.build) + [Starlight](https://starlight.astro.build) docs site, themed with the D5 tokens so it reads as one system with the app. It's a **separate package** from the app so its build-only dependencies never touch the app's narrow runtime deps.
 
 ## Develop
 
@@ -11,7 +11,7 @@ bun run dev       # local dev server with live reload
 bun run build     # static build → web/dist
 ```
 
-`bun run build`/`dev` first copy the repo-root `install.sh`/`install.ps1` and the client's brand icons (`client/public/favicon.svg`, `apple-touch-icon.png`) into `public/` (via `scripts/copy-shared-assets.mjs`), so the built site serves them at `/install`, `/install.ps1`, and as its favicon — `/install` is what `curl -fsSL https://diffle.dev/install | sh` hits. The originals stay the single source of truth; the copies under `public/` are generated and gitignored.
+`bun run build`/`dev` first copy the repo-root `install.sh`/`install.ps1` and the client's brand icons (`client/public/favicon.svg`, `apple-touch-icon.png`) into `public/` (via `scripts/copy-shared-assets.mjs`), so the built site serves them at `/install`, `/install.ps1`, and as its favicon — `/install` is what `curl -fsSL https://nittle.dev/install | sh` hits. The originals stay the single source of truth; the copies under `public/` are generated and gitignored.
 
 ## Deploy — Cloudflare Pages
 
@@ -28,7 +28,7 @@ In the Cloudflare dashboard → **Workers & Pages → Create → Pages → Conne
 | Build output directory | `web/dist` |
 | Root directory | `/` (repo root) |
 
-Then map the custom domain `diffle.dev` to the Pages project. Cloudflare rebuilds on every push to `main` — no API tokens, no GitHub secrets. This is the simplest and safest path for a public repo.
+Then map the custom domain `nittle.dev` to the Pages project. Cloudflare rebuilds on every push to `main` — no API tokens, no GitHub secrets. This is the simplest and safest path for a public repo.
 
 ### Option B — GitHub Actions + Wrangler (CI-gated deploys)
 

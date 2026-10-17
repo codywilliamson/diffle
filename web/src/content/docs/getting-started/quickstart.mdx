@@ -1,25 +1,25 @@
 ---
 title: Quickstart
-description: Run your first diffle review — open a diff, leave an inline comment, and export structured feedback.
+description: Run your first nittle review — open a diff, leave an inline comment, and export structured feedback.
 sidebar:
   order: 2
 ---
 
 import { Steps, Aside } from "@astrojs/starlight/components";
 
-This walks through a first review of your own uncommitted changes. It assumes diffle is [installed](/getting-started/installation/) and on your `PATH`.
+This walks through a first review of your own uncommitted changes. It assumes nittle is [installed](/getting-started/installation/) and on your `PATH`.
 
-![The diffle review view: a file tree, a syntax-highlighted diff, and an open inline comment](/media/comment.png)
+![The nittle review view: a file tree, a syntax-highlighted diff, and an open inline comment](/media/comment.png)
 
 <Steps>
 
 1. **Make a change**, then from that git repository run:
 
    ```sh
-   diffle
+   nittle
    ```
 
-   With no argument, diffle compares your working tree against `HEAD` (untracked files included) and opens the review in your browser.
+   With no argument, nittle compares your working tree against `HEAD` (untracked files included) and opens the review in your browser.
 
 2. **Read the diff.** Use the file tree on the left to move between files, or press `j` / `k`. Toggle side-by-side with `s` and line wrapping from the toolbar. Press `v` to mark a file viewed.
 
@@ -34,11 +34,11 @@ This walks through a first review of your own uncommitted changes. It assumes di
 ## Review something specific
 
 ```sh
-diffle staged            # staged changes only
-diffle main              # current branch vs main
-diffle v1.0..v1.1        # a commit range
-diffle browse            # the whole codebase
-diffle browse src/       # scoped to a subtree
+nittle staged            # staged changes only
+nittle main              # current branch vs main
+nittle v1.0..v1.1        # a commit range
+nittle browse            # the whole codebase
+nittle browse src/       # scoped to a subtree
 ```
 
 See the [CLI reference](/reference/cli/) for every command and flag.

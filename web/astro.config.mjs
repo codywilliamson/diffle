@@ -6,13 +6,14 @@ const fontHref =
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://diffle.dev",
+  // keep in sync with PRODUCT.site (src/core/product.ts); node can't import that .ts file here
+  site: "https://nittle.dev",
   integrations: [
     starlight({
-      title: "diffle",
+      title: "nittle",
       description: "Local git diff review with inline comments and structured feedback for coding agents.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/codywilliamson/diffle" }],
-      customCss: ["./src/styles/diffle.css"],
+      customCss: ["./src/styles/nittle.css"],
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
       },
