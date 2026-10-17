@@ -53,21 +53,58 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 
 ## Keyboard shortcuts
 
+Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord starting with `g`. `10j` moves ten lines. A count waits until the next key or `Esc`. A half-typed `g` chord is dropped after 1 second, and so is a chord with an unknown second key, without running anything. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
+
+### Move
+
 | key | action |
 | --- | --- |
-| `j` / `k` | next / previous file |
-| `v` | toggle viewed on the current file |
-| `s` | unified ↔ side-by-side |
-| `w` | wrap long lines |
-| `o` | single-file ↔ all-files view |
-| `g` | open the review scorecard |
-| `m` | file list: tree ↔ review order |
-| `t` | toggle light / dark |
-| `r` | re-run the diff |
-| `c` | preview review feedback |
-| `?` | shortcut overlay |
-| `Ctrl`/`⌘` + `Enter` | save the open comment |
-| `Esc` | close dialogs, cancel an open comment |
+| `j` | Next line (takes a count) |
+| `k` | Previous line (takes a count) |
+| `J` | Next file (takes a count) |
+| `K` | Previous file (takes a count) |
+| `]` | Next hunk (takes a count) |
+| `[` | Previous hunk (takes a count) |
+| `gg` | First line of the file |
+| `G` | Last line of the file, or line N with a count (takes a count) |
+| `Ctrl+d` | Half a page down (takes a count) |
+| `Ctrl+u` | Half a page up (takes a count) |
+| `h` | Side-by-side: old side |
+| `l` | Side-by-side: new side |
+| `Ctrl+o` | Jump back |
+| `Ctrl+i` | Jump forward |
+
+### View
+
+| key | action |
+| --- | --- |
+| `m` | File list: tree / review order |
+| `t` | Light / dark theme |
+| `s` | Side-by-side / unified |
+| `w` | Wrap long lines |
+| `o` | Single-file / all files |
+| `r` | Re-run the diff |
+
+### Review
+
+| key | action |
+| --- | --- |
+| `v` | Toggle viewed on the file |
+| `P` | Preview review feedback |
+| `gc` | Open the review scorecard |
+
+### Help
+
+| key | action |
+| --- | --- |
+| `gw` | What's new |
+| `?` | Keyboard help |
+| `Esc` | Cancel a count or chord, leave the mode, close the overlay |
+| `Ctrl/⌘ + Enter` | Save the open comment |
+
+The cursor is the highlighted row. Collapsed, binary and not-yet-loaded large files have no lines to rest on, so `j` and `k` skip them and `J` and `K` park on the file header.
+
+Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.
 
 ## Next steps
 
