@@ -12,7 +12,12 @@ const dirs: string[] = [];
 setDefaultTimeout(60_000);
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
-const PAYLOAD = "nittle-binary";
+// the "nittle.exe" the installer downloads and then runs with --version must be a real, harmless
+// executable on windows (a text file named .exe makes windows log loader errors). hostname.exe is a
+// tiny system exe that exits right away; elsewhere the file is never executed, so any bytes do.
+const PAYLOAD_FILE = process.platform === "win32" ? join(process.env.SystemRoot ?? "C:\Windows", "System32", "hostname.exe") : join(tmpdir(), "install-ps1-payload.bin");
+if (process.platform !== "win32") writeFileSync(PAYLOAD_FILE, "nittle-binary");
+const PAYLOAD = readFileSync(PAYLOAD_FILE);
 const SUM = createHash("sha256").update(PAYLOAD).digest("hex");
 const q = (text: string) => text.replaceAll("'", "''");
 
@@ -27,7 +32,7 @@ function Invoke-RestMethod { [pscustomobject]@{ tag_name = 'v9.9.9'; assets = @(
 function Invoke-WebRequest {
   param([string]$Uri, [string]$OutFile, [switch]$UseBasicParsing, $ErrorAction)
   if ($Uri -eq 'mock:checksums.txt') { [IO.File]::WriteAllText($OutFile, '${sum}  nittle-windows-x64.exe' + [Environment]::NewLine) }
-  else { [IO.File]::WriteAllText($OutFile, '${PAYLOAD}') }
+  else { Copy-Item -LiteralPath '${q(PAYLOAD_FILE)}' -Destination $OutFile -Force }
 }`;
 
 interface Scenario {
@@ -35,14 +40,15 @@ interface Scenario {
   userPath?: string;
   mock?: string;
   before?: (dir: string) => void;
+  reuse?: string; // run inside an already prepared temp dir
 }
 
 async function run(scenario: Scenario = {}): Promise<{ code: number; out: string; dir: string; userPath: string; bin: string; legacyBin: string }> {
-  const dir = tempDir();
+  const dir = scenario.reuse ?? tempDir();
   const bin = join(dir, "home", ".nittle", "bin");
   const legacyBin = join(dir, "home", ".diffle", "bin");
   const scope = join(dir, "userpath.txt");
-  if (scenario.userPath !== undefined) writeFileSync(scope, scenario.userPath.replaceAll("<legacy>", legacyBin).replaceAll("<bin>", bin));
+  if (scenario.userPath !== undefined) writeFileSync(scope, scenario.userPath.replaceAll("<legacy>", legacyBin).replaceAll("<bin>", bin).replaceAll("<dir>", dir));
   scenario.before?.(dir);
   const env: Record<string, string> = {
     PROCESSOR_ARCHITECTURE: "AMD64", NITTLE_INSTALL_DIR: bin, DIFFLE_INSTALL_DIR: legacyBin, NITTLE_PATH_SCOPE_FILE: scope, ...scenario.env,
@@ -61,7 +67,7 @@ describe.skipIf(!pwsh)("install.ps1", () => {
   test("installs the nittle asset and prepends ~/.nittle/bin to the user PATH once", async () => {
     const first = await run({ userPath: "C:\\Windows;%SystemRoot%\\x" });
     expect(first.code).toBe(0);
-    expect(readFileSync(join(first.bin, "nittle.exe"), "utf8")).toBe(PAYLOAD);
+    expect(readFileSync(join(first.bin, "nittle.exe")).equals(PAYLOAD)).toBe(true);
     expect(first.userPath).toBe(`${first.bin};C:\\Windows;%SystemRoot%\\x`);
     expect(first.out).not.toContain("Migrate diffle");
     expect(existsSync(first.legacyBin)).toBe(false);
@@ -95,9 +101,30 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     });
     expect(result.code).toBe(0);
     expect(result.out).toContain("existing diffle install");
-    expect(result.out.match(/'nittle --version' failed/g)).toHaveLength(1);
+    expect(result.out.match(/install migrated|'nittle --version' failed/g)).toHaveLength(1);
     expect(existsSync(join(result.legacyBin, "diffle.exe"))).toBe(true);
     expect(result.userPath).toBe(`${result.bin};${result.legacyBin};C:\\Windows`);
+  });
+
+  test("a custom-dir diffle install is found on the user PATH and named to the binary", async () => {
+    const result = await run({
+      env: { DIFFLE_INSTALL_DIR: "" },
+      userPath: `${join("<dir>", "tools", "diffle-bin")};C:\\Windows`,
+      before: (dir) => seed(join(dir, "tools", "diffle-bin", "diffle.exe"), "old"),
+    });
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(`migrating the diffle install in ${join(result.dir, "tools", "diffle-bin")}`);
+  });
+
+  test("--uninstall removes a custom-dir diffle install it discovered", async () => {
+    const result = await run({
+      env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1", DIFFLE_INSTALL_DIR: "" },
+      userPath: join("<dir>", "tools", "diffle-bin"),
+      before: (dir) => seed(join(dir, "tools", "diffle-bin", "diffle.exe")),
+    });
+    expect(result.code).toBe(0);
+    expect(existsSync(join(result.dir, "tools", "diffle-bin"))).toBe(false);
+    expect(result.userPath).toBe("");
   });
 
   test("a checksum mismatch keeps the machine untouched", async () => {
@@ -129,6 +156,25 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     expect(existsSync(result.bin)).toBe(false);
     expect(existsSync(join(result.dir, "home", ".diffle"))).toBe(false);
     expect(readdirSync(join(result.dir, "home", ".nittle"))).toEqual(["state.json"]);
+  });
+
+  test.skipIf(process.platform !== "win32")("--uninstall with a locked exe says plainly it could not remove it and names the path", async () => {
+    const dir = tempDir();
+    const locked = join(dir, "home", ".diffle", "bin", "diffle.exe");
+    mkdirSync(join(locked, ".."), { recursive: true });
+    writeFileSync(locked, readFileSync(join(process.env.SystemRoot ?? "C:\\Windows", "System32", "ping.exe")));
+    const holder = Bun.spawn([locked, "-n", "30", "127.0.0.1"], { stdout: "ignore", stderr: "ignore" });
+    try {
+      await Bun.sleep(300);
+      const result = await run({ env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1" }, reuse: dir });
+      expect(result.code).toBe(0);
+      expect(result.out).toContain(`could not remove ${locked} because it is in use`);
+      expect(result.out).toContain(`delete it yourself: ${locked}`);
+      expect(existsSync(locked)).toBe(true);
+    } finally {
+      holder.kill();
+      await holder.exited;
+    }
   });
 
   test("--uninstall removes an empty data dir, and also reads DIFFLE_UNINSTALL", async () => {
