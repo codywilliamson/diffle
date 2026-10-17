@@ -104,3 +104,20 @@ describe("GET /api/lsp/status guards", () => {
     expect(await rawGet(port, `evil.example:${port}`)).toContain("403");
   });
 });
+
+describe.skipIf(!WIN)("windows cleanup never runs a planted taskkill", () => {
+  it("killAll uses the system taskkill, not a taskkill.cmd first on PATH", async () => {
+    // bun snapshots PATH at startup, so the planted entry has to be there when the process starts
+    const repo = tempDir("repo"); const markers = tempDir("markers");
+    const marker = join(markers, "ran");
+    const bin = join(repo, "node_modules", ".bin");
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, "taskkill.cmd"), `@echo off\r\necho ran> "${marker}"\r\n`);
+    const child = Bun.spawn([process.execPath, join(import.meta.dir, "fixtures", "killTreeChild.ts")], {
+      env: { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}` }, stdout: "pipe", stderr: "pipe",
+    });
+    expect(await new Response(child.stdout).text()).toContain("killed");
+    await child.exited;
+    expect(existsSync(marker)).toBe(false);
+  });
+});
