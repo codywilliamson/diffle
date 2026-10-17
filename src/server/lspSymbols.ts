@@ -1,14 +1,15 @@
 // GET /api/lsp/symbols: ?path= is the document outline (a tree, with the symbols the diff touches
 // marked changed); ?query= asks every language server in the diff and merges what comes back.
 
-import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
+import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspLocation, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
 import type { LspBridge } from "../core/lsp/bridge";
-import { languagesInPaths } from "../core/lsp/registry";
-import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol } from "../core/lsp/symbols";
+import { languageForPath, languagesInPaths } from "../core/lsp/registry";
+import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol, type WireWorkspaceSymbol } from "../core/lsp/symbols";
 import type { ServerContext } from "./handlers";
 import { json } from "./respond";
-import { guarded, invalid, openDocument, unavailable } from "./lspSession";
-import { pathKey, TargetResolver } from "./lspTargets";
+import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, unavailable } from "./lspSession";
+import { prepareBridge } from "./lspSync";
+import { fileUriOf, pathKey, TargetResolver } from "./lspTargets";
 
 export const MAX_WORKSPACE_SYMBOLS = 100;
 
@@ -34,59 +35,72 @@ function overlaps(changed: Set<number>, first: number, last: number): boolean {
   return false;
 }
 
-export async function handleLspDocumentSymbols(ctx: ServerContext, path: string): Promise<Response> {
-  const doc = await openDocument(ctx, path, "new");
-  if (doc instanceof Response) return doc;
-  const changed = changedNewLines(ctx.diff.files.find((file) => file.path === path));
-  const location = doc.targets.locate(doc.uri)!;
-  const convert = (symbol: WireSymbol): LspSymbol => {
-    const range = doc.targets.range(location, symbol.range);
-    return {
-      name: symbol.name, kind: symbol.kind, ...(symbol.detail ? { detail: symbol.detail } : {}),
-      range, selectionRange: doc.targets.range(location, symbol.selection),
-      changed: overlaps(changed, range.start.line, range.end.line), children: symbol.children.map(convert),
+export function handleLspDocumentSymbols(ctx: ServerContext, path: string, signal: AbortSignal): Promise<Response> {
+  return onDocument(ctx, path, "new", async (doc) => {
+    const changed = changedNewLines(ctx.diff.files.find((file) => file.path === path));
+    const location = doc.targets.locate(doc.uri)!;
+    const convert = (symbol: WireSymbol): LspSymbol => {
+      const range = doc.targets.range(location, symbol.range);
+      return {
+        name: symbol.name, kind: symbol.kind, ...(symbol.detail ? { detail: symbol.detail } : {}),
+        range, selectionRange: doc.targets.range(location, symbol.selection),
+        changed: overlaps(changed, range.start.line, range.end.line), children: symbol.children.map(convert),
+      };
     };
-  };
-  return guarded(ctx, doc.language, async () => {
-    const result = await doc.bridge.request("textDocument/documentSymbol", { textDocument: { uri: doc.uri } });
+    const result = await doc.bridge.request("textDocument/documentSymbol", { textDocument: { uri: doc.uri } }, { signal });
     return json({ path, symbols: normalizeDocumentSymbols(result).map(convert) } satisfies LspDocumentSymbolsResponse);
   });
 }
 
-const rank = (symbol: LspWorkspaceSymbol): number => (symbol.inDiff ? 0 : symbol.inRepo ? 1 : 2);
+const rank = (symbol: { inDiff: boolean; inRepo: boolean }): number => (symbol.inDiff ? 0 : symbol.inRepo ? 1 : 2);
 
 export async function handleLspWorkspaceSymbols(ctx: ServerContext, query: string, signal: AbortSignal): Promise<Response> {
   const pool = ctx.lsp;
-  const languages = languagesInPaths(ctx.diff.files.map((file) => file.path));
+  const diffPaths = ctx.diff.files.map((file) => file.path);
+  const languages = languagesInPaths(diffPaths);
   if (!pool?.enabled || (languages.length === 0 && pool.running().length === 0)) return unavailable(ctx, languages[0]);
   // an explicit symbol search is a request, so servers for the diff's languages may start now
-  const started = await Promise.all(languages.map((language: LspLanguage) => pool.ensure(language)));
-  const bridges = [...new Set([...started.filter((bridge): bridge is LspBridge => !!bridge), ...pool.running()])];
+  const started = await Promise.all(languages.map(async (language: LspLanguage) => ({ language, bridge: await pool.ensure(language) })));
+  const entries = started.filter((entry): entry is { language: LspLanguage; bridge: LspBridge } => !!entry.bridge);
+  const bridges = [...new Set([...entries.map((entry) => entry.bridge), ...pool.running()])];
   if (bridges.length === 0) return unavailable(ctx, languages[0]);
+  // same preparation as a document request: current text for open files, project loaded
+  await Promise.all(bridges.map((bridge) => {
+    const entry = entries.find((candidate) => candidate.bridge === bridge);
+    const path = entry && diffPaths.find((candidate) => languageForPath(candidate)?.language === entry.language);
+    const match = path ? languageForPath(path) : undefined;
+    return prepareBridge(ctx, bridge, path && match ? { uri: fileUriOf(ctx, path), languageId: match.languageId, path } : undefined);
+  }));
   return guarded(ctx, languages[0], async () => {
     const answers = await Promise.allSettled(bridges.map((bridge) => bridge.request("workspace/symbol", { query }, { signal })));
-    if (signal.aborted) return invalid("request aborted");
+    if (signal.aborted) return lspError("cancelled", "request cancelled", CANCELLED_STATUS);
+    // locate, dedupe, rank and cap first; only the kept symbols get their ranges converted
     const seen = new Set<string>();
-    const symbols: LspWorkspaceSymbol[] = [];
+    const found: Array<{ symbol: WireWorkspaceSymbol; location: LspLocation; resolver: TargetResolver }> = [];
     answers.forEach((answer, index) => {
       if (answer.status !== "fulfilled") return;
       const resolver = new TargetResolver(ctx, bridges[index]!.encoding);
       for (const symbol of normalizeWorkspaceSymbols(answer.value)) {
         const location = resolver.locate(symbol.uri);
-        const key = location && `${pathKey(location.absolutePath)}:${symbol.name}:${symbol.range.start.line}:${symbol.range.start.character}`;
-        if (!location || seen.has(key!)) continue;
-        seen.add(key!);
-        symbols.push({ ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}), range: resolver.range(location, symbol.range) });
+        if (!location) continue;
+        const key = `${pathKey(location.absolutePath)}:${symbol.name}:${symbol.range.start.line}:${symbol.range.start.character}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        found.push({ symbol, location, resolver });
       }
     });
-    symbols.sort((a, b) => rank(a) - rank(b));
-    return json({ symbols: symbols.slice(0, MAX_WORKSPACE_SYMBOLS), total: symbols.length, truncated: symbols.length > MAX_WORKSPACE_SYMBOLS } satisfies LspWorkspaceSymbolsResponse);
+    found.sort((a, b) => rank(a.location) - rank(b.location));
+    const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map(({ symbol, location, resolver }) => ({
+      ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}),
+      range: resolver.range(location, symbol.range),
+    }));
+    return json({ symbols, total: found.length, truncated: found.length > MAX_WORKSPACE_SYMBOLS } satisfies LspWorkspaceSymbolsResponse);
   });
 }
 
 export function handleGetLspSymbols(ctx: ServerContext, url: URL, signal: AbortSignal): Promise<Response> | Response {
   const path = url.searchParams.get("path");
-  if (path !== null) return handleLspDocumentSymbols(ctx, path);
+  if (path !== null) return handleLspDocumentSymbols(ctx, path, signal);
   const query = url.searchParams.get("query");
   if (query !== null) return handleLspWorkspaceSymbols(ctx, query, signal);
   return invalid("symbols needs ?path= or ?query=");

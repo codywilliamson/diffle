@@ -28,7 +28,7 @@ function repoPath(ctx: ServerContext, url: URL): string | null {
 }
 
 // working-tree bytes, refusing a symlink that points outside the repo (throws → 404).
-export function readWorkingTree(cwd: string, path: string): Buffer {
+function readWorkingTree(cwd: string, path: string): Buffer {
   const real = realpathSync(join(cwd, path));
   if (!containsPath(realpathSync(cwd), real)) throw new Error("outside repo");
   return readFileSync(real);
