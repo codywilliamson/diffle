@@ -18,10 +18,10 @@ import { installDir } from "../installedBinary";
 import { detectPackageManager } from "../updateTarget";
 import { stopLegacyMcpServers } from "../mcpProcesses";
 import { PRODUCT } from "../product";
-import { isLegacyProductBinary, isProductBinary } from "../../utils/installRoot";
 import { samePath } from "../../utils/pathWithin";
+import { findLegacyAgents } from "./agentPlugins";
 import { removeEmptyLegacyDirs } from "./dataDir";
-import { clearLegacyInstall, installBinaryCopy } from "./installDirCopy";
+import { clearLegacyInstall, installBinaryCopy, sameBytes } from "./installDirCopy";
 import { hasNittleBlock, swapRcBlocks } from "./installDirRc";
 import { defaultUserPathStore, swapUserPath, userPathHas, type UserPathStore } from "./installDirWinPath";
 import type { MigrationStep } from "./runner";
@@ -85,18 +85,24 @@ interface Plan {
   target: string; // the nittle binary the install is moving to (or already is)
 }
 
-// what to do for this run, or null when there is no diffle install to move. an installed binary
-// literally named diffle (not a package-manager copy) is the install itself, wherever it lives, so a
-// 0.28.x install made once with DIFFLE_INSTALL_DIR=/custom is found without the variable.
+// the executable's name without extension, when it is exactly `name` (so not nittle-mcp, diffle-linux-x64...)
+const isNamed = (execPath: string, name: string) => basename(execPath).replace(/\.exe$/i, "").toLowerCase() === name;
+
+// what to do for this run, or null when there is no diffle install to move. only an installed copy
+// of exactly `diffle` (not a package-manager one) or `nittle` (running from the install dir) qualifies;
+// MCPB servers (nittle-mcp) and binaries run from anywhere else never migrate and never become the
+// destination. a `diffle` binary is the install itself wherever it lives, so a 0.28.x install made
+// once with DIFFLE_INSTALL_DIR=/custom is found without the variable. a nittle run is told where the
+// diffle install is by the installers (NITTLE_LEGACY_INSTALL_DIR) or the old DIFFLE_INSTALL_DIR.
 function plan(deps: InstallDirDeps): Plan | null {
   const { platform, home, env, execPath } = deps;
-  const runningName = basename(execPath);
-  const fromLegacyDir = runningName.replace(/\.exe$/i, "").toLowerCase() === PRODUCT.legacyName && !detectPackageManager(execPath);
-  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? join(home, PRODUCT.legacyDataDir, "bin");
+  const fromLegacyDir = isNamed(execPath, PRODUCT.legacyName) && !detectPackageManager(execPath);
+  const installedNittle = isNamed(execPath, PRODUCT.name) && !detectPackageManager(execPath) && samePath(dirname(execPath), installDir(home, env), platform);
+  if (!fromLegacyDir && !installedNittle) return null;
+  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.envPrefix}LEGACY_INSTALL_DIR`] ?? env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? join(home, PRODUCT.legacyDataDir, "bin");
   if (!existsSync(legacyDir)) return null;
-  if (!fromLegacyDir && !(isProductBinary(runningName) && !isLegacyProductBinary(runningName))) return null;
 
-  // the transition asset installs itself; a nittle binary is already wherever it was installed
+  // the transition asset installs itself; an installed nittle is already in place
   const newDir = fromLegacyDir ? installDir(home, env) : dirname(execPath);
   const binaryName = exeName(PRODUCT.legacyName, platform);
   return {
@@ -104,6 +110,15 @@ function plan(deps: InstallDirDeps): Plan | null {
     hasBinary: existsSync(join(legacyDir, binaryName)),
     target: fromLegacyDir ? join(newDir, exeName(PRODUCT.name, platform)) : execPath,
   };
+}
+
+// agent configs (or plugins) that still launch the diffle binary, as names; empty when all are migrated
+function stillLaunchingDiffle(deps: InstallDirDeps): string[] {
+  try {
+    return findLegacyAgents({ home: deps.home, platform: deps.platform, env: deps.env }).map((finding) => finding.target.displayName);
+  } catch {
+    return ["an agent config that could not be read"];
+  }
 }
 
 // phase 1 (runs before the agent step, so agent configs never point at a missing binary): stop the
@@ -129,6 +144,17 @@ export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): st
   const { platform, home } = deps;
   const { legacyDir, binaryName, hasBinary, newDir, target } = found;
   if (!existsSync(target)) throw new Error(`${target} is missing; keeping the ${PRODUCT.legacyName} install`);
+  // phase one may have failed and left a stale file there: the target must be this very binary
+  if (found.fromLegacyDir && !sameBytes(deps.execPath, target)) throw new Error(`${target} does not match the running binary; keeping the ${PRODUCT.legacyName} install`);
+
+  // an agent config the earlier step couldn't rewrite (jsonc, odd toml, a missing binary) still launches diffle
+  if (hasBinary) {
+    const pending = stillLaunchingDiffle(deps);
+    if (pending.length > 0) {
+      deps.log(`${TAG} ${PRODUCT.legacyName} stays: ${pending.join(", ")} still launch${pending.length === 1 ? "es" : ""} it. run \`${PRODUCT.name} doctor --fix\`, then ${PRODUCT.name} removes it`);
+      return "";
+    }
+  }
 
   // leftovers alone (a windows retry) mean the PATH was already handled by the run that retired the binary
   if (hasBinary && !samePath(legacyDir, newDir, platform) && !swapPath(deps, legacyDir, newDir)) return "";

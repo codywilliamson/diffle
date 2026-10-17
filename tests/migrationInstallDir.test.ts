@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { installedBinaryPath } from "../src/core/installedBinary";
-import { installNittleBinary, migrateInstallDir, type InstallDirDeps } from "../src/core/migration/installDir";
+import { installNittleBinary, migrateInstallDir, removeDiffleInstall, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
 import { swapPathEntry, type UserPathStore } from "../src/core/migration/installDirWinPath";
 
@@ -212,6 +212,53 @@ describe("install dir migration from the diffle binary", () => {
     setup({ env: { PATH: "/usr/bin" } }).run();
     expect(read(rc)).toBe(text);
     expect(existsSync(legacyBin())).toBe(true);
+  });
+
+  test("an agent config the agent step could not rewrite (jsonc) keeps the diffle binary", () => {
+    installLegacy();
+    write(join(home, ".cursor", "mcp.json"), `{\n  // my servers\n  "mcpServers": { "diffle": { "command": "${join(home, ".diffle", "bin", "diffle").replaceAll("\\", "\\\\")}", "args": ["mcp", "serve"] } }\n}\n`);
+    write(join(home, ".zshrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    const { run, logs } = setup();
+    run();
+    expect(existsSync(legacyBin())).toBe(true);
+    expect(logs.filter((line) => line.includes("doctor --fix"))).toHaveLength(1);
+    expect(existsSync(join(home, ".nittle", "bin", "nittle"))).toBe(true);
+  });
+
+  test("an mcpb server executable never triggers the migration or becomes the destination", () => {
+    installLegacy();
+    const mcpb = join(home, "extensions", "nittle", "server", "nittle-mcp");
+    write(mcpb, BINARY);
+    const { run, logs, stops } = setup({ execPath: mcpb });
+    expect(run()).toBe("");
+    expect(logs).toEqual([]);
+    expect(stops).toEqual([]);
+    expect(existsSync(legacyBin())).toBe(true);
+    expect(existsSync(join(home, ".nittle"))).toBe(false);
+  });
+
+  test("a nittle binary run from outside the install dir is not the install", () => {
+    installLegacy();
+    const stray = join(home, "downloads", "nittle");
+    write(stray, BINARY);
+    expect(setup({ execPath: stray }).run()).toBe("");
+    expect(existsSync(legacyBin())).toBe(true);
+  });
+
+  test("a stale file at the destination keeps the diffle binary", () => {
+    installLegacy();
+    write(join(home, ".nittle", "bin", "nittle"), "stale older build");
+    const { logs } = setup();
+    expect(() => removeDiffleInstall({ home, platform: "linux", execPath: legacyBin(), env: { PATH: join(home, ".nittle", "bin") }, log: (line) => logs.push(line) })).toThrow("does not match the running binary");
+    expect(existsSync(legacyBin())).toBe(true);
+  });
+
+  test("a nittle run is pointed at a custom diffle dir by NITTLE_LEGACY_INSTALL_DIR", () => {
+    const custom = join(home, "tools", "diffle-bin");
+    write(join(custom, "diffle"), BINARY);
+    write(join(home, ".nittle", "bin", "nittle"), "n");
+    setup({ execPath: join(home, ".nittle", "bin", "nittle"), env: { NITTLE_LEGACY_INSTALL_DIR: custom } }).run();
+    expect(existsSync(custom)).toBe(false);
   });
 
   test("a failed copy keeps the diffle install and reports", () => {
