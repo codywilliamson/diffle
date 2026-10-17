@@ -18,7 +18,9 @@ export interface SearchTarget {
 
 // deleted files only have an old side, added only a new one; a rename reads the old path's old side
 // and the new path's new side. binary files have none.
-export function targetsFor(file: DiffFile): SearchTarget[] {
+export type SearchFileRef = Pick<DiffFile, "path" | "oldPath" | "changeType" | "binary">;
+
+export function targetsFor(file: SearchFileRef): SearchTarget[] {
   if (file.binary) return [];
   const oldTarget: SearchTarget = { path: file.oldPath ?? file.path, side: "old" };
   const newTarget: SearchTarget = { path: file.path, side: "new" };
@@ -29,7 +31,7 @@ export function targetsFor(file: DiffFile): SearchTarget[] {
 
 const looksBinary = (bytes: Uint8Array) => bytes.subarray(0, NUL_SNIFF_BYTES).includes(0);
 
-export function searchDiffFiles(files: DiffFile[], read: SideReader, pattern: SearchPattern, onProgress?: SearchProgress): SearchResponse {
+export function searchDiffFiles(files: SearchFileRef[], read: SideReader, pattern: SearchPattern, onProgress?: SearchProgress): SearchResponse {
   const results: SearchHit[] = [];
   let truncated = false;
   for (const file of files) {

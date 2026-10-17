@@ -2,6 +2,8 @@ import { describe, it, expect } from "bun:test";
 import type { DiffFile } from "../src/types";
 import { compilePattern, searchText, MAX_SEARCH_FILE_BYTES,MAX_PREVIEW_CHARS, MAX_SEARCH_RESULTS, MAX_SCAN_LINE_CHARS } from "../src/core/search";
 import { searchDiffFiles } from "../src/core/searchDiff";
+import { serialize } from "node:v8";
+import { toWorkerRequest } from "../src/core/searchRunner";
 import { collectSides, MAX_SEARCH_TOTAL_BYTES } from "../src/core/searchCollect";
 import { oldSideRef } from "../src/core/searchBase";
 
@@ -92,6 +94,19 @@ describe("collectSides", () => {
     const out = collectSides([added("a.txt")], source, performance.now() - 1);
     expect(out.truncated).toBe(true);
     expect(out.contents).toEqual({});
+  });
+});
+
+describe("toWorkerRequest", () => {
+  it("leaves hunk text behind, so a huge rejected patch never reaches the worker", () => {
+    const line = { type: "addition" as const, oldLine: null, newLine: 1, content: "x".repeat(1000) };
+    const huge: DiffFile = { path: "huge.txt", oldPath: null, changeType: "added", additions: 30_000, deletions: 0, hunks: [{ header: "@@", lines: Array.from({ length: 30_000 }, (_, i) => ({ ...line, content: `${i}`.padEnd(1000, "x") })) }] };
+    const small: DiffFile = { path: "a.ts", oldPath: "b.ts", changeType: "renamed", additions: 0, deletions: 0, hunks: [] };
+    const request = toWorkerRequest([huge, small], {}, "needle", "smart");
+    expect(serialize(huge).length).toBeGreaterThan(20_000_000);
+    expect(serialize(request).length).toBeLessThan(64 * 1024);
+    expect(request.files[1]).toEqual({ path: "a.ts", oldPath: "b.ts", changeType: "renamed", binary: undefined });
+    expect(JSON.stringify(request)).not.toContain("hunks");
   });
 });
 

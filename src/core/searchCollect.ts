@@ -1,8 +1,8 @@
 // gathers the bytes to search before any of them is searched, bounding memory and time up front.
 
-import type { DiffFile, SearchSide } from "../types";
+import type { SearchSide } from "../types";
 import { MAX_SEARCH_FILE_BYTES } from "./search";
-import { targetsFor } from "./searchDiff";
+import { targetsFor, type SearchFileRef } from "./searchDiff";
 
 export const MAX_SEARCH_TOTAL_BYTES = 16_000_000;
 
@@ -19,7 +19,7 @@ export interface CollectedSides {
   truncated: boolean; // something was skipped for size, the aggregate cap, or the deadline
 }
 
-export function collectSides(files: DiffFile[], source: SideSource, deadline: number): CollectedSides {
+export function collectSides(files: SearchFileRef[], source: SideSource, deadline: number): CollectedSides {
   const contents: Record<string, ArrayBuffer> = {};
   let total = 0;
   let truncated = false;
