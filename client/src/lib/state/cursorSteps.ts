@@ -5,6 +5,9 @@
 // context on the new side, deletions on the old side); split files expose one side at a time.
 // files with nothing to rest on (binary, gated, collapsed, markdown preview) have no stops: line
 // motions skip them, file jumps park the cursor at FILE_LEVEL (line 0) on them.
+//
+// flattening a big diff is the expensive part, so it lives in a StopIndex the caller builds once
+// and reuses until the files, view modes or side preference change.
 
 import type { DiffFile, DiffLine } from "$types";
 import type { Side } from "$lib/diff/threads";
@@ -32,6 +35,13 @@ export interface Stop extends CursorPos {
   hunkStart: boolean;
 }
 
+export interface StopIndex {
+  stops: Stop[];
+  fileStart: number[]; // stops of file i are stops[fileStart[i] .. fileStart[i + 1])
+  fileOf: Map<string, number>;
+  hunkStarts: number[]; // ascending stop indices that begin a hunk
+}
+
 export const samePos = (a: CursorPos | null, b: CursorPos | null): boolean =>
   a === b || (!!a && !!b && a.path === b.path && a.side === b.side && a.line === b.line);
 
@@ -51,90 +61,119 @@ function stopsOfView(view: FileView, fileIndex: number, pref: Side): Stop[] {
   return out;
 }
 
-export function flatten(views: FileView[], pref: Side): Stop[] {
-  return views.flatMap((view, i) => stopsOfView(view, i, pref));
+export function buildIndex(views: FileView[], pref: Side): StopIndex {
+  const stops: Stop[] = [];
+  const fileStart: number[] = [];
+  const fileOf = new Map<string, number>();
+  const hunkStarts: number[] = [];
+  views.forEach((view, i) => {
+    fileStart.push(stops.length);
+    fileOf.set(view.file.path, i);
+    for (const s of stopsOfView(view, i, pref)) {
+      if (s.hunkStart) hunkStarts.push(stops.length);
+      stops.push(s);
+    }
+  });
+  fileStart.push(stops.length);
+  return { stops, fileStart, fileOf, hunkStarts };
 }
 
-const fileIndexOf = (views: FileView[], path: string): number => views.findIndex((v) => v.file.path === path);
 const toPos = (s: Stop): CursorPos => ({ path: s.path, side: s.side, line: s.line });
+const fileIndexOf = (index: StopIndex, path: string): number => index.fileOf.get(path) ?? -1;
+
+function ownStops(index: StopIndex, path: string): Stop[] {
+  const fi = fileIndexOf(index, path);
+  return fi === -1 ? [] : index.stops.slice(index.fileStart[fi], index.fileStart[fi + 1]);
+}
 
 // where the cursor sits among the stops. integers are stops; a parked cursor is the half step
 // just before the first stop of its file.
-export function positionOf(stops: Stop[], views: FileView[], pos: CursorPos): number {
-  const fi = fileIndexOf(views, pos.path);
-  if (pos.line !== FILE_LEVEL) {
-    const own = stops.map((s, i) => ({ s, i })).filter(({ s }) => s.fileIndex === fi);
-    const exact = own.find(({ s }) => s.side === pos.side && s.line === pos.line) ?? own.find(({ s }) => s.oldLine === pos.line || s.newLine === pos.line);
-    if (exact) return exact.i;
-    if (own.length > 0) {
-      return own.reduce((best, cur) => (Math.abs(cur.s.line - pos.line) < Math.abs(best.s.line - pos.line) ? cur : best)).i;
+export function positionOf(index: StopIndex, pos: CursorPos): number {
+  const fi = fileIndexOf(index, pos.path);
+  const start = fi === -1 ? 0 : index.fileStart[fi]!;
+  const end = fi === -1 ? 0 : index.fileStart[fi + 1]!;
+  if (pos.line !== FILE_LEVEL && end > start) {
+    let exact = -1;
+    let loose = -1;
+    let nearest = start;
+    for (let i = start; i < end; i++) {
+      const s = index.stops[i]!;
+      if (s.side === pos.side && s.line === pos.line) {
+        exact = i;
+        break;
+      }
+      if (loose === -1 && (s.oldLine === pos.line || s.newLine === pos.line)) loose = i;
+      if (Math.abs(s.line - pos.line) < Math.abs(index.stops[nearest]!.line - pos.line)) nearest = i;
     }
+    return exact !== -1 ? exact : loose !== -1 ? loose : nearest;
   }
-  const next = stops.findIndex((s) => s.fileIndex >= fi);
-  return (next === -1 ? stops.length : next) - 0.5;
+  return (fi === -1 ? index.stops.length : start) - 0.5;
 }
 
-export function moveLines(views: FileView[], pref: Side, pos: CursorPos, delta: number): CursorPos | null {
-  const stops = flatten(views, pref);
+export function moveLines(views: FileView[], pref: Side, pos: CursorPos, delta: number, index = buildIndex(views, pref)): CursorPos | null {
+  const { stops } = index;
   if (stops.length === 0) return null;
-  const p = positionOf(stops, views, pos);
+  const p = positionOf(index, pos);
   const base = Number.isInteger(p) ? p : p + (delta > 0 ? -0.5 : 0.5);
   const target = Math.min(stops.length - 1, Math.max(0, base + delta));
   return toPos(stops[target]!);
 }
 
-function landOnFile(views: FileView[], stops: Stop[], fileIndex: number, pref: Side): CursorPos {
-  const first = stops.find((s) => s.fileIndex === fileIndex);
+function landOnFile(views: FileView[], index: StopIndex, fileIndex: number, pref: Side): CursorPos {
+  const first = index.fileStart[fileIndex]! < index.fileStart[fileIndex + 1]! ? index.stops[index.fileStart[fileIndex]!] : undefined;
   return first ? toPos(first) : { path: views[fileIndex]!.file.path, side: pref, line: FILE_LEVEL };
 }
 
-export function moveFiles(views: FileView[], pref: Side, pos: CursorPos, delta: number): CursorPos | null {
+export function moveFiles(views: FileView[], pref: Side, pos: CursorPos, delta: number, index = buildIndex(views, pref)): CursorPos | null {
   if (views.length === 0) return null;
-  const from = Math.max(0, fileIndexOf(views, pos.path));
+  const from = Math.max(0, fileIndexOf(index, pos.path));
   const target = Math.min(views.length - 1, Math.max(0, from + delta));
   if (target === from) return pos;
-  return landOnFile(views, flatten(views, pref), target, pref);
+  return landOnFile(views, index, target, pref);
 }
 
-export function moveHunks(views: FileView[], pref: Side, pos: CursorPos, delta: number): CursorPos | null {
-  const stops = flatten(views, pref);
-  const p = positionOf(stops, views, pos);
-  const starts = stops.map((s, i) => (s.hunkStart ? i : -1)).filter((i) => i >= 0);
-  const reachable = delta > 0 ? starts.filter((i) => i > p) : starts.filter((i) => i < p).reverse();
-  const hop = reachable[Math.min(Math.abs(delta), reachable.length) - 1];
+// first element of an ascending array that is > value (or length).
+function upperBound(sorted: number[], value: number): number {
+  let lo = 0;
+  let hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid]! > value) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+
+export function moveHunks(views: FileView[], pref: Side, pos: CursorPos, delta: number, index = buildIndex(views, pref)): CursorPos | null {
+  const p = positionOf(index, pos);
+  const { hunkStarts, stops } = index;
+  const n = Math.abs(delta);
+  let hop: number | undefined;
+  if (delta > 0) {
+    const first = upperBound(hunkStarts, p);
+    hop = first < hunkStarts.length ? hunkStarts[Math.min(hunkStarts.length - 1, first + n - 1)] : undefined;
+  } else {
+    // starts strictly before p: those at index < lower, where lower = upperBound(p) minus an exact hit
+    let lower = upperBound(hunkStarts, p);
+    if (lower > 0 && hunkStarts[lower - 1]! >= p) lower--;
+    hop = lower > 0 ? hunkStarts[Math.max(0, lower - n)] : undefined;
+  }
   return hop === undefined ? null : toPos(stops[hop]!);
 }
 
-function fileStops(views: FileView[], pref: Side, path: string): Stop[] {
-  return flatten(views, pref).filter((s) => s.path === path);
+export function firstLine(views: FileView[], pref: Side, path: string, index = buildIndex(views, pref)): CursorPos | null {
+  const fi = fileIndexOf(index, path);
+  return fi === -1 ? null : landOnFile(views, index, fi, pref);
 }
 
-export function firstLine(views: FileView[], pref: Side, path: string): CursorPos | null {
-  const fi = fileIndexOf(views, path);
-  return fi === -1 ? null : landOnFile(views, flatten(views, pref), fi, pref);
-}
-
-export function lastLine(views: FileView[], pref: Side, path: string): CursorPos | null {
-  const own = fileStops(views, pref, path);
-  return own.length > 0 ? toPos(own[own.length - 1]!) : firstLine(views, pref, path);
-}
-
-// {count}G: the stop whose new-side line number is `number`, else the nearest existing one.
-// split files on the old side count in old-side numbers, matching what that pane shows.
-export function goToLineNumber(views: FileView[], pref: Side, path: string, number: number): CursorPos | null {
-  const own = fileStops(views, pref, path);
-  const split = views[fileIndexOf(views, path)]?.split ?? false;
-  const oldNumbers = split && pref === "old";
-  const keyed = own.map((s) => ({ s, key: oldNumbers ? s.oldLine : s.newLine })).filter((e): e is { s: Stop; key: number } => e.key != null);
-  const pool = keyed.length > 0 ? keyed : own.map((s) => ({ s, key: s.line }));
-  if (pool.length === 0) return firstLine(views, pref, path);
-  const best = pool.reduce((a, c) => (Math.abs(c.key - number) < Math.abs(a.key - number) ? c : a));
-  return toPos(best.s);
+export function lastLine(views: FileView[], pref: Side, path: string, index = buildIndex(views, pref)): CursorPos | null {
+  const own = ownStops(index, path);
+  return own.length > 0 ? toPos(own[own.length - 1]!) : firstLine(views, pref, path, index);
 }
 
 // h / l in a split file: the other side's line in the same row, or the nearest row that has one.
 export function switchSide(views: FileView[], pos: CursorPos, target: Side): CursorPos | null {
-  const view = views[fileIndexOf(views, pos.path)];
+  const view = views.find((v) => v.file.path === pos.path);
   if (!view || !view.split || !view.navigable || pos.side === target || pos.line === FILE_LEVEL) return null;
   const rows = view.file.hunks.flatMap((h) => pairLines(h.lines));
   const numberOn = (row: (typeof rows)[number], side: Side): number | null =>
@@ -150,14 +189,31 @@ export function switchSide(views: FileView[], pos: CursorPos, target: Side): Cur
   return null;
 }
 
+// {count}G: the line whose NEW-side number is `number` (else the nearest), then the row it sits
+// in on the active pane. a file that only deletes has no new numbers, so old ones stand in.
+export function goToLineNumber(views: FileView[], pref: Side, path: string, number: number): CursorPos | null {
+  const unified = views.map((v) => (v.file.path === path ? { ...v, split: false } : v));
+  const own = ownStops(buildIndex(unified, pref), path);
+  if (own.length === 0) return firstLine(views, pref, path);
+  const withNew = own.filter((s) => s.newLine != null);
+  const pool = withNew.length > 0 ? withNew.map((s) => ({ s, key: s.newLine! })) : own.map((s) => ({ s, key: s.line }));
+  const best = pool.reduce((a, c) => (Math.abs(c.key - number) < Math.abs(a.key - number) ? c : a)).s;
+  const found = toPos(best);
+  const split = views.find((v) => v.file.path === path)?.split ?? false;
+  if (!split) return found;
+  if (best.newLine == null) return found;
+  const onNew: CursorPos = { path, side: "new", line: best.newLine };
+  return pref === "old" ? (switchSide(views, onNew, "old") ?? onNew) : onNew;
+}
+
 // after a refresh: the same line if it still exists, then the same text nearest the old spot,
 // then the nearest line number. null when the file left the diff.
-export function reanchor(views: FileView[], pref: Side, pos: CursorPos, content: string | null): CursorPos | null {
-  const fi = fileIndexOf(views, pos.path);
+export function reanchor(views: FileView[], pref: Side, pos: CursorPos, content: string | null, index = buildIndex(views, pref)): CursorPos | null {
+  const fi = fileIndexOf(index, pos.path);
   if (fi === -1) return null;
-  if (pos.line === FILE_LEVEL) return landOnFile(views, flatten(views, pref), fi, pref);
-  const own = fileStops(views, pref, pos.path);
-  if (own.length === 0) return landOnFile(views, flatten(views, pref), fi, pref);
+  if (pos.line === FILE_LEVEL) return landOnFile(views, index, fi, pref);
+  const own = ownStops(index, pos.path);
+  if (own.length === 0) return landOnFile(views, index, fi, pref);
   const keep = own.find((s) => s.side === pos.side && s.line === pos.line && (content === null || s.content === content));
   if (keep) return toPos(keep);
   const sameText = content?.trim() ? own.filter((s) => s.side === pos.side && s.content === content) : [];
@@ -165,9 +221,9 @@ export function reanchor(views: FileView[], pref: Side, pos: CursorPos, content:
   return toPos(pool.reduce((a, c) => (Math.abs(c.line - pos.line) < Math.abs(a.line - pos.line) ? c : a)));
 }
 
-export function contentAt(views: FileView[], pref: Side, pos: CursorPos | null): string | null {
+export function contentAt(views: FileView[], pref: Side, pos: CursorPos | null, index = buildIndex(views, pref)): string | null {
   if (!pos || pos.line === FILE_LEVEL) return null;
-  const hit = fileStops(views, pref, pos.path).find((s) => s.side === pos.side && s.line === pos.line);
+  const hit = ownStops(index, pos.path).find((s) => s.side === pos.side && s.line === pos.line);
   return hit?.content ?? null;
 }
 
