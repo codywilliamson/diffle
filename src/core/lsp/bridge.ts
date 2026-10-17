@@ -36,8 +36,9 @@ export class LspBridge {
   onProgress: ((activeTokens: number) => void) | undefined;
   private proc: Bun.Subprocess<"pipe", "pipe", "pipe"> | undefined;
   private connection: JsonRpcConnection | undefined;
-  private readonly documents = new Map<string, number>(); // uri -> version
+  private readonly documents = new Map<string, { version: number; text: string }>();
   private readonly progress = new Set<string>();
+  private started = 0; // work-done progress runs seen so far
   private stopping = false;
   private exited = false;
   readonly rootUri: string;
@@ -45,6 +46,9 @@ export class LspBridge {
   constructor(private readonly options: BridgeOptions) { this.rootUri = pathToFileURL(options.root).href; }
 
   get activeProgress(): number { return this.progress.size; }
+  get progressStarts(): number { return this.started; }
+  get openDocumentCount(): number { return this.documents.size; }
+  get openDocumentUris(): string[] { return [...this.documents.keys()]; }
   get isStopping(): boolean { return this.stopping; }
   get pid(): number | undefined { return this.proc?.pid; }
 
@@ -83,10 +87,21 @@ export class LspBridge {
 
   openDocument(uri: string, languageId: string, text: string): number {
     const known = this.documents.get(uri);
-    if (known !== undefined) return known;
-    this.documents.set(uri, 1);
+    if (known) return known.version;
+    this.documents.set(uri, { version: 1, text });
     this.connection?.notify("textDocument/didOpen", { textDocument: { uri, languageId, version: 1, text } });
     return 1;
+  }
+
+  // opens the document, or sends a full-text didChange with a version bump when the text moved.
+  syncDocument(uri: string, languageId: string, text: string): number {
+    const known = this.documents.get(uri);
+    if (!known) return this.openDocument(uri, languageId, text);
+    if (known.text === text) return known.version;
+    known.version++;
+    known.text = text;
+    this.connection?.notify("textDocument/didChange", { textDocument: { uri, version: known.version }, contentChanges: [{ text }] });
+    return known.version;
   }
 
   closeDocument(uri: string): void {
@@ -94,7 +109,7 @@ export class LspBridge {
     this.connection?.notify("textDocument/didClose", { textDocument: { uri } });
   }
 
-  documentVersion(uri: string): number | undefined { return this.documents.get(uri); }
+  documentVersion(uri: string): number | undefined { return this.documents.get(uri)?.version; }
 
   // polite first: shutdown request, exit notification, then wait; kill if it lingers.
   // every wait is capped, so this always returns within about timeoutMs + 3 * KILL_GRACE_MS.
@@ -131,8 +146,15 @@ export class LspBridge {
       capabilities: {
         general: { positionEncodings: [...ADVERTISED_ENCODINGS] },
         window: { workDoneProgress: true },
-        workspace: { configuration: true, workspaceFolders: true },
-        textDocument: { synchronization: { didSave: false }, definition: { linkSupport: true }, hover: { contentFormat: ["markdown", "plaintext"] } },
+        workspace: { configuration: true, workspaceFolders: true, symbol: {} },
+        textDocument: {
+          synchronization: { didSave: false },
+          definition: { linkSupport: true },
+          typeDefinition: { linkSupport: true },
+          references: {},
+          documentSymbol: { hierarchicalDocumentSymbolSupport: true },
+          hover: { contentFormat: ["markdown", "plaintext"] },
+        },
       },
     };
   }
@@ -140,7 +162,7 @@ export class LspBridge {
   private trackProgress(params: unknown): void {
     const { token, value } = (params ?? {}) as { token?: string | number; value?: { kind?: string } };
     if (token === undefined) return;
-    if (value?.kind === "begin") this.progress.add(String(token));
+    if (value?.kind === "begin") { this.progress.add(String(token)); this.started++; }
     else if (value?.kind === "end") this.progress.delete(String(token));
     else return;
     this.onProgress?.(this.progress.size);
