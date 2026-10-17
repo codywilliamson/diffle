@@ -5,6 +5,8 @@ import { basename } from "node:path";
 import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
 import { pendingLegacyDataDirs } from "../core/migration/dataDir";
+import { agentTargets } from "../core/agentTargets";
+import { marketplaceAlreadyOurs } from "../core/migration/agentPluginsSwap";
 import { confirmProceed } from "./confirm";
 import { agentChecks, agentPlanLines, findAgentIssues, repairAgents } from "./doctorAgents";
 import { diagnoseClaudePlugins, readClaudePluginState, type Check, type CheckLevel, type RepairStep } from "./claudePlugins";
@@ -37,8 +39,11 @@ function applyPlan(plan: RepairStep[], claude: string, yes: boolean): boolean {
     const stderr = result.stderr?.toString() ?? "";
     if (stderr) process.stderr.write(stderr);
     if (result.exitCode === 0) continue;
-    // an older claude code may not have the subcommand — leave it to the user and carry on.
-    if (/unknown (command|option)/i.test(stderr)) {
+    // a retry re-adds a marketplace that's already ours: fine, carry on
+    const integration = agentTargets().find((target) => target.id === CLAUDE_CLI)?.integration;
+    if (integration?.kind === "plugin" && marketplaceAlreadyOurs(integration, step.args)) continue;
+    // an older claude code may not have the subcommand: leave removals to the user, but never go on past a failed install
+    if (/unknown (command|option)/i.test(stderr) && step.args[1] !== "install" && step.args[2] !== "add") {
       console.log(`  unsupported by this ${CLAUDE_CLI} version — run it yourself: ${render(step, args)}`);
       continue;
     }

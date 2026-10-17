@@ -65,8 +65,10 @@ describe("nittle doctor", () => {
     expect(code).toBe(0);
     const calls = logLines(log);
     expect(calls).toHaveLength(5);
-    expect(calls[0]).toContain("plugin uninstall diffle-review@diffle-local");
-    expect(calls[4]).toContain("plugin install nittle-review@nittle-local --scope user --yes");
+    expect(calls[0]).toContain("plugin marketplace add codywilliamson/diffle");
+    expect(calls[1]).toContain("plugin install nittle-review@nittle-local --scope user --yes");
+    expect(calls[2]).toContain("plugin uninstall diffle-review@diffle-local");
+    expect(calls[4]).toContain("plugin marketplace remove diffle-local");
     expect(out).toContain("/reload-plugins");
   });
 
@@ -75,6 +77,8 @@ describe("nittle doctor", () => {
     const { code, out } = await doctor(staleConfigDir(), ["--fix", "--yes"], binDir);
     expect(code).toBe(1);
     expect(logLines(log)).toHaveLength(1);
+    expect(logLines(log)[0]).toContain("marketplace add");
+    expect(logLines(log).some((call) => call.includes("uninstall"))).toBe(false);
     expect(out).toContain("step failed");
     expect(out).toContain("repairs incomplete");
     expect(out).not.toContain("done —");

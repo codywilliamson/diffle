@@ -71,11 +71,11 @@ describe("diagnoseClaudePlugins", () => {
     expect(checks.find((c) => c.label === "legacy plugins")!.detail).toContain("diffle-review@diffle-local v0.1.1");
     expect(checks.find((c) => c.label === "legacy MCP server")!.level).toBe("fail");
     expect(commands(dir, "/bin/nittle")).toEqual([
+      "plugin marketplace add codywilliamson/diffle",
+      "plugin install nittle-review@nittle-local --scope user",
       "plugin uninstall diffle-review@diffle-local",
       "plugin uninstall diffle-review-hook@diffle-local",
       "plugin marketplace remove diffle-local",
-      "plugin marketplace add codywilliamson/diffle",
-      "plugin install nittle-review@nittle-local --scope user",
     ]);
   });
 
@@ -99,7 +99,7 @@ describe("diagnoseClaudePlugins", () => {
 
   it("carries a custom marketplace suffix into the plan", () => {
     const dir = staleConfigDir({ marketplace: "my-diffle", hook: false });
-    expect(commands(dir, "/bin/nittle").slice(0, 2)).toEqual([
+    expect(commands(dir, "/bin/nittle").slice(2)).toEqual([
       "plugin uninstall diffle-review@my-diffle",
       "plugin marketplace remove my-diffle",
     ]);

@@ -137,17 +137,18 @@ function uniqueKeys(plugins: InstalledPlugin[]): string[] {
 }
 
 function buildPlan(state: ClaudePluginState): RepairStep[] {
+  // install first: a failed install must leave the retired plugin in place (callers stop at the first failure)
   const steps: RepairStep[] = [];
+  if (state.product.length === 0) {
+    const plugin = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
+    steps.push({ args: ["plugin", "marketplace", "add", repositorySlug()], describe: `register the ${PRODUCT.name} marketplace` });
+    steps.push({ args: ["plugin", "install", plugin, "--scope", "user"], describe: `install ${plugin}` });
+  }
   for (const key of uniqueKeys(state.legacy)) {
     steps.push({ args: ["plugin", "uninstall", key], describe: `remove the legacy ${key} plugin` });
   }
   for (const marketplace of state.legacyMarketplaces) {
     steps.push({ args: ["plugin", "marketplace", "remove", marketplace], describe: `unregister the ${marketplace} marketplace` });
-  }
-  if (state.product.length === 0) {
-    const plugin = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
-    steps.push({ args: ["plugin", "marketplace", "add", repositorySlug()], describe: `register the ${PRODUCT.name} marketplace` });
-    steps.push({ args: ["plugin", "install", plugin, "--scope", "user"], describe: `install ${plugin}` });
   }
   return steps;
 }

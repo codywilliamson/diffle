@@ -144,6 +144,32 @@ describe("agent plugin migration", () => {
     expect(result.lines[0]).toContain("left:");
   });
 
+  it("retries after a half-done swap: an already-registered marketplace of ours doesn't stop the install", () => {
+    const claudeDir = staleConfigDir();
+    const home = tempDir();
+    migrate(home, claudeDir, (_cli, args) => (args.includes("install") ? 1 : 0));
+    const known = join(claudeDir, "plugins", "known_marketplaces.json");
+    const registered = readJson(known);
+    registered["nittle-local"] = { source: { source: "github", repo: "codywilliamson/diffle" } };
+    writeFile(known, registered);
+    const retry = migrate(home, claudeDir, (_cli, args) => (args[1] === "marketplace" && args[2] === "add" ? 1 : 0));
+    const installAt = retry.calls.findIndex((call) => call.includes("plugin install nittle-review"));
+    expect(installAt).toBeGreaterThan(0);
+    expect(retry.calls.some((call) => call.includes("plugin uninstall diffle-review@diffle-local"))).toBe(true);
+    expect(retry.lines[0]).not.toContain("left:");
+  });
+
+  it("a failing marketplace add still stops the swap when the registration isn't ours", () => {
+    const claudeDir = staleConfigDir();
+    const known = join(claudeDir, "plugins", "known_marketplaces.json");
+    const registered = readJson(known);
+    registered["nittle-local"] = { source: { source: "github", repo: "someone/else" } };
+    writeFile(known, registered);
+    const result = migrate(tempDir(), claudeDir, (_cli, args) => (args[2] === "add" ? 1 : 0));
+    expect(result.calls).toHaveLength(1);
+    expect(result.lines[0]).toContain("left:");
+  });
+
   it("leaves a failing claude swap for doctor and says so", () => {
     const result = migrate(tempDir(), staleConfigDir(), () => 1);
     expect(result.calls).toHaveLength(1);
@@ -193,6 +219,26 @@ describe("codex toml collisions and strings", () => {
     const after = read(path);
     expect(after.startsWith(note)).toBe(true);
     expect(Object.keys((Bun.TOML.parse(after) as Servers).mcp_servers)).toEqual(["nittle"]);
+  });
+
+  it("leaves command and args text inside multiline strings byte-identical", () => {
+    const home = tempDir();
+    const notes = `[mcp_servers.other]\ncommand = "other"\nnotes = """\ncommand = "loupe"\nargs = ["x"]\n[mcp_servers.diffle]\n"""\n\n`;
+    const trap = `[mcp_servers.diffle]\nnote = '''\ncommand = "diffle"\n'''\ncommand = "diffle"\nargs = ["mcp", "serve"]\n`;
+    const path = codex(home, notes + trap);
+    migrate(home);
+    const after = read(path);
+    expect(after.startsWith(notes)).toBe(true);
+    expect(after).toContain(`note = '''\ncommand = "diffle"\n'''\ncommand = "${NITTLE}"`);
+    expect(Object.keys((Bun.TOML.parse(after) as Servers).mcp_servers)).toEqual(["other", "nittle"]);
+  });
+
+  it("a comment containing triple quotes doesn't break detection", () => {
+    const home = tempDir();
+    const path = codex(home, `# don't use ''' or """ here\n${table("diffle")}`);
+    migrate(home);
+    expect(Object.keys((Bun.TOML.parse(read(path)) as Servers).mcp_servers)).toEqual(["nittle"]);
+    expect(read(path).startsWith(`# don't use ''' or """ here\n`)).toBe(true);
   });
 
   it("refuses to write an unparseable file and reports it", () => {
