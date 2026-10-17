@@ -80,6 +80,44 @@ The review menu shows the agent's latest update rendered as Markdown. For a long
   If the agent can't start the nittle MCP server, run `nittle --version` in the same shell. If it's missing, fix your `PATH` (re-run the installer) and start a fresh agent session. If you previously installed the `diffle-review` or `loupe-review` plugin, run `nittle doctor` — it detects the stale plugin and repairs it with `--fix`.
 </Aside>
 
+## Without MCP: `nittle --wait`
+
+Any agent that can run a shell command can ask for a review. `nittle --wait` opens the review in your browser, blocks until you send feedback, approve or cancel, then prints the compiled prompt on stdout and exits.
+
+Three lines for a harness with no MCP:
+
+```sh
+nittle --wait > feedback.md; code=$?           # opens the review and blocks until you respond
+[ "$code" -eq 0 ] && [ -s feedback.md ] && cat feedback.md   # non-empty means there is feedback to act on
+echo "exit: $code"                             # 0 = done, 2 = cancelled, 3 = tab closed
+```
+
+In practice the harness runs `nittle --wait` as one blocking command and reads stdout. Status lines (the URL, "waiting for feedback") go to stderr, so stdout carries only the prompt. Pass a ref the same way you would without `--wait`, for example `nittle --wait main` or `nittle --wait staged`. Add `--no-open` to skip launching the browser and open the printed URL yourself.
+
+### Exit codes
+
+| Code | Meaning | Stdout |
+| --- | --- | --- |
+| 0 | Feedback returned | The compiled prompt (JSON with `--json`) |
+| 0 | Review approved | Empty (JSON with `--json`) |
+| 2 | Review cancelled | Empty (JSON with `--json`) |
+| 3 | Last tab closed without sending anything | Empty |
+| 4 | Session stopped from outside (for example `nittle cleanup`); the review stays open | Empty |
+| 130 | Interrupted with ctrl+c while waiting | Empty |
+| 1 | Error (bad flag, port in use, no such review) | Empty |
+
+To tell approved from feedback, check whether stdout is empty. With `--json`, stdout is always the `get_review` structure for feedback, approved and cancelled (read `review.status`), so empty stdout only applies without `--json`. A closed tab, a stop and errors print nothing either way.
+
+### Closing the tab
+
+Closing the last tab without sending feedback is not an approval. `nittle --wait` prints nothing on stdout, exits 3 and prints a hint on stderr with the review id. A page reload does not count: nittle waits about five seconds for a tab to come back.
+
+### Picking the review up later
+
+`--wait` creates a normal durable Review Record, so nothing is lost when it exits. Reopen it with `nittle --review-id <id>`, or call `get_review` with that id from an MCP session. To see the review as structured data instead of a prompt, run `nittle --wait --json`. It prints the same structure `get_review` returns.
+
+MCP still adds the two-way loop: replies on comments, marking comments addressed and `request_rereview`. `--wait` is the one-shot version.
+
 ## Running the MCP server directly
 
 The MCP server can also be run directly:
