@@ -3,6 +3,7 @@
   import { createAppState, setAppState } from "$lib/state/context";
   import TopBar from "$lib/components/TopBar.svelte";
   import Mark from "$lib/components/Mark.svelte";
+  import CommitHeader from "$lib/components/CommitHeader.svelte";
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
@@ -104,6 +105,7 @@
       {/if}
       <FileIndex />
       <section data-diff-pane class="min-w-0 flex-1 overflow-auto">
+        {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
         <DiffView />
       </section>
     </div>
