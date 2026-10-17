@@ -11,6 +11,7 @@ import { createPresence } from "../server/presence";
 import { createLspPool } from "./lsp/launchPool";
 import type { LspPool } from "./lsp/pool";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
+import { LOOPBACK_BIND_HOST } from "../utils/origin";
 
 export interface ReviewLaunchInput {
   cwd: string;
@@ -57,7 +58,7 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId, presence: createPresence(), lsp };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
-  const origin = `http://localhost:${port}`;
+  const origin = `http://${LOOPBACK_BIND_HOST}:${port}`;
   const url = `${origin}/?review=${encodeURIComponent(review.id)}`;
   // best-effort synchronous full stop for callers that already hold this launch directly
   // (ctrl+c, MCP's stopAll, tests) — always tears down and unregisters, no gating.

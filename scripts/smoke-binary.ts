@@ -32,7 +32,7 @@ async function checkCli(repo: string): Promise<void> {
       const next = await reader.read();
       if (next.done) throw new Error(`review server exited before launch: ${output}`);
       output += new TextDecoder().decode(next.value);
-      url = output.match(/http:\/\/localhost:\d+\/\?review=[\w-]+/)?.[0];
+      url = output.match(/http:\/\/127\.0\.0\.1:\d+\/\?review=[\w-]+/)?.[0];
     }
 
     const base = new URL(url).origin;

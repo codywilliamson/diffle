@@ -1,5 +1,9 @@
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const HTTP_DEFAULT_PORT = 80;
+// the review server binds here only, never all interfaces
+export const LOOPBACK_BIND_HOST = "127.0.0.1";
+// strict authority: one loopback name and an optional single port. no userinfo, path, whitespace or extra colons.
+const LOOPBACK_AUTHORITY = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i;
 
 export type RequestGuardResult = "ok" | "host" | "origin";
 
@@ -9,6 +13,7 @@ export type RequestGuardResult = "ok" | "host" | "origin";
 export function checkLoopbackRequest(req: Request, listenerPort: number): RequestGuardResult {
   const host = req.headers.get("host");
   if (!host) return "host";
+  if (!LOOPBACK_AUTHORITY.test(host)) return "host";
   let hostUrl: URL;
   try {
     hostUrl = new URL(`http://${host}`);

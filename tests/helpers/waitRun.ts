@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { Comment } from "../../src/types";
 
 const entry = join(import.meta.dir, "..", "..", "src", "index.ts");
-const URL_PATTERN = /(http:\/\/localhost:\d+)\/\?review=([\w-]+)/;
+const URL_PATTERN = /(http:\/\/127\.0\.0\.1:\d+)\/\?review=([\w-]+)/;
 const STARTUP_TIMEOUT_MS = 8_000;
 const TAB_SETTLE_MS = 100;
 
@@ -74,9 +74,9 @@ export async function startWait(repo: string, args: string[] = [], env: Record<s
     // a raw socket, so closing it is a real disconnect the server sees (fetch abort is not reliable under bun test).
     openTab: () => new Promise((resolve, reject) => {
       Bun.connect({
-        hostname: "localhost", port: Number(new URL(origin).port),
+        hostname: "127.0.0.1", port: Number(new URL(origin).port),
         socket: {
-          open(socket) { socket.write(`GET /api/presence HTTP/1.1\r\nHost: localhost:${new URL(origin).port}\r\nAccept: text/event-stream\r\n\r\n`); },
+          open(socket) { socket.write(`GET /api/presence HTTP/1.1\r\nHost: 127.0.0.1:${new URL(origin).port}\r\nAccept: text/event-stream\r\n\r\n`); },
           // a real tab lives longer than a few ms; closing the instant the first byte lands races bun's disconnect handling.
           data(socket) { setTimeout(() => resolve({ close: () => socket.terminate() }), TAB_SETTLE_MS); },
           error(_socket, error) { reject(error); },
