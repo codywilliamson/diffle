@@ -177,6 +177,23 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     }
   });
 
+  test("--uninstall deletes only installer leftovers: .nittle.settings and .diffle.notes survive", async () => {
+    const result = await run({
+      env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1" },
+      before: (dir) => {
+        seed(join(dir, "home", ".nittle", "bin", "nittle.exe"));
+        seed(join(dir, "home", ".nittle", "bin", ".nittle.settings"));
+        seed(join(dir, "home", ".nittle", "bin", ".nittle.exe.old"));
+        seed(join(dir, "home", ".diffle", "bin", "diffle.exe"));
+        seed(join(dir, "home", ".diffle", "bin", ".diffle.notes"));
+        seed(join(dir, "home", ".diffle", "bin", ".diffle.new-12-ab"));
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(readdirSync(result.bin)).toEqual([".nittle.settings"]);
+    expect(readdirSync(result.legacyBin)).toEqual([".diffle.notes"]);
+  });
+
   test("--uninstall removes an empty data dir, and also reads DIFFLE_UNINSTALL", async () => {
     const result = await run({
       env: { NITTLE_UNINSTALL: "", DIFFLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1" },

@@ -37,8 +37,11 @@ export interface LegacyCleanup {
   dirRemoved: boolean;
 }
 
-// retired and staged leftovers all start with ".diffle" (.diffle.exe.old, .diffle.new-123)
-const isLeftover = (name: string) => name.startsWith(`.${PRODUCT.legacyName}`);
+// exactly what the installers and updater leave behind: staged files (.diffle.new-123,
+// .diffle.exe.new) and retired binaries (.diffle.exe.old, .diffle.exe.old-1760000000000, .diffle.old).
+// anything else that merely starts with ".diffle" (.diffle-notes) belongs to the user.
+const LEFTOVER = new RegExp(String.raw`^\.${PRODUCT.legacyName}(\.exe)?\.(old(-\d+)?|new(-[\w-]+)?)$`);
+export const isLeftover = (name: string): boolean => LEFTOVER.test(name);
 
 // removes the diffle binary and its leftovers, then the bin dir if that leaves it empty.
 // a running exe can't be deleted on windows: it is renamed aside and the next run retries.

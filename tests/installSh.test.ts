@@ -160,6 +160,18 @@ describe.skipIf(!sh)("install.sh --uninstall", () => {
     expect(existsSync(join(box.home, ".nittle"))).toBe(false);
   });
 
+  test("only staging leftovers go: .diffle-notes and .nittle.settings survive", async () => {
+    const box = open();
+    await box.run();
+    write(join(box.home, ".diffle", "bin", "diffle"), "old");
+    write(join(box.home, ".diffle", "bin", ".diffle-notes"), "mine");
+    write(join(box.home, ".diffle", "bin", ".diffle.new-1"), "staged");
+    write(join(box.home, ".nittle", "bin", ".nittle.settings"), "mine");
+    await box.run(["--uninstall"]);
+    expect(readdirSync(join(box.home, ".diffle", "bin"))).toEqual([".diffle-notes"]);
+    expect(readdirSync(join(box.home, ".nittle", "bin"))).toEqual([".nittle.settings"]);
+  });
+
   test("a dry run removes nothing", async () => {
     const box = open();
     await box.run();

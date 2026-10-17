@@ -287,7 +287,10 @@ function Remove-Installed {
   }
   $Stem = [IO.Path]::GetFileNameWithoutExtension($Executable)
   if (Test-Path -LiteralPath $Directory) {
-    Get-ChildItem -LiteralPath $Directory -Force -Filter ".$Stem.*" -ErrorAction SilentlyContinue |
+    # only what the installer and updater leave behind: staged (.stem.new-*, .stem.exe.new) and retired (.stem.exe.old*)
+    $Leftover = "^\.$([regex]::Escape($Stem))(\.exe)?\.(old(-\d+)?|new(-[\w-]+)?)$"
+    Get-ChildItem -LiteralPath $Directory -Force -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -match $Leftover } |
       Remove-Item -Force -ErrorAction SilentlyContinue
     if (-not (Get-ChildItem -LiteralPath $Directory -Force -ErrorAction SilentlyContinue)) {
       Remove-Item -LiteralPath $Directory -Force -ErrorAction SilentlyContinue
