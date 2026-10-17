@@ -1,6 +1,6 @@
-# diffle Review
+# nittle Review
 
-diffle gives a human a code-review-grade surface for evaluating work produced by an agent and returning actionable feedback to that agent.
+nittle gives a human a code-review-grade surface for evaluating work produced by an agent and returning actionable feedback to that agent.
 
 ## Language
 

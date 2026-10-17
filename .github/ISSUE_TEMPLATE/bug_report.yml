@@ -4,7 +4,7 @@ labels: [bug, needs-triage]
 body:
   - type: input
     id: version
-    attributes: {label: diffle version, description: Run diffle --version}
+    attributes: {label: nittle version, description: Run nittle --version}
     validations: {required: true}
   - type: input
     id: environment
