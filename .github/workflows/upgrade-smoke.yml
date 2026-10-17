@@ -1,0 +1,80 @@
+name: upgrade-smoke
+
+# Proves the diffle -> nittle upgrade (decision D23): a real diffle 0.28.1, installed by its own
+# installer into a throwaway home, ends up as nittle with its data, prefs, PATH and agent configs
+# migrated and nothing named diffle left. scripts/upgrade-smoke.ts holds the assertions for both modes.
+#
+# simulated (pull_request, push to main): builds the transition asset from this commit and does what
+#   the 0.28.1 updater does with it (write it over ~/.diffle/bin/diffle, then run the printed
+#   `diffle --version`). works before any release carries a diffle-<os>-<arch> asset.
+# live (release published, workflow_dispatch): runs the real `diffle update` against GitHub. it only
+#   passes once a published release carries the diffle-named transition asset, i.e. one of the first
+#   TRANSITION_ASSET_RELEASES releases after 0.28.1 (src/core/transitionAssets.ts).
+#
+# the windows user PATH is a scope file in simulated mode (the runner's registry is not touched,
+# same seam the installer tests use) and the real registry in live mode on the disposable runner.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  # release.yml calls this after it publishes: a release made with the built-in GITHUB_TOKEN does not
+  # fire the `release` event, so the live check is chained explicitly
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        default: live
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: simulated builds the asset from this ref; live runs `diffle update` against the latest release
+        type: choice
+        options: [live, simulated]
+        default: live
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  upgrade:
+    name: upgrade ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      MODE: ${{ (github.event_name == 'release' || inputs.mode == 'live') && 'live' || 'simulated' }}
+      # authenticates the 0.28.1 installer's release lookup; shared runner ips hit the anonymous limit
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - name: Build the transition asset from this commit
+        if: ${{ env.MODE == 'simulated' }}
+        run: bun run build:binary
+      - name: Upgrade smoke (simulated)
+        if: ${{ env.MODE == 'simulated' }}
+        shell: bash
+        run: |
+          exe=""; if [ "$RUNNER_OS" = Windows ]; then exe=".exe"; fi
+          bun scripts/upgrade-smoke.ts --mode simulated --binary "dist/nittle$exe"
+      - name: Upgrade smoke (live)
+        if: ${{ env.MODE == 'live' }}
+        shell: bash
+        run: |
+          extra=""; if [ "$RUNNER_OS" = Windows ]; then extra="--registry"; fi
+          bun scripts/upgrade-smoke.ts --mode live $extra
