@@ -5,10 +5,10 @@ sidebar:
   order: 1
 ---
 
-diffle serves your working diff as a browser UI. Point it at a ref and it runs `git diff`, parses the result, and opens a review pane.
+nittle serves your working diff as a browser UI. Point it at a ref and it runs `git diff`, parses the result, and opens a review pane.
 
 ```sh
-diffle HEAD~1
+nittle HEAD~1
 ```
 
 See the [CLI reference](/reference/cli/) for the full ref syntax.
@@ -31,11 +31,11 @@ Turn on **line wrapping** to fold long lines into each pane's width. Correspondi
 
 ## Syntax highlighting
 
-Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. diffle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
+Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. nittle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
 
 ## Single-file vs all-files view
 
-By default diffle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
+By default nittle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
 
 ## Marking files viewed
 
@@ -43,7 +43,7 @@ Mark the current file **viewed** with `v` (or the checkbox in its header). The *
 
 ## Live refresh
 
-diffle re-runs `git diff` on demand — press `r` (or hit **Re-run**) after you change the code to pull the latest diff into the same session. Your [inline comments](/guides/inline-comments/) are preserved across re-runs.
+nittle re-runs `git diff` on demand — press `r` (or hit **Re-run**) after you change the code to pull the latest diff into the same session. Your [inline comments](/guides/inline-comments/) are preserved across re-runs.
 
 ## Large files and markdown
 

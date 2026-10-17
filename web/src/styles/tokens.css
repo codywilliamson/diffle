@@ -91,7 +91,7 @@
 }
 
 :root {
-  /* serif reads, sans controls, mono coordinates (docs/diffle/design.md) */
+  /* serif reads, sans controls, mono coordinates (docs/nittle/design.md) */
   --ff-serif: "Source Serif 4", ui-serif, Georgia, serif;
   --ff-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --ff-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;

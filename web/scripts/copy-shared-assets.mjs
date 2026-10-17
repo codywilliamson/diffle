@@ -1,5 +1,5 @@
 // copies repo-owned files into public/ so the built site serves them: the root installers at
-// diffle.dev/install + /install.ps1, and the client's brand icons. the originals stay the source of truth.
+// nittle.dev/install + /install.ps1, and the client's brand icons. the originals stay the source of truth.
 import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
