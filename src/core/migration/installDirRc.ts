@@ -6,6 +6,7 @@
 import { copyFileSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { PRODUCT } from "../product";
+import { samePath } from "../../utils/pathWithin";
 
 export const markers = (name: string) => ({ start: `# >>> ${name} >>>`, end: `# <<< ${name} <<<` });
 
@@ -30,15 +31,37 @@ export function rcCandidates(home: string, env: NodeJS.ProcessEnv): string[] {
 const pad = (n: number) => String(n).padStart(2, "0");
 const stamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 
+// the PATH entries a block body adds, as the installer wrote them (posix export or fish_add_path)
+const ENTRY_LINES = [/^export PATH="(.*):\$PATH"$/, /^fish_add_path "(.*)"$/];
+const entryOf = (line: string): string | undefined => ENTRY_LINES.map((re) => re.exec(line)?.[1]).find((entry) => entry !== undefined);
+const entriesOf = (body: string[]) => body.map(entryOf).filter((entry): entry is string => entry !== undefined);
+
+// true when a nittle block in `lines` puts `dir` on PATH (compared by filesystem equivalence)
+export function hasNittleBlockFor(lines: string[], dir: string): boolean {
+  for (let i = 0; i < lines.length; i++) {
+    const end = lines[i] === CURRENT.start ? lines.indexOf(CURRENT.end, i + 1) : -1;
+    if (end < 0) continue;
+    if (entriesOf(lines.slice(i + 1, end)).some((entry) => samePath(entry, dir))) return true;
+    i = end;
+  }
+  return false;
+}
+
 // the lines with each legacy block swapped for the nittle block (or dropped when a nittle block
-// is already there, so the entry is never duplicated). null when there is no complete legacy block.
+// already puts newDir on PATH, so the entry is never duplicated). a block is only touched when its
+// PATH entry is legacyDir by filesystem equivalence (symlinked homes, macos /var -> /private/var);
+// one pointing anywhere else is left alone. null when nothing was rewritten.
 export function swapBlocks(lines: string[], legacyDir: string, newDir: string): string[] | null {
   const hasCurrent = lines.includes(CURRENT.start);
+  const currentGood = hasNittleBlockFor(lines, newDir);
   const out: string[] = [];
   let swapped = false;
   for (let i = 0; i < lines.length; i++) {
     const end = lines[i] === LEGACY.start ? lines.indexOf(LEGACY.end, i + 1) : -1;
-    if (end < 0) {
+    const body = end < 0 ? [] : lines.slice(i + 1, end);
+    const entries = entriesOf(body);
+    const ours = end >= 0 && entries.every((entry) => samePath(entry, legacyDir));
+    if (!ours || (hasCurrent && entries.length > 0 && !currentGood)) {
       out.push(lines[i]!);
       continue;
     }
@@ -47,8 +70,8 @@ export function swapBlocks(lines: string[], legacyDir: string, newDir: string): 
       // drop the block plus the one blank line the installer inserted above it
       if (out.at(-1) === "") out.pop();
     } else {
-      const body = lines.slice(i + 1, end).map((line) => line.replaceAll(legacyDir, newDir));
-      out.push(CURRENT.start, ...body, CURRENT.end);
+      const moved = body.map((line) => { const entry = entryOf(line); return entry === undefined ? line : line.replace(entry, newDir); });
+      out.push(CURRENT.start, ...moved, CURRENT.end);
     }
     i = end;
   }
@@ -67,10 +90,10 @@ function renameLegacyBackups(rc: string): void {
   }
 }
 
-// true when some rc file carries the nittle PATH block (the installer's, or this migration's)
-export function hasNittleBlock(home: string, env: NodeJS.ProcessEnv): boolean {
+// true when some rc file carries a nittle PATH block for `dir` (the installer's, or this migration's)
+export function hasNittleBlock(home: string, env: NodeJS.ProcessEnv, dir: string): boolean {
   return rcCandidates(home, env).some((rc) => {
-    try { return readFileSync(rc, "utf8").split("\n").includes(CURRENT.start); } catch { return false; }
+    try { return hasNittleBlockFor(readFileSync(rc, "utf8").split("\n"), dir); } catch { return false; }
   });
 }
 
