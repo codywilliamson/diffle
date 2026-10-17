@@ -96,6 +96,14 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `Ctrl+o` | Jump back |
 | `Ctrl+i` | Jump forward |
 
+### Search
+
+| key | action |
+| --- | --- |
+| `/` | Search the file |
+| `n` | Next match (takes a count) |
+| `N` | Previous match (takes a count) |
+
 ### View
 
 | key | action |

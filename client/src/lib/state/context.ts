@@ -7,6 +7,7 @@ import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
+import { createSearchStore, type SearchStore } from "./search.svelte";
 import { reviewOrder } from "$lib/diff/reviewOrder";
 import { canOverrideFileSplit } from "$lib/diff/fileMode";
 
@@ -20,6 +21,7 @@ export interface AppState {
   comments: CommentsStore;
   analysis: AnalysisStore;
   cursor: CursorStore;
+  search: SearchStore;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -47,7 +49,12 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     activePath: () => ui.activeFile,
     follow: (path) => ui.followFile(path),
   });
-  return { prefs, ui, diff, review, comments, analysis, cursor };
+  const search = createSearchStore({
+    file: (path) => diff.files.find((file) => file.path === path),
+    cursorPos: () => cursor.pos,
+    goToLine: cursor.goToLine,
+  });
+  return { prefs, ui, diff, review, comments, analysis, cursor, search };
 }
 
 // call during component init at the app root.

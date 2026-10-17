@@ -9,6 +9,7 @@
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
   import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
+  import SearchBar from "$lib/components/SearchBar.svelte";
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
   import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
@@ -20,7 +21,7 @@
 
   // compose the domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui, analysis, comments } = app;
+  const { diff, ui, analysis, comments, search } = app;
 
   // re-score whenever a fresh diff lands.
   $effect(() => {
@@ -63,6 +64,7 @@
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
+      {#if search.open}<SearchBar />{/if}
       <section data-diff-pane class="min-w-0 flex-1 overflow-auto">
         {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
         <DiffView />

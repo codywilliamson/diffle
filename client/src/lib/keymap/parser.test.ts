@@ -205,11 +205,19 @@ describe("the table", () => {
     expect(BINDINGS.find((b) => b.action === "review.preview")?.keys).toBe("P");
   });
 
+  it("binds search keys for real, with n taken from what's new", () => {
+    for (const [keys, action] of [["/", "search.file"], ["n", "search.next"], ["N", "search.prev"]] as const) {
+      const bindings = BINDINGS.filter((b) => b.keys === keys);
+      expect(bindings.map((b) => [b.action, b.reserved])).toEqual([[action, undefined]]);
+    }
+    expect(BINDINGS.find((b) => b.action === "help.whatsNew")?.keys).toBe("gw");
+  });
+
   it("hides reserved bindings from help and shows counts only where allowed", () => {
     const shown = helpGroups().flatMap((g) => g.bindings);
     expect(shown.some((b) => b.reserved)).toBe(false);
     expect(shown.find((b) => b.keys === "j")?.count).toBe(true);
     expect(shown.find((b) => b.keys === "t")?.count).toBe(false);
-    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "View", "Review", "Help"]);
+    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "Search", "View", "Review", "Help"]);
   });
 });

@@ -140,6 +140,26 @@ export function createCursorStore(deps: CursorDeps) {
       pref = target;
       commit(next, from, { reveal: "line" });
     },
+    // land on a specific diff line (a search match), recording a jump. in a split file the cursor
+    // changes side when the line only exists on the other one.
+    goToLine(path: string, oldLine: number | null, newLine: number | null): void {
+      const find = (): CursorPos | null => {
+        const { index } = snapshot();
+        const fi = index.fileOf.get(path);
+        if (fi === undefined) return null;
+        const stop = index.stops.slice(index.fileStart[fi], index.fileStart[fi + 1]).find((s) => s.oldLine === oldLine && s.newLine === newLine);
+        return stop ? { path, side: stop.side, line: stop.line } : null;
+      };
+      const from = base(path);
+      let target = find();
+      if (!target) {
+        const previous = pref;
+        pref = previous === "new" ? "old" : "new";
+        target = find();
+        if (!target) pref = previous;
+      }
+      commit(target, from, { jump: true, reveal: "line" });
+    },
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
 
