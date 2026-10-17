@@ -5,10 +5,10 @@ sidebar:
   order: 1
 ---
 
-diffle serves your working diff as a browser UI. Point it at a ref and it runs `git diff`, parses the result, and opens a review pane.
+nittle serves your working diff as a browser UI. Point it at a ref and it runs `git diff`, parses the result, and opens a review pane.
 
 ```sh
-diffle HEAD~1
+nittle HEAD~1
 ```
 
 See the [CLI reference](/reference/cli/) for the full ref syntax.
@@ -31,11 +31,11 @@ Turn on **line wrapping** to fold long lines into each pane's width. Correspondi
 
 ## Syntax highlighting
 
-Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. diffle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
+Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. nittle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
 
 ## Single-file vs all-files view
 
-By default diffle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
+By default nittle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
 
 ## Marking files viewed
 
@@ -43,7 +43,7 @@ Mark the current file **viewed** with `v` (or the checkbox in its header). The *
 
 ## Live refresh
 
-diffle re-runs `git diff` on demand — press `r` (or hit **Re-run**) after you change the code to pull the latest diff into the same session. Your [inline comments](/guides/inline-comments/) are preserved across re-runs.
+nittle re-runs `git diff` on demand — press `r` (or hit **Re-run**) after you change the code to pull the latest diff into the same session. Your [inline comments](/guides/inline-comments/) are preserved across re-runs.
 
 ## Large files and markdown
 
@@ -53,21 +53,58 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 
 ## Keyboard shortcuts
 
+Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord starting with `g`. `10j` moves ten lines. A count waits until the next key or `Esc`. A half-typed `g` chord is dropped after 1 second, and so is a chord with an unknown second key, without running anything. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
+
+### Move
+
 | key | action |
 | --- | --- |
-| `j` / `k` | next / previous file |
-| `v` | toggle viewed on the current file |
-| `s` | unified ↔ side-by-side |
-| `w` | wrap long lines |
-| `o` | single-file ↔ all-files view |
-| `g` | open the review scorecard |
-| `m` | file list: tree ↔ review order |
-| `t` | toggle light / dark |
-| `r` | re-run the diff |
-| `c` | preview review feedback |
-| `?` | shortcut overlay |
-| `Ctrl`/`⌘` + `Enter` | save the open comment |
-| `Esc` | close dialogs, cancel an open comment |
+| `j` | Next line (takes a count) |
+| `k` | Previous line (takes a count) |
+| `J` | Next file (takes a count) |
+| `K` | Previous file (takes a count) |
+| `]` | Next hunk (takes a count) |
+| `[` | Previous hunk (takes a count) |
+| `gg` | First line of the file |
+| `G` | Last line of the file, or line N with a count (takes a count) |
+| `Ctrl+d` | Half a page down (takes a count) |
+| `Ctrl+u` | Half a page up (takes a count) |
+| `h` | Side-by-side: old side |
+| `l` | Side-by-side: new side |
+| `Ctrl+o` | Jump back |
+| `Ctrl+i` | Jump forward |
+
+### View
+
+| key | action |
+| --- | --- |
+| `m` | File list: tree / review order |
+| `t` | Light / dark theme |
+| `s` | Side-by-side / unified |
+| `w` | Wrap long lines |
+| `o` | Single-file / all files |
+| `r` | Re-run the diff |
+
+### Review
+
+| key | action |
+| --- | --- |
+| `v` | Toggle viewed on the file |
+| `P` | Preview review feedback |
+| `gc` | Open the review scorecard |
+
+### Help
+
+| key | action |
+| --- | --- |
+| `gw` | What's new |
+| `?` | Keyboard help |
+| `Esc` | Cancel a count or chord, leave the mode, close the overlay |
+| `Ctrl/⌘ + Enter` | Save the open comment |
+
+The cursor is the highlighted row. Collapsed, binary and not-yet-loaded large files have no lines to rest on, so `j` and `k` skip them and `J` and `K` park on the file header.
+
+Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.
 
 ## Next steps
 
