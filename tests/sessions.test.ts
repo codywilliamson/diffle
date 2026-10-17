@@ -7,7 +7,7 @@ import type { SessionEntry } from "../src/core/sessions";
 import { classifySessions, isPidAlive, listSessions, probeSession, registerSession, unregisterSession } from "../src/core/sessions";
 
 const dirs: string[] = [];
-function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "diffle-sessions-")); dirs.push(dir); return dir; }
+function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "nittle-sessions-")); dirs.push(dir); return dir; }
 
 beforeEach(() => { process.env.NITTLE_DATA_DIR = tempDir(); });
 afterEach(() => { delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });

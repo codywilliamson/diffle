@@ -10,7 +10,7 @@ import {
 
 const dirs: string[] = [];
 const comment = { id: "c1", file: "src/a.ts", line: 4, lineContent: "+new", text: "please fix", createdAt: "2026-01-01T00:00:00.000Z" };
-function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "diffle-records-")); dirs.push(dir); return dir; }
+function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "nittle-records-")); dirs.push(dir); return dir; }
 function makeRecord(cwd = tempDir()) { return createReviewRecord({ target: { cwd, ref: "main" }, comments: [comment], viewed: ["src/a.ts"] }); }
 
 beforeEach(() => { process.env.NITTLE_DATA_DIR = tempDir(); });
