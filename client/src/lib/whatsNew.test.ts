@@ -7,7 +7,7 @@ describe("what's new", () => {
     expect(WHATS_NEW.highlights[0]).toContain(PRODUCT.lineage);
     const all = WHATS_NEW.highlights.join("\n");
     expect(all.split(PRODUCT.lineage)).toHaveLength(2);
-    expect(WHATS_NEW.highlights[0]).toContain(`\`${PRODUCT.name}\``);
+    expect(WHATS_NEW.highlights[0]).toContain(`the command is now ${PRODUCT.name}.`);
   });
 
   it("is newer than the 0.28.x line so upgraders see it", () => {
