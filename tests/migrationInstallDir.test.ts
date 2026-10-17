@@ -55,6 +55,15 @@ describe("install dir migration from the diffle binary", () => {
     expect(logs.every((line) => line.startsWith("[nittle]"))).toBe(true);
   });
 
+  test("the old installer's rc backups are kept under the nittle name", () => {
+    installLegacy();
+    write(join(home, ".zshrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    write(join(home, ".zshrc.diffle.bak-20260101-101010"), "backup");
+    setup().run();
+    expect(readFileSync(join(home, ".zshrc.nittle.bak-20260101-101010"), "utf8")).toBe("backup");
+    expect(readdirSync(home).some((name) => name.includes("diffle"))).toBe(false);
+  });
+
   test("a second run does nothing", () => {
     installLegacy();
     write(join(home, ".bashrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n") + "\n");
