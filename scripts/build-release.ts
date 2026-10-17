@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PRODUCT } from "../src/core/product";
 import { assetName } from "../src/core/updateTarget";
-import { generateStandaloneEntry } from "./generateStandaloneEntry";
+import { generateStandaloneEntry, WORKER_ENTRY_FILES } from "./generateStandaloneEntry";
 
 const BUN_TARGET: Record<string, string> = {
   "linux-x64": "bun-linux-x64",
@@ -33,7 +33,7 @@ const checksums: string[] = [];
 for (const target of targets) {
   const name = assetName(target); // Bun appends .exe for windows targets, matching this name
   const outfile = join(outDir, `${PRODUCT.name}-${target}`);
-  const r = Bun.spawnSync(["bun", "build", entryFile, "--compile", `--target=${BUN_TARGET[target]}`, "--outfile", outfile], { cwd: root, stdout: "inherit", stderr: "inherit" });
+  const r = Bun.spawnSync(["bun", "build", entryFile, ...WORKER_ENTRY_FILES, "--compile", `--target=${BUN_TARGET[target]}`, "--outfile", outfile], { cwd: root, stdout: "inherit", stderr: "inherit" });
   if (r.exitCode !== 0) throw new Error(`compile failed for ${target}`);
   const bytes = readFileSync(join(outDir, name));
   checksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${name}`);
