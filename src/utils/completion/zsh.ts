@@ -6,7 +6,10 @@ import { completionModel, namedCommands, type CompletionCommand } from "./model"
 import { PROGRAM, posixRefCommand, shSingleQuote, valueFlagNames } from "./shared";
 
 // _describe wants "name:description" with colons in the name escaped.
-const entry = (name: string, description: string) => shSingleQuote(`${name.replace(/:/g, "\\:")}:${description}`);
+// backslashes go first so the ones added for colons are not escaped again.
+export const describeEntry = (name: string, description: string) =>
+  shSingleQuote(`${name.replace(/\\/g, "\\\\").replace(/:/g, "\\:")}:${description}`);
+const entry = describeEntry;
 
 function valueCases(model: CompletionCommand[]): string {
   const seen = new Set<string>();
@@ -15,7 +18,8 @@ function valueCases(model: CompletionCommand[]): string {
     const pattern = flag.names.join("|");
     if (seen.has(pattern)) continue;
     seen.add(pattern);
-    cases.push(`    ${pattern}) ${flag.values.length ? `compadd -- ${flag.values.join(" ")}; ` : ""}return 0 ;;`);
+    const prefix = flag.list ? "compset -P '*,'; " : "";
+    cases.push(`    ${pattern}) ${flag.values.length ? `${prefix}compadd -- ${flag.values.join(" ")}; ` : ""}return 0 ;;`);
   }
   return cases.join("\n");
 }
