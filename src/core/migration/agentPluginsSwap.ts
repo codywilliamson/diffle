@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { isPluginInstalled, type AgentTarget, type PluginIntegration } from "../agentTargets";
 import { pluginStepArgs, type RunCommand } from "../agentSetup";
+import { marketplaceState } from "../marketplaceState";
 import { PRODUCT } from "../product";
 import { diagnoseClaudePlugins, readClaudePluginState } from "../../utils/claudePlugins";
 
@@ -52,6 +53,12 @@ export function planPluginSwap(target: AgentTarget): PluginSwapStep[] {
   return [...steps.filter((step) => step.kind === "install"), ...steps.filter((step) => step.kind === "remove")];
 }
 
+// a retry re-adds a marketplace the first pass already registered. that failure is fine when the
+// registered entry is verifiably ours; a foreign or unreadable registration still stops the swap.
+export function marketplaceAlreadyOurs(integration: PluginIntegration, args: string[]): boolean {
+  return args[1] === "marketplace" && args[2] === "add" && marketplaceState(integration.marketplaceSources) === "ours";
+}
+
 // runs the steps in plan order; stops at the first failing step, leaving later removals undone
 export function runPluginSwap(target: AgentTarget, steps: PluginSwapStep[], run: RunCommand): SwapOutcome {
   const outcome: SwapOutcome = { removed: [], installed: false, failed: [] };
@@ -60,7 +67,7 @@ export function runPluginSwap(target: AgentTarget, steps: PluginSwapStep[], run:
   for (const step of steps) {
     let code = -1;
     try { code = run(integration.cli, pluginStepArgs(integration.cli, step.args, true)); } catch { /* spawn failure = failed step */ }
-    if (code !== 0) { outcome.failed.push(step.label); break; }
+    if (code !== 0 && !marketplaceAlreadyOurs(integration, step.args)) { outcome.failed.push(step.label); break; }
     if (step.kind === "remove") outcome.removed.push(step.label);
     else outcome.installed = true;
   }
