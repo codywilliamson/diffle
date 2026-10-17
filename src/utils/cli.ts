@@ -3,12 +3,12 @@
 
 export { USAGE, helpFor } from "./usage";
 import { COMMIT_SPEC_SUFFIX } from "./commitTarget";
-import { HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type HookAgent, type McpAction } from "./cliVocabulary";
+import { COMPLETION_SHELLS, HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type CompletionShell, type HookAgent, type McpAction } from "./cliVocabulary";
 
 export type { McpAction };
 
 export interface CliOptions {
-  command: "review" | "show" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup";
+  command: "review" | "show" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup" | "completion";
   mcpAction: McpAction | undefined; // mcp only
   agent: HookAgent | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
@@ -23,6 +23,7 @@ export interface CliOptions {
   fix: boolean; // doctor: apply the repair plan
   check: boolean; // update: report whether a newer release exists, never download
   remove: boolean; // setup: unwire instead of wire
+  shell: CompletionShell | undefined; // completion only
   agents: string[] | undefined; // setup: agent ids to act on, skipping the prompt
   help: boolean;
   version: boolean;
@@ -56,7 +57,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "cleanup" ? "cleanup" :
     args[0] === "update" ? "update" :
     args[0] === "doctor" ? "doctor" :
-    args[0] === "setup" ? "setup" : "review";
+    args[0] === "setup" ? "setup" :
+    args[0] === "completion" ? "completion" : "review";
   if (command === "mcp" || command === "hook") {
     args.shift();
     const helpOnly = args[0] === "-h" || args[0] === "--help"; // `mcp --help` needs no subcommand
@@ -67,7 +69,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = MCP_ACTIONS.find((action) => command === "mcp" && action === argv[1]);
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, shell: undefined, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
@@ -85,6 +87,12 @@ export function parseCliArgs(argv: string[]): CliOptions {
       const ids = (list ?? "").split(",").map((id) => id.trim()).filter(Boolean);
       if (ids.length === 0) throw new Error("--agents needs a comma-separated list of agent ids");
       opts.agents = ids;
+    }
+    else if (arg === "--shell") {
+      const shell = args[++i];
+      if (opts.command !== "completion") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      if (!COMPLETION_SHELLS.includes(shell as CompletionShell)) throw new Error(`--shell must be one of: ${COMPLETION_SHELLS.join(", ")}`);
+      opts.shell = shell as CompletionShell;
     }
     else if (arg === "--review-id") {
       const id = args[++i];

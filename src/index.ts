@@ -23,6 +23,8 @@ import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
 import { EXIT_INTERRUPTED } from "./core/waitExit";
 import { resumeHint, runWait, stoppedExit } from "./utils/waitCli";
+import { renderCompletion } from "./utils/completion";
+import { COMPLETION_SHELLS } from "./utils/cliVocabulary";
 
 // ansi styling, skipped when stdout isn't a terminal.
 const tty = process.stdout.isTTY === true;
@@ -51,6 +53,11 @@ export async function main(): Promise<void> {
     opts = parseCliArgs(process.argv.slice(2));
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
+  }
+  // evaluated from shell profiles on every startup: no migration side effects, nothing but the script.
+  if (opts.command === "completion" && !opts.help) {
+    if (!opts.shell) fail(`completion needs --shell ${COMPLETION_SHELLS.join("|")}`);
+    return void process.stdout.write(renderCompletion(opts.shell));
   }
   const steps = shouldRunLegacyMigrations() ? LEGACY_MIGRATION_STEPS : [];
   for (const result of await runLegacyMigrations(steps)) {
