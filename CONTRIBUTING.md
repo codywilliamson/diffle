@@ -1,4 +1,4 @@
-# Contributing to diffle
+# Contributing to nittle
 
 Use a recent Git and Bun 1.3.14. From a clone of this repository:
 

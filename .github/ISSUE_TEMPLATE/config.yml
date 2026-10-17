@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
-  - name: diffle documentation
-    url: https://diffle.dev
+  - name: nittle documentation
+    url: https://nittle.dev
     about: Installation, review workflows, CLI, and MCP reference
   - name: Report a vulnerability privately
     url: https://github.com/codywilliamson/diffle/security/advisories/new

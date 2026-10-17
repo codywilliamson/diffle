@@ -1,10 +1,10 @@
-# diffle — brand & design system
+# nittle — brand & design system
 
-> This is the canonical source of truth for diffle's look — color, typography, and craft. The client's D5 variables in `client/src/styles/tokens.css` implement it, and Tailwind/shadcn tokens alias those rather than creating a parallel palette. The old warm "proof desk" palette that used to live here was retired because its warm ivory + terracotta read as Claude/Anthropic's own brand; do not reintroduce it. Live mockups: the design-directions canvas (app + landing + docs, all in D5).
+> This is the canonical source of truth for nittle's look — color, typography, and craft. The client's D5 variables in `client/src/styles/tokens.css` implement it, and Tailwind/shadcn tokens alias those rather than creating a parallel palette. The old warm "proof desk" palette that used to live here was retired because its warm ivory + terracotta read as Claude/Anthropic's own brand; do not reintroduce it. Live mockups: the design-directions canvas (app + landing + docs, all in D5).
 
 ## North star
 
-diffle keeps loupe's thesis — **close, exact inspection of a change before it ships**, the way a printer proofs a page — but in a new, **dark-first** visual world. The name is deliberately goofy — it's a diff tool, literally, called *diffle* — worn under a deadpan-serious backronym: the **Deterministic Inspection & Feedback Framework for Language-model Engineering**. Dark is the default because the audience lives in terminals and editors; a light theme is a secondary variant, not the primary.
+nittle keeps loupe's thesis — **close, exact inspection of a change before it ships**, the way a printer proofs a page — but in a new, **dark-first** visual world. The name is nit + le: a tool for nitpicking diffs. Its previous name, diffle, carried a deadpan-serious backronym (the Deterministic Inspection & Feedback Framework for Language-model Engineering, ADR 0004) and the joke stays in the lineage line. Dark is the default because the audience lives in terminals and editors; a light theme is a secondary variant, not the primary.
 
 ## Palette — "D5 blended indigo" (dark, default)
 
@@ -68,7 +68,7 @@ Serif explains the review, mono identifies its coordinates, sans carries the con
 
 ## Motion stack
 
-Native-first, one heavyweight for the hard part (see [ADR notes in plan](docs/diffle/plan.md)):
+Native-first, one heavyweight for the hard part (see [ADR notes in plan](docs/nittle/plan.md)):
 
 - **`svelte/motion` springs/tweens** — state-driven motion (drag, hover, collapse, optimistic-save nudges).
 - **`svelte/transition` + `animate:flip`** — enter/exit, staggered diff-line reveals, FLIP reordering of files/comments.

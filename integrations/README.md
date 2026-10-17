@@ -26,5 +26,7 @@ claude plugin install nittle-review@nittle-local --scope user
 ```
 
 
+The plugin was called `diffle-review` before the rename (formerly diffle). nittle replaces it on first run. The marketplace slug stays `codywilliamson/diffle` until the GitHub repo is renamed.
+
 Newly installed Codex plugins load in a new task. Claude Code loads them in a new
 session or after `/reload-plugins`.
