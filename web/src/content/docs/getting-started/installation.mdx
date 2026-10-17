@@ -1,13 +1,13 @@
 ---
 title: Installation
-description: Install nittle with a single command on macOS, Linux, or Windows — no checkout or Node required.
+description: Install nittle with a single command on macOS, Linux, or Windows. No checkout or Node required.
 sidebar:
   order: 1
 ---
 
 import { Tabs, TabItem, Steps, Aside } from "@astrojs/starlight/components";
 
-nittle ships as a single self-contained binary: it embeds its own web client and needs no checkout, no Node, and no sidecar files. It does need **`git`** on your `PATH` — that's the only prerequisite.
+nittle ships as a single self-contained binary. It embeds its own web client and needs no checkout, no Node, and no sidecar files. The only prerequisite is `git` on your `PATH`.
 
 ## Install
 
@@ -24,14 +24,18 @@ nittle ships as a single self-contained binary: it embeds its own web client and
   </TabItem>
 </Tabs>
 
-The installer downloads the binary for your OS and architecture, verifies its SHA-256 against the published checksum manifest, and installs it to `~/.nittle/bin` — and adds that directory to your `PATH` for you.
+The installer downloads the binary for your OS and architecture, verifies its SHA-256 against the published checksum manifest, and installs it to `~/.nittle/bin`. It adds that directory to your `PATH` for you.
+
+<Aside type="note" title="Formerly diffle">
+  nittle used to be called diffle, and before that loupe. The old `diffle.dev/install` links still work: diffle.dev redirects to nittle.dev with the path kept. If you have a diffle install, the installer migrates it. See [Migrating from diffle](/guides/migrating-from-diffle/).
+</Aside>
 
 <Aside type="tip" title="Custom location">
-  Set `NITTLE_INSTALL_DIR` before running the installer to choose a different directory.
+  Set `NITTLE_INSTALL_DIR` before running the installer to choose a different directory. `DIFFLE_INSTALL_DIR` is still read as a fallback.
 </Aside>
 
 <Aside type="note" title="PATH on macOS / Linux">
-  The installer appends a marked block to your login shell's rc file — `.zshrc` for zsh, `.bashrc` for bash (plus a `.bash_profile` that sources it on macOS), `config.fish` for fish, `.profile` for anything else:
+  The installer appends a marked block to your login shell's rc file: `.zshrc` for zsh (under `ZDOTDIR` if set), `.bashrc` for bash (plus a `.bash_profile` that sources it on macOS), `config.fish` for fish, `.profile` for anything else.
 
   ```sh
   # >>> nittle >>>
@@ -39,14 +43,22 @@ The installer downloads the binary for your OS and architecture, verifies its SH
   # <<< nittle <<<
   ```
 
-  Nothing else in the file is reordered or rewritten, the file is copied to `<rc>.nittle.bak-<timestamp>` before the first edit, and re-running the installer is a no-op. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `nittle` right away — new shells pick it up on their own.
+  Nothing else in the file is reordered or rewritten. The file is copied to `<rc>.nittle.bak-<timestamp>` before the first edit, and re-running the installer is a no-op. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `nittle` right away. New shells pick it up on their own.
 
   Set `NITTLE_NO_MODIFY_PATH=1` to skip the rc edit and print the `export` line instead, `NITTLE_NO_SETUP=1` to skip the agent setup prompt, or `NITTLE_DRY_RUN=1` to log every intended change without writing anything.
 </Aside>
 
 <Aside type="note" title="Windows PATH">
-  `install.ps1` needs PowerShell 7 or newer. It edits only your **user** `PATH` (never the machine scope, and never the merged process value), backs the old value up to a timestamped file first, preserves every existing entry — `%VAR%` tokens included — and does nothing if `~\.nittle\bin` is already there. Set `NITTLE_NO_MODIFY_PATH` to install without touching `PATH`, `NITTLE_NO_SETUP` to skip the agent setup prompt, or `NITTLE_DRY_RUN` to print the plan and write nothing.
+  `install.ps1` needs PowerShell 7 or newer. It edits only your user `PATH`, never the machine scope and never the merged process value. It backs the old value up to a timestamped file in your temp directory first, keeps every existing entry (`%VAR%` tokens included), and does nothing if `~\.nittle\bin` is already there. Set `NITTLE_NO_MODIFY_PATH` to install without touching `PATH`, `NITTLE_NO_SETUP` to skip the agent setup prompt, or `NITTLE_DRY_RUN` to print the plan and write nothing.
 </Aside>
+
+## If you have a diffle install
+
+Run the same installer. After it installs nittle, it runs `nittle --version` once, and the binary's own first-run migration moves everything over: the data directory, the install directory and `PATH` entry, the agent plugins and MCP configs, and the browser prefs. Then it removes the diffle leftovers.
+
+The installer also finds a diffle that was installed to a custom directory. It reads the directory from the old `# >>> diffle >>>` block in your rc file or from `PATH`, and only trusts a directory that really holds a diffle binary.
+
+If the migration can't finish, nittle keeps both copies, prints what is left, and tries again on the next run. Details are in [Migrating from diffle](/guides/migrating-from-diffle/).
 
 ## Set up your coding agents
 
@@ -88,20 +100,22 @@ nittle update
 
 `nittle update` downloads the latest release, verifies its checksum, and swaps the binary in place (on Windows the swap completes as the process exits). If a package manager installed nittle, it prints that manager's upgrade command instead.
 
-nittle also announces a new release in one line when you launch a review (at most one check a day); set `NITTLE_NO_UPDATE_CHECK=1` to silence it, or run `nittle update --check` to ask on demand.
+nittle also announces a new release in one line when you launch a review (at most one check a day). Set `NITTLE_NO_UPDATE_CHECK=1` to silence it, or run `nittle update --check` to ask on demand.
 
 ## Uninstall
 
-Remove the binary, and optionally your data directory. On a terminal, the uninstaller first runs `nittle setup --remove` so agents you wired up with `nittle setup` stop pointing at the deleted binary. Cancelling it stops the uninstall with the binary still in place; set `NITTLE_NO_SETUP=1` to skip it. Without a terminal, run `nittle setup --remove` yourself before uninstalling.
+The uninstaller removes the binary and its `PATH` entry, and any diffle leftovers too. On a terminal, it first runs `nittle setup --remove` so agents you wired up with `nittle setup` stop pointing at the deleted binary. Cancelling that stops the uninstall with the binary still in place. Set `NITTLE_NO_SETUP=1` to skip it. Without a terminal, run `nittle setup --remove` yourself before uninstalling.
+
+It only removes empty directories. Your review records and settings stay in `~/.nittle` until you delete them.
 
 <Tabs syncKey="os">
   <TabItem label="macOS / Linux" icon="apple">
     ```sh
-    curl -fsSL https://nittle.dev/install | NITTLE_UNINSTALL=1 sh   # binary + PATH block
-    rm -rf ~/.nittle                                                # also removes review records + settings
+    curl -fsSL https://nittle.dev/install | sh -s -- --uninstall   # binary + PATH block
+    rm -rf ~/.nittle                                              # also removes review records + settings
     ```
 
-    The uninstall step removes the `# >>> nittle >>>` block from your rc file and leaves the rest byte-identical. If you already have the script on disk, `sh install.sh --uninstall` does the same thing.
+    The uninstall step removes the `# >>> nittle >>>` block from your rc file (and the old `# >>> diffle >>>` block, if there is one) and leaves the rest byte-identical. If you already have the script on disk, `sh install.sh --uninstall` does the same thing. `NITTLE_UNINSTALL=1` works too.
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
@@ -114,7 +128,7 @@ Remove the binary, and optionally your data directory. On a terminal, the uninst
 
 ## From source (contributors)
 
-nittle's server, CLI, and MCP runtime run on [Bun](https://bun.sh); the client is a built Svelte SPA.
+nittle's server, CLI, and MCP runtime run on [Bun](https://bun.sh). The client is a built Svelte SPA.
 
 ```sh
 git clone https://github.com/codywilliamson/diffle
@@ -122,7 +136,3 @@ cd diffle
 bun install
 bun run dev        # backend + Vite with /api proxied
 ```
-
-<Aside title="Formerly diffle">
-  nittle used to be called diffle, and before that loupe. If you have an older install, the first `nittle` run moves it over. See [Migrating from diffle](/guides/migrating-from-diffle/).
-</Aside>
