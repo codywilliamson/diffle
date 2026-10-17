@@ -7,7 +7,7 @@ import { searchDiffFiles } from "./searchDiff";
 
 export interface SearchWorkerRequest {
   files: DiffFile[];
-  contents: Record<string, Uint8Array>; // keyed by contentKey(side, path)
+  contents: Record<string, ArrayBuffer>; // keyed by contentKey(side, path); transferred, not copied
   query: string;
   caseMode: SearchCase;
 }
@@ -22,7 +22,7 @@ declare const self: { onmessage: ((event: { data: SearchWorkerRequest }) => void
 self.onmessage = ({ data }) => {
   try {
     const pattern = compilePattern(data.query, true, data.caseMode);
-    const read = (path: string, side: string) => data.contents[`${side}:${path}`] ?? null;
+    const read = (path: string, side: string) => (data.contents[`${side}:${path}`] ? new Uint8Array(data.contents[`${side}:${path}`]!) : null);
     const response = searchDiffFiles(data.files, read, pattern, (progress) => {
       self.postMessage({ type: "progress", response: { results: [...progress.results], truncated: progress.truncated } });
     });

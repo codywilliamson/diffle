@@ -1,7 +1,8 @@
 import { describe, it, expect } from "bun:test";
 import type { DiffFile } from "../src/types";
-import { compilePattern, searchText, MAX_PREVIEW_CHARS, MAX_SEARCH_RESULTS, MAX_SCAN_LINE_CHARS } from "../src/core/search";
+import { compilePattern, searchText, MAX_SEARCH_FILE_BYTES,MAX_PREVIEW_CHARS, MAX_SEARCH_RESULTS, MAX_SCAN_LINE_CHARS } from "../src/core/search";
 import { searchDiffFiles } from "../src/core/searchDiff";
+import { collectSides, MAX_SEARCH_TOTAL_BYTES } from "../src/core/searchCollect";
 import { oldSideRef } from "../src/core/searchBase";
 
 const opts = { path: "f.txt", side: "new" as const, limit: 1000 };
@@ -61,6 +62,36 @@ describe("search cap", () => {
     const out = searchDiffFiles([file], () => new TextEncoder().encode(text), compilePattern("needle", false, "smart"));
     expect(out.results.length).toBe(MAX_SEARCH_RESULTS);
     expect(out.truncated).toBe(false);
+  });
+});
+
+describe("collectSides", () => {
+  const added = (path: string): DiffFile => ({ path, oldPath: null, changeType: "added", additions: 0, deletions: 0, hunks: [] });
+  const farOff = () => performance.now() + 60_000;
+
+  it("never reads a file whose size is over the per-file cap", () => {
+    const reads: string[] = [];
+    const source = { size: () => MAX_SEARCH_FILE_BYTES + 1, read: (path: string) => { reads.push(path); return new Uint8Array(1); } };
+    const out = collectSides([added("huge.txt")], source, farOff());
+    expect(reads).toEqual([]);
+    expect(out.truncated).toBe(true);
+    expect(out.contents).toEqual({});
+  });
+
+  it("stops collecting at the aggregate cap", () => {
+    const size = MAX_SEARCH_FILE_BYTES;
+    const files = Array.from({ length: 10 }, (_, i) => added(`f${i}.txt`));
+    const source = { size: () => size, read: () => new Uint8Array(size) };
+    const out = collectSides(files, source, farOff());
+    expect(Object.keys(out.contents).length).toBe(Math.floor(MAX_SEARCH_TOTAL_BYTES / size));
+    expect(out.truncated).toBe(true);
+  });
+
+  it("stops at the deadline", () => {
+    const source = { size: () => 1, read: () => new Uint8Array(1) };
+    const out = collectSides([added("a.txt")], source, performance.now() - 1);
+    expect(out.truncated).toBe(true);
+    expect(out.contents).toEqual({});
   });
 });
 
