@@ -29,13 +29,32 @@ function playwrightVersion(): string {
 
 const imageTag = (): string => `${IMAGE_REPO}:v${playwrightVersion()}-${IMAGE_FLAVOR}`;
 
-function innerCommand(playwrightArgs: string[]): string {
+const CONTAINER_HOME = "/tmp/home"; // writable by any uid, used when running as the caller
+
+// Docker Desktop (Windows) maps file ownership itself; native linux and macOS hosts would end up
+// with root-owned dist/, test-results/ and snapshots, so run as the caller there.
+function callerIds(): { uid: number; gid: number } | null {
+  if (process.platform === "win32" || !process.getuid || !process.getgid) return null;
+  return { uid: process.getuid(), gid: process.getgid() };
+}
+
+function containerFlags(ids: { uid: number; gid: number } | null): string[] {
+  const mounts = ["-v", `${REPO_ROOT}:${WORKDIR}`];
+  if (!ids) return [...mounts, "-v", `${NODE_MODULES_VOLUME}:${WORKDIR}/node_modules`, "-v", `${BUN_CACHE_VOLUME}:/root/.bun/install/cache`];
+  // a named volume would be root-owned, so linux deps live on a tmpfs owned by the caller
+  const tmpfs = `${WORKDIR}/node_modules:rw,exec,mode=755,uid=${ids.uid},gid=${ids.gid}`;
+  return ["--user", `${ids.uid}:${ids.gid}`, "-e", `HOME=${CONTAINER_HOME}`, ...mounts, "--tmpfs", tmpfs];
+}
+
+function innerCommand(playwrightArgs: string[], asCaller: boolean): string {
+  const setup = asCaller
+    ? [`mkdir -p ${CONTAINER_HOME}`, `npm install -g --silent --prefix ${CONTAINER_HOME}/bun bun@${BUN_VERSION}`, `export PATH=${CONTAINER_HOME}/bun/bin:$PATH`]
+    : ["command -v git >/dev/null || (apt-get update -qq && apt-get install -y -qq git)", `npm install -g --silent bun@${BUN_VERSION}`];
   const args = playwrightArgs.map((a) => `'${a.replaceAll("'", "'\\''")}'`).join(" ");
   return [
     "set -euo pipefail",
     "git config --global --add safe.directory '*'",
-    "command -v git >/dev/null || (apt-get update -qq && apt-get install -y -qq git)",
-    `npm install -g --silent bun@${BUN_VERSION}`,
+    ...setup,
     "bun install --frozen-lockfile",
     `bun run test:e2e:visual -- ${args}`,
   ].join("\n");
@@ -53,19 +72,11 @@ function main(): number {
   }
 
   const image = imageTag();
-  console.log(`[e2e-docker] ${image}${update ? " (updating snapshots)" : ""}`);
+  const ids = callerIds();
+  console.log(`[e2e-docker] ${image}${update ? " (updating snapshots)" : ""}${ids ? ` as ${ids.uid}:${ids.gid}` : ""}`);
   const run = spawnSync(
     "docker",
-    [
-      "run", "--rm", "--ipc=host",
-      "-v", `${REPO_ROOT}:${WORKDIR}`,
-      "-v", `${NODE_MODULES_VOLUME}:${WORKDIR}/node_modules`,
-      "-v", `${BUN_CACHE_VOLUME}:/root/.bun/install/cache`,
-      "-w", WORKDIR,
-      "-e", "CI=1",
-      image,
-      "bash", "-c", innerCommand(playwrightArgs),
-    ],
+    ["run", "--rm", "--ipc=host", ...containerFlags(ids), "-w", WORKDIR, "-e", "CI=1", image, "bash", "-c", innerCommand(playwrightArgs, ids !== null)],
     { stdio: "inherit" },
   );
   return run.status ?? 1;
