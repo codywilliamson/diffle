@@ -47,7 +47,7 @@
     { shortcut: "s", label: split ? "Unified (all files)" : "Side-by-side (all files)", action: onToggleSplit },
     { shortcut: "w", label: wrap ? "No wrap" : "Wrap lines", action: onToggleWrap },
     { shortcut: "t", label: "Toggle theme", action: onToggleTheme },
-    { shortcut: "n", label: "What's new", action: onWhatsNew },
+    { shortcut: "gw", label: "What's new", action: onWhatsNew },
     { shortcut: "?", label: "Keyboard shortcuts", action: onHelp },
   ]);
 

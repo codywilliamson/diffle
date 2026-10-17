@@ -62,7 +62,7 @@
       <button
         type="button"
         class="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted hover:bg-surface-2 hover:text-text"
-        title="Review scorecard (g)"
+        title="Review scorecard (gc)"
         aria-label="Review scorecard, overall {scoreBand} risk"
         onclick={() => ui.toggleOverlay("scorecard")}
       >
@@ -121,7 +121,7 @@
       >
         {#if prefs.theme === "dark"}<Sun size={16} />{:else}<Moon size={16} />{/if}
       </button>
-      <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="What's new" title="What's new (n)" onclick={() => ui.toggleOverlay("whatsNew")}>
+      <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="What's new" title="What's new (gw)" onclick={() => ui.toggleOverlay("whatsNew")}>
         <Sparkles size={16} />
       </button>
       <button class="rounded p-1.5 text-muted hover:bg-surface-2 hover:text-text" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onclick={() => ui.toggleOverlay("help")}>

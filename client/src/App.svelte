@@ -13,63 +13,21 @@
   import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
   import { getState } from "$lib/api/meta";
   import { WHATS_NEW } from "$lib/whatsNew";
-  import { isEditable } from "$lib/shortcuts";
+  import { useKeymap } from "$lib/keymap/useKeymap.svelte";
+  import { useCursorReconcile } from "$lib/state/cursorReconcile.svelte";
   import ScorecardPanel from "$lib/components/scorecard/ScorecardPanel.svelte";
-  import { useOrderedFiles } from "$lib/state/orderedFiles.svelte";
-  import { currentFile } from "$lib/diff/currentFile";
 
   // compose the domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui, prefs, comments, analysis } = app;
-
-  const ordered = useOrderedFiles();
+  const { diff, ui, analysis, comments } = app;
 
   // re-score whenever a fresh diff lands.
   $effect(() => {
     if (diff.state.status === "ready" && diff.state.diff) void analysis.refresh();
   });
 
-  // right after any selection (j/k or the sidebar) the pane is still smooth-scrolling to it, so
-  // trust the selection over the scroll position.
-  const SMOOTH_SCROLL_MS = 600;
-  let lastSelectAt = -Infinity;
-  $effect(() => {
-    if (ui.activeFile) lastSelectAt = performance.now();
-  });
-
-  // global shortcuts, ignored while typing in a field.
-  function onKeydown(e: KeyboardEvent): void {
-    if (e.key === "Escape") {
-      ui.closeOverlay();
-      return;
-    }
-    if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-    const paths = ordered.files.map((file) => file.path);
-    const followScroll = prefs.fileView === "all" && performance.now() - lastSelectAt > SMOOTH_SCROLL_MS;
-    const current = followScroll ? currentFile(paths, ui.activeFile) : ui.activeFile ?? paths[0];
-    const index = paths.indexOf(current ?? "");
-    const stepFile = (delta: number): void => {
-      const next = paths[Math.min(paths.length - 1, Math.max(0, index + delta))];
-      if (next) ui.selectFile(next);
-    };
-    switch (e.key) {
-      case "j": stepFile(1); break;
-      case "k": stepFile(-1); break;
-      case "v": if (current) void comments.toggleViewed(current); break;
-      case "t": prefs.toggleTheme(); break;
-      case "s": prefs.toggleSplit(); break;
-      case "w": prefs.toggleWrap(); break;
-      case "o": prefs.setFileView(prefs.fileView === "single" ? "all" : "single"); break;
-      case "r": void diff.refresh(); break;
-      case "g": if (analysis.scorecard) ui.toggleOverlay("scorecard"); break;
-      case "m": prefs.setFileOrder(prefs.fileOrder === "review" ? "tree" : "review"); break;
-      case "c": ui.openOverlay("compile"); break;
-      case "n": ui.toggleOverlay("whatsNew"); break;
-      case "?": ui.toggleOverlay("help"); break;
-      default: return;
-    }
-    e.preventDefault();
-  }
+  const onKeydown = useKeymap();
+  useCursorReconcile();
 
   onMount(() => {
     void diff.load();
