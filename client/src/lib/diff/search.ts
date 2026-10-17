@@ -46,39 +46,63 @@ const splitsPair = (text: string, index: number): boolean => {
 };
 
 // the part of a line that is scanned: no trailing \r, and cut (never inside an emoji) when huge.
-function scanned(text: string): string {
+function scanned(text: string): { line: string; rest: string } {
   const line = text.endsWith("\r") ? text.slice(0, -1) : text;
-  if (line.length <= MAX_SCAN_LINE_CHARS) return line;
-  return line.slice(0, splitsPair(line, MAX_SCAN_LINE_CHARS) ? MAX_SCAN_LINE_CHARS - 1 : MAX_SCAN_LINE_CHARS);
+  if (line.length <= MAX_SCAN_LINE_CHARS) return { line, rest: "" };
+  const at = splitsPair(line, MAX_SCAN_LINE_CHARS) ? MAX_SCAN_LINE_CHARS - 1 : MAX_SCAN_LINE_CHARS;
+  return { line: line.slice(0, at), rest: line.slice(at) };
 }
 
-export function rangesInLine(regex: RegExp, text: string): LineRange[] {
-  const line = scanned(text);
+// why a result is incomplete: a cap cut matches off, or a long line hid some past the scan limit.
+export type Truncation = "capped" | "cut";
+
+export interface LineScan {
+  ranges: LineRange[];
+  capped: boolean; // more matches on the line than MAX_RANGES_PER_LINE
+  cut: boolean; // the unscanned tail of a long line holds another occurrence
+}
+
+export function rangesInLine(regex: RegExp, text: string): LineScan {
+  const { line, rest } = scanned(text);
   const ranges: LineRange[] = [];
   regex.lastIndex = 0;
-  for (let m = regex.exec(line); m && ranges.length < MAX_RANGES_PER_LINE; m = regex.exec(line)) {
+  let m = regex.exec(line);
+  for (; m && ranges.length < MAX_RANGES_PER_LINE; m = regex.exec(line)) {
     ranges.push({ start: m.index, end: m.index + m[0].length });
   }
-  return ranges;
+  regex.lastIndex = 0;
+  return { ranges, capped: m !== null, cut: rest !== "" && regex.test(rest) };
 }
+
+export interface FileSearch {
+  matches: FileMatch[];
+  partial: Truncation | null;
+}
+
+const NO_MATCHES: FileSearch = { matches: [], partial: null };
 
 // every match in the file, in the order the diff reads: hunk by hunk, line by line. a line
 // is searched once, so a context line shown on both sides of a split view is one match.
-export function findFileMatches(file: DiffFile, query: string): FileMatch[] {
+export function findFileMatches(file: DiffFile, query: string): FileSearch {
   const regex = compileQuery(query);
-  if (!regex) return [];
+  if (!regex) return NO_MATCHES;
   const matches: FileMatch[] = [];
+  let capped = false;
+  let cut = false;
   let order = 0;
   for (const hunk of file.hunks) {
     for (const line of hunk.lines) {
-      for (const range of rangesInLine(regex, line.content)) {
-        if (matches.length >= MAX_FILE_MATCHES) return matches;
+      const scan = rangesInLine(regex, line.content);
+      capped ||= scan.capped;
+      cut ||= scan.cut;
+      for (const range of scan.ranges) {
+        if (matches.length >= MAX_FILE_MATCHES) return { matches, partial: "capped" };
         matches.push({ ...range, index: matches.length, order, oldLine: line.oldLine, newLine: line.newLine });
       }
       order++;
     }
   }
-  return matches;
+  return { matches, partial: capped ? "capped" : cut ? "cut" : null };
 }
 
 export const lineKey = (oldLine: number | null, newLine: number | null): string => `${oldLine ?? ""}:${newLine ?? ""}`;

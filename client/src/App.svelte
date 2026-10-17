@@ -21,7 +21,7 @@
 
   // compose the domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
-  const { diff, ui, analysis, comments, search } = app;
+  const { diff, ui, analysis, comments } = app;
 
   // re-score whenever a fresh diff lands.
   $effect(() => {
@@ -59,12 +59,12 @@
     {#if comments.error}
       <p role="alert" class="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{comments.error}</p>
     {/if}
+    <SearchBar />
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
-      {#if search.open}<SearchBar />{/if}
       <section data-diff-pane class="min-w-0 flex-1 overflow-auto">
         {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
         <DiffView />
