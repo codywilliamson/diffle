@@ -3,8 +3,8 @@
 // only those exact blocks are rewritten to the nittle block; nothing else in any profile is
 // touched. the file is copied to <rc>.nittle.bak-<stamp> first, as the installer does.
 
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { PRODUCT } from "../product";
 
 export const markers = (name: string) => ({ start: `# >>> ${name} >>>`, end: `# <<< ${name} <<<` });
@@ -55,6 +55,15 @@ export function swapBlocks(lines: string[], legacyDir: string, newDir: string): 
   return swapped ? out : null;
 }
 
+// the 0.28.x installer's own backups (<rc>.diffle.bak-<stamp>) are kept, just renamed off the old name
+function renameLegacyBackups(rc: string): void {
+  const oldPrefix = `${basename(rc)}.${PRODUCT.legacyName}.bak-`;
+  for (const name of readdirSync(dirname(rc)).filter((entry) => entry.startsWith(oldPrefix))) {
+    const renamed = join(dirname(rc), `${basename(rc)}.${PRODUCT.name}.bak-${name.slice(oldPrefix.length)}`);
+    try { if (!existsSync(renamed)) renameSync(join(dirname(rc), name), renamed); } catch { /* keep the old name */ }
+  }
+}
+
 // returns the rc files that were rewritten
 export function swapRcBlocks(opts: RcSwapOptions): string[] {
   const changed: string[] = [];
@@ -68,6 +77,7 @@ export function swapRcBlocks(opts: RcSwapOptions): string[] {
     copyFileSync(rc, backup);
     writeFileSync(rc, next.join("\n"));
     opts.log(`PATH: rewrote the ${PRODUCT.legacyName} block in ${rc} to ${PRODUCT.name} (backup: ${backup})`);
+    renameLegacyBackups(rc);
     changed.push(rc);
   }
   return changed;
