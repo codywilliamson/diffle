@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PRODUCT } from "$product";
   import Modal from "./Modal.svelte";
   import { WHATS_NEW } from "$lib/whatsNew";
   import { saveState } from "$lib/api/meta";
@@ -13,7 +14,7 @@
   }
 </script>
 
-<Modal title="What's new in diffle" onClose={close}>
+<Modal title={`What's new in ${PRODUCT.name}`} onClose={close}>
   <ul class="flex flex-col gap-2 text-sm text-muted">
     {#each WHATS_NEW.highlights as line (line)}
       <li class="flex gap-2">
