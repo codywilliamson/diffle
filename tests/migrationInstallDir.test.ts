@@ -122,6 +122,13 @@ describe("install dir migration from the diffle binary", () => {
     expect(existsSync(join(home, ".diffle"))).toBe(false);
   });
 
+  test("an older nittle binary is replaced by the one that is running", () => {
+    installLegacy();
+    write(join(home, ".nittle", "bin", "nittle"), "older");
+    setup().run();
+    expect(readFileSync(join(home, ".nittle", "bin", "nittle"), "utf8")).toBe(BINARY);
+  });
+
   test("a diffle-named binary outside the diffle install dir is ignored", () => {
     installLegacy();
     const elsewhere = join(home, "downloads", "diffle-linux-x64");

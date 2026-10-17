@@ -12,7 +12,8 @@ import { fetchReleaseStatus, updateCheckReport } from "./updateNotice";
 import { assetName, detectPackageManager, managerCommand, parseChecksum } from "./updateTarget";
 import { retireBinary } from "./retireBinary";
 import { formatNextSteps, updateNextSteps } from "./updateNextSteps";
-import { isProductBinary } from "../utils/installRoot";
+import { isLegacyProductBinary, isProductBinary } from "../utils/installRoot";
+import { migrateInstallDir } from "./migration/installDir";
 import { restartMcpAfterUpdate } from "../utils/mcpCli";
 
 const tag = `[${PRODUCT.name}]`;
@@ -44,6 +45,17 @@ function replaceBinary(bytes: Buffer): void {
   renameSync(staged, target);
 }
 
+// a diffle-named binary (the transition asset, migration deferred or failed) was just replaced in
+// place; move the new bytes into the nittle layout so the update never leaves a diffle install behind.
+function leaveDiffleLayout(): void {
+  if (!isLegacyProductBinary(basename(process.execPath))) return;
+  try {
+    migrateInstallDir();
+  } catch (err) {
+    console.error(`${tag} could not finish moving to the ${PRODUCT.name} layout: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 // `update --check`: report only, never download. works in a source checkout too.
 async function reportUpdate(productRoot: string): Promise<void> {
   console.log(`${tag} ${updateCheckReport(await fetchReleaseStatus(productRoot))}`);
@@ -73,6 +85,7 @@ export async function runUpdate(productRoot: string, check = false): Promise<voi
 
   replaceBinary(binary);
   console.log(`${tag} updated to v${status.latest}.`);
+  leaveDiffleLayout();
   const outcome = await restartMcpAfterUpdate(process.execPath);
   console.log(formatNextSteps(updateNextSteps(outcome)));
 }
