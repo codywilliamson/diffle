@@ -9,6 +9,9 @@ export function createUiStore() {
   let activeOverlay = $state<OverlayName | null>(null);
   let feedbackSummary = $state<string | null>(null);
   let activeFile = $state<string | null>(null);
+  // bumps on every explicit selection (sidebar, links) so the diff pane scrolls to it; the
+  // keyboard cursor follows files without a request, since it scrolls itself.
+  let scrollRequest = $state<{ path: string } | null>(null);
   let drawerOpen = $state(false);
   let adding = $state<AddTarget | null>(null);
   let selecting = $state<SelectTarget | null>(null);
@@ -19,6 +22,9 @@ export function createUiStore() {
     },
     get activeFile(): string | null {
       return activeFile;
+    },
+    get scrollRequest(): { path: string } | null {
+      return scrollRequest;
     },
     get feedbackSummary(): string | null {
       return feedbackSummary;
@@ -45,7 +51,12 @@ export function createUiStore() {
     // selecting a file also closes the drawer, since on narrow screens selecting IS navigating.
     selectFile(path: string): void {
       activeFile = path;
+      scrollRequest = { path };
       drawerOpen = false;
+    },
+    // mark a file active without asking the pane to scroll (the line cursor moved there).
+    followFile(path: string): void {
+      activeFile = path;
     },
     openDrawer(): void {
       drawerOpen = true;
