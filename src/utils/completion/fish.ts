@@ -1,7 +1,7 @@
 // fish completion script. refs are listed when tab is pressed, not when this is generated.
 
 import { completionModel, namedCommands, type CompletionCommand, type CompletionFlag } from "./model";
-import { PROGRAM, fishSingleQuote, posixRefCommand } from "./shared";
+import { PROGRAM, fishSingleQuote, posixRefCommand, valueFlagNames } from "./shared";
 
 const FN = `__${PROGRAM}`;
 
@@ -26,8 +26,15 @@ export function renderFish(): string {
     `function ${FN}_args`,
     `    set -l words (commandline -opc)`,
     `    set -e words[1]`,
+    `    set -l skip 0`,
     `    for word in $words`,
-    `        string match -q -- '-*' $word; or echo $word`,
+    `        if test $skip -eq 1`,
+    `            set skip 0`,
+    `        else if contains -- $word ${valueFlagNames(model).join(" ")}`,
+    `            set skip 1`,
+    `        else if not string match -q -- '-*' $word`,
+    `            echo $word`,
+    `        end`,
     `    end`,
     `end`,
     `function ${FN}_cmd`,

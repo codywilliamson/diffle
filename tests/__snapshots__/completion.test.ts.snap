@@ -4,15 +4,22 @@ exports[`completion scripts bash output matches the snapshot 1`] = `
 "# bash completion for nittle
 # install: eval "$(nittle completion --shell bash)"
 _nittle() {
-  local cur prev cmd=review flags subs words refpos subpos candidates
+  local cur prev cmd=review flags subs words refpos subpos candidates npos=0 skip=0 first="" word i
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   COMPREPLY=()
-  if (( COMP_CWORD > 1 )); then
-    case "\${COMP_WORDS[1]}" in
-      show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="\${COMP_WORDS[1]}" ;;
+  for (( i = 1; i < COMP_CWORD; i++ )); do
+    word="\${COMP_WORDS[i]}"
+    if (( skip )); then skip=0; continue; fi
+    case "$word" in
+      -p|--port|--review-id|--agent|--shell|--agents) skip=1 ;;
+      -*) ;;
+      *) (( npos == 0 )) && first="$word"; npos=$(( npos + 1 )) ;;
     esac
-  fi
+  done
+  case "$first" in
+    show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="$first" ;;
+  esac
   case "$prev" in
     -p|--port) COMPREPLY=(); return ;;
     --review-id) COMPREPLY=(); return ;;
@@ -25,52 +32,52 @@ _nittle() {
       flags="-p --port --no-open --review-id -v --version --license -h --help"
       subs=""
       words="staged browse"
-      refpos=1; subpos=0 ;;
+      refpos=0; subpos=-1 ;;
     show)
       flags="-p --port --no-open -h --help"
       subs=""
       words=""
-      refpos=2; subpos=0 ;;
+      refpos=1; subpos=-1 ;;
     mcp)
       flags="--yes -h --help"
       subs="serve list restart"
       words=""
-      refpos=0; subpos=2 ;;
+      refpos=-1; subpos=1 ;;
     hook)
       flags="--agent -h --help"
       subs="stop"
       words=""
-      refpos=0; subpos=2 ;;
+      refpos=-1; subpos=1 ;;
     sessions)
       flags="-h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     cleanup)
       flags="--yes --all -h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     update)
       flags="--check -h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     doctor)
       flags="--fix --yes -h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     completion)
       flags="--shell -h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     setup)
       flags="--agents --remove --yes -h --help"
       subs=""
       words=""
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
   esac
   if [[ "$cur" == -* ]]; then
     COMPREPLY=($(compgen -W "$flags" -- "$cur"))
@@ -81,9 +88,9 @@ _nittle() {
     return
   fi
   candidates=""
-  if (( COMP_CWORD == 1 )); then candidates="show mcp hook sessions cleanup update doctor completion setup"; fi
-  if (( subpos > 0 && COMP_CWORD == subpos )); then candidates="$candidates $subs"; fi
-  if (( refpos > 0 && COMP_CWORD == refpos )); then
+  if (( npos == 0 )); then candidates="show mcp hook sessions cleanup update doctor completion setup"; fi
+  if (( subpos >= 0 && npos == subpos )); then candidates="$candidates $subs"; fi
+  if (( refpos >= 0 && npos == refpos )); then
     candidates="$candidates $words $(command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null)"
   fi
   COMPREPLY=($(compgen -W "$candidates" -- "$cur"))
@@ -97,14 +104,21 @@ exports[`completion scripts zsh output matches the snapshot 1`] = `
 # zsh completion for nittle
 # install: source <(nittle completion --shell zsh)    (after compinit)
 _nittle() {
-  local cmd=review refpos=0 subpos=0
+  local cmd=review refpos=-1 subpos=-1 npos=0 skip=0 first="" word i
   local -a flags_ subs_ words_ refs cmds_
   cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'completion:print a tab-completion script for your shell' 'setup:wire nittle into your coding agents (plugin or MCP config)')
-  if (( CURRENT > 2 )); then
-    case "\${words[2]}" in
-      show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="\${words[2]}" ;;
+  for (( i = 2; i < CURRENT; i++ )); do
+    word="\${words[i]}"
+    if (( skip )); then skip=0; continue; fi
+    case "$word" in
+      -p|--port|--review-id|--agent|--shell|--agents) skip=1 ;;
+      -*) ;;
+      *) (( npos == 0 )) && first="$word"; npos=$(( npos + 1 )) ;;
     esac
-  fi
+  done
+  case "$first" in
+    show|mcp|hook|sessions|cleanup|update|doctor|completion|setup) cmd="$first" ;;
+  esac
   case "\${words[CURRENT-1]}" in
     -p|--port) return ;;
     --review-id) return ;;
@@ -117,52 +131,52 @@ _nittle() {
       flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help')
       subs_=()
       words_=('staged' 'browse')
-      refpos=2; subpos=0 ;;
+      refpos=0; subpos=-1 ;;
     show)
       flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=3; subpos=0 ;;
+      refpos=1; subpos=-1 ;;
     mcp)
       flags_=('--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
       subs_=('serve' 'list' 'restart')
       words_=()
-      refpos=0; subpos=3 ;;
+      refpos=-1; subpos=1 ;;
     hook)
       flags_=('--agent:the agent calling the hook: codex or claude-code' '-h:show help' '--help:show help')
       subs_=('stop')
       words_=()
-      refpos=0; subpos=3 ;;
+      refpos=-1; subpos=1 ;;
     sessions)
       flags_=('-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     cleanup)
       flags_=('--yes:skip the confirmation prompt' '--all:also stop active (not just finished/stale) sessions' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     update)
       flags_=('--check:only report whether a newer release exists' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     doctor)
       flags_=('--fix:run the repair commands through the \`claude\` cli' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     completion)
       flags_=('--shell:shell to generate for: bash, zsh, fish, powershell' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
     setup)
       flags_=('--agents:comma-separated agent ids, skips the prompt (e.g. claude,cursor)' '--remove:unwire nittle instead' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help')
       subs_=()
       words_=()
-      refpos=0; subpos=0 ;;
+      refpos=-1; subpos=-1 ;;
   esac
   if [[ "$PREFIX" == -* ]]; then
     _describe -t options 'option' flags_
@@ -172,9 +186,9 @@ _nittle() {
     _path_files -/
     return
   fi
-  (( CURRENT == 2 )) && _describe -t commands 'command' cmds_
-  (( subpos > 0 && CURRENT == subpos )) && compadd -a subs_
-  if (( refpos > 0 && CURRENT == refpos )); then
+  (( npos == 0 )) && _describe -t commands 'command' cmds_
+  (( subpos >= 0 && npos == subpos )) && compadd -a subs_
+  if (( refpos >= 0 && npos == refpos )); then
     refs=(\${(f)"$(command git for-each-ref '--format=%(refname:short)' refs/heads refs/remotes refs/tags 2>/dev/null)"})
     compadd -a words_
     compadd -a refs
@@ -192,8 +206,15 @@ exports[`completion scripts fish output matches the snapshot 1`] = `
 function __nittle_args
     set -l words (commandline -opc)
     set -e words[1]
+    set -l skip 0
     for word in $words
-        string match -q -- '-*' $word; or echo $word
+        if test $skip -eq 1
+            set skip 0
+        else if contains -- $word -p --port --review-id --agent --shell --agents
+            set skip 1
+        else if not string match -q -- '-*' $word
+            echo $word
+        end
     end
 end
 function __nittle_cmd
