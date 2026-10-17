@@ -5,6 +5,7 @@
 
 import { basename, resolve } from "node:path";
 import { PRODUCT } from "./product";
+import { isRetiredExecutable } from "./migration/retiredCommand";
 import { isProductBinary } from "../utils/installRoot";
 
 export interface McpProcess {
@@ -14,11 +15,11 @@ export interface McpProcess {
 
 const MCP_SERVE = /\s+mcp\s+serve\s*$/i;
 const UNIX_PS_LINE = /^\s*(\d+)\s+(.*?)\s+mcp\s+serve\s*$/i;
-const WINDOWS_QUERY = `Get-CimInstance Win32_Process -Filter "Name='${PRODUCT.name}.exe' OR Name='${PRODUCT.legacyName}.exe'" | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json -Compress`;
+const WINDOWS_QUERY = `Get-CimInstance Win32_Process -Filter "${[PRODUCT.name, ...PRODUCT.retiredNames].map((name) => `Name='${name}.exe'`).join(' OR ')}" | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json -Compress`;
 
 interface CimRow { ProcessId: number; ExecutablePath: string | null; CommandLine: string | null; }
 
-const isProductPath = (path: string) => isProductBinary(basename(path).replace(/^["']|["']$/g, ""));
+const isProductPath = (path: string) => isProductBinary(basename(path).replace(/^["']|["']$/g, "")) || isRetiredExecutable(path);
 
 // `ps -Ao pid=,args=` output → mcp servers. argv[0] may contain spaces (mcpb installs), so the
 // path is everything between the pid and the trailing `mcp serve`.
@@ -68,4 +69,20 @@ export function stopMcpProcess(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+export interface StopLegacyResult { found: number; stopped: number; failed: number; }
+
+// a diffle (or loupe) binary serving mcp. these hold the file open, so they must stop before the
+// binary is removed; agents relaunch the replacement on reconnect. never throws: a process table
+// that can't be read just means nothing was stopped.
+export function stopLegacyMcpServers(list = listMcpProcesses, stop = stopMcpProcess): StopLegacyResult {
+  let legacy: McpProcess[] = [];
+  try {
+    legacy = list().filter((proc) => isRetiredExecutable(proc.path));
+  } catch {
+    return { found: 0, stopped: 0, failed: 0 };
+  }
+  const failed = legacy.filter((proc) => !stop(proc.pid)).length;
+  return { found: legacy.length, stopped: legacy.length - failed, failed };
 }

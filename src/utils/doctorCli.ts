@@ -6,6 +6,7 @@ import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
 import { pendingLegacyDataDirs } from "../core/migration/dataDir";
 import { confirmProceed } from "./confirm";
+import { agentChecks, agentPlanLines, findAgentIssues, repairAgents } from "./doctorAgents";
 import { diagnoseClaudePlugins, readClaudePluginState, type Check, type CheckLevel, type RepairStep } from "./claudePlugins";
 import { fetchReleaseTags } from "../core/updateCheck";
 import { fetchReleaseStatus, UPDATE_CHECK_OPT_OUT, updateCheckDisabled, updateHint } from "../core/updateNotice";
@@ -28,7 +29,7 @@ function printPlan(plan: RepairStep[], heading: string, yes = false): void {
 }
 
 // runs the plan through the `claude` cli, sequentially, stopping on the first real failure.
-function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
+function applyPlan(plan: RepairStep[], claude: string, yes: boolean): boolean {
   for (const step of plan) {
     const args = stepArgs(step, yes);
     console.log(`\n${render(step, args)}`);
@@ -42,9 +43,9 @@ function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
       continue;
     }
     console.error(`\nstep failed (exit ${result.exitCode}): ${render(step, args)}`);
-    process.exit(1);
+    return false;
   }
-  console.log(`\ndone — ${RELOAD_HINT}`);
+  return true;
 }
 
 // live release check (doctor is explicit, so no throttle); skipped when the user opted out.
@@ -69,32 +70,52 @@ export async function runDoctorCommand(opts: DoctorOptions, productRoot: string,
   if (pending.length > 0) {
     checks.push({ level: "warn", label: "data migration", detail: `${pending.join(", ")} not yet moved to ~/${PRODUCT.dataDir} (deferred or failed); relaunch ${PRODUCT.name} once old ${PRODUCT.legacyName} processes have exited` });
   }
-  checks.push(await releaseCheck(productRoot, fetchTags));
+  const issues = findAgentIssues();
+  const agentRepairs = agentPlanLines(issues);
+  checks.push(...agentChecks(issues), await releaseCheck(productRoot, fetchTags));
+  const healthy = ok && issues.length === 0;
 
-  console.log(`${PRODUCT.name} doctor — Claude Code plugin health (${state.configDir})\n`);
+  console.log(`${PRODUCT.name} doctor — agent plugin health (${state.configDir})\n`);
   const width = Math.max(...checks.map((check) => check.label.length));
   for (const check of checks) console.log(`  ${BADGE[check.level]}  ${check.label.padEnd(width)}  ${check.detail}`);
 
-  if (plan.length === 0) {
+  if (plan.length === 0 && agentRepairs.length === 0) {
     console.log(`\nnothing to repair`);
-    if (!ok) process.exit(1);
+    if (!healthy) process.exit(1);
     return;
   }
 
+  const printAll = (heading: string, yes = false) => {
+    if (plan.length > 0) printPlan(plan, heading, yes);
+    if (agentRepairs.length === 0) return;
+    if (plan.length === 0) console.log(`\n${heading}`);
+    for (const line of agentRepairs) console.log(`  ${line}`);
+  };
+
   if (!opts.fix) {
-    printPlan(plan, "To repair, run:");
+    printAll("To repair, run:");
     console.log(`\nor let ${PRODUCT.name} run them: ${PRODUCT.name} doctor --fix`);
-    if (!ok) process.exit(1);
+    if (!healthy) process.exit(1);
     return;
   }
 
   const claude = Bun.which(CLAUDE_CLI);
-  if (!claude) {
-    printPlan(plan, `\`${CLAUDE_CLI}\` is not on PATH — nothing was run. Run these yourself:`, opts.yes);
-    process.exit(1);
+  printAll("plan:", opts.yes);
+  if (!(await confirmProceed(opts.yes))) return;
+
+  // each agent is repaired on its own: a missing or failing cli only marks that agent incomplete
+  const incomplete: string[] = [];
+  if (agentRepairs.length > 0) incomplete.push(...repairAgents(issues));
+  if (plan.length > 0) {
+    if (!claude) {
+      printPlan(plan, `\`${CLAUDE_CLI}\` is not on PATH — run these yourself:`, opts.yes);
+      incomplete.push(`Claude Code: \`${CLAUDE_CLI}\` is not on PATH`);
+    } else if (!applyPlan(plan, claude, opts.yes)) incomplete.push("Claude Code: a repair step failed");
   }
 
-  printPlan(plan, "plan:", opts.yes);
-  if (!(await confirmProceed(opts.yes))) return;
-  applyPlan(plan, claude, opts.yes);
+  if (incomplete.length > 0) {
+    console.error(`\nrepairs incomplete:\n${incomplete.map((item) => `  ${item}`).join("\n")}`);
+    process.exit(1);
+  }
+  console.log(`\ndone — ${RELOAD_HINT}`);
 }

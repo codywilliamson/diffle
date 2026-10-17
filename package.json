@@ -16,6 +16,7 @@
     "test": "bun test",
     "client:build": "vite build",
     "client:test": "vitest run",
+    "test:agent-loop": "bun test tests/agentLoop.test.ts --timeout 45000",
     "client:check": "cd client && svelte-check --tsconfig ./tsconfig.json",
     "test:e2e": "playwright test",
     "build:binary": "bun scripts/build-binary.ts",

@@ -2,6 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { isOwnInstall, listMcpProcesses, parseUnixPs, parseWindowsCim } from "../src/core/mcpProcesses";
 import { stopMcpServers } from "../src/utils/mcpCli";
 
+describe("parseUnixPs retired names", () => {
+  it("finds loupe servers by exact name and ignores lookalikes", () => {
+    const output = "  1 /h/.loupe/bin/loupe mcp serve\n  2 /h/loupe-helper mcp serve\n";
+    expect(parseUnixPs(output).map((proc) => proc.pid)).toEqual([1]);
+  });
+});
+
 describe("parseUnixPs", () => {
   it("keeps only product binaries running mcp serve, including paths with spaces", () => {
     const output = [

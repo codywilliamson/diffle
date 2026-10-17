@@ -13,6 +13,11 @@ describe("runLegacyMigrations", () => {
     expect(await runLegacyMigrations([])).toEqual([]);
   });
 
+  it("registers the agent plugin step last", () => {
+    const names = LEGACY_MIGRATION_STEPS.map((step) => step.name);
+    expect(names.at(-1)).toBe("agent-plugins");
+  });
+
   it("runs steps in order and reports each summary", async () => {
     const order: string[] = [];
     const steps: MigrationStep[] = [

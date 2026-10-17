@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { PRODUCT, repositorySlug } from "../core/product";
+import { isRetiredCommand } from "../core/migration/retiredCommand";
 
 export interface InstalledPlugin { key: string; name: string; marketplace: string; version: string; installPath: string; }
 export interface LegacyMcpServer { plugin: string; server: string; }
@@ -32,7 +33,10 @@ const asObject = (value: unknown): Json | undefined =>
   value && typeof value === "object" && !Array.isArray(value) ? (value as Json) : undefined;
 
 // `${pluginName}@${marketplace}`, plus the companion `-hook` plugin
-const keyPattern = (pluginName: string) => new RegExp(`^(${pluginName}(?:-hook)?)@(.+)$`);
+const keyPattern = (pluginNames: readonly string[]) => new RegExp(`^((?:${pluginNames.join("|")})(?:-hook)?)@(.+)$`);
+
+const RETIRED_PLUGIN_NAMES: string[] = PRODUCT.retiredPlugins.map((plugin) => plugin.name);
+const RETIRED_MARKETPLACES: string[] = PRODUCT.retiredPlugins.map((plugin) => plugin.marketplace);
 
 export function claudeConfigDir(): string {
   return process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
@@ -54,8 +58,8 @@ function installs(value: unknown): Json[] {
   return (Array.isArray(value) ? value : [value]).map(asObject).filter((v): v is Json => v !== undefined);
 }
 
-function collect(plugins: Json | undefined, pluginName: string): InstalledPlugin[] {
-  const pattern = keyPattern(pluginName);
+function collect(plugins: Json | undefined, pluginNames: readonly string[]): InstalledPlugin[] {
+  const pattern = keyPattern(pluginNames);
   const found: InstalledPlugin[] = [];
   for (const [key, value] of Object.entries(plugins ?? {})) {
     const match = pattern.exec(key);
@@ -70,9 +74,9 @@ function collect(plugins: Json | undefined, pluginName: string): InstalledPlugin
   return found;
 }
 
-function enabledMatching(settings: Json | undefined, pluginName: string): string[] {
+function enabledMatching(settings: Json | undefined, pluginNames: readonly string[]): string[] {
   const enabled = asObject(settings?.enabledPlugins) ?? {};
-  const pattern = keyPattern(pluginName);
+  const pattern = keyPattern(pluginNames);
   return Object.entries(enabled).filter(([key, on]) => on === true && pattern.test(key)).map(([key]) => key);
 }
 
@@ -84,7 +88,7 @@ function legacyMarketplaces(known: Json | undefined, settings: Json | undefined)
   for (const [name, entry] of [...Object.entries(known ?? {}), ...Object.entries(extra)]) {
     const repo = str(asObject(asObject(entry)?.source)?.repo) ?? "";
     if (name === PRODUCT.plugin.marketplace) continue;
-    if (name === PRODUCT.legacyPlugin.marketplace || repo.endsWith(`/${PRODUCT.legacyName}`)) names.add(name);
+    if (RETIRED_MARKETPLACES.includes(name) || repo.endsWith(`/${PRODUCT.legacyName}`)) names.add(name);
   }
   return [...names];
 }
@@ -98,7 +102,7 @@ function legacyMcpServers(legacy: InstalledPlugin[]): LegacyMcpServer[] {
     try { servers = asObject(asObject(JSON.parse(readFileSync(join(plugin.installPath, ".mcp.json"), "utf8")))?.mcpServers); }
     catch { continue; }
     for (const [server, config] of Object.entries(servers ?? {})) {
-      if (str(asObject(config)?.command) === PRODUCT.legacyName) found.push({ plugin: plugin.key, server });
+      if (isRetiredCommand(str(asObject(config)?.command))) found.push({ plugin: plugin.key, server });
     }
   }
   return found;
@@ -110,14 +114,14 @@ export function readClaudePluginState(configDir = claudeConfigDir()): ClaudePlug
   const known = readJson(join(configDir, "plugins", "known_marketplaces.json"), unreadable);
   const settings = readJson(join(configDir, "settings.json"), unreadable);
   const plugins = asObject(installed?.plugins);
-  const legacy = collect(plugins, PRODUCT.legacyPlugin.name);
+  const legacy = collect(plugins, RETIRED_PLUGIN_NAMES);
   return {
     configDir, legacy,
-    legacyEnabled: enabledMatching(settings, PRODUCT.legacyPlugin.name),
+    legacyEnabled: enabledMatching(settings, RETIRED_PLUGIN_NAMES),
     legacyMarketplaces: legacyMarketplaces(known, settings),
     legacyMcpServers: legacyMcpServers(legacy),
-    product: collect(plugins, PRODUCT.plugin.name),
-    productEnabled: enabledMatching(settings, PRODUCT.plugin.name),
+    product: collect(plugins, [PRODUCT.plugin.name]),
+    productEnabled: enabledMatching(settings, [PRODUCT.plugin.name]),
     unreadable,
   };
 }
@@ -161,7 +165,7 @@ export function diagnoseClaudePlugins(
   const checks: Check[] = [
     state.legacy.length > 0
       ? { level, label: "legacy plugins", detail: list(state.legacy) }
-      : { level: "ok", label: "legacy plugins", detail: `no ${PRODUCT.legacyPlugin.name} plugin installed` },
+      : { level: "ok", label: "legacy plugins", detail: `no ${RETIRED_PLUGIN_NAMES.join(" / ")} plugin installed` },
     state.legacyEnabled.length > 0
       ? { level, label: "legacy plugin enabled", detail: state.legacyEnabled.join(", ") }
       : { level: "ok", label: "legacy plugin enabled", detail: "none enabled" },
