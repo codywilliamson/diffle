@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { PRODUCT } from "../product";
 import { installClientHandlers } from "./clientHandlers";
 import { JsonRpcConnection, LspClosedError, type RequestOptions } from "./jsonRpc";
+import { KILL_GRACE_MS, killTreeNow, reapTree, usesProcessGroups } from "./processGroup";
 import { ADVERTISED_ENCODINGS, DEFAULT_ENCODING, negotiatedEncoding, type PositionEncoding } from "./positions";
 
 export const INITIALIZE_TIMEOUT_MS = 60_000; // roslyn loads a solution before it answers
@@ -18,6 +19,13 @@ export interface BridgeOptions {
   root: string;
   initializationOptions?: unknown;
   env?: Record<string, string | undefined>;
+}
+
+// true when the promise settled before the timer; the timer never outlives the call.
+async function within(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<false>((resolve) => { timer = setTimeout(() => resolve(false), ms); });
+  try { return await Promise.race([promise.then(() => true, () => true), late]); } finally { clearTimeout(timer); }
 }
 
 export class LspBridge {
@@ -42,6 +50,7 @@ export class LspBridge {
   async start(): Promise<void> {
     const proc = Bun.spawn([this.options.command, ...this.options.args], {
       cwd: this.options.root, stdin: "pipe", stdout: "pipe", stderr: "pipe",
+      detached: usesProcessGroups, // own process group on posix, so we can signal server + helpers together
       env: { ...process.env, ...this.options.env },
     });
     this.proc = proc;
@@ -55,6 +64,7 @@ export class LspBridge {
       // let the last stderr lines land first so a failed status has them
       await Promise.race([stderrDone, new Promise((resolve) => setTimeout(resolve, STDERR_DRAIN_MS))]);
       this.exited = true;
+      if (usesProcessGroups) void reapTree(proc.pid); // a crashed server's helpers must not outlive it
       connection.close(new LspClosedError(`language server exited (${code})`));
       this.onExit?.(code);
     });
@@ -86,6 +96,7 @@ export class LspBridge {
   documentVersion(uri: string): number | undefined { return this.documents.get(uri); }
 
   // polite first: shutdown request, exit notification, then wait; kill if it lingers.
+  // every wait is capped, so this always returns within about timeoutMs + 3 * KILL_GRACE_MS.
   async shutdown(timeoutMs = SHUTDOWN_TIMEOUT_MS): Promise<void> {
     if (this.exited || !this.proc) return;
     this.stopping = true;
@@ -93,20 +104,20 @@ export class LspBridge {
     try {
       await this.connection?.request("shutdown", null, { timeoutMs });
       this.connection?.notify("exit");
-    } catch { /* fall through to the kill below */ }
-    const timer = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), timeoutMs));
-    if (await Promise.race([proc.exited, timer]) === "timeout") this.kill();
-    await proc.exited;
+    } catch { /* fall through to the reaping below */ }
+    const leftInTime = await within(proc.exited, timeoutMs);
+    // the leader may be gone while helpers it spawned linger, so reap the group either way (posix)
+    if (!leftInTime || usesProcessGroups) await within(reapTree(proc.pid), KILL_GRACE_MS * 2);
+    await within(proc.exited, KILL_GRACE_MS);
   }
 
-  // synchronous and blunt: used on exit paths that cannot await.
+  // synchronous and blunt: used on exit paths that cannot await. kills the whole tree.
   kill(): void {
     this.stopping = true;
     const pid = this.proc?.pid;
-    if (this.exited || pid === undefined) return;
-    // npm shims are .cmd wrappers on windows; killing only the wrapper would orphan the real server
-    if (process.platform === "win32") Bun.spawnSync(["taskkill", "/PID", String(pid), "/T", "/F"], { stdout: "ignore", stderr: "ignore" });
-    else this.proc?.kill();
+    // a dead pid may be reused on windows, where there is no group to fall back on
+    if (pid === undefined || (this.exited && !usesProcessGroups)) return;
+    killTreeNow(pid);
   }
 
   private initializeParams(): unknown {
