@@ -51,6 +51,22 @@ Review a commit range.
 nittle v0.1.0..HEAD
 ```
 
+### `nittle show [rev]`
+
+Review one commit. With no rev it reviews `HEAD`. It shows the same diff as `nittle <rev>^!`, with the commit's short hash (click to copy the full hash), subject, message, author and date above the files.
+
+A root commit is compared with the empty tree. A merge commit is compared with its first parent, and the header says so.
+
+The review is pinned to the full commit hash. Reopen it later and you see the same diff, even after `HEAD` has moved. It reopens only while the commit still exists in the repo (a rebase plus gc removes it).
+
+It takes `-p, --port <n>`, `--no-open` and `--no-lsp`, as for the default command.
+
+```sh
+nittle show              # the last commit
+nittle show HEAD~2       # an earlier commit
+nittle show a1b2c3d      # any commit by hash
+```
+
 ### `nittle browse [path]`
 
 Review the whole codebase, optionally scoped to a path.
@@ -152,6 +168,9 @@ nittle doctor --fix
 | --- | --- |
 | `-p, --port <n>` | serve on a fixed port (default: any free port) |
 | `--no-open` | don't open the browser automatically |
+| `--wait` | block until you send feedback, approve or cancel, then print the prompt on stdout (see [Agent feedback](/guides/agent-feedback/#without-mcp-nittle---wait)) |
+| `--json` | with `--wait`, print the review as JSON instead of the prompt |
+| `--no-lsp` | start no language servers (see [Code navigation](/guides/code-navigation/)) |
 | `--review-id <id>` | open an existing durable Review Record |
 | `-v, --version` | print the installed version |
 | `--license` | print the bundled MIT license notice |
