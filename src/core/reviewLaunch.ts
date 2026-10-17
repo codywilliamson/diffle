@@ -40,8 +40,9 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   if (!existing && input.requireChanges && loaded.diff.files.length === 0) {
     throw new Error(`No changes found for "${loaded.diff.ref}". Use ref "working" for current tracked and untracked changes, or verify the requested comparison.`);
   }
+  const storedSpec = loaded.pinnedSpec ?? spec;
   const review = existing ?? createReviewRecord({
-    target: { cwd, ref: loaded.diff.ref, ...(spec ? { spec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
+    target: { cwd, ref: loaded.diff.ref, ...(storedSpec ? { spec: storedSpec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
     policy: input.policy ?? "handoff", ...(input.origin ? { origin: input.origin } : {}),
   });
   const assets = resolveClientAssets(input.productRoot);

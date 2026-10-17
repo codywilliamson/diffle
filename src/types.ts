@@ -35,6 +35,19 @@ export interface DiffMeta {
   mode: string; // "working tree" | "staged" | "branch" | "range"
   source: string; // the "new" side label, e.g. "working tree" or "feature/x"
   target: string; // the "base" side label, e.g. "main"
+  commit?: CommitInfo; // present when the target is a single commit (`nittle show`)
+}
+
+// the commit under review, shown above the files
+export interface CommitInfo {
+  hash: string; // full hash; the review record pins this
+  shortHash: string;
+  subject: string;
+  body: string; // plain text, line breaks preserved
+  author: string;
+  date: string; // ISO 8601 author date
+  isMerge: boolean; // merges are diffed against the first parent
+  baseShortHash: string | null; // first parent; null for a root commit (diffed against the empty tree)
 }
 
 export interface DiffResult {
