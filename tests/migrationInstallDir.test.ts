@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
+import { installedBinaryPath } from "../src/core/installedBinary";
 import { migrateInstallDir, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
 import { swapPathEntry, type UserPathStore } from "../src/core/migration/installDirWinPath";
@@ -23,9 +24,11 @@ function memoryStore(initial: string): UserPathStore & { value: string } {
 function setup(overrides: Partial<InstallDirDeps> = {}) {
   const logs: string[] = [];
   const stops: number[] = [];
+  // the nittle bin dir is on PATH unless a test says otherwise
+  const env = { PATH: join(home, ".nittle", "bin"), ...overrides.env };
   const deps: Partial<InstallDirDeps> = {
-    home, platform: "linux", env: {}, execPath: legacyBin(), pathStore: memoryStore(""),
-    stopServers: () => stops.push(1), log: (line) => logs.push(line), ...overrides,
+    home, platform: "linux", execPath: legacyBin(), pathStore: memoryStore(""),
+    stopServers: () => stops.push(1), log: (line) => logs.push(line), ...overrides, env,
   };
   return { logs, stops, run: () => migrateInstallDir(deps) };
 }
@@ -88,29 +91,73 @@ describe("install dir migration from the diffle binary", () => {
     installLegacy();
     const rc = join(home, ".zshrc");
     write(rc, `export PATH="${join(home, ".diffle", "bin")}:$PATH"\n`);
-    const { run, logs } = setup();
+    const { run, logs } = setup({ env: { PATH: "/usr/bin" } });
     run();
     expect(readFileSync(rc, "utf8")).toBe(`export PATH="${join(home, ".diffle", "bin")}:$PATH"\n`);
     expect(readdirSync(home).filter((name) => name.includes(".bak-"))).toEqual([]);
     expect(logs.filter((line) => line.includes("replace"))).toHaveLength(1);
     expect(existsSync(join(home, ".nittle", "bin", "nittle"))).toBe(true);
+    // neither command may be left unreachable: the diffle binary stays until the user fixes PATH
+    expect(existsSync(legacyBin())).toBe(true);
+    run();
+    expect(logs.filter((line) => line.includes("replace"))).toHaveLength(2);
+  });
+
+  test("a hand-added entry that already points at the nittle dir lets the cleanup proceed", () => {
+    installLegacy();
+    setup({ env: { PATH: `/usr/bin${delimiter}${join(home, ".nittle", "bin")}` } }).run();
+    expect(existsSync(join(home, ".diffle"))).toBe(false);
   });
 
   test("NITTLE_NO_MODIFY_PATH leaves every profile alone", () => {
     installLegacy();
     const rc = join(home, ".zshrc");
     write(rc, OLD_BLOCK("x").join("\n"));
-    setup({ env: { NITTLE_NO_MODIFY_PATH: "1" } }).run();
+    setup({ env: { NITTLE_NO_MODIFY_PATH: "1", PATH: "/usr/bin" } }).run();
     expect(readFileSync(rc, "utf8")).toBe(OLD_BLOCK("x").join("\n"));
+    expect(existsSync(legacyBin())).toBe(true);
   });
 
   test("DIFFLE_INSTALL_DIR names the legacy dir and NITTLE_INSTALL_DIR the new one", () => {
     const custom = join(home, "tools", "old");
     const target = join(home, "tools", "new");
     write(join(custom, "diffle"), BINARY);
-    setup({ env: { DIFFLE_INSTALL_DIR: custom, NITTLE_INSTALL_DIR: target }, execPath: join(custom, "diffle") }).run();
+    setup({ env: { DIFFLE_INSTALL_DIR: custom, NITTLE_INSTALL_DIR: target, PATH: target }, execPath: join(custom, "diffle") }).run();
     expect(readFileSync(join(target, "nittle"), "utf8")).toBe(BINARY);
     expect(existsSync(custom)).toBe(false);
+  });
+
+  test("NITTLE_INSTALL_DIR alone sets the destination the agent step also uses", () => {
+    installLegacy();
+    const target = join(home, "elsewhere");
+    setup({ env: { NITTLE_INSTALL_DIR: target, PATH: target } }).run();
+    expect(existsSync(join(target, "nittle"))).toBe(true);
+    expect(installedBinaryPath(home, "linux", { NITTLE_INSTALL_DIR: target })).toBe(join(target, "nittle"));
+    expect(installedBinaryPath(home, "linux", { DIFFLE_INSTALL_DIR: target })).toBe(join(target, "nittle"));
+    expect(installedBinaryPath(home, "linux", {})).toBe(join(home, ".nittle", "bin", "nittle"));
+  });
+
+  test("a symlinked home still counts as the diffle install dir", () => {
+    const real = join(home, "real-home");
+    const linked = join(home, "linked-home");
+    mkdirSync(real);
+    symlinkSync(real, linked, "junction");
+    write(join(real, ".diffle", "bin", "diffle"), BINARY);
+    const { run, logs } = setup({ home: linked, execPath: join(real, ".diffle", "bin", "diffle"), env: { PATH: join(linked, ".nittle", "bin") } });
+    run();
+    expect(readFileSync(join(real, ".nittle", "bin", "nittle"), "utf8")).toBe(BINARY);
+    expect(existsSync(join(real, ".diffle"))).toBe(false);
+    expect(logs.length).toBeGreaterThan(0);
+  });
+
+  test("the old installer's backup and ours with the same stamp do not collide", () => {
+    installLegacy();
+    write(join(home, ".zshrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    write(join(home, ".zshrc.diffle.bak-20260101-101010"), "old backup");
+    write(join(home, ".zshrc.nittle.bak-20260101-101010"), "taken");
+    setup().run();
+    expect(readFileSync(join(home, ".zshrc.nittle.bak-20260101-101010-1"), "utf8")).toBe("old backup");
+    expect(readdirSync(home).some((name) => name.includes("diffle"))).toBe(false);
   });
 
   test("a failed copy keeps the diffle install and reports", () => {
