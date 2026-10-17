@@ -29,7 +29,7 @@ _nittle() {
   esac
   case "$cmd" in
     review)
-      flags="-p --port --no-open --review-id -v --version --license -h --help"
+      flags="-p --port --no-open --wait --json --review-id -v --version --license -h --help"
       subs=""
       words="staged browse"
       refpos=0; subpos=-1 ;;
@@ -128,7 +128,7 @@ _nittle() {
   esac
   case "$cmd" in
     review)
-      flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help')
+      flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help')
       subs_=()
       words_=('staged' 'browse')
       refpos=0; subpos=-1 ;;
@@ -256,6 +256,8 @@ complete -c nittle -n '__nittle_at_start' -a completion -d 'print a tab-completi
 complete -c nittle -n '__nittle_at_start' -a setup -d 'wire nittle into your coding agents (plugin or MCP config)'
 complete -c nittle -n '__nittle_cmd_is review' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
 complete -c nittle -n '__nittle_cmd_is review' -l no-open -d 'don\\'t open the browser automatically'
+complete -c nittle -n '__nittle_cmd_is review' -l wait -d 'block until feedback is returned, then print the prompt on stdout'
+complete -c nittle -n '__nittle_cmd_is review' -l json -d 'with --wait, print the review record as JSON instead of the prompt'
 complete -c nittle -n '__nittle_cmd_is review' -l review-id -x -d 'open an existing durable Review Record'
 complete -c nittle -n '__nittle_cmd_is review' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_cmd_is review' -l license -d 'print the bundled MIT license notice'
@@ -306,7 +308,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'setup' = 'wire nittle into your coding agents (plugin or MCP config)'
   }
   $flags = @{
-    'review' = @('-p', '--port', '--no-open', '--review-id', '-v', '--version', '--license', '-h', '--help')
+    'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--review-id', '-v', '--version', '--license', '-h', '--help')
     'show' = @('-p', '--port', '--no-open', '-h', '--help')
     'mcp' = @('--yes', '-h', '--help')
     'hook' = @('--agent', '-h', '--help')
@@ -325,6 +327,8 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     '-p' = 'serve on a fixed port (default: any free port)'
     '--port' = 'serve on a fixed port (default: any free port)'
     '--no-open' = 'don''t open the browser automatically'
+    '--wait' = 'block until feedback is returned, then print the prompt on stdout'
+    '--json' = 'with --wait, print the review record as JSON instead of the prompt'
     '--review-id' = 'open an existing durable Review Record'
     '-v' = 'print the installed version'
     '--version' = 'print the installed version'
