@@ -4,9 +4,10 @@
 
 import { releasesApiUrl } from "../src/core/updateCheck";
 
+type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 interface ApiRelease { tag_name?: string; draft?: boolean; prerelease?: boolean; }
 
-export async function publishedReleaseTags(fetchImpl: typeof fetch = fetch, token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN): Promise<string[] | null> {
+export async function publishedReleaseTags(fetchImpl: Fetcher = fetch, token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN): Promise<string[] | null> {
   try {
     const res = await fetchImpl(releasesApiUrl().replace("per_page=20", "per_page=100"), {
       headers: { Accept: "application/vnd.github+json", "User-Agent": "nittle-release", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
