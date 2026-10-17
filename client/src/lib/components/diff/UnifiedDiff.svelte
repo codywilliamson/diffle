@@ -66,6 +66,7 @@
         <tr
           class="diff-row row-{line.type}{moved ? ' row-moved' : ''}{onCursor ? ' cursor-row' : ''}{selected ? ' range-selected' : ''}{ranged ? ' in-range' : ''}"
           data-cursor={onCursor ? "" : undefined}
+          aria-current={onCursor ? "location" : undefined}
           data-oldline={line.oldLine ?? ""}
           data-newline={line.newLine ?? ""}
         >

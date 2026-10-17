@@ -96,6 +96,7 @@
         class:row-moved={moved}
         class:cursor-row={onCursor}
         data-cursor={onCursor ? "" : undefined}
+        aria-current={onCursor ? "location" : undefined}
         class:ws-only={annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}
         class:range-selected={selected}
         class:in-range={ranged}
