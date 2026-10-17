@@ -133,3 +133,46 @@ test("stepping scrolls to a match in a later hunk and a selection prefills the b
     cleanup(fixture);
   }
 });
+
+test("Esc closes the topmost layer: a dialog over search first, then search", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await open(page, url);
+    await search(page, "alpha");
+    await page.keyboard.press("Enter");
+    await expect(counter(page)).toHaveText("1 / 3");
+    await page.keyboard.press("?");
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator("[data-search-bar]")).toHaveCount(1);
+    await expect(marks(page)).toHaveCount(3);
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-search-bar]")).toHaveCount(0);
+    await expect(marks(page)).toHaveCount(0);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
+test("search sits in its own row so the file header controls stay reachable", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await open(page, url);
+    await page.keyboard.press("/");
+    const bar = await page.locator("[data-search-bar]").boundingBox();
+    const header = await page.locator("[data-file-path='a.ts'] [data-file-header]").boundingBox();
+    expect(bar && header && bar.y + bar.height <= header.y).toBe(true);
+    await page.keyboard.type("alpha");
+    const after = await page.locator("[data-file-path='a.ts'] [data-file-header]").boundingBox();
+    expect(after?.y).toBe(header?.y);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
