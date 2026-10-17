@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { launchReview } from "../src/core/reviewLaunch";
@@ -100,6 +100,19 @@ describe("nittle show", () => {
 
   it("rejects an unknown commit", () => {
     expect(() => loadReviewTarget(repo, "nope^!")).toThrow("unknown commit: nope");
+  });
+
+  it("rejects option-shaped revs and creates no file", () => {
+    const out = join(data, "injected.txt");
+    expect(() => loadReviewTarget(repo, `--output=${out}^!`)).toThrow("can't start with");
+    expect(() => loadReviewTarget(repo, "--no-such^!")).toThrow("can't start with");
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it("rejects ranges and revision sets instead of reviewing one commit", () => {
+    for (const spec of ["HEAD~2..HEAD^!", "main...side^!", "^main side^!", "HEAD HEAD~1^!"]) {
+      expect(() => loadReviewTarget(repo, spec)).toThrow("one commit");
+    }
   });
 
   it("the review record pins the full hash, so reopening survives HEAD moving", () => {

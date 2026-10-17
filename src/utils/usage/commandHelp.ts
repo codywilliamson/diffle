@@ -53,7 +53,8 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "the empty tree and a merge commit with its first parent.",
       "",
       "The review is pinned to the full commit hash, so reopening it later shows the",
-      "same diff even after HEAD moves.",
+      "same diff even after HEAD moves, as long as the commit still exists in the repo",
+      "(a rebase plus gc removes it).",
     ],
     options: [
       ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
