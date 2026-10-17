@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDataDirStep, removeEmptyLegacyDirs } from "../src/core/migration/dataDir";
+import { createDataDirStep, pendingLegacyDataDirs, removeEmptyLegacyDirs } from "../src/core/migration/dataDir";
+import { acquireLock } from "../src/core/migration/dataDirGuards";
 import { homeDataDir } from "../src/core/dataDir";
 import { createReviewRecord, markCommentAddressed, readReviewRecord, replyToComment, requestRereview, returnFeedback } from "../src/core/reviewRecords";
 import { listSessions, registerSession } from "../src/core/sessions";
@@ -120,7 +121,7 @@ describe("data dir migration", () => {
     expect(warnings.join("\n")).toContain("EBUSY");
     expect(warnings.join("\n")).toContain(dd(".diffle"));
     // nothing half-copied is visible as a record
-    expect(readdirNames(join(dd(".nittle"), "reviews")).some((n) => n.endsWith(".migrating"))).toBe(false);
+    expect(readdirNames(join(dd(".nittle"), "reviews")).some((n) => n.includes(".migrating"))).toBe(false);
 
     step().run();
     expect(existsSync(dd(".diffle"))).toBe(false);
@@ -213,16 +214,79 @@ describe("data dir migration", () => {
     expect(existsSync(dd(".diffle"))).toBe(false);
   });
 
-  it("skips when another migration holds the lock, and takes over a stale lock", () => {
+  it("skips while a live process owns the lock, whatever its age", () => {
     seed(dd(".diffle"), ["b"]);
-    writeFileSync(join(home, ".nittle.migrating.lock"), "1");
+    const lock = join(home, ".nittle.migrating.lock");
+    writeFileSync(lock, String(process.pid));
+    const old = new Date(Date.now() - 60 * 60 * 1000);
+    utimesSync(lock, old, old);
     expect(step().run()).toContain("skipped");
     expect(existsSync(dd(".diffle"))).toBe(true);
-    const old = new Date(Date.now() - 10 * 60 * 1000);
-    utimesSync(join(home, ".nittle.migrating.lock"), old, old);
+    expect(readFileSync(lock, "utf8")).toBe(String(process.pid));
+  });
+
+  it("takes over a lock whose owner is dead, and releases it afterwards", () => {
+    seed(dd(".diffle"), ["b"]);
+    const lock = join(home, ".nittle.migrating.lock");
+    writeFileSync(lock, "999999999");
     step().run();
     expect(existsSync(dd(".diffle"))).toBe(false);
-    expect(existsSync(join(home, ".nittle.migrating.lock"))).toBe(false);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("release leaves a lock alone once someone else owns it", () => {
+    const lock = join(home, "x.lock");
+    const release = acquireLock(lock)!;
+    expect(release).toBeTruthy();
+    writeFileSync(lock, "424242");
+    release();
+    expect(readFileSync(lock, "utf8")).toBe("424242");
+    expect(acquireLock(lock, () => true)).toBeNull();
+    expect(acquireLock(lock, () => false)).toBeTruthy();
+  });
+
+  it("defers (fails closed) when the process table cannot be read", () => {
+    seed(dd(".diffle"), ["b"]);
+    const warnings: string[] = [];
+    const broken = () => { throw new Error("ps exited 1"); };
+    expect(step({ liveWriters: broken, warn: (m: string) => warnings.push(m) }).run()).toBe("deferred");
+    expect(warnings.join(" ")).toContain("ps exited 1");
+    expect(warnings.join(" ")).toContain("doctor");
+    expect(existsSync(dd(".nittle"))).toBe(false);
+    expect(pendingLegacyDataDirs(home)).toEqual([dd(".diffle")]);
+  });
+
+  it("never deletes through a reviews dir that links into ~/.diffle/reviews", () => {
+    seed(dd(".diffle"), ["b"]);
+    mkdirSync(dd(".nittle"));
+    try { symlinkSync(join(dd(".diffle"), "reviews"), join(dd(".nittle"), "reviews"), "junction"); } catch { return; }
+    const warnings: string[] = [];
+    expect(() => step({ warn: (m: string) => warnings.push(m) }).run()).toThrow();
+    expect(existsSync(join(dd(".diffle"), "reviews", "b", "review.json"))).toBe(true);
+    expect(readAll(dd(".nittle"), "b").rec?.id).toBe("b");
+    expect(warnings.join(" ")).toContain("shares storage");
+  });
+
+  it("does not follow or delete a symlink inside the source", () => {
+    seed(dd(".nittle"), ["a"]);
+    seed(dd(".diffle"), ["b"]);
+    const outside = join(home, "outside");
+    mkdirSync(outside);
+    writeFileSync(join(outside, "keep.txt"), "x");
+    try { symlinkSync(outside, join(dd(".diffle"), "sessions", "link"), "junction"); } catch { return; }
+    expect(() => step().run()).toThrow();
+    expect(readFileSync(join(outside, "keep.txt"), "utf8")).toBe("x");
+  });
+
+  it("cleans staging dirs from dead pids only", () => {
+    seed(dd(".nittle"), ["a"]);
+    seed(dd(".diffle"), ["b"]);
+    const dead = join(dd(".nittle"), "reviews", "zz.migrating-999999999");
+    const live = join(dd(".nittle"), "reviews", `yy.migrating-${process.pid}`);
+    mkdirSync(dead); mkdirSync(live);
+    step().run();
+    expect(existsSync(dead)).toBe(false);
+    expect(existsSync(live)).toBe(true);
   });
 
   it("resolves to the old dir only while ~/.nittle does not exist yet", () => {
