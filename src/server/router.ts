@@ -19,6 +19,7 @@ import { handleGetScorecard } from "./analysisHandlers";
 import { handleGetLspStatus } from "./lspHandlers";
 import { handleSessionStop } from "./sessionHandlers";
 import { handlePresence } from "./presence";
+import { handleGetSearch } from "./searchHandlers";
 import { apiError } from "./respond";
 import { isLoopbackHttpOrigin } from "../utils/origin";
 
@@ -53,6 +54,7 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
       if (!hasAllowedOrigin(req, serverPort) || !isLoopbackHttpOrigin(new URL(req.url), serverPort)) return apiError("origin mismatch", 403);
       return handleGetLspStatus(ctx);
     }
+    if (pathname === "/api/search") return hasAllowedOrigin(req, serverPort) ? handleGetSearch(ctx, new URL(req.url)) : apiError("origin mismatch", 403);
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 

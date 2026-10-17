@@ -35,7 +35,7 @@ function readWorkingTree(cwd: string, path: string): Buffer {
 }
 
 // new-side bytes of a repo file: working tree reads disk, other modes `git show <ref>:<path>`.
-function readNewSide(ctx: ServerContext, path: string): Buffer {
+export function readNewSide(ctx: ServerContext, path: string): Buffer {
   return ctx.newRef === null ? readWorkingTree(ctx.cwd, path) : runGitBytes(["show", `${ctx.newRef}:${path}`], ctx.cwd);
 }
 
