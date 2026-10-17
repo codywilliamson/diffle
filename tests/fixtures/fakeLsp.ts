@@ -13,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 interface Config {
   initDelayMs?: number; encoding?: string; stderrOnStart?: string; exitOnInitialize?: number;
   crashFirstN?: number; counterFile?: string; progress?: { delayMs: number; durationMs: number };
-  clientRequests?: boolean; ignoreExit?: boolean; ignoreShutdown?: boolean;
+  clientRequests?: boolean; ignoreExit?: boolean; ignoreShutdown?: boolean; ignoreTerm?: boolean; spawnChild?: boolean;
 }
 interface Msg { id?: number | string; method?: string; params?: any; result?: unknown; error?: unknown }
 
@@ -23,6 +23,8 @@ const opened: string[] = [];
 const closed: string[] = [];
 const replies: Record<string, unknown> = {};
 let initParams: unknown;
+let childPid: number | undefined;
+if (config.ignoreTerm) process.on("SIGTERM", () => {});
 const slow = new Map<number | string, Timer>();
 let nextServerId = 1000;
 let buffer = Buffer.alloc(0);
@@ -68,6 +70,7 @@ function onRequest(msg: Msg): unknown {
   switch (msg.method) {
     case "initialize": {
       initParams = msg.params;
+      if (config.spawnChild) childPid = Bun.spawn([process.execPath, "-e", "process.on(\"SIGTERM\",()=>{});setInterval(()=>{},1000)"], { stdio: ["ignore", "ignore", "ignore"] }).pid;
       if (config.exitOnInitialize !== undefined) return die(config.exitOnInitialize, "fake lsp: refusing to initialize");
       if (countLaunch() < (config.crashFirstN ?? 0)) return die(3, "fake lsp: crashing on purpose");
       if (config.stderrOnStart) process.stderr.write(config.stderrOnStart + "\n");
@@ -77,7 +80,7 @@ function onRequest(msg: Msg): unknown {
     case "shutdown": return config.ignoreShutdown ? undefined : respond(id, null);
     case "fake/echo": return respond(id, msg.params);
     case "fake/slow": return void slow.set(id, setTimeout(() => { slow.delete(id); respond(id, "done"); }, msg.params?.ms ?? 1000));
-    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams });
+    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams, childPid });
     case "fake/crash": return die(1, "fake lsp: crash requested");
     case "fake/burst": return void process.stdout.write(Buffer.concat([frame({ jsonrpc: "2.0", id, result: "a" }), frame({ jsonrpc: "2.0", method: "fake/note", params: {} })]));
     case "fake/partial": {
