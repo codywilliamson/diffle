@@ -8,8 +8,8 @@ import type { DiffFile } from "$types";
 import type { Side } from "$lib/diff/threads";
 import { GIANT_FILE_LINES, lineCountOf } from "$lib/diff/metrics";
 import {
-  FILE_LEVEL, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
-  reanchor, samePos, switchSide, type CursorPos, type FileView,
+  FILE_LEVEL, buildIndex, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
+  reanchor, samePos, switchSide, type CursorPos, type FileView, type StopIndex,
 } from "./cursorSteps";
 import { EMPTY_HISTORY, jumpBack, jumpForward, recordJump, type JumpHistory } from "./jumpHistory";
 
@@ -33,6 +33,14 @@ function defaultNavigable(file: DiffFile): boolean {
   return !file.binary && file.hunks.length > 0 && file.changeType !== "deleted" && lineCountOf(file) <= GIANT_FILE_LINES;
 }
 
+interface Snapshot {
+  files: DiffFile[];
+  sig: string;
+  pref: Side;
+  views: FileView[];
+  index: StopIndex;
+}
+
 export function createCursorStore(deps: CursorDeps) {
   let pos = $state<CursorPos | null>(null);
   let pref = $state<Side>("new");
@@ -41,13 +49,20 @@ export function createCursorStore(deps: CursorDeps) {
   let anchor: string | null = null;
   let history: JumpHistory = EMPTY_HISTORY;
   let followed: string | null = null;
+  let cache: Snapshot | null = null;
   const bodies = new SvelteMap<string, BodyReport>();
 
-  function views(): FileView[] {
-    return deps.files().map((file) => {
+  // views and the flattened stops, rebuilt only when the files, a body's mode or the side change.
+  function snapshot(): Snapshot {
+    const files = deps.files();
+    const views = files.map((file) => {
       const body = bodies.get(file.path);
       return { file, split: body?.split ?? deps.defaultSplit(file), navigable: body?.navigable ?? defaultNavigable(file) };
     });
+    const sig = views.map((v) => `${v.split ? "s" : "u"}${v.navigable ? "n" : "x"}`).join("");
+    const fresh = cache && cache.pref === pref && cache.sig === sig && cache.files.length === files.length && cache.files.every((f, i) => f === files[i]);
+    if (!cache || !fresh) cache = { files, sig, pref, views, index: buildIndex(views, pref) };
+    return cache;
   }
 
   // the position a motion starts from: the cursor, or the top of the file the reader is in.
@@ -63,25 +78,33 @@ export function createCursorStore(deps: CursorDeps) {
     if (!next) return;
     if (opts.jump) history = recordJump(history, from);
     pos = next;
-    anchor = contentAt(views(), pref, next);
+    const { views, index } = snapshot();
+    anchor = contentAt(views, pref, next, index);
     followed = next.path;
     deps.follow(next.path);
     revealKind = opts.reveal;
     revealSeq++;
   }
 
-  function run(seed: string | undefined, motion: (v: FileView[], from: CursorPos) => CursorPos | null, opts: { jump?: boolean; reveal?: RevealKind } = {}): void {
+  type Motion = (views: FileView[], from: CursorPos, index: StopIndex) => CursorPos | null;
+
+  function run(seed: string | undefined, motion: Motion, opts: { jump?: boolean; reveal?: RevealKind } = {}): void {
     const from = base(seed);
     if (!from) return;
-    commit(motion(views(), from), from, { jump: opts.jump, reveal: opts.reveal ?? "line" });
+    const { views, index } = snapshot();
+    commit(motion(views, from, index), from, { jump: opts.jump, reveal: opts.reveal ?? "line" });
   }
 
   function walk(step: typeof jumpBack, seed: string | undefined): void {
     const from = base(seed);
     const taken = step(history, from);
-    if (!taken.target) return;
+    const target = taken.target;
+    if (!target) return;
     history = taken.history;
-    commit(reanchor(views(), pref, taken.target, null), from, { reveal: "line" });
+    // restore the side the jump was recorded on before resolving it
+    if (snapshot().views.find((v) => v.file.path === target.path)?.split) pref = target.side;
+    const { views, index } = snapshot();
+    commit(reanchor(views, pref, target, null, index), from, { reveal: "line" });
   }
 
   return {
@@ -101,15 +124,15 @@ export function createCursorStore(deps: CursorDeps) {
       return pos && pos.path === path ? pos : null;
     },
 
-    lines: (seed: string | undefined, delta: number) => run(seed, (v, from) => moveLines(v, pref, from, delta)),
-    files: (seed: string | undefined, delta: number) => run(seed, (v, from) => moveFiles(v, pref, from, delta), { jump: true, reveal: "file" }),
-    hunks: (seed: string | undefined, delta: number) => run(seed, (v, from) => moveHunks(v, pref, from, delta), { jump: true }),
-    top: (seed: string | undefined) => run(seed, (v, from) => firstLine(v, pref, from.path), { jump: true }),
-    bottom: (seed: string | undefined) => run(seed, (v, from) => lastLine(v, pref, from.path), { jump: true }),
+    lines: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveLines(v, pref, from, delta, i)),
+    files: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveFiles(v, pref, from, delta, i), { jump: true, reveal: "file" }),
+    hunks: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveHunks(v, pref, from, delta, i), { jump: true }),
+    top: (seed: string | undefined) => run(seed, (v, from, i) => firstLine(v, pref, from.path, i), { jump: true }),
+    bottom: (seed: string | undefined) => run(seed, (v, from, i) => lastLine(v, pref, from.path, i), { jump: true }),
     lineNumber: (seed: string | undefined, number: number) => run(seed, (v, from) => goToLineNumber(v, pref, from.path, number), { jump: true }),
     switchTo(seed: string | undefined, target: Side): void {
       const from = base(seed);
-      const next = from ? switchSide(views(), from, target) : null;
+      const next = from ? switchSide(snapshot().views, from, target) : null;
       if (!next) return;
       pref = target;
       commit(next, from, { reveal: "line" });
@@ -117,14 +140,21 @@ export function createCursorStore(deps: CursorDeps) {
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
 
-    // the diff changed under the cursor: keep the same line if it is still there, else the nearest.
+    // the diff changed under the cursor: keep the same line if it is still there, else the nearest,
+    // and ask the pane to scroll to wherever it ended up.
     reconcile(): void {
       if (!pos) return;
-      const next = reanchor(views(), pref, pos, anchor);
+      const { views, index } = snapshot();
+      const next = reanchor(views, pref, pos, anchor, index);
       if (samePos(next, pos)) return;
       pos = next;
-      anchor = contentAt(views(), pref, next);
+      const fresh = snapshot();
+      anchor = contentAt(fresh.views, pref, next, fresh.index);
       followed = next?.path ?? null;
+      if (next) {
+        revealKind = "line";
+        revealSeq++;
+      }
     },
 
     reportBody(path: string, report: BodyReport): void {
