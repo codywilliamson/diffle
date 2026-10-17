@@ -10,11 +10,11 @@ State: set R (slices #207 to #213) is in progress. #214 (manual steps) is Cody's
 
 | slice | what | state |
 | --- | --- | --- |
-| #207 | product identity, binary, `src/core/migration/` runner (PR #215) | open, pending merge |
-| #208 | data dir, env vars, browser prefs | not recorded here yet |
-| #209 | plugin, MCP server, doctor migration | not recorded here yet |
+| #207 | product identity, binary, `src/core/migration/` runner | merged, PR #215 |
+| #208 | data dir, env vars, browser prefs | in review |
+| #209 | plugin, MCP server, doctor migration | in progress |
 | #210 | installers, release assets, `diffle-<os>-<arch>` transition asset | not recorded here yet |
-| #211 | client UI name, mark, what's-new | not recorded here yet |
+| #211 | client UI name, mark, what's-new | in review, PR #217 |
 | #212 | docs site to nittle.dev, diffle.dev redirect | not recorded here yet |
 | #213 | repo docs, ADR 0008, `docs/diffle` to `docs/nittle` (this slice) | in review |
 | #214 | repo rename, registries, Cloudflare | Cody, manual |
@@ -26,7 +26,7 @@ Decisions with evidence:
 
 Cloudflare commands run: none recorded yet.
 
-Cody's manual list (#214): rename the GitHub repo, point nittle.dev at the Worker, redirect diffle.dev, claim the nittle package names on npm and crates.io, cut the first nittle release.
+Cody's manual list (#214): rename the GitHub repo, then flip `PRODUCT.repository` to the new slug (one-line PR); claim the nittle package names on npm and crates.io; handles and trademark search; repo description, topics and website; comment the new name on #126. The run itself attaches nittle.dev and the diffle.dev 301 through `cf` after #212 (dry run first, logged here), and cuts the first nittle release once set R is merged and the site is live.
 
 Open risks:
 - The `diffle-<os>-<arch>` transition asset must keep shipping for the set number of releases, or 0.28.x updaters strand.
