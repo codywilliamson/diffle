@@ -138,19 +138,19 @@ test("plugin registries follow CLAUDE_CONFIG_DIR and CODEX_HOME", () => {
 });
 
 test("serverCommand pins the installed binary and falls back to the bare name", () => {
-  expect(serverCommand("/home/u/.diffle/bin/diffle")).toBe("/home/u/.diffle/bin/diffle");
-  expect(serverCommand("C:/Users/u/.diffle/bin/Diffle.exe")).toBe("C:/Users/u/.diffle/bin/Diffle.exe");
+  expect(serverCommand("/home/u/.nittle/bin/nittle")).toBe("/home/u/.nittle/bin/nittle");
+  expect(serverCommand("C:/Users/u/.nittle/bin/Nittle.exe")).toBe("C:/Users/u/.nittle/bin/Nittle.exe");
   expect(serverCommand("/usr/local/bin/bun")).toBe(PRODUCT.name);
-  expect(serverCommand("/home/u/.loupe/bin/loupe")).toBe(PRODUCT.name);
+  expect(serverCommand("/home/u/.diffle/bin/diffle")).toBe(PRODUCT.name);
 });
 
 test("mcp entries launch the injected command", () => {
-  const env = { ...linux("/h"), command: "/opt/diffle/bin/diffle" };
+  const env = { ...linux("/h"), command: "/opt/nittle/bin/nittle" };
   const entryOf = (id: string) => {
     const { integration } = byId(env, id);
     if (integration.kind !== "mcp-config") throw new Error("not mcp-config");
     return integration.entry;
   };
-  expect(entryOf("cursor")).toEqual({ command: "/opt/diffle/bin/diffle", args: ["mcp", "serve"] });
-  expect(entryOf("opencode").command).toEqual(["/opt/diffle/bin/diffle", "mcp", "serve"]);
+  expect(entryOf("cursor")).toEqual({ command: "/opt/nittle/bin/nittle", args: ["mcp", "serve"] });
+  expect(entryOf("opencode").command).toEqual(["/opt/nittle/bin/nittle", "mcp", "serve"]);
 });

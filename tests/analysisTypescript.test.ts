@@ -71,7 +71,7 @@ describe("typescript flags", () => {
 });
 
 describe("typescript groups", () => {
-  const root = mkdtempSync(join(tmpdir(), "diffle-ts-"));
+  const root = mkdtempSync(join(tmpdir(), "nittle-ts-"));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, "web/src"), { recursive: true });
   writeFileSync(join(root, "web/package.json"), "{}");

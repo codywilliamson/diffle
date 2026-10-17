@@ -8,17 +8,17 @@ import { tmpdir } from "node:os";
 const root = join(import.meta.dir, "..");
 
 describe("MCP stdio entry", () => {
-  test("serves the Loupe tools through the CLI command", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "loupe-mcp-repo-"));
-    const data = mkdtempSync(join(tmpdir(), "loupe-mcp-data-"));
+  test("serves the Nittle tools through the CLI command", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "nittle-mcp-repo-"));
+    const data = mkdtempSync(join(tmpdir(), "nittle-mcp-data-"));
     const git = (args: string[]) => Bun.spawnSync(["git", ...args], { cwd: repo });
     git(["init", "-q", "-b", "main"]); git(["config", "user.name", "t"]); git(["config", "user.email", "t@e.com"]);
     writeFileSync(join(repo, "a.ts"), "one\n"); git(["add", "-A"]); git(["commit", "-q", "-m", "init"]); writeFileSync(join(repo, "a.ts"), "two\n");
     const transport = new StdioClientTransport({
       command: "bun", args: ["src/index.ts", "mcp", "serve"], cwd: root,
-      env: { ...process.env, LOUPE_ROOT: repo, LOUPE_DATA_DIR: data, LOUPE_NO_OPEN: "1" } as Record<string, string>,
+      env: { ...process.env, NITTLE_ROOT: repo, NITTLE_DATA_DIR: data, NITTLE_NO_OPEN: "1" } as Record<string, string>,
     });
-    const client = new Client({ name: "loupe-test", version: "1" });
+    const client = new Client({ name: "nittle-test", version: "1" });
     try {
       await client.connect(transport);
       const tools = await client.listTools();

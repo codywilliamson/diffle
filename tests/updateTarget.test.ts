@@ -9,36 +9,36 @@ describe("platformTarget / assetName", () => {
   });
 
   it("adds .exe only for windows targets", () => {
-    expect(assetName("windows-arm64")).toBe("diffle-windows-arm64.exe");
-    expect(assetName("linux-x64")).toBe("diffle-linux-x64");
+    expect(assetName("windows-arm64")).toBe("nittle-windows-arm64.exe");
+    expect(assetName("linux-x64")).toBe("nittle-linux-x64");
   });
 });
 
 describe("parseChecksum", () => {
   const manifest = [
-    "aa".repeat(32) + "  diffle-linux-x64",
-    "bb".repeat(32) + " *diffle-windows-x64.exe",
+    "aa".repeat(32) + "  nittle-linux-x64",
+    "bb".repeat(32) + " *nittle-windows-x64.exe",
   ].join("\n");
 
   it("finds the sha for a named asset (with or without a binary marker)", () => {
-    expect(parseChecksum(manifest, "diffle-linux-x64")).toBe("aa".repeat(32));
-    expect(parseChecksum(manifest, "diffle-windows-x64.exe")).toBe("bb".repeat(32));
+    expect(parseChecksum(manifest, "nittle-linux-x64")).toBe("aa".repeat(32));
+    expect(parseChecksum(manifest, "nittle-windows-x64.exe")).toBe("bb".repeat(32));
   });
 
   it("returns null for an unlisted asset", () => {
-    expect(parseChecksum(manifest, "diffle-darwin-arm64")).toBeNull();
+    expect(parseChecksum(manifest, "nittle-darwin-arm64")).toBeNull();
   });
 });
 
 describe("detectPackageManager", () => {
   it("recognizes manager-owned install paths", () => {
-    expect(detectPackageManager("/opt/homebrew/Cellar/diffle/0.16.0/bin/diffle")).toBe("homebrew");
-    expect(detectPackageManager("C:/Users/x/scoop/apps/diffle/current/diffle.exe")).toBe("scoop");
-    expect(managerCommand("homebrew")).toBe("brew upgrade diffle");
+    expect(detectPackageManager("/opt/homebrew/Cellar/nittle/0.16.0/bin/nittle")).toBe("homebrew");
+    expect(detectPackageManager("C:/Users/x/scoop/apps/nittle/current/nittle.exe")).toBe("scoop");
+    expect(managerCommand("homebrew")).toBe("brew upgrade nittle");
   });
 
   it("returns null for a standalone user install we may replace", () => {
-    expect(detectPackageManager("C:/Users/x/.diffle/bin/diffle.exe")).toBeNull();
-    expect(detectPackageManager("/home/x/.diffle/bin/diffle")).toBeNull();
+    expect(detectPackageManager("C:/Users/x/.nittle/bin/nittle.exe")).toBeNull();
+    expect(detectPackageManager("/home/x/.nittle/bin/nittle")).toBeNull();
   });
 });

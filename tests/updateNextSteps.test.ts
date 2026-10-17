@@ -7,14 +7,14 @@ describe("updateNextSteps", () => {
   test("no servers: restart reviews and verify the version only", () => {
     const steps = updateNextSteps(NO_MCP_ACTIVITY);
     expect(steps).toHaveLength(2);
-    expect(has(steps, "restart any open diffle review")).toBe(true);
-    expect(has(steps, "diffle --version")).toBe(true);
+    expect(has(steps, "restart any open nittle review")).toBe(true);
+    expect(has(steps, "nittle --version")).toBe(true);
   });
 
   test("stopped servers: reconnect agents, no manual restart", () => {
     const steps = updateNextSteps({ ...NO_MCP_ACTIVITY, found: 2, stopped: 2 });
     expect(has(steps, "/mcp → reconnect")).toBe(true);
-    expect(has(steps, "diffle mcp restart")).toBe(false);
+    expect(has(steps, "nittle mcp restart")).toBe(false);
   });
 
   test("live reviews blocked the restart: run mcp restart once they finish", () => {
@@ -26,12 +26,12 @@ describe("updateNextSteps", () => {
   test("servers that could not be stopped, or a failed check, point at mcp restart", () => {
     const failed = updateNextSteps({ ...NO_MCP_ACTIVITY, found: 2, stopped: 1, failed: 1 });
     expect(has(failed, "/mcp → reconnect")).toBe(true);
-    expect(has(failed, "run `diffle mcp restart`")).toBe(true);
-    expect(has(updateNextSteps({ ...NO_MCP_ACTIVITY, checkFailed: true }), "run `diffle mcp restart`")).toBe(true);
+    expect(has(failed, "run `nittle mcp restart`")).toBe(true);
+    expect(has(updateNextSteps({ ...NO_MCP_ACTIVITY, checkFailed: true }), "run `nittle mcp restart`")).toBe(true);
   });
 
   test("formats a numbered list", () => {
     const text = formatNextSteps(["a", "b"]);
-    expect(text).toBe("[diffle] next steps:\n  1. a\n  2. b");
+    expect(text).toBe("[nittle] next steps:\n  1. a\n  2. b");
   });
 });

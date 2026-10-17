@@ -8,8 +8,8 @@ import type { ReviewRecord } from "../src/types";
 import { createMcpServer } from "../src/mcp/server";
 import type { ReviewOperations } from "../src/mcp/operations";
 
-const approvedRoot = mkdtempSync(join(tmpdir(), "loupe-mcp-root-"));
-const outsideRoot = mkdtempSync(join(tmpdir(), "loupe-mcp-outside-"));
+const approvedRoot = mkdtempSync(join(tmpdir(), "nittle-mcp-root-"));
+const outsideRoot = mkdtempSync(join(tmpdir(), "nittle-mcp-outside-"));
 afterAll(() => { rmSync(approvedRoot, { recursive: true, force: true }); rmSync(outsideRoot, { recursive: true, force: true }); });
 
 function record(): ReviewRecord {
@@ -33,7 +33,7 @@ function setup() {
   return { calls, server, client };
 }
 
-describe("Loupe MCP server", () => {
+describe("Nittle MCP server", () => {
   test("registers only the seven agent actions", async () => {
     const { server, client } = setup();
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

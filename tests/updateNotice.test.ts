@@ -10,7 +10,7 @@ const root = join(import.meta.dir, ".."); // currentVersion reads this repo's pa
 const current = currentVersion(root);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const T0 = Date.parse("2026-09-01T12:00:00.000Z");
-const ENV_KEYS = ["CI", "DIFFLE_NO_UPDATE_CHECK", "LOUPE_NO_UPDATE_CHECK"];
+const ENV_KEYS = ["CI", "NITTLE_NO_UPDATE_CHECK", "NITTLE_NO_UPDATE_CHECK"];
 
 let home: string;
 let saved: Record<string, string | undefined>;
@@ -21,7 +21,7 @@ const notice = (fetchTags: () => Promise<string[]>, now = T0) =>
   launchUpdateNotice(root, { home, fetchTags, now: () => now, isInstalled: true });
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "diffle-notice-"));
+  home = mkdtempSync(join(tmpdir(), "nittle-notice-"));
   saved = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
   for (const key of ENV_KEYS) delete process.env[key];
   fetches = 0;
@@ -59,12 +59,12 @@ describe("launchUpdateNotice", () => {
   });
 
   it("skips when opted out via env or under CI", async () => {
-    process.env.DIFFLE_NO_UPDATE_CHECK = "1";
+    process.env.NITTLE_NO_UPDATE_CHECK = "1";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
-    delete process.env.DIFFLE_NO_UPDATE_CHECK;
-    process.env.LOUPE_NO_UPDATE_CHECK = "1";
+    delete process.env.NITTLE_NO_UPDATE_CHECK;
+    process.env.NITTLE_NO_UPDATE_CHECK = "1";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
-    delete process.env.LOUPE_NO_UPDATE_CHECK;
+    delete process.env.NITTLE_NO_UPDATE_CHECK;
     process.env.CI = "true";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
     expect(fetches).toBe(0);
@@ -94,9 +94,9 @@ describe("launchUpdateNotice", () => {
 
 describe("updateHint", () => {
   it("defers to the package manager that owns the install", () => {
-    expect(updateHint(true, "/opt/homebrew/Cellar/diffle/0.18.0/bin/diffle")).toBe("run brew upgrade diffle");
-    expect(updateHint(true, "C:\\Users\\me\\scoop\\apps\\diffle\\current\\diffle.exe")).toBe("run scoop update diffle");
-    expect(updateHint(true, "C:\\Users\\me\\.diffle\\bin\\diffle.exe")).toBe("run diffle update");
+    expect(updateHint(true, "/opt/homebrew/Cellar/nittle/0.18.0/bin/nittle")).toBe("run brew upgrade nittle");
+    expect(updateHint(true, "C:\\Users\\me\\scoop\\apps\\nittle\\current\\nittle.exe")).toBe("run scoop update nittle");
+    expect(updateHint(true, "C:\\Users\\me\\.nittle\\bin\\nittle.exe")).toBe("run nittle update");
     expect(updateHint(false)).toContain("git pull");
   });
 });

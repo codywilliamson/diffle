@@ -13,22 +13,22 @@ let repo: string;
 let data: string;
 
 beforeAll(() => {
-  repo = mkdtempSync(join(tmpdir(), "loupe-launch-repo-")); data = mkdtempSync(join(tmpdir(), "loupe-launch-data-"));
-  process.env.LOUPE_DATA_DIR = data; git(["init", "-q", "-b", "main"], repo);
+  repo = mkdtempSync(join(tmpdir(), "nittle-launch-repo-")); data = mkdtempSync(join(tmpdir(), "nittle-launch-data-"));
+  process.env.NITTLE_DATA_DIR = data; git(["init", "-q", "-b", "main"], repo);
   git(["config", "user.name", "t"], repo); git(["config", "user.email", "t@e.com"], repo);
   writeFileSync(join(repo, "a.ts"), "const a = 1;\n"); git(["add", "-A"], repo); git(["commit", "-q", "-m", "init"], repo);
   writeFileSync(join(repo, "a.ts"), "const a = 2;\n");
 });
-afterAll(() => { delete process.env.LOUPE_DATA_DIR; rmSync(repo, { recursive: true, force: true }); rmSync(data, { recursive: true, force: true }); });
+afterAll(() => { delete process.env.NITTLE_DATA_DIR; rmSync(repo, { recursive: true, force: true }); rmSync(data, { recursive: true, force: true }); });
 
 describe("review launch", () => {
   it("rejects an empty required comparison before opening a review", () => {
-    expect(() => launchReview({ cwd: repo, loupeRoot: root, spec: "main", open: false, requireChanges: true, host: "mcp" }))
+    expect(() => launchReview({ cwd: repo, productRoot: root, spec: "main", open: false, requireChanges: true, host: "mcp" }))
       .toThrow('No changes found for "main → main"');
   });
 
   it("launches a durable browser review without writing legacy .review", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       expect(launch.url).toContain(`review=${launch.review.id}`);
       const review = await fetch(`${launch.url.split("/?")[0]}/api/review`).then((res) => res.json()) as ReviewRecord;
@@ -43,7 +43,7 @@ describe("review launch", () => {
   });
 
   it("POST /api/review/reply stores the reply authored by the reviewer", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const comment: Comment = { id: "c1", file: "a.ts", line: 1, lineContent: "+const a = 2;", text: "why?", createdAt: new Date().toISOString() };
@@ -63,7 +63,7 @@ describe("review launch", () => {
   });
 
   it("returns summary-only feedback with no comments and compiles it, with a query override", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const res = await fetch(`${base}/api/review/outcome`, {
@@ -85,7 +85,7 @@ describe("review launch", () => {
   });
 
   it("registers a session on launch and stops it through the http endpoint", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const entry = listSessions().find((item) => item.reviewId === launch.review.id);
@@ -102,7 +102,7 @@ describe("review launch", () => {
   });
 
   it("stopSession from the sessions module stops a launch the same way", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const entry = listSessions().find((item) => item.reviewId === launch.review.id)!;
@@ -114,7 +114,7 @@ describe("review launch", () => {
   });
 
   it("POST /api/session/stop rejects a mismatched Origin", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const entry = listSessions().find((item) => item.reviewId === launch.review.id)!;
@@ -128,7 +128,7 @@ describe("review launch", () => {
   });
 
   it("POST /api/session/stop rejects a wrong sessionId", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const res = await fetch(`${base}/api/session/stop`, {
@@ -141,7 +141,7 @@ describe("review launch", () => {
   });
 
   it("GET /api/session/stop is not found (POST-only route)", async () => {
-    const launch = launchReview({ cwd: repo, loupeRoot: root, open: false, policy: "handoff", host: "mcp" });
+    const launch = launchReview({ cwd: repo, productRoot: root, open: false, policy: "handoff", host: "mcp" });
     try {
       const base = launch.url.split("/?")[0];
       const res = await fetch(`${base}/api/session/stop`);

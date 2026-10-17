@@ -14,11 +14,11 @@ const levels = (dir: string, productPath?: string) =>
 describe("readClaudePluginState", () => {
   it("reads both legacy plugins, the marketplace, the enabled flag, and the wired MCP server", () => {
     const state = readClaudePluginState(staleConfigDir());
-    expect(state.legacy.map((p) => p.key)).toEqual(["loupe-review@loupe-local", "loupe-review-hook@loupe-local"]);
+    expect(state.legacy.map((p) => p.key)).toEqual(["diffle-review@diffle-local", "diffle-review-hook@diffle-local"]);
     expect(state.legacy[0]!.version).toBe("0.1.1");
-    expect(state.legacyEnabled).toEqual(["loupe-review@loupe-local"]);
-    expect(state.legacyMarketplaces).toEqual(["loupe-local"]);
-    expect(state.legacyMcpServers).toEqual([{ plugin: "loupe-review@loupe-local", server: "loupe" }]);
+    expect(state.legacyEnabled).toEqual(["diffle-review@diffle-local"]);
+    expect(state.legacyMarketplaces).toEqual(["diffle-local"]);
+    expect(state.legacyMcpServers).toEqual([{ plugin: "diffle-review@diffle-local", server: "diffle" }]);
     expect(state.product).toEqual([]);
     expect(state.unreadable).toEqual([]);
   });
@@ -47,10 +47,10 @@ describe("readClaudePluginState", () => {
   it("accepts a bare object where an array of installs is expected", () => {
     const dir = tempDir();
     writeFile(join(dir, "plugins", "installed_plugins.json"), {
-      plugins: { "loupe-review@loupe-local": { version: "0.1.1", installPath: "" }, "broken@loupe-local": null },
+      plugins: { "diffle-review@diffle-local": { version: "0.1.1", installPath: "" }, "broken@diffle-local": null },
     });
     const state = readClaudePluginState(dir);
-    expect(state.legacy).toEqual([{ key: "loupe-review@loupe-local", name: "loupe-review", marketplace: "loupe-local", version: "0.1.1", installPath: "" }]);
+    expect(state.legacy).toEqual([{ key: "diffle-review@diffle-local", name: "diffle-review", marketplace: "diffle-local", version: "0.1.1", installPath: "" }]);
   });
 });
 
@@ -65,58 +65,58 @@ describe("hasStaleLegacyPlugin", () => {
 describe("diagnoseClaudePlugins", () => {
   it("fails a stale-only install and plans the full repair", () => {
     const dir = staleConfigDir();
-    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/diffle");
+    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/nittle");
     expect(ok).toBe(false);
-    expect(levels(dir, "/bin/diffle")).toContain("fail");
-    expect(checks.find((c) => c.label === "legacy plugins")!.detail).toContain("loupe-review@loupe-local v0.1.1");
+    expect(levels(dir, "/bin/nittle")).toContain("fail");
+    expect(checks.find((c) => c.label === "legacy plugins")!.detail).toContain("diffle-review@diffle-local v0.1.1");
     expect(checks.find((c) => c.label === "legacy MCP server")!.level).toBe("fail");
-    expect(commands(dir, "/bin/diffle")).toEqual([
-      "plugin uninstall loupe-review@loupe-local",
-      "plugin uninstall loupe-review-hook@loupe-local",
-      "plugin marketplace remove loupe-local",
+    expect(commands(dir, "/bin/nittle")).toEqual([
+      "plugin uninstall diffle-review@diffle-local",
+      "plugin uninstall diffle-review-hook@diffle-local",
+      "plugin marketplace remove diffle-local",
       "plugin marketplace add codywilliamson/diffle",
-      "plugin install diffle-review@diffle-local --scope user",
+      "plugin install nittle-review@nittle-local --scope user",
     ]);
   });
 
-  it("only warns, and plans cleanup alone, once diffle-review is installed too", () => {
+  it("only warns, and plans cleanup alone, once nittle-review is installed too", () => {
     const dir = staleConfigDir({ withProduct: true });
-    const { ok, checks } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/diffle");
+    const { ok, checks } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/nittle");
     expect(ok).toBe(true);
     expect(checks.some((c) => c.level === "warn")).toBe(true);
-    expect(commands(dir, "/bin/diffle")).toEqual([
-      "plugin uninstall loupe-review@loupe-local",
-      "plugin uninstall loupe-review-hook@loupe-local",
-      "plugin marketplace remove loupe-local",
+    expect(commands(dir, "/bin/nittle")).toEqual([
+      "plugin uninstall diffle-review@diffle-local",
+      "plugin uninstall diffle-review-hook@diffle-local",
+      "plugin marketplace remove diffle-local",
     ]);
   });
 
   it("reports a healthy install with an empty plan", () => {
     const dir = healthyConfigDir();
-    expect(levels(dir, "/bin/diffle")).toEqual(["ok", "ok", "ok", "ok", "ok", "ok"]);
-    expect(commands(dir, "/bin/diffle")).toEqual([]);
+    expect(levels(dir, "/bin/nittle")).toEqual(["ok", "ok", "ok", "ok", "ok", "ok"]);
+    expect(commands(dir, "/bin/nittle")).toEqual([]);
   });
 
   it("carries a custom marketplace suffix into the plan", () => {
-    const dir = staleConfigDir({ marketplace: "my-loupe", hook: false });
-    expect(commands(dir, "/bin/diffle").slice(0, 2)).toEqual([
-      "plugin uninstall loupe-review@my-loupe",
-      "plugin marketplace remove my-loupe",
+    const dir = staleConfigDir({ marketplace: "my-diffle", hook: false });
+    expect(commands(dir, "/bin/nittle").slice(0, 2)).toEqual([
+      "plugin uninstall diffle-review@my-diffle",
+      "plugin marketplace remove my-diffle",
     ]);
   });
 
-  it("warns when diffle is missing from PATH and notes a resolvable loupe", () => {
+  it("warns when nittle is missing from PATH and notes a resolvable diffle", () => {
     const dir = healthyConfigDir();
-    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(dir), undefined, "/bin/loupe", true);
+    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(dir), undefined, "/bin/diffle", true);
     expect(ok).toBe(true);
-    expect(checks.find((c) => c.label.includes("`diffle` on PATH"))!.level).toBe("warn");
-    expect(checks.find((c) => c.label.includes("`loupe` on PATH"))!.detail).toBe("/bin/loupe");
-    expect(checks.find((c) => c.label === "data dir")!.detail).toContain(".loupe");
+    expect(checks.find((c) => c.label.includes("`nittle` on PATH"))!.level).toBe("warn");
+    expect(checks.find((c) => c.label.includes("`diffle` on PATH"))!.detail).toBe("/bin/diffle");
+    expect(checks.find((c) => c.label === "data dir")!.detail).toContain(".diffle");
   });
 
   it("surfaces unreadable files as info lines rather than throwing", () => {
     const missing = join(tempDir(), "nope");
-    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(missing), "/bin/diffle");
+    const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(missing), "/bin/nittle");
     expect(ok).toBe(true);
     expect(checks.filter((c) => c.detail.startsWith("could not read"))).toHaveLength(3);
   });

@@ -40,7 +40,7 @@ describe("contextFile", () => {
 describe("scanProject", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "loupe-scan-"));
+    dir = mkdtempSync(join(tmpdir(), "nittle-scan-"));
     git(["init", "-q", "-b", "main"], dir);
     git(["config", "user.name", "t"], dir);
     git(["config", "user.email", "t@e.com"], dir);

@@ -12,7 +12,7 @@ const fixture = JSON.parse(
 const dirs: string[] = [];
 
 function tempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "loupe-review-"));
+  const dir = mkdtempSync(join(tmpdir(), "diffle-review-"));
   dirs.push(dir);
   return dir;
 }

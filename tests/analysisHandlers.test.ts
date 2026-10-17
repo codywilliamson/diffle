@@ -19,17 +19,17 @@ let server: Server<undefined>;
 let repo: string;
 
 const start = (over: Partial<Parameters<typeof createServer>[0]> = {}) => {
-  server = createServer({ diff, cwd: repo, assets: directoryAssets(repo), loupeRoot: repo, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: true, served: true, host: "cli", ...over });
+  server = createServer({ diff, cwd: repo, assets: directoryAssets(repo), productRoot: repo, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: true, served: true, host: "cli", ...over });
 };
 const get = () => fetch(`http://localhost:${server.port}/api/scorecard`);
 
 beforeEach(() => {
-  process.env.LOUPE_DATA_DIR = tempDir();
+  process.env.NITTLE_DATA_DIR = tempDir();
   repo = tempDir();
   Bun.spawnSync(["git", "init", "-q"], { cwd: repo });
   writeFileSync(join(repo, "a.py"), "one\n");
 });
-afterEach(() => { server.stop(true); delete process.env.LOUPE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
+afterEach(() => { server.stop(true); delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 describe("GET /api/scorecard", () => {
   it("returns the scorecard for the current diff", async () => {

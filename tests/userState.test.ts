@@ -7,7 +7,7 @@ import { readUserState, writeUserState } from "../src/core/userState";
 describe("userState", () => {
   let home: string;
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), "loupe-state-"));
+    home = mkdtempSync(join(tmpdir(), "diffle-state-"));
   });
   afterEach(() => {
     rmSync(home, { recursive: true, force: true });
@@ -17,18 +17,18 @@ describe("userState", () => {
     expect(readUserState(home)).toEqual({});
   });
 
-  it("creates ~/.diffle for a fresh home and round-trips the seen version", () => {
+  it("creates ~/.nittle for a fresh home and round-trips the seen version", () => {
     writeUserState({ seenVersion: "0.9.0" }, home);
-    expect(existsSync(join(home, ".diffle", "state.json"))).toBe(true);
-    expect(existsSync(join(home, ".loupe"))).toBe(false);
+    expect(existsSync(join(home, ".nittle", "state.json"))).toBe(true);
+    expect(existsSync(join(home, ".diffle"))).toBe(false);
     expect(readUserState(home).seenVersion).toBe("0.9.0");
   });
 
-  it("keeps using a legacy ~/.loupe when it exists and ~/.diffle does not", () => {
-    mkdirSync(join(home, ".loupe"), { recursive: true });
+  it("keeps using a legacy ~/.diffle when it exists and ~/.nittle does not", () => {
+    mkdirSync(join(home, ".diffle"), { recursive: true });
     writeUserState({ seenVersion: "1.2.3" }, home);
-    expect(existsSync(join(home, ".loupe", "state.json"))).toBe(true);
-    expect(existsSync(join(home, ".diffle"))).toBe(false);
+    expect(existsSync(join(home, ".diffle", "state.json"))).toBe(true);
+    expect(existsSync(join(home, ".nittle"))).toBe(false);
     expect(readUserState(home).seenVersion).toBe("1.2.3");
   });
 
@@ -41,8 +41,8 @@ describe("userState", () => {
 
   it("recovers from an unparseable file as empty state", () => {
     const { writeFileSync, mkdirSync } = require("node:fs");
-    mkdirSync(join(home, ".loupe"), { recursive: true });
-    writeFileSync(join(home, ".loupe", "state.json"), "{ not json");
+    mkdirSync(join(home, ".diffle"), { recursive: true });
+    writeFileSync(join(home, ".diffle", "state.json"), "{ not json");
     expect(readUserState(home)).toEqual({});
   });
 });

@@ -21,14 +21,14 @@ const post = (body: unknown) => fetch(`http://localhost:${server.port}/api/revie
 const get = (path: string) => fetch(`http://localhost:${server.port}/api/interdiff?path=${path}`);
 
 beforeEach(() => {
-  process.env.LOUPE_DATA_DIR = tempDir();
+  process.env.NITTLE_DATA_DIR = tempDir();
   repo = tempDir();
   Bun.spawnSync(["git", "init", "-q"], { cwd: repo });
   writeFileSync(join(repo, "a.ts"), "one\n");
   reviewId = createReviewRecord({ target: { cwd: repo, ref: "HEAD" } }).id;
-  server = createServer({ diff, cwd: repo, assets: directoryAssets(repo), loupeRoot: repo, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: true, served: true, host: "cli", reviewId });
+  server = createServer({ diff, cwd: repo, assets: directoryAssets(repo), productRoot: repo, newRef: null, diffArgs: ["diff", "HEAD"], includeUntracked: true, served: true, host: "cli", reviewId });
 });
-afterEach(() => { server.stop(true); delete process.env.LOUPE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
+afterEach(() => { server.stop(true); delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 describe("GET /api/interdiff", () => {
   it("404s before any round, then captures on feedback and diffs later edits", async () => {

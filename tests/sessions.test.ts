@@ -7,10 +7,10 @@ import type { SessionEntry } from "../src/core/sessions";
 import { classifySessions, isPidAlive, listSessions, probeSession, registerSession, unregisterSession } from "../src/core/sessions";
 
 const dirs: string[] = [];
-function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "loupe-sessions-")); dirs.push(dir); return dir; }
+function tempDir(): string { const dir = mkdtempSync(join(tmpdir(), "diffle-sessions-")); dirs.push(dir); return dir; }
 
-beforeEach(() => { process.env.LOUPE_DATA_DIR = tempDir(); });
-afterEach(() => { delete process.env.LOUPE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
+beforeEach(() => { process.env.NITTLE_DATA_DIR = tempDir(); });
+afterEach(() => { delete process.env.NITTLE_DATA_DIR; while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 // a pid unlikely to be alive on any platform, for testing the dead-pid branch.
 const DEAD_PID = 2147483646;
@@ -41,7 +41,7 @@ describe("session registry", () => {
 
   it("skips an unparseable file and one whose sessionId doesn't match its filename", () => {
     registerSession(entry());
-    const dir = join(process.env.LOUPE_DATA_DIR!, "sessions");
+    const dir = join(process.env.NITTLE_DATA_DIR!, "sessions");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "broken.json"), "{ not json");
     writeFileSync(join(dir, "mismatch.json"), JSON.stringify(entry({ sessionId: "someone-elses-id" })));

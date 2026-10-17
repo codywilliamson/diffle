@@ -96,7 +96,7 @@ test("empty selection exits cleanly; prompt is detected-first and pre-checked", 
 
 const registeredCursor = (target: AgentTarget) => target.id === "cursor";
 
-test("remove prompt pre-checks only agents diffle is wired into, first", async () => {
+test("remove prompt pre-checks only agents nittle is wired into, first", async () => {
   let seen: { title: string; ids: string[]; hints: (string | undefined)[]; checked: boolean[] } | undefined;
   const { deps } = harness({
     interactive: true,
@@ -108,7 +108,7 @@ test("remove prompt pre-checks only agents diffle is wired into, first", async (
     },
   });
   await runSetup({ remove: true, agents: undefined, yes: false }, deps);
-  expect(seen!.title).toBe("Select agents to remove diffle from:");
+  expect(seen!.title).toBe("Select agents to remove nittle from:");
   expect(seen!.ids[0]).toBe("cursor");
   expect(seen!.hints[0]).toBe("(set up)");
   expect(seen!.checked).toEqual([true, ...seen!.checked.slice(1).map(() => false)]);
@@ -163,7 +163,7 @@ test("plan rendering", () => {
   expect(claude[0]).toBe("Claude Code");
   expect(claude[1]).toStartWith("  run  claude plugin marketplace add ");
   expect(claude[2]).toEndWith("--yes");
-  expect(planLines(find("cursor"), "install", true, false, plain)[1]).toMatch(/^ {2}edit .*mcp\.json {2}\(mcpServers\.diffle\)$/);
+  expect(planLines(find("cursor"), "install", true, false, plain)[1]).toMatch(/^ {2}edit .*mcp\.json {2}\(mcpServers\.nittle\)$/);
   expect(cliMissing(find("claude"), () => null)).toBe(true);
   expect(cliMissing(find("cursor"), () => null)).toBe(false);
 });
