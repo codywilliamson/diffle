@@ -1,5 +1,5 @@
 <script lang="ts">
-  // diffle "hunk" mark — a code tile with the line under review highlighted. themes via
+  // "hunk" mark — a code tile with the line under review highlighted. themes via
   // currentColor (frame + context lines) and var(--accent) (the reviewed band).
   let { size = 24, animated = false }: { size?: number; animated?: boolean } = $props();
 </script>

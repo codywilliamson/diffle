@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PRODUCT } from "$product";
   import type { UpdateStatus } from "$types";
   import { getUpdate } from "$lib/api/meta";
 
@@ -26,7 +27,7 @@
 {#if status?.behind}
   <a
     class="rounded-full bg-mod-badge-bg px-2 py-0.5 text-xs text-mod-badge-text hover:opacity-90"
-    href="https://github.com/codywilliamson/diffle/releases"
+    href={`${PRODUCT.repository}/releases`}
     target="_blank"
     rel="noopener"
     title="A newer release ({status.latest}) is available"
