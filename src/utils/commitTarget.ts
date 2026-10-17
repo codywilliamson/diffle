@@ -5,11 +5,15 @@ import type { DiffPlan } from "./git";
 import { runGit } from "./git";
 
 export const COMMIT_SPEC_SUFFIX = "^!";
-const FIELD_SEPARATOR = "\x1f";
+// git never stores NUL in names or messages, so commit metadata can't forge a field boundary
+const FIELD_SEPARATOR = "\x00";
+const HASH_PATTERN = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
 const SHORT_HASH_LENGTH = 7;
 // git computes the empty tree for the repo's own hash algorithm, so sha1 and sha256 repos both work.
 const EMPTY_TREE_ARGS = ["hash-object", "-t", "tree", "/dev/null"];
-const COMMIT_FORMAT = ["%H", "%h", "%an", "%aI", "%s", "%P", "%b"].join(FIELD_SEPARATOR);
+// structural fields come from their own call, so free text can never shift them into git args
+const STRUCTURE_FORMAT = "%H %h %P";
+const TEXT_FORMAT = ["%an", "%aI", "%s", "%b"].join("%x00");
 
 export function isCommitSpec(spec: string): boolean {
   return spec.length > COMMIT_SPEC_SUFFIX.length && spec.endsWith(COMMIT_SPEC_SUFFIX);
@@ -31,10 +35,11 @@ function readCommit(rev: string, cwd: string): CommitInfo & { parents: string[] 
   } catch {
     throw new Error(`unknown commit: ${rev}`);
   }
-  const raw = runGit(["log", "-1", `--format=${COMMIT_FORMAT}`, fullHash, "--"], cwd);
-  const [hash = "", shortHash = "", author = "", date = "", subject = "", parentList = "", ...bodyParts] = raw.split(FIELD_SEPARATOR);
-  const parents = parentList.split(" ").filter(Boolean);
-  return { hash, shortHash, author, date, subject, body: bodyParts.join(FIELD_SEPARATOR).trim(), isMerge: parents.length > 1, baseShortHash: null, parents };
+  const [hash = "", shortHash = "", ...parents] = runGit(["log", "-1", `--format=${STRUCTURE_FORMAT}`, fullHash, "--"], cwd).trim().split(/\s+/);
+  if (![hash, ...parents].every((h) => HASH_PATTERN.test(h))) throw new Error(`unexpected commit metadata for ${rev}`);
+  const text = runGit(["log", "-1", `--format=${TEXT_FORMAT}`, fullHash, "--"], cwd);
+  const [author = "", date = "", subject = "", ...bodyParts] = text.split(FIELD_SEPARATOR);
+  return { hash, shortHash, author, date, subject, body: bodyParts.join("").trim(), isMerge: parents.length > 1, baseShortHash: null, parents };
 }
 
 // root commits diff against the empty tree, merges against their first parent.

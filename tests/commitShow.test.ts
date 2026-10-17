@@ -130,3 +130,25 @@ describe("nittle show", () => {
     expect(reopened.diff.meta?.commit?.hash).toBe(pinned);
   });
 });
+
+describe("nittle show with hostile commit metadata", () => {
+  it("a separator and an option in the subject can't reach git as an argument", () => {
+    const hostile = mkdtempSync(join(tmpdir(), "nittle-show-hostile-"));
+    const out = join(hostile, "pwned.txt");
+    const git = (args: string[]) => run(args, hostile);
+    git(["init", "-q", "-b", "main"]);
+    git(["config", "user.name", "Eve\u001f--output=x"]);
+    git(["config", "user.email", "eve@example.com"]);
+    writeFileSync(join(hostile, "a.txt"), "one\n");
+    git(["add", "-A"]);
+    git(["commit", "-q", "-m", `first\u001f--output=${out}\u001f--output=${out}`]);
+    writeFileSync(join(hostile, "a.txt"), "two\n");
+    git(["add", "-A"]);
+    git(["commit", "-q", "-m", `safe\u001f--output=${out}`]);
+    const target = loadReviewTarget(hostile, "HEAD^!");
+    expect(target.diff.files.map((f) => f.path)).toEqual(["a.txt"]);
+    expect(target.diff.meta?.commit?.subject).toBe(`safe\u001f--output=${out}`);
+    expect(existsSync(out)).toBe(false);
+    rmSync(hostile, { recursive: true, force: true });
+  });
+});
