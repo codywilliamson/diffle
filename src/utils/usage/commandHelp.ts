@@ -5,6 +5,7 @@ import { UPDATE_CHECK_OPT_OUT } from "../../core/updateNotice";
 import { WAIT_EXIT_HELP } from "../../core/waitExit";
 import type { CliOptions } from "../cli";
 import { COMPLETION_SHELLS } from "../cliVocabulary";
+import { optionsFor } from "../cliFlags";
 
 export type HelpTopic = CliOptions["command"];
 
@@ -12,13 +13,12 @@ export interface CommandHelp {
   summary: string;
   usage: string[];
   details?: string[];
-  options?: [flag: string, description: string][];
+  options?: [flag: string, description: string][]; // derived from the flag table in cliFlags.ts
   examples: string[];
   related: HelpTopic[];
 }
 
 const n = PRODUCT.name;
-const YES: [string, string] = ["--yes", "skip the confirmation prompt"];
 
 export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
   review: {
@@ -41,17 +41,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "",
       ...WAIT_EXIT_HELP,
     ],
-    options: [
-      ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
-      ["--no-open", "don't open the browser automatically"],
-      ["--wait", "block until feedback is returned, then print the prompt on stdout"],
-      ["--json", "with --wait, print the review record as JSON instead of the prompt"],
-      ["--no-lsp", "start no language servers"],
-      ["--review-id <id>", "open an existing durable Review Record"],
-      ["-v, --version", "print the installed version"],
-      ["--license", "print the bundled MIT license notice"],
-      ["-h, --help", "show help"],
-    ],
+    options: optionsFor("review"),
     examples: [`${n}`, `${n} staged --no-open`, `${n} main`, `${n} browse src/`, `${n} --wait > feedback.md`],
     related: ["sessions", "cleanup"],
   },
@@ -67,12 +57,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "same diff even after HEAD moves, as long as the commit still exists in the repo",
       "(a rebase plus gc removes it).",
     ],
-    options: [
-      ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
-      ["--no-open", "don't open the browser automatically"],
-      ["--no-lsp", "start no language servers"],
-      ["-h, --help", "show help"],
-    ],
+    options: optionsFor("show"),
     examples: [`${n} show`, `${n} show HEAD~2`, `${n} show a1b2c3d --no-open`],
     related: ["review"],
   },
@@ -88,14 +73,14 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "reconnect in Claude Code with /mcp, or start a new session. restart refuses",
       "while a review session is live.",
     ],
-    options: [YES],
+    options: optionsFor("mcp"),
     examples: [`${n} mcp list`, `${n} mcp restart --yes`],
     related: ["update", "sessions", "setup"],
   },
   hook: {
     summary: "agent stop hook that keeps a review open until it is resolved",
     usage: [`${n} hook stop --agent <codex|claude-code>`],
-    options: [["--agent <id>", "the agent calling the hook: codex or claude-code"]],
+    options: optionsFor("hook"),
     examples: [`${n} hook stop --agent claude-code`],
     related: ["setup"],
   },
@@ -108,7 +93,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
   cleanup: {
     summary: "stop stale sessions and finished reviews",
     usage: [`${n} cleanup [--yes] [--all]`],
-    options: [YES, ["--all", "also stop active (not just finished/stale) sessions"]],
+    options: optionsFor("cleanup"),
     examples: [`${n} cleanup`, `${n} cleanup --all --yes`],
     related: ["sessions", "mcp"],
   },
@@ -120,14 +105,14 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       "so agents relaunch them on the new version. It ends with the next steps that",
       `apply to you. A new release is announced at launch; set ${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT}=1 to silence it.`,
     ],
-    options: [["--check", "only report whether a newer release exists"]],
+    options: optionsFor("update"),
     examples: [`${n} update`, `${n} update --check`],
     related: ["mcp", "doctor"],
   },
   doctor: {
     summary: `check the Claude Code plugin install for stale ${PRODUCT.legacyName} leftovers`,
     usage: [`${n} doctor [--fix] [--yes]`],
-    options: [["--fix", "run the repair commands through the `claude` cli"], YES],
+    options: optionsFor("doctor"),
     examples: [`${n} doctor`, `${n} doctor --fix`],
     related: ["setup"],
   },
@@ -144,18 +129,14 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
       `  fish         ${n} completion --shell fish | source`,
       `  powershell   ${n} completion --shell powershell | Out-String | Invoke-Expression`,
     ],
-    options: [["--shell <shell>", `shell to generate for: ${COMPLETION_SHELLS.join(", ")}`]],
+    options: optionsFor("completion"),
     examples: [`${n} completion --shell zsh`, `${n} completion --shell powershell`],
     related: ["setup"],
   },
   setup: {
     summary: `wire ${n} into your coding agents (plugin or MCP config)`,
     usage: [`${n} setup [--remove] [--agents <ids>] [--yes]`],
-    options: [
-      ["--agents <ids>", "comma-separated agent ids, skips the prompt (e.g. claude,cursor)"],
-      ["--remove", `unwire ${n} instead`],
-      YES,
-    ],
+    options: optionsFor("setup"),
     examples: [`${n} setup`, `${n} setup --agents claude,cursor --yes`, `${n} setup --remove`],
     related: ["doctor", "mcp"],
   },

@@ -3,12 +3,13 @@
 
 export { USAGE, helpFor } from "./usage";
 import { COMMIT_SPEC_SUFFIX } from "./commitTarget";
-import { COMPLETION_SHELLS, HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type CompletionShell, type HookAgent, type McpAction } from "./cliVocabulary";
+import { COMPLETION_SHELLS, HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type CliCommand, type CompletionShell, type HookAgent, type McpAction } from "./cliVocabulary";
+import { findFlag, flagAccepted } from "./cliFlags";
 
 export type { McpAction };
 
 export interface CliOptions {
-  command: "review" | "show" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup" | "completion";
+  command: CliCommand;
   mcpAction: McpAction | undefined; // mcp only
   agent: HookAgent | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
@@ -35,15 +36,9 @@ const MAX_PORT = 65535;
 
 type CommandFlag = "wait" | "json" | "yes" | "all" | "fix" | "check" | "remove";
 
-// subcommand-only boolean flags: the option each sets and the commands that accept it.
-const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly CliOptions["command"][] }> = {
-  "--wait": { field: "wait", commands: ["review"] },
-  "--json": { field: "json", commands: ["review"] },
-  "--yes": { field: "yes", commands: ["cleanup", "doctor", "setup", "mcp"] },
-  "--all": { field: "all", commands: ["cleanup"] },
-  "--fix": { field: "fix", commands: ["doctor"] },
-  "--check": { field: "check", commands: ["update"] },
-  "--remove": { field: "remove", commands: ["setup"] },
+// boolean flags: the option each sets. which commands accept them lives in cliFlags.ts.
+const BOOLEAN_FIELDS: Record<string, CommandFlag> = {
+  "--wait": "wait", "--json": "json", "--yes": "yes", "--all": "all", "--fix": "fix", "--check": "check", "--remove": "remove",
 };
 
 // maps argv (already sliced past the runtime + script) into options.
@@ -60,10 +55,12 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "doctor" ? "doctor" :
     args[0] === "setup" ? "setup" :
     args[0] === "completion" ? "completion" : "review";
-  if (command === "mcp" || command === "hook") {
+  const hasSubcommands = command === "mcp" || command === "hook";
+  let subcommand: string | undefined;
+  if (hasSubcommands) {
     args.shift();
     const helpOnly = args[0] === "-h" || args[0] === "--help"; // `mcp --help` needs no subcommand
-    const subcommand = helpOnly ? undefined : args.shift();
+    subcommand = helpOnly ? undefined : args.shift();
     if (!helpOnly && command === "mcp" && !MCP_ACTIONS.includes(subcommand as McpAction)) throw new Error(`mcp requires one of: ${MCP_ACTIONS.join(", ")}`);
     if (!helpOnly && command === "hook" && !HOOK_SUBCOMMANDS.includes(subcommand as (typeof HOOK_SUBCOMMANDS)[number])) throw new Error("hook requires the stop command");
   } else if (command !== "review") {
@@ -73,29 +70,28 @@ export function parseCliArgs(argv: string[]): CliOptions {
   const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, lsp: true, yes: false, all: false, fix: false, check: false, remove: false, shell: undefined, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
+    if (arg.startsWith("-")) {
+      const spec = findFlag(arg);
+      if (!spec) throw new Error(`unknown option: ${arg} (try --help)`);
+      if (!flagAccepted(spec, opts.command, hasSubcommands, subcommand)) {
+        const only = hasSubcommands && spec.subcommands && spec.commands.includes(opts.command);
+        throw new Error(only ? `unexpected argument: ${arg} (only ${opts.command} ${spec.subcommands!.join("/")} accepts it)` : `unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      }
+    }
     if (arg === "-h" || arg === "--help") opts.help = true;
     else if (arg === "-v" || arg === "--version") opts.version = true;
     else if (arg === "--license") opts.license = true;
     else if (arg === "--no-open") opts.open = false;
-    else if (arg === "--no-lsp") {
-      if (opts.command !== "review" && opts.command !== "show") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
-      opts.lsp = false;
-    }
-    else if (Object.hasOwn(COMMAND_FLAGS, arg)) {
-      const flag = COMMAND_FLAGS[arg]!;
-      if (!flag.commands.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
-      opts[flag.field] = true;
-    }
+    else if (arg === "--no-lsp") opts.lsp = false;
+    else if (Object.hasOwn(BOOLEAN_FIELDS, arg)) opts[BOOLEAN_FIELDS[arg]!] = true;
     else if (arg === "--agents") {
       const list = args[++i];
-      if (opts.command !== "setup") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
       const ids = (list ?? "").split(",").map((id) => id.trim()).filter(Boolean);
       if (ids.length === 0) throw new Error("--agents needs a comma-separated list of agent ids");
       opts.agents = ids;
     }
     else if (arg === "--shell") {
       const shell = args[++i];
-      if (opts.command !== "completion") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
       if (!COMPLETION_SHELLS.includes(shell as CompletionShell)) throw new Error(`--shell must be one of: ${COMPLETION_SHELLS.join(", ")}`);
       opts.shell = shell as CompletionShell;
     }
@@ -116,8 +112,6 @@ export function parseCliArgs(argv: string[]): CliOptions {
         throw new Error(`--port needs a number between 1 and ${MAX_PORT} (got ${raw ?? "nothing"})`);
       }
       opts.port = port;
-    } else if (arg.startsWith("-")) {
-      throw new Error(`unknown option: ${arg} (try --help)`);
     } else if (opts.command !== "review" && opts.command !== "show") {
       throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
     } else if (opts.spec === undefined) {
@@ -130,6 +124,5 @@ export function parseCliArgs(argv: string[]): CliOptions {
   }
   if (opts.command === "show") opts.spec = `${opts.spec ?? "HEAD"}${COMMIT_SPEC_SUFFIX}`;
   if (opts.json && !opts.wait) throw new Error("--json needs --wait");
-  if (opts.yes && opts.command === "mcp" && opts.mcpAction !== "restart") throw new Error("unexpected argument: --yes (only mcp restart accepts it)");
   return opts;
 }
