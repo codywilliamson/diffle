@@ -1,0 +1,31 @@
+name: site-check
+
+# polls the live sites after a docs/installer change (and daily) and asserts the nittle.dev
+# pages serve and diffle.dev redirects. not a required check: the deploy is a separate
+# workers builds run, so this waits for it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "install.sh"
+      - "install.ps1"
+      - "wrangler.jsonc"
+      - "scripts/check-site.sh"
+      - ".github/workflows/site-check.yml"
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: sh scripts/check-site.sh
+        env:
+          SITE_CHECK_TIMEOUT: "600"
