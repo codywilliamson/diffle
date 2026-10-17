@@ -17,15 +17,29 @@ export const LEGACY_PREFS_PREFIX = `${PRODUCT.legacyName}-`;
 // moves to the new key. returns null when neither exists or storage throws.
 export function readMigrated(storage: StorageLike, name: string): string | null {
   try {
+    const legacyKey = LEGACY_PREFS_PREFIX + name;
     const current = storage.getItem(PREFS_PREFIX + name);
-    if (current !== null) return current;
-    const legacy = storage.getItem(LEGACY_PREFS_PREFIX + name);
+    const legacy = storage.getItem(legacyKey);
+    // the new key is authoritative; a leftover legacy key is dropped (retried every read until it sticks)
+    if (current !== null) {
+      if (legacy !== null) removeQuietly(storage, legacyKey);
+      return current;
+    }
     if (legacy === null) return null;
     writeKey(storage, name, legacy);
-    storage.removeItem?.(LEGACY_PREFS_PREFIX + name);
+    // only delete the old key once the new one reads back; otherwise keep reading the old one
+    if (storage.getItem(PREFS_PREFIX + name) === legacy) removeQuietly(storage, legacyKey);
     return legacy;
   } catch {
     return null;
+  }
+}
+
+function removeQuietly(storage: StorageLike, key: string): void {
+  try {
+    storage.removeItem?.(key);
+  } catch {
+    // best-effort; the next read retries
   }
 }
 
