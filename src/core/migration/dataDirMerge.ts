@@ -80,12 +80,12 @@ function carryUnit(from: string, to: string, isState: boolean, ops: MergeOps): s
   return null;
 }
 
-function unitsOf(src: string): { rel: string; isState: boolean }[] {
+function unitsOf(src: string, only?: readonly string[]): { rel: string; isState: boolean }[] {
   const units: { rel: string; isState: boolean }[] = [];
   const walk = (rel: string, depth: number) => {
     for (const name of readdirSync(join(src, rel))) {
       const next = join(rel, name);
-      if (depth === 0 && SKIPPED_TOP_LEVEL.has(name)) continue;
+      if (depth === 0 && (SKIPPED_TOP_LEVEL.has(name) || (only && !only.includes(name)))) continue;
       const recordDir = rel === REVIEWS_DIR && isDir(join(src, next));
       if (isDir(join(src, next)) && !recordDir) walk(next, depth + 1);
       else units.push({ rel: next, isState: depth === 0 && name === STATE_FILE });
@@ -103,9 +103,10 @@ function pruneEmptyDirs(dir: string): void {
   if (readdirSync(dir).length === 0) rmdirSync(dir);
 }
 
-export function mergeLegacyDir(src: string, dest: string, ops: MergeOps): MergeReport {
+// `only` limits the merge to those top-level entries (home-level state when records live elsewhere).
+export function mergeLegacyDir(src: string, dest: string, ops: MergeOps, only?: readonly string[]): MergeReport {
   const leftover: string[] = [];
-  for (const { rel, isState } of unitsOf(src)) {
+  for (const { rel, isState } of unitsOf(src, only)) {
     try {
       const why = carryUnit(join(src, rel), join(dest, rel), isState, ops);
       if (why) leftover.push(`${join(src, rel)}: ${why}`);

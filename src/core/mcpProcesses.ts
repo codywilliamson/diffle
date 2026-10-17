@@ -56,6 +56,11 @@ export function listMcpProcesses(): McpProcess[] {
   return (windows ? parseWindowsCim(output) : parseUnixPs(output)).filter((proc) => proc.pid !== process.pid);
 }
 
+// running `mcp serve` processes launched from a pre-rename (diffle) binary.
+export function listLegacyMcpProcesses(): McpProcess[] {
+  return listMcpProcesses().filter((proc) => basename(proc.path).toLowerCase().startsWith(PRODUCT.legacyName));
+}
+
 export function stopMcpProcess(pid: number): boolean {
   try {
     process.kill(pid, "SIGTERM");

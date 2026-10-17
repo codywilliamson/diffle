@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDataDirStep } from "../src/core/migration/dataDir";
+import { createDataDirStep, removeEmptyLegacyDirs } from "../src/core/migration/dataDir";
 import { homeDataDir } from "../src/core/dataDir";
 import { createReviewRecord, markCommentAddressed, readReviewRecord, replyToComment, requestRereview, returnFeedback } from "../src/core/reviewRecords";
 import { listSessions, registerSession } from "../src/core/sessions";
@@ -31,7 +31,7 @@ function seed(dir: string, ids: string[]): void {
   }
 }
 const dd = (name: string) => join(home, name);
-const step = (extra = {}) => createDataDirStep({ home, override: "", warn: () => {}, ...extra });
+const step = (extra = {}) => createDataDirStep({ home, override: "", warn: () => {}, liveWriters: () => [], ...extra });
 function readAll(dir: string, id: string) {
   const prev = process.env.NITTLE_DATA_DIR;
   process.env.NITTLE_DATA_DIR = dir;
@@ -159,7 +159,7 @@ describe("data dir migration", () => {
     expect(readAll(dd(".nittle"), "l").rec?.id).toBe("l");
   });
 
-  it("leaves the installer bin dir alone", () => {
+  it("leaves the installer bin dir alone in the merge path", () => {
     seed(dd(".nittle"), ["a"]);
     seed(dd(".diffle"), ["b"]);
     mkdirSync(join(dd(".diffle"), "bin"));
@@ -169,14 +169,60 @@ describe("data dir migration", () => {
     expect(existsSync(join(dd(".nittle"), "bin"))).toBe(false);
   });
 
-  it("does not touch home dirs when a custom data dir override is set", () => {
+  it("with a custom data dir, moves only home-level state and leaves records alone", () => {
     seed(dd(".diffle"), ["b"]);
-    expect(createDataDirStep({ home, override: join(home, "elsewhere") }).run()).toBeUndefined();
-    expect(existsSync(dd(".diffle"))).toBe(true);
-    expect(existsSync(dd(".nittle"))).toBe(false);
-    // an override equal to the default still migrates
-    createDataDirStep({ home, override: dd(".nittle") }).run();
+    writeFileSync(join(dd(".diffle"), "state.json"), JSON.stringify({ seenVersion: "9" }));
+    step({ override: join(home, "elsewhere") }).run();
+    expect(readUserState(home).seenVersion).toBe("9");
+    expect(existsSync(join(dd(".nittle"), "reviews"))).toBe(false);
+    expect(existsSync(join(dd(".diffle"), "reviews", "b", "review.json"))).toBe(true);
+    // an override equal to the default migrates everything
+    step({ override: dd(".nittle") }).run();
     expect(existsSync(dd(".diffle"))).toBe(false);
+    expect(readAll(dd(".nittle"), "b").rec?.id).toBe("b");
+  });
+
+  it("bin forces the per-entry path even with no ~/.nittle, leaving only bin behind", () => {
+    seed(dd(".diffle"), ["b"]);
+    mkdirSync(join(dd(".diffle"), "bin"));
+    writeFileSync(join(dd(".diffle"), "bin", "diffle"), "x");
+    step({ rename: () => { throw new Error("must not rename the whole dir"); } }).run();
+    expect(readAll(dd(".nittle"), "b").rec?.id).toBe("b");
+    expect(readdirSync(dd(".diffle"))).toEqual(["bin"]);
+    rmSync(join(dd(".diffle"), "bin"), { recursive: true });
+    removeEmptyLegacyDirs(home);
+    expect(existsSync(dd(".diffle"))).toBe(false);
+  });
+
+  it("never deletes when ~/.nittle is a link to ~/.diffle", () => {
+    seed(dd(".diffle"), ["b"]);
+    try { symlinkSync(dd(".diffle"), dd(".nittle"), "junction"); } catch { return; }
+    const warnings: string[] = [];
+    step({ warn: (m: string) => warnings.push(m) }).run();
+    expect(existsSync(join(dd(".diffle"), "reviews", "b", "review.json"))).toBe(true);
+    expect(warnings.join(" ")).toContain("same tree");
+  });
+
+  it("defers while a legacy writer is live, then migrates once it is gone", () => {
+    seed(dd(".diffle"), ["b"]);
+    const warnings: string[] = [];
+    expect(step({ liveWriters: () => ["mcp server pid 42"], warn: (m: string) => warnings.push(m) }).run()).toBe("deferred");
+    expect(warnings).toHaveLength(1);
+    expect(existsSync(dd(".nittle"))).toBe(false);
+    step().run();
+    expect(existsSync(dd(".diffle"))).toBe(false);
+  });
+
+  it("skips when another migration holds the lock, and takes over a stale lock", () => {
+    seed(dd(".diffle"), ["b"]);
+    writeFileSync(join(home, ".nittle.migrating.lock"), "1");
+    expect(step().run()).toContain("skipped");
+    expect(existsSync(dd(".diffle"))).toBe(true);
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    utimesSync(join(home, ".nittle.migrating.lock"), old, old);
+    step().run();
+    expect(existsSync(dd(".diffle"))).toBe(false);
+    expect(existsSync(join(home, ".nittle.migrating.lock"))).toBe(false);
   });
 
   it("resolves to the old dir only while ~/.nittle does not exist yet", () => {
