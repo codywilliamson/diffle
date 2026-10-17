@@ -130,4 +130,23 @@ describe("prefs store", () => {
     expect(dark.theme).toBe("dark");
     expect(darkStore.data[`${PREFS_PREFIX}theme`]).toBe("dark");
   });
+
+  it("keeps the legacy key and keeps reading it when the new key cannot be written", () => {
+    const storage = fakeStorage({ [`${LEGACY_PREFS_PREFIX}sidebar`]: "360" });
+    storage.setItem = () => { throw new Error("quota"); };
+    const prefs = createPrefsStore({ storage, matchMedia: media(false) });
+    expect(prefs.sidebarWidth).toBe(360);
+    expect(storage.data[`${LEGACY_PREFS_PREFIX}sidebar`]).toBe("360");
+  });
+
+  it("drops a leftover legacy key when the new key already exists, retrying until removal works", () => {
+    const storage = fakeStorage({ [`${PREFS_PREFIX}wrap`]: "true", [`${LEGACY_PREFS_PREFIX}wrap`]: "false" });
+    const realRemove = storage.removeItem!;
+    storage.removeItem = () => { throw new Error("blocked"); };
+    expect(createPrefsStore({ storage, matchMedia: media(false) }).wrap).toBe(true);
+    expect(storage.data[`${LEGACY_PREFS_PREFIX}wrap`]).toBe("false");
+    storage.removeItem = realRemove;
+    expect(createPrefsStore({ storage, matchMedia: media(false) }).wrap).toBe(true);
+    expect(storage.data[`${LEGACY_PREFS_PREFIX}wrap`]).toBeUndefined();
+  });
 });
