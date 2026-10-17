@@ -10,7 +10,7 @@ const root = join(import.meta.dir, ".."); // currentVersion reads this repo's pa
 const current = currentVersion(root);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const T0 = Date.parse("2026-09-01T12:00:00.000Z");
-const ENV_KEYS = ["CI", "NITTLE_NO_UPDATE_CHECK", "NITTLE_NO_UPDATE_CHECK"];
+const ENV_KEYS = ["CI", "NITTLE_NO_UPDATE_CHECK", "DIFFLE_NO_UPDATE_CHECK"];
 
 let home: string;
 let saved: Record<string, string | undefined>;
@@ -62,9 +62,9 @@ describe("launchUpdateNotice", () => {
     process.env.NITTLE_NO_UPDATE_CHECK = "1";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
     delete process.env.NITTLE_NO_UPDATE_CHECK;
-    process.env.NITTLE_NO_UPDATE_CHECK = "1";
+    process.env.DIFFLE_NO_UPDATE_CHECK = "1";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
-    delete process.env.NITTLE_NO_UPDATE_CHECK;
+    delete process.env.DIFFLE_NO_UPDATE_CHECK;
     process.env.CI = "true";
     expect(await notice(tags(["v999.0.0"]))).toBeNull();
     expect(fetches).toBe(0);
