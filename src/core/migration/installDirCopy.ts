@@ -7,6 +7,7 @@ import { basename, dirname, join } from "node:path";
 import { PRODUCT } from "../product";
 import { retireBinary } from "../retireBinary";
 
+export const sameBytes = (a: string, b: string): boolean => sha256(a) === sha256(b);
 const sha256 = (file: string) => createHash("sha256").update(readFileSync(file)).digest("hex");
 const EXECUTABLE = 0o755;
 
