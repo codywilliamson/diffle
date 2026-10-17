@@ -13,7 +13,14 @@ if (!source || !tag?.startsWith("v")) throw new Error("usage: TAG=vX.Y.Z bun scr
 const version = tag.slice(1);
 const temp = mkdtempSync(join(tmpdir(), "nittle-release-smoke-"));
 const binary = join(temp, basename(source));
-const env = { ...process.env, NITTLE_NO_UPDATE_CHECK: "1", NITTLE_DATA_DIR: join(temp, "data") } as Record<string, string>;
+// the binary migrates legacy installs on startup (a diffle-named copy included), so it gets its own home
+const home = join(temp, "home");
+mkdirSync(home);
+const env = {
+  ...process.env, NITTLE_NO_UPDATE_CHECK: "1", NITTLE_DATA_DIR: join(temp, "data"),
+  HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"), APPDATA: join(home, "AppData", "Roaming"),
+  CLAUDE_CONFIG_DIR: join(home, ".claude"), CODEX_HOME: join(home, ".codex"),
+} as Record<string, string>;
 
 function run(command: string, args: string[], cwd: string): string {
   const result = Bun.spawnSync([command, ...args], { cwd, env, stdout: "pipe", stderr: "pipe" });
