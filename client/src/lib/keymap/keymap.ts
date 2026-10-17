@@ -44,9 +44,9 @@ export const BINDINGS: Binding[] = [
   bind("V", "Comment", "Start a visual range", "visual.start", { reserved: true }),
   bind("C", "Comment", "Comment on the file", "comment.file", { reserved: true }),
 
-  bind("/", "Search", "Search the file", "search.file", { reserved: true }),
-  bind("n", "Search", "Next match", "search.next", { count: true, reserved: true }),
-  bind("N", "Search", "Previous match", "search.prev", { count: true, reserved: true }),
+  bind("/", "Search", "Search the file", "search.file"),
+  bind("n", "Search", "Next match", "search.next", { count: true }),
+  bind("N", "Search", "Previous match", "search.prev", { count: true }),
   bind("g/", "Search", "Search all changed files", "search.all", { reserved: true }),
 
   bind("m", "View", "File list: tree / review order", "view.order"),

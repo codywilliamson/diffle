@@ -4,6 +4,7 @@
   import { getAppState } from "$lib/state/context";
   import { createFileHighlight } from "$lib/diff/fileHighlight.svelte";
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
+  import { markHits } from "$lib/diff/search";
   import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import { cursorOnLine } from "$lib/state/cursorSteps";
@@ -14,7 +15,7 @@
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file, annotations = PLAIN_ANNOTATIONS }: { file: DiffFile; annotations?: DiffAnnotations } = $props();
-  const { ui, comments, cursor } = getAppState();
+  const { ui, comments, cursor, search } = getAppState();
   const here = $derived(cursor.posFor(file.path));
   const highlighted = createFileHighlight(() => file);
 
@@ -24,7 +25,8 @@
   function render(line: DiffLine, marks: Map<DiffLine, CharRange>): string {
     const html = highlighted(line);
     const mark = marks.get(line);
-    return mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
+    const marked = mark ? markRange(html, mark.start, mark.end, `wd wd-${line.type}`) : html;
+    return markHits(marked, search.hitsFor(file.path, line.oldLine, line.newLine), search.active);
   }
 
   // additions + context anchor on the new side; deletions anchor on the old side.
