@@ -3,7 +3,7 @@ import { helpFor, parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, lsp: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -30,7 +30,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
+    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, wait: false, json: false, lsp: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("rejects a bad port", () => {
@@ -65,7 +65,7 @@ describe("parseCliArgs", () => {
   });
 
   test("usage covers every option", () => {
-    for (const flag of ["--port", "--no-open", "--review-id", "--version", "--license", "--help"]) {
+    for (const flag of ["--port", "--no-open", "--no-lsp", "--review-id", "--version", "--license", "--help"]) {
       expect(helpFor("review", "review")).toContain(flag);
     }
   });
