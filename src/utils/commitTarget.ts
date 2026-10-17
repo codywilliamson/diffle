@@ -1,5 +1,7 @@
 // resolves a `<rev>^!` spec (what `nittle show [rev]` sends) into a diff plan pinned to the full commit hash.
 
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { CommitInfo } from "../types";
 import type { DiffPlan } from "./git";
 import { runGit } from "./git";
@@ -42,10 +44,19 @@ function readCommit(rev: string, cwd: string): CommitInfo & { parents: string[] 
   return { hash, shortHash, author, date, subject, body: bodyParts.join("").trim(), isMerge: parents.length > 1, baseShortHash: null, parents };
 }
 
+// a shallow clone hides the parents of its boundary commits, which would otherwise look like roots.
+function isShallowBoundary(hash: string, cwd: string): boolean {
+  const shallowFile = resolve(cwd, runGit(["rev-parse", "--git-path", "shallow"], cwd).trim());
+  return existsSync(shallowFile) && readFileSync(shallowFile, "utf8").split("\n").some((line) => line.trim() === hash);
+}
+
 // root commits diff against the empty tree, merges against their first parent.
 export function resolveCommit(spec: string, cwd: string): DiffPlan {
   const rev = spec.slice(0, -COMMIT_SPEC_SUFFIX.length);
   const { parents, ...info } = readCommit(rev, cwd);
+  if (parents.length === 0 && isShallowBoundary(info.hash, cwd)) {
+    throw new Error(`${info.shortHash} is at the edge of a shallow clone, so its parent isn't here. fetch it with: git fetch --deepen=1`);
+  }
   const base = parents[0] ?? runGit(EMPTY_TREE_ARGS, cwd).trim();
   const commit: CommitInfo = { ...info, baseShortHash: parents[0] ? parents[0].slice(0, SHORT_HASH_LENGTH) : null };
   return {

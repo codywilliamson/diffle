@@ -163,3 +163,12 @@ describe("nittle show with hostile commit metadata", () => {
     rmSync(hostile, { recursive: true, force: true });
   });
 });
+
+describe("nittle show in a shallow clone", () => {
+  it("refuses the boundary commit instead of diffing it against the empty tree", () => {
+    const shallow = mkdtempSync(join(tmpdir(), "nittle-show-shallow-"));
+    run(["clone", "-q", "--depth=1", `file://${repo.replaceAll("\\", "/")}`, shallow], tmpdir());
+    expect(() => loadReviewTarget(shallow, "HEAD^!")).toThrow("shallow clone");
+    rmSync(shallow, { recursive: true, force: true });
+  });
+});
