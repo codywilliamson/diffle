@@ -13,10 +13,7 @@ interface DoctorRun { code: number; out: string; }
 
 // runs the real cli so exit codes and the spawned `claude` calls are exercised end to end.
 // the release check is opted out so these never reach GitHub.
-// the automatic first-run swap is skipped unless a test passes `extraEnv` without the skip flag
-const SKIP_MIGRATION = { NITTLE_SKIP_AGENT_MIGRATION: "1" };
-
-async function doctor(configDir: string, args: string[], binDir: string, extraEnv: Record<string, string> = SKIP_MIGRATION): Promise<DoctorRun> {
+async function doctor(configDir: string, args: string[], binDir: string, extraEnv: Record<string, string> = {}): Promise<DoctorRun> {
   const proc = Bun.spawn({
     cmd: [process.execPath, entry, "doctor", ...args],
     env: { ...process.env, CLAUDE_CONFIG_DIR: configDir, PATH: binDir, Path: binDir, NITTLE_NO_UPDATE_CHECK: "1", ...extraEnv },
@@ -82,21 +79,12 @@ describe("nittle doctor", () => {
   });
 });
 
-describe("nittle doctor with the automatic swap", () => {
-  it("swaps the retired claude plugins on startup, before doctor reports", async () => {
-    const { binDir, log } = fakeClaude(0);
-    const { out } = await doctor(staleConfigDir(), [], binDir, {});
-    expect(out).toContain("[nittle] Claude Code: removed");
-    const calls = logLines(log);
-    expect(calls[0]).toContain("plugin uninstall diffle-review@diffle-local");
-    expect(calls.at(-1)).toContain("plugin install nittle-review@nittle-local --scope user --yes");
-  });
-
+describe("nittle doctor agent configs", () => {
   it("reports and repairs an mcp config the automatic pass skipped", async () => {
     const home = tempDir();
     const cursor = join(home, ".cursor", "mcp.json");
     writeFile(cursor, { mcpServers: { diffle: { command: "diffle", args: ["mcp", "serve"] }, other: { command: "o" } } });
-    const env = { ...SKIP_MIGRATION, HOME: home, USERPROFILE: home };
+    const env = { HOME: home, USERPROFILE: home };
     const report = await doctor(healthyConfigDir(), [], tempDir(), env);
     expect(report.code).toBe(1);
     expect(report.out).toMatch(/FAIL\s+Cursor\s+.*still launches a retired server/);
@@ -112,7 +100,7 @@ describe("nittle doctor with the automatic swap", () => {
     const home = tempDir();
     writeFile(join(home, ".cursor", "mcp.json"), `{ // c
  "mcpServers": { "diffle": { "command": "diffle" } } }`);
-    const { code, out } = await doctor(healthyConfigDir(), [], tempDir(), { ...SKIP_MIGRATION, HOME: home, USERPROFILE: home });
+    const { code, out } = await doctor(healthyConfigDir(), [], tempDir(), { HOME: home, USERPROFILE: home });
     expect(code).toBe(1);
     expect(out).toContain("can't be edited automatically");
   });

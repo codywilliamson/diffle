@@ -22,8 +22,6 @@ export interface AgentPluginsDeps {
 
 export interface AgentFinding { target: AgentTarget; steps: PluginSwapStep[]; config: ConfigState; }
 
-// set to leave agents alone on startup (doctor tests exercise the manual repair path with it)
-const SKIP_ENV = `${PRODUCT.envPrefix}SKIP_AGENT_MIGRATION`;
 const TAG =`[${PRODUCT.name}]`;
 const DOCTOR_HINT = `run \`${PRODUCT.name} doctor --fix\``;
 
@@ -65,7 +63,6 @@ export function migrateFinding({ target, steps, config }: AgentFinding, deps: Ag
 
 // returns the summary lines it logged
 export function migrateAgentPlugins(overrides: Partial<AgentPluginsDeps> = {}): string[] {
-  if (process.env[SKIP_ENV]) return [];
   const deps = { ...defaultAgentPluginsDeps(), ...overrides };
   const findings = findLegacyAgents(deps.agentEnv);
   if (findings.length === 0) return [];
