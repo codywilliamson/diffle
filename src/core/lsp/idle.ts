@@ -4,7 +4,7 @@
 
 import type { LspBridge } from "./bridge";
 
-export const PROGRESS_START_GRACE_MS = 1000;
+export const PROGRESS_START_GRACE_MS = 2000;
 export const PROGRESS_MAX_WAIT_MS = 20_000; // a slow solution load must not hang a request forever
 const POLL_MS = 20;
 
