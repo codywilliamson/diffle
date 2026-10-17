@@ -9,7 +9,7 @@ The review scorecard summarizes a diff before you read it: how big it is, whethe
 
 ## Open the scorecard
 
-Click **Scorecard** in the top bar, or press `g`. The button's dot shows the worst band across all six categories. The panel shows:
+Click **Scorecard** in the top bar, or press `gc`. The button's dot shows the worst band across all six categories. The panel shows:
 
 - **Totals**: effective lines, files, and how many noise lines were hidden.
 - **Six categories**, each marked Low, Medium, or High, with a summary and the files behind it.
@@ -68,7 +68,7 @@ Switch the file list from **Tree** to **Review order** with the sidebar toggle o
 - **TypeScript and JavaScript**: files inside a nested `package.json` folder group under that folder. Files owned only by the repository root's `package.json` group by their top-level folders.
 - **Other languages**: grouped by top-level folder.
 
-Within a group, each source file is followed by its test. Generated files and lockfiles go to a final **Generated & lockfiles** group. `j` and `k` follow the active order.
+Within a group, each source file is followed by its test. Generated files and lockfiles go to a final **Generated & lockfiles** group. `J` and `K` follow the active order.
 
 ## In the diff
 
