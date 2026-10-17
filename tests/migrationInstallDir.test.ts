@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { installedBinaryPath } from "../src/core/installedBinary";
-import { migrateInstallDir, type InstallDirDeps } from "../src/core/migration/installDir";
+import { installNittleBinary, migrateInstallDir, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
 import { swapPathEntry, type UserPathStore } from "../src/core/migration/installDirWinPath";
 
@@ -13,6 +13,7 @@ afterEach(() => rmSync(home, { recursive: true, force: true }));
 
 const BINARY = "binary-bytes";
 const OLD_BLOCK = (dir: string) => ["# >>> diffle >>>", `export PATH="${dir}:$PATH"`, "# <<< diffle <<<"];
+const read = (path: string) => readFileSync(path, "utf8");
 const write = (path: string, text: string) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); };
 const legacyBin = (platform: NodeJS.Platform = "linux") => join(home, ".diffle", "bin", platform === "win32" ? "diffle.exe" : "diffle");
 
@@ -158,6 +159,59 @@ describe("install dir migration from the diffle binary", () => {
     setup().run();
     expect(readFileSync(join(home, ".zshrc.nittle.bak-20260101-101010-1"), "utf8")).toBe("old backup");
     expect(readdirSync(home).some((name) => name.includes("diffle"))).toBe(false);
+  });
+
+  test("a custom-dir 0.28.x install updated without the env var is found from the executable itself", () => {
+    const custom = join(home, "tools", "diffle-bin");
+    write(join(custom, "diffle"), BINARY);
+    const rc = join(home, ".zshrc");
+    write(rc, OLD_BLOCK(custom).join("\n"));
+    const { run } = setup({ execPath: join(custom, "diffle") });
+    run();
+    expect(readFileSync(join(home, ".nittle", "bin", "nittle"), "utf8")).toBe(BINARY);
+    expect(existsSync(custom)).toBe(false);
+    expect(readFileSync(rc, "utf8")).toBe(["# >>> nittle >>>", `export PATH="${join(home, ".nittle", "bin")}:$PATH"`, "# <<< nittle <<<"].join("\n"));
+  });
+
+  test("the binary is installed in phase one, before the diffle one is touched", () => {
+    installLegacy();
+    write(join(home, ".zshrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    const { logs } = setup();
+    installNittleBinary({ home, platform: "linux", execPath: legacyBin(), env: { PATH: "" }, stopServers: () => {}, log: (line) => logs.push(line) });
+    expect(existsSync(join(home, ".nittle", "bin", "nittle"))).toBe(true);
+    expect(existsSync(legacyBin())).toBe(true);
+    expect(read(join(home, ".zshrc"))).toContain("# >>> diffle >>>");
+  });
+
+  test("an rc block pointing at some other dir is not ours to rewrite: the diffle binary stays", () => {
+    installLegacy();
+    const rc = join(home, ".zshrc");
+    write(rc, OLD_BLOCK(join(home, "elsewhere", "bin")).join("\n"));
+    setup({ env: { PATH: "/usr/bin" } }).run();
+    expect(read(rc)).toBe(OLD_BLOCK(join(home, "elsewhere", "bin")).join("\n"));
+    expect(existsSync(legacyBin())).toBe(true);
+  });
+
+  test("an rc block written through a symlinked home is matched by filesystem equivalence", () => {
+    const real = join(home, "real-home");
+    const linked = join(home, "linked-home");
+    mkdirSync(real);
+    try { symlinkSync(real, linked, "junction"); } catch { return; } // symlinks not permitted here; posix CI covers it
+    write(join(real, ".diffle", "bin", "diffle"), BINARY);
+    write(join(real, ".zshrc"), OLD_BLOCK(join(linked, ".diffle", "bin")).join("\n"));
+    setup({ home: real, execPath: join(real, ".diffle", "bin", "diffle"), env: { PATH: "/usr/bin" } }).run();
+    expect(read(join(real, ".zshrc"))).toBe(["# >>> nittle >>>", `export PATH="${join(real, ".nittle", "bin")}:$PATH"`, "# <<< nittle <<<"].join("\n"));
+    expect(existsSync(join(real, ".diffle"))).toBe(false);
+  });
+
+  test("an existing nittle block for another dir does not license dropping the diffle block", () => {
+    installLegacy();
+    const rc = join(home, ".zshrc");
+    const text = [...OLD_BLOCK(join(home, ".diffle", "bin")), "# >>> nittle >>>", 'export PATH="/somewhere/else:$PATH"', "# <<< nittle <<<"].join("\n");
+    write(rc, text);
+    setup({ env: { PATH: "/usr/bin" } }).run();
+    expect(read(rc)).toBe(text);
+    expect(existsSync(legacyBin())).toBe(true);
   });
 
   test("a failed copy keeps the diffle install and reports", () => {
