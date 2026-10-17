@@ -8,6 +8,7 @@
   import DiffView from "$lib/components/diff/DiffView.svelte";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
+  import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
   import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
@@ -74,6 +75,7 @@
     </div>
   {/if}
 
+  <CursorAnnouncer />
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
   {#if ui.activeOverlay === "scorecard" && analysis.scorecard}<ScorecardPanel scorecard={analysis.scorecard} />{/if}
