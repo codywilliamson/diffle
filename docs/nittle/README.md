@@ -1,5 +1,7 @@
 # diffle — the evolution
 
+> Written when the product was called diffle (and loupe before it). Kept as history; the name is now nittle, see [ADR 0008](../adr/0008-rename-diffle-to-nittle.md).
+
 > **diffle** — the *Deterministic Inspection & Feedback Framework for Language-model Engineering*. (It is a diff tool. The acronym is doing a bit.)
 
 The `evolve` branch turns loupe into **diffle**: a frontend rewrite, a rebrand, and a modernized distribution + docs setup. This folder is the durable record of that initiative.

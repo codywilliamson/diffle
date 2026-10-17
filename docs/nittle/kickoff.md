@@ -1,5 +1,7 @@
 # diffle — Claude UltraCode kickoff
 
+> Written when the product was called diffle (and loupe before it). Kept as history; the name is now nittle, see [ADR 0008](../adr/0008-rename-diffle-to-nittle.md).
+
 Paste the block below into a fresh Claude UltraCode session opened at the repository root. It deliberately executes only Phase 0. Review that checkpoint before starting Phase 1; do not turn the entire rewrite into one workflow.
 
 ```
@@ -14,9 +16,9 @@ Start by confirming all of the following:
 - The current branch is `evolve`. Do not create or switch branches.
 - Read `AGENTS.md`, `CONTEXT.md`, and the relevant ADRs before changing code.
 - Read these source-of-truth documents in order:
-  1. `docs/diffle/plan.md`
-  2. `docs/diffle/parity.md`
-  3. `docs/diffle/design.md`
+  1. `docs/nittle/plan.md`
+  2. `docs/nittle/parity.md`
+  3. `docs/nittle/design.md`
   4. `docs/adr/0004-rename-loupe-to-diffle.md`
   5. `docs/adr/0005-svelte-vite-drop-buildless.md`
   6. `docs/adr/0006-distribution-binaries-install-script.md`
@@ -33,7 +35,7 @@ Product and architecture decisions are locked for this phase:
 - `src/types.ts` remains the only shared contract definition. Import its types; never
   recreate them in the client.
 - New source lives under `client/`; Vite output is `dist/client`.
-- D5 light and dark semantic variables in `docs/diffle/design.md` are canonical.
+- D5 light and dark semantic variables in `docs/nittle/design.md` are canonical.
   Tailwind and shadcn variables must alias them instead of creating a parallel palette.
 - This is a rewrite branch: make the Svelte shell the default in Phase 0. Do not build a
   Preact fallback, feature flag, or dual-client router. Keep `src/client` only as read-only
@@ -43,7 +45,7 @@ Product and architecture decisions are locked for this phase:
   newer `compile.assets`/`--asset` interface, so do not build around it, sidecar assets, or
   an installed checkout.
 
-Execute Phase 0 from `docs/diffle/plan.md`:
+Execute Phase 0 from `docs/nittle/plan.md`:
 
 1. Capture the baseline before edits:
    - `git status --short`
@@ -53,7 +55,7 @@ Execute Phase 0 from `docs/diffle/plan.md`:
    - a real-browser desktop and phone-width smoke of the current client
    Keep temporary screenshots out of tracked product media.
 
-2. Reconcile `docs/diffle/parity.md` with the live client while inspecting it. If the
+2. Reconcile `docs/nittle/parity.md` with the live client while inspecting it. If the
    checklist missed a current behavior, update the checklist before coding. Do not widen
    Phase 0 into implementing that behavior.
 
@@ -84,7 +86,7 @@ Execute Phase 0 from `docs/diffle/plan.md`:
    the generated `?review=` query, opens the Vite URL, and tears both processes down
    cleanly. Do not add a public CLI option, fallback, or alternate legacy-client path.
 
-7. Make root `DESIGN.md` a short pointer to `docs/diffle/design.md`; do not duplicate the
+7. Make root `DESIGN.md` a short pointer to `docs/nittle/design.md`; do not duplicate the
    palette. Update `AGENTS.md` only after the scaffold exists: remove buildless/htm rules
    and the blanket client line cap, document Svelte source/output plus the read-only legacy
    reference, and retain server/core rules that remain true. `CLAUDE.md` is only
