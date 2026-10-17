@@ -60,10 +60,12 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          # test-results holds <name>-actual.png, -expected.png and -diff.png for every failed snapshot
+          # test-results holds <name>-actual.png, -expected.png and -diff.png for every failed snapshot;
+          # e2e/__snapshots__ carries any missing baseline playwright wrote (aria snapshots included)
           name: visual-snapshot-failures
           path: |
             test-results/
             playwright-report/
+            e2e/__snapshots__/
           if-no-files-found: warn
           retention-days: 7
