@@ -7,20 +7,26 @@
 // ignoreExit (never leave on `exit`), ignoreShutdown (never answer `shutdown`).
 // requests: fake/echo, fake/slow {ms} (answers -32800 when cancelled), fake/state, fake/crash,
 // fake/partial (answers in tiny pieces with multibyte text), fake/burst (two frames in one write).
+// navigation: responses {method: result} answers any other method with that canned result,
+// hang [methods] never answers those until cancelled (-32800), delay {method: ms} answers a canned response late. fake/state also reports
+// docs {uri: {version, text}}, changes [{uri, version, text}] and requests [{method, params}].
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 interface Config {
   initDelayMs?: number; encoding?: string; stderrOnStart?: string; exitOnInitialize?: number;
   crashFirstN?: number; counterFile?: string; progress?: { delayMs: number; durationMs: number };
-  clientRequests?: boolean; ignoreExit?: boolean; ignoreShutdown?: boolean; ignoreTerm?: boolean; spawnChild?: boolean;
+  clientRequests?: boolean; responses?: Record<string, unknown>; hang?: string[]; delay?: Record<string, number>; ignoreExit?: boolean; ignoreShutdown?: boolean; ignoreTerm?: boolean; spawnChild?: boolean;
 }
 interface Msg { id?: number | string; method?: string; params?: any; result?: unknown; error?: unknown }
 
-const config: Config = JSON.parse(process.env.FAKE_LSP ?? "{}");
+const config: Config = JSON.parse(process.argv[2] ?? process.env.FAKE_LSP ?? "{}"); // argv wins, so two servers in one test can differ
 const cancelled: Array<number | string> = [];
 const opened: string[] = [];
 const closed: string[] = [];
+const docs: Record<string, { version: number; text: string }> = {};
+const changes: Array<{ uri: string; version: number; text: string }> = [];
+const requests: Array<{ method: string; params: unknown }> = [];
 const replies: Record<string, unknown> = {};
 let initParams: unknown;
 let childPid: number | undefined;
@@ -80,7 +86,7 @@ function onRequest(msg: Msg): unknown {
     case "shutdown": return config.ignoreShutdown ? undefined : respond(id, null);
     case "fake/echo": return respond(id, msg.params);
     case "fake/slow": return void slow.set(id, setTimeout(() => { slow.delete(id); respond(id, "done"); }, msg.params?.ms ?? 1000));
-    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams, childPid });
+    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams, childPid, docs, changes, requests });
     case "fake/crash": return die(1, "fake lsp: crash requested");
     case "fake/burst": return void process.stdout.write(Buffer.concat([frame({ jsonrpc: "2.0", id, result: "a" }), frame({ jsonrpc: "2.0", method: "fake/note", params: {} })]));
     case "fake/partial": {
@@ -89,7 +95,14 @@ function onRequest(msg: Msg): unknown {
       const timer = setInterval(() => { process.stdout.write(bytes.subarray(at, at + 3)); at += 3; if (at >= bytes.length) clearInterval(timer); }, 2);
       return;
     }
-    default: return fail(id, -32601, `no such method ${msg.method}`);
+    default: {
+      requests.push({ method: msg.method!, params: msg.params });
+      if (config.hang?.includes(msg.method!)) return void slow.set(id, setTimeout(() => { slow.delete(id); respond(id, null); }, 600_000));
+      const wait = config.delay?.[msg.method!];
+      if (wait && config.responses && msg.method! in config.responses) return void setTimeout(() => respond(id, config.responses![msg.method!]), wait);
+      if (config.responses && msg.method! in config.responses) return respond(id, config.responses[msg.method!]);
+      return fail(id, -32601, `no such method ${msg.method}`);
+    }
   }
 }
 
@@ -102,7 +115,16 @@ function onNotification(msg: Msg): void {
   } else if (msg.method === "initialized") {
     if (config.progress) startProgress();
     if (config.clientRequests) askClient();
-  } else if (msg.method === "textDocument/didOpen") opened.push(msg.params.textDocument.uri);
+  } else if (msg.method === "textDocument/didOpen") {
+    const { uri, version, text } = msg.params.textDocument;
+    opened.push(uri);
+    docs[uri] = { version, text };
+  } else if (msg.method === "textDocument/didChange") {
+    const { uri, version } = msg.params.textDocument;
+    const text = msg.params.contentChanges[0].text;
+    docs[uri] = { version, text };
+    changes.push({ uri, version, text });
+  }
   else if (msg.method === "textDocument/didClose") closed.push(msg.params.textDocument.uri);
   else if (msg.method === "exit" && !config.ignoreExit) process.exit(0);
 }

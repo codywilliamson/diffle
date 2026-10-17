@@ -44,6 +44,12 @@ export class LspPool {
   constructor(private readonly options: PoolOptions) {}
 
   get enabled(): boolean { return this.options.enabled !== false; }
+  get root(): string { return this.options.root; }
+
+  // bridges that finished the handshake; workspace queries fan out to these.
+  running(): LspBridge[] {
+    return [...this.slots.values()].filter((slot) => slot.bridge && (slot.state === "ready" || slot.state === "indexing")).map((slot) => slot.bridge!);
+  }
 
   status(languages: readonly LspLanguage[]): LspLanguageStatus[] {
     return languages.map((language) => {
@@ -163,7 +169,8 @@ export class LspPool {
   }
 
   private cleanup(): void {
-    if (this.logDir) rmSync(this.logDir, { recursive: true, force: true });
+    // best effort: on windows a server that is still dying keeps its cwd (this dir) locked
+    if (this.logDir) { try { rmSync(this.logDir, { recursive: true, force: true }); } catch { /* temp dir; the os cleans it */ } }
     this.logDir = undefined;
   }
 }

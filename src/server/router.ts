@@ -16,7 +16,10 @@ import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleGetInterdiff } from "./interdiffHandlers";
 import { handleGetScorecard } from "./analysisHandlers";
-import { handleGetLspStatus } from "./lspHandlers";
+import { handleGetLspStatus, handleLspDefinition, handleLspHover } from "./lspHandlers";
+import { handleLspReferences } from "./lspReferences";
+import { handleGetLspSymbols } from "./lspSymbols";
+import { handleGetLspFile } from "./lspFile";
 import { handleSessionStop } from "./sessionHandlers";
 import { handlePresence } from "./presence";
 import { handleGetSearch } from "./searchHandlers";
@@ -51,6 +54,8 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/presence" && ctx.presence) return handlePresence(ctx.presence, req);
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
     if (pathname === "/api/lsp/status") return handleGetLspStatus(ctx);
+    if (pathname === "/api/lsp/symbols") return handleGetLspSymbols(ctx, new URL(req.url), req.signal);
+    if (pathname === "/api/lsp/file") return handleGetLspFile(ctx, new URL(req.url));
     if (pathname === "/api/search") return handleGetSearch(ctx, new URL(req.url));
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
@@ -64,6 +69,9 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/review/status") return handleReviewStatus(req);
     if (pathname === "/api/review/legacy") return handleLegacyReview(req, ctx.cwd);
     if (pathname === "/api/session/stop") return handleSessionStop(ctx, req);
+    if (pathname === "/api/lsp/definition") return handleLspDefinition(ctx, req);
+    if (pathname === "/api/lsp/hover") return handleLspHover(ctx, req);
+    if (pathname === "/api/lsp/references") return handleLspReferences(ctx, req);
   }
 
   return notFound();
