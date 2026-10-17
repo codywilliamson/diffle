@@ -72,8 +72,22 @@ jobs:
         run: |
           exe=""; if [ "$RUNNER_OS" = Windows ]; then exe=".exe"; fi
           bun scripts/upgrade-smoke.ts --mode simulated --binary "dist/nittle$exe"
-      - name: Upgrade smoke (live)
+      # past the transition window a release has no diffle-named asset, and 0.28.x can no longer update to it
+      - name: Does the latest release carry the transition assets
+        id: carry
         if: ${{ env.MODE == 'live' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx 'diffle-linux-x64'; then
+            echo "carry=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "carry=false" >> "$GITHUB_OUTPUT"
+            echo "latest release has no diffle-named assets (past the transition window); skipping the live upgrade"
+          fi
+      - name: Upgrade smoke (live)
+        if: ${{ env.MODE == 'live' && steps.carry.outputs.carry == 'true' }}
         shell: bash
         run: |
           extra=""; if [ "$RUNNER_OS" = Windows ]; then extra="--registry"; fi
