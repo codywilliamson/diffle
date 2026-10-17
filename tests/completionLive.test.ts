@@ -2,7 +2,7 @@
 // every shell is skipped with a message when it is not installed (ci installs zsh and fish on ubuntu).
 
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CompletionShell } from "../src/utils/cliVocabulary";
@@ -11,17 +11,31 @@ import { renderCompletion } from "../src/utils/completion";
 const SPAWN_TIMEOUT_MS = 40_000; // powershell cold start is the slow one
 const TEST_TIMEOUT_MS = 50_000; // always above the spawn timeout so a hang fails on the spawn, not the runner
 
-interface LiveCase { words: string[]; offers: string[]; why: string }
+interface LiveCase { words: string[]; offers: string[]; powershell?: string[]; why: string }
+
+// refs whose names a shell could mistake for code: they must come back as exact literals, and never run
+const EVIL_REFS = ["feature/$(touch${IFS}PWNED)", "feature/o'quote", "feature/a;Get-Date"];
+const SAFE_REF = "feature/late-branch";
+// powershell inserts anything that is not plainly safe as a single-quoted literal
+const psInsert = (ref: string) => (/^[A-Za-z0-9_./+-]+$/.test(ref) ? ref : `'${ref.replace(/'/g, "''")}'`);
 
 const CASES: LiveCase[] = [
   { words: ["nittle", "sh"], offers: ["show"], why: "command prefix" },
   { words: ["nittle", "mcp", ""], offers: ["list", "restart", "serve"], why: "subcommands" },
   { words: ["nittle", "hook", "stop", "--agent", ""], offers: ["claude-code", "codex"], why: "flag values" },
   { words: ["nittle", "setup", "--y"], offers: ["--yes"], why: "flag prefix" },
-  { words: ["nittle", "show", "feat"], offers: ["feature/late-branch"], why: "ref made after generation" },
-  { words: ["nittle", "-p", "80", "sh"], offers: ["show"], why: "a flag value is not a positional (review)" },
-  { words: ["nittle", "show", "--port", "80", "feat"], offers: ["feature/late-branch"], why: "a flag value is not a positional (show)" },
-  { words: ["nittle", "mcp", "--yes", ""], offers: ["list", "restart", "serve"], why: "a boolean flag is not a value" },
+  { words: ["nittle", "show", "feature/l"], offers: [SAFE_REF], why: "ref made after generation" },
+  { words: ["nittle", "show", "feature/"], offers: [SAFE_REF, ...EVIL_REFS], powershell: [SAFE_REF, ...EVIL_REFS.map(psInsert)], why: "refs that look like code are literals" },
+  { words: ["nittle", "-p", "80", "feature/l"], offers: [SAFE_REF], why: "a flag value is not a positional (review ref)" },
+  { words: ["nittle", "-p", "80", "sh"], offers: [], why: "commands only at argv[0], like the parser" },
+  { words: ["nittle", "show", "--port", "80", "feature/l"], offers: [SAFE_REF], why: "a flag value is not a positional (show)" },
+  { words: ["nittle", "mcp", "serve", "--y"], offers: [], why: "mcp serve rejects --yes" },
+  { words: ["nittle", "mcp", "restart", "--y"], offers: ["--yes"], why: "mcp restart accepts --yes" },
+  { words: ["nittle", "mcp", "--h"], offers: ["--help"], why: "mcp before a subcommand takes only help" },
+  { words: ["nittle", "show", "--vers"], offers: ["--version"], why: "show accepts --version" },
+  { words: ["nittle", "show", "--licen"], offers: ["--license"], why: "show accepts --license" },
+  { words: ["nittle", "show", "--wa"], offers: [], why: "show rejects --wait" },
+  { words: ["nittle", "hook", "stop", "--ag"], offers: ["--agent"], why: "hook stop accepts --agent" },
 ];
 
 const dirs: string[] = [];
@@ -39,7 +53,8 @@ function repoWithBranches(): string {
   const git = (...args: string[]) => run(["git", ...args], repo);
   git("init", "-q", "-b", "main"); git("config", "user.name", "t"); git("config", "user.email", "t@e.com");
   writeFileSync(join(repo, "a.txt"), "x\n"); git("add", "-A"); git("commit", "-q", "-m", "init");
-  git("branch", "feature/late-branch"); git("tag", "v9.9.9");
+  git("branch", SAFE_REF); git("tag", "v9.9.9");
+  for (const ref of EVIL_REFS) git("branch", ref);
   return repo;
 }
 
@@ -53,9 +68,13 @@ const shQuote = (text: string) => `'${text.replace(/'/g, "'\\''")}'`;
 const lines = (stdout: Uint8Array | Buffer) => stdout.toString().replace(/\r/g, "").trimEnd().split("\n");
 const normalize = (line: string) => line.split(/\s+/).filter(Boolean).sort();
 
-function check(output: string[]) {
+function check(output: string[], repo: string, shell: CompletionShell) {
   expect(output.length).toBe(CASES.length);
-  CASES.forEach((entry, index) => expect({ why: entry.why, got: normalize(output[index]!) }).toEqual({ why: entry.why, got: entry.offers }));
+  CASES.forEach((entry, index) => {
+    const want = [...(shell === "powershell" ? entry.powershell ?? entry.offers : entry.offers)].sort();
+    expect({ why: entry.why, got: normalize(output[index]!) }).toEqual({ why: entry.why, got: want });
+  });
+  expect(existsSync(join(repo, "PWNED"))).toBe(false);
 }
 
 describe("live completion", () => {
@@ -67,7 +86,8 @@ describe("live completion", () => {
       `try() { COMP_WORDS=("$@"); COMP_CWORD=$(( \${#COMP_WORDS[@]} - 1 )); _nittle; echo "\${COMPREPLY[*]}"; }`,
       ...CASES.map((entry) => `try ${entry.words.map(shQuote).join(" ")}`),
     ].join("\n");
-    check(lines(run([bash, write("bash", "driver.sh", driver), write("bash", "nittle.bash", renderCompletion("bash"))], repoWithBranches()).stdout));
+    const repo = repoWithBranches();
+    check(lines(run([bash, write("bash", "driver.sh", driver), write("bash", "nittle.bash", renderCompletion("bash"))], repo).stdout), repo, "bash");
   }, TEST_TIMEOUT_MS);
 
   test("zsh", () => {
@@ -81,7 +101,8 @@ describe("live completion", () => {
       `try() { words=("$@"); CURRENT=$#; PREFIX=\${@[-1]}; print -r -- "$(_nittle | sort | tr '\\n' ' ')" }`,
       ...CASES.map((entry) => `try ${entry.words.map(shQuote).join(" ")}`),
     ].join("\n");
-    check(lines(run([zsh, "-f", write("zsh", "driver.zsh", driver), write("zsh", "nittle.zsh", renderCompletion("zsh"))], repoWithBranches()).stdout));
+    const repo = repoWithBranches();
+    check(lines(run([zsh, "-f", write("zsh", "driver.zsh", driver), write("zsh", "nittle.zsh", renderCompletion("zsh"))], repo).stdout), repo, "zsh");
   }, TEST_TIMEOUT_MS);
 
   test("fish", () => {
@@ -91,7 +112,33 @@ describe("live completion", () => {
       `source $argv[1]`,
       ...CASES.map((entry) => `echo (complete -C ${shQuote(entry.words.join(" "))} | string replace -r '\\t.*' '' | sort | string join ' ')`),
     ].join("\n");
-    check(lines(run([fish, "--no-config", write("fish", "driver.fish", driver), write("fish", "nittle.fish", renderCompletion("fish"))], repoWithBranches()).stdout));
+    const repo = repoWithBranches();
+    check(lines(run([fish, "--no-config", write("fish", "driver.fish", driver), write("fish", "nittle.fish", renderCompletion("fish"))], repo).stdout), repo, "fish");
+  }, TEST_TIMEOUT_MS);
+
+  test("zsh registers with compinit both autoloaded from $fpath and sourced", () => {
+    const zsh = Bun.which("zsh");
+    if (!zsh) return skip("zsh");
+    const repo = repoWithBranches();
+    const fpathDir = temp("nittle-live-fpath-");
+    writeFileSync(join(fpathDir, "_nittle"), renderCompletion("zsh"));
+    const sourced = write("zsh", "nittle.zsh", renderCompletion("zsh"));
+    const shims = [
+      `compadd() { local a; if [[ $1 == -a ]]; then for a in "\${(@P)2}"; do print -r -- $a; done; return 0; fi; [[ $1 == -- ]] && shift; for a in "$@"; do print -r -- $a; done; return 0 }`,
+      `_describe() { return 0 }`,
+    ];
+    const compinit = (dump: string) => [`autoload -Uz compinit`, `compinit -u -d ${shQuote(dump)}`];
+    const autoloadDriver = [
+      `fpath=(${shQuote(fpathDir)} $fpath)`, ...compinit(join(temp("nittle-live-dump-"), "dump")), ...shims,
+      `print -r -- "registered: $_comps[nittle]"`,
+      `words=(nittle mcp ""); CURRENT=3; PREFIX=""; print -r -- "offers: $(_nittle | sort | tr '\\n' ' ')"`,
+    ].join("\n");
+    const sourcedDriver = [
+      ...compinit(join(temp("nittle-live-dump-"), "dump")), `source ${shQuote(sourced)}`, `print -r -- "registered: $_comps[nittle]"`,
+    ].join("\n");
+    const out = (driver: string) => lines(run([zsh, "-f", write("zsh", "driver.zsh", driver)], repo).stdout).map((line) => line.trim());
+    expect(out(autoloadDriver)).toEqual(["registered: _nittle", "offers: list restart serve"]);
+    expect(out(sourcedDriver)).toEqual(["registered: _nittle"]);
   }, TEST_TIMEOUT_MS);
 
   test("powershell", () => {
@@ -103,6 +150,7 @@ describe("live completion", () => {
       ...CASES.map((entry) => `(t '${entry.words.join(" ").replace(/'/g, "''")}') -join ' '`),
     ].join("\n");
     const script = write("powershell", "nittle.ps1", renderCompletion("powershell"));
-    check(lines(run([pwsh, "-NoProfile", "-Command", driver], repoWithBranches(), { COMPLETION_FILE: script }).stdout));
+    const repo = repoWithBranches();
+    check(lines(run([pwsh, "-NoProfile", "-Command", driver], repo, { COMPLETION_FILE: script }).stdout), repo, "powershell");
   }, TEST_TIMEOUT_MS);
 });

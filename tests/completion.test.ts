@@ -2,7 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { COMPLETION_SHELLS, type CompletionShell } from "../src/utils/cliVocabulary";
+import { agentTargets } from "../src/core/agentTargets";
+import { FLAG_SPECS, findFlag, type FlagSpec } from "../src/utils/cliFlags";
+import { AGENT_IDS, COMPLETION_SHELLS, type CompletionShell } from "../src/utils/cliVocabulary";
 import { parseCliArgs } from "../src/utils/cli";
 import { renderCompletion } from "../src/utils/completion";
 import { completionModel } from "../src/utils/completion/model";
@@ -26,7 +28,7 @@ describe("completion scripts", () => {
       for (const command of model) {
         if (command.name !== "review") expect(scripts[shell]).toContain(command.name);
         for (const sub of command.subcommands) expect(scripts[shell]).toContain(sub);
-        for (const flag of command.flags) {
+        for (const flag of command.scopes.flatMap((scope) => scope.flags)) {
           for (const name of flag.names) {
             const spelled = shell === "fish" ? (name.startsWith("--") ? `-l ${name.slice(2)}` : `-s ${name.slice(1)}`) : name;
             expect(scripts[shell]).toContain(spelled);
@@ -37,31 +39,53 @@ describe("completion scripts", () => {
     }
   });
 
-  test("every flag the parser knows is in the model", () => {
+  test("every flag spelling in the parser source is in the flag table", () => {
     const parserSource = readFileSync(join(import.meta.dir, "..", "src", "utils", "cli.ts"), "utf8");
-    const known = new Set([...parserSource.matchAll(/"(--?[a-z][a-z-]*)"/g)].map((match) => match[1]!));
-    const modelled = new Set(model.flatMap((command) => command.flags.flatMap((flag) => flag.names)));
-    expect(known.size).toBeGreaterThan(8);
-    expect([...known].filter((flag) => !modelled.has(flag))).toEqual([]);
+    const literals = [...parserSource.matchAll(/"(--?[a-z][a-z-]*)"/g)].map((match) => match[1]!);
+    expect(literals.length).toBeGreaterThan(8);
+    expect(literals.filter((flag) => !findFlag(flag))).toEqual([]);
   });
 
-  test("every modelled flag and subcommand is accepted by the parser", () => {
+  test("agent ids in the flag table are the ids setup targets", () => {
+    expect(agentTargets().map((target) => target.id)).toEqual([...AGENT_IDS]);
+  });
+
+  test("completion offers a flag in a scope exactly when the parser accepts it", () => {
+    const valueFor = (spec: FlagSpec) => (spec.valueName ? [spec.values?.[0] ?? (spec.names.includes("--port") ? "80" : "x")] : []);
+    const checked: string[] = [];
     for (const command of model) {
-      const lead = command.name === "review" ? [] : [command.name];
-      for (const flag of command.flags) {
-        for (const name of flag.names) {
-          try { parseCliArgs([...lead, name]); } catch (err) { expect(String(err)).not.toMatch(/unknown option|unexpected argument/); }
+      for (const scope of command.scopes) {
+        const words = scope.key === "review" ? [] : scope.key.split(" ");
+        const offered = new Set(scope.flags.flatMap((flag) => flag.names));
+        for (const spec of FLAG_SPECS) {
+          for (const name of spec.names) {
+            let accepted = true;
+            try { parseCliArgs([...words, name, ...valueFor(spec)]); } catch (err) { accepted = !/unknown option|unexpected argument|requires/.test(String(err)); }
+            checked.push(`${scope.key} ${name}`);
+            expect({ scope: scope.key, flag: name, accepted }).toEqual({ scope: scope.key, flag: name, accepted: offered.has(name) });
+          }
         }
       }
     }
-    expect(model.find((command) => command.name === "mcp")!.subcommands).toEqual(["serve", "list", "restart"]);
+    expect(checked).toContain("mcp serve --help");
+    expect(checked.length).toBeGreaterThan(150);
+  });
+
+  test("flag applicability the lead called out", () => {
+    const offered = (key: string) => new Set(model.flatMap((command) => command.scopes).find((scope) => scope.key === key)!.flags.flatMap((flag) => flag.names));
+    expect(offered("mcp serve").has("--yes")).toBe(false);
+    expect(offered("mcp restart").has("--yes")).toBe(true);
+    expect([...offered("mcp")]).toEqual(["-h", "--help"]);
+    for (const flag of ["--version", "-v", "--license"]) expect(offered("show").has(flag)).toBe(true);
+    expect(offered("review").has("--wait")).toBe(true);
+    expect(offered("show").has("--wait")).toBe(false);
   });
 
   test("flag values come from the parser's own tables", () => {
-    const flag = (command: string, name: string) => model.find((entry) => entry.name === command)!.flags.find((entry) => entry.names.includes(name))!;
-    expect(flag("hook", "--agent").values).toEqual(["codex", "claude-code"]);
-    expect(flag("completion", "--shell").values).toEqual([...COMPLETION_SHELLS]);
-    expect(flag("setup", "--agents").values).toContain("claude");
+    const flag = (name: string) => findFlag(name)!;
+    expect(flag("--agent").values).toEqual(["codex", "claude-code"]);
+    expect(flag("--shell").values).toEqual([...COMPLETION_SHELLS]);
+    expect(flag("--agents").values).toContain("claude");
   });
 
   test("refs are listed lazily by git at completion time", () => {
