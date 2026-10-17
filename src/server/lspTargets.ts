@@ -2,48 +2,35 @@
 // the text behind them, and ranges in client coordinates. every file:// target handed out is
 // remembered per server so GET /api/lsp/file can serve exactly those and nothing else.
 
-import { readFileSync, statSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { LspLocation, LspRange } from "../types";
 import type { WireRange } from "../core/lsp/protocol";
 import { fromLspCharacter, type PositionEncoding } from "../core/lsp/positions";
 import { containsPath } from "../utils/pathWithin";
-import { runGitBytes } from "../utils/git";
-import { readWorkingTree } from "./fileHandlers";
+import { readOutsideRepo, readRepoText, repoRootOf } from "./lspText";
 import type { ServerContext } from "./handlers";
 
-export const MAX_TARGET_FILE_BYTES = 2 * 1024 * 1024;
+export { readRepoText, repoRootOf };
 const DEPENDENCY_DIR = "node_modules";
 const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "darwin";
 const fold = (path: string): string => (CASE_INSENSITIVE ? path.toLowerCase() : path);
 export const splitLines = (text: string): string[] => text.split(/\r\n|\r|\n/);
 
 const allowlists = new WeakMap<ServerContext, Set<string>>();
+// identity for dedupe and caches: servers spell the same drive differently (C: vs c:)
 export const pathKey = (path: string): string => fold(resolve(path));
-export function isAllowedTarget(ctx: ServerContext, absolutePath: string): boolean { return allowlists.get(ctx)?.has(pathKey(absolutePath)) ?? false; }
+// authorization is by exact spelling, never case folding: "Foo.ts" being allowed must not allow "foo.ts"
+export function isAllowedTarget(ctx: ServerContext, absolutePath: string): boolean { return allowlists.get(ctx)?.has(resolve(absolutePath)) ?? false; }
 
-export const repoRootOf = (ctx: ServerContext): string => resolve(ctx.lsp?.root ?? ctx.cwd);
 export const fileUriOf = (ctx: ServerContext, path: string): string => pathToFileURL(resolve(repoRootOf(ctx), path)).href;
 export const sameFile = (a: string, b: string): boolean => {
   try { return pathKey(fileURLToPath(a)) === pathKey(fileURLToPath(b)); } catch { return a === b; }
 };
 
-// the reviewed (new) side of a repo file: disk, the index or a ref blob, matching the diff. throws when absent.
-export function readRepoText(ctx: ServerContext, path: string): string {
-  const root = repoRootOf(ctx);
-  return (ctx.newRef === null ? readWorkingTree(root, path) : runGitBytes(["show", `${ctx.newRef}:${path}`], root)).toString("utf8");
-}
-
-function readOutsideRepo(absolutePath: string): string | undefined {
-  try {
-    if (statSync(absolutePath).size > MAX_TARGET_FILE_BYTES) return undefined;
-    return readFileSync(absolutePath, "utf8");
-  } catch { return undefined; }
-}
-
 export class TargetResolver {
   private readonly texts = new Map<string, string | undefined>();
+  private readonly lineCache = new Map<string, string[] | undefined>();
   private readonly inDiffPaths: Set<string>;
 
   constructor(private readonly ctx: ServerContext, private readonly encoding: PositionEncoding) {
@@ -63,7 +50,7 @@ export class TargetResolver {
     const inRepo = rel !== null && rel !== "" && !rel.split("/").includes(DEPENDENCY_DIR);
     let allowed = allowlists.get(this.ctx);
     if (!allowed) allowlists.set(this.ctx, (allowed = new Set()));
-    allowed.add(pathKey(absolutePath));
+    allowed.add(resolve(absolutePath));
     return { uri, path: inRepo ? rel : null, absolutePath, inRepo, inDiff: inRepo && this.inDiffPaths.has(rel) };
   }
 
@@ -78,8 +65,12 @@ export class TargetResolver {
   }
 
   lines(location: LspLocation): string[] | undefined {
-    const text = this.text(location);
-    return text === undefined ? undefined : splitLines(text);
+    const key = pathKey(location.absolutePath);
+    if (!this.lineCache.has(key)) {
+      const text = this.text(location);
+      this.lineCache.set(key, text === undefined ? undefined : splitLines(text));
+    }
+    return this.lineCache.get(key);
   }
 
   // wire range -> client range (1-based lines, utf-16 characters). without the file's text the
