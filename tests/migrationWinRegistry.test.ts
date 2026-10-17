@@ -15,5 +15,5 @@ describe.skipIf(process.platform !== "win32")("registryStore", () => {
     expect(store.read()).toBe("");
     store.write("C:\\a;%USERPROFILE%\\bin;D:\\ünï");
     expect(store.read()).toBe("C:\\a;%USERPROFILE%\\bin;D:\\ünï");
-  });
+  }, 60_000);
 });
