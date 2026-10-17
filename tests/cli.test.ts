@@ -3,7 +3,7 @@ import { helpFor, parseCliArgs, USAGE } from "../src/utils/cli";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
-    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
+    expect(parseCliArgs([])).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("first positional arg is the ref spec", () => {
@@ -30,7 +30,7 @@ describe("parseCliArgs", () => {
 
   test("flags combine with a ref spec in any order", () => {
     const opts = parseCliArgs(["--no-open", "origin/main", "-p", "4000"]);
-    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
+    expect(opts).toEqual({ command: "review", mcpAction: undefined, agent: undefined, spec: "origin/main", scope: undefined, reviewId: undefined, port: 4000, open: false, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false });
   });
 
   test("rejects a bad port", () => {
@@ -218,5 +218,23 @@ describe("parseCliArgs", () => {
     expect(helpFor("review")).toBe(USAGE);
     expect(helpFor("review", "main")).toBe(USAGE);
     expect(helpFor("review", "review")).toContain("review a diff in the browser");
+  });
+});
+
+describe("--wait flags", () => {
+  test("--wait and --json parse for the review command", () => {
+    const opts = parseCliArgs(["main", "--wait", "--json", "--no-open"]);
+    expect(opts).toMatchObject({ spec: "main", wait: true, json: true, open: false });
+  });
+
+  test("--json without --wait is rejected, and subcommands refuse --wait", () => {
+    expect(() => parseCliArgs(["--json"])).toThrow("--json needs --wait");
+    expect(() => parseCliArgs(["sessions", "--wait"])).toThrow("unexpected argument: --wait");
+  });
+
+  test("review help documents the flag and every exit code", () => {
+    const help = helpFor("review", "review");
+    for (const text of ["--wait", "--json", "Exit codes with --wait", "  0   ", "  2   ", "  3   "]) expect(help).toContain(text);
+    expect(USAGE).toContain("nittle --wait");
   });
 });
