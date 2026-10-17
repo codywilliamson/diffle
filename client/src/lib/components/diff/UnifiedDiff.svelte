@@ -6,6 +6,7 @@
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
   import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
+  import { cursorOnLine } from "$lib/state/cursorSteps";
   import { PLAIN_ANNOTATIONS, type DiffAnnotations } from "$lib/diff/annotations";
   import type { MovedMark } from "$lib/diff/movedLines";
   import MovedMarker from "./MovedMarker.svelte";
@@ -13,7 +14,8 @@
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file, annotations = PLAIN_ANNOTATIONS }: { file: DiffFile; annotations?: DiffAnnotations } = $props();
-  const { ui, comments } = getAppState();
+  const { ui, comments, cursor } = getAppState();
+  const here = $derived(cursor.posFor(file.path));
   const highlighted = createFileHighlight(() => file);
 
   const SIGN: Record<DiffLine["type"], string> = { addition: "+", deletion: "−", context: " " };
@@ -58,10 +60,12 @@
       {#each hunk.lines as line, li (li)}
         {@const a = annotations.readonly ? null : anchorOf(line)}
         {@const moved = movedAt(line)}
+        {@const onCursor = cursorOnLine(here, line)}
         {@const selected = a ? isPending(ui.adding, ui.selecting, file.path, a.side, a.line) : false}
         {@const ranged = a ? inSavedRange(fileComments, a.side, a.line) : false}
         <tr
-          class="diff-row row-{line.type}{moved ? ' row-moved' : ''}{selected ? ' range-selected' : ''}{ranged ? ' in-range' : ''}"
+          class="diff-row row-{line.type}{moved ? ' row-moved' : ''}{onCursor ? ' cursor-row' : ''}{selected ? ' range-selected' : ''}{ranged ? ' in-range' : ''}"
+          data-cursor={onCursor ? "" : undefined}
           data-oldline={line.oldLine ?? ""}
           data-newline={line.newLine ?? ""}
         >
