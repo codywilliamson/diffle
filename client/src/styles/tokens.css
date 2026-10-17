@@ -15,6 +15,7 @@
   --accent: #6f82f0;
   --accent-hover: #8496f4;
   --focus: #93a2f5;
+  --cursor: #8496f4; /* keyboard line cursor: 4.1:1 or better on every row background */
   --on-accent: #ffffff;
 
   --add-bg: #14271f;
@@ -43,6 +44,7 @@
   --accent: #4e63d9;
   --accent-hover: #4053c1;
   --focus: #4e63d9;
+  --cursor: #4053c1;
   --on-accent: #ffffff;
 
   --add-bg: #e8f7ef;
@@ -72,6 +74,7 @@
     --accent: #4e63d9;
     --accent-hover: #4053c1;
     --focus: #4e63d9;
+    --cursor: #4053c1;
     --on-accent: #ffffff;
 
     --add-bg: #e8f7ef;

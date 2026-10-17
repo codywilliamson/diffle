@@ -20,6 +20,7 @@
   import { PLAIN_ANNOTATIONS, type DiffAnnotations } from "$lib/diff/annotations";
   import { createInterdiff } from "$lib/diff/interdiff.svelte";
   import { nearViewport } from "$lib/actions";
+  import { FILE_LEVEL } from "$lib/state/cursorSteps";
   import { revealRows } from "$lib/motion";
   import UnifiedDiff from "./UnifiedDiff.svelte";
   import SplitDiff from "./SplitDiff.svelte";
@@ -30,7 +31,7 @@
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file }: { file: DiffFile } = $props();
-  const { ui, comments, prefs, diff, analysis } = getAppState();
+  const { ui, comments, prefs, diff, analysis, cursor } = getAppState();
   const NOISE_LABEL = { generated: "Generated file", lockfile: "Lockfile" } as const;
   // deleted files collapse by default (github-style) — the removal is rarely re-read line by line.
   let collapsed = $state(untrack(() => file.changeType === "deleted"));
@@ -66,6 +67,20 @@
   const canToggleSplit = $derived(canOverrideFileSplit(file, diff.meta?.mode));
   const useSplit = $derived(resolveFileSplit(splitState, file, diff.meta?.mode));
 
+  // tell the line cursor what this body shows, so it skips collapsed, gated and preview-only files.
+  const navigable = $derived(
+    !collapsed && !file.binary && shown.hunks.length > 0 && !(giant && !loaded) && !(isMd && preview) && !interdiffOn,
+  );
+  $effect(() => {
+    cursor.reportBody(file.path, { split: useSplit, navigable });
+    return () => cursor.forgetBody(file.path);
+  });
+  // a cursor landing in a lazily mounted file mounts it first, so its row exists to scroll to.
+  const cursorHere = $derived(cursor.posFor(file.path));
+  $effect(() => {
+    if (cursorHere) mounted = true;
+  });
+
   // noise files start collapsed once the scorecard knows about them, unless the reader already chose.
   $effect(() => {
     if (noise && !untrack(() => touched)) collapsed = true;
@@ -89,7 +104,12 @@
   }
 </script>
 
-<section id={fileAnchorId(file.path)} data-file-path={file.path} class="file-section mb-4 rounded-lg border border-border bg-surface">
+<section
+  id={fileAnchorId(file.path)}
+  data-file-path={file.path}
+  data-cursor-file={cursorHere?.line === FILE_LEVEL ? "" : undefined}
+  class="file-section mb-4 rounded-lg border border-border bg-surface"
+>
   <header data-file-header class="sticky top-0 z-10 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-t-lg border-b border-divider bg-surface-2 px-3 py-2">
     <button
       type="button"

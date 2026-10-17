@@ -8,6 +8,7 @@
     inSavedRange, isPending, rawLine, newComment, selectedRange, type Side,
   } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
+  import { cursorOnLine } from "$lib/state/cursorSteps";
   import { horizontalWheel } from "$lib/diff/horizontalWheel";
   import { PLAIN_ANNOTATIONS, hunkOfRowKey, type DiffAnnotations } from "$lib/diff/annotations";
   import type { MovedMark } from "$lib/diff/movedLines";
@@ -25,7 +26,8 @@
   }
 
   let { file, rows, side, id, highlighted, annotations = PLAIN_ANNOTATIONS }: Props = $props();
-  const { ui, comments } = getAppState();
+  const { ui, comments, cursor } = getAppState();
+  const here = $derived(cursor.posFor(file.path));
   const fileComments = $derived(comments.comments.filter((comment) => comment.file === file.path));
 
   function keyboardComment(event: MouseEvent, number: number): void {
@@ -85,12 +87,15 @@
       {@const line = side === "old" ? row.pair.left : row.pair.right}
       {@const number = (side === "old" ? line?.oldLine : line?.newLine) ?? null}
       {@const moved = movedAt(line)}
+      {@const onCursor = !!line && cursorOnLine(here, line, side)}
       {@const interactive = number != null && !annotations.readonly}
       {@const selected = number != null && isPending(ui.adding, ui.selecting, file.path, side, number)}
       {@const ranged = number != null && inSavedRange(fileComments, side, number)}
       <div
         class="diff-row split-line row-{line?.type ?? 'empty'}"
         class:row-moved={moved}
+        class:cursor-row={onCursor}
+        data-cursor={onCursor ? "" : undefined}
         class:ws-only={annotations.whitespaceHunks.has(hunkOfRowKey(row.key))}
         class:range-selected={selected}
         class:in-range={ranged}
