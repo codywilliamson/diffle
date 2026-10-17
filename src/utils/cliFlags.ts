@@ -8,6 +8,7 @@ export interface FlagSpec {
   names: readonly string[]; // e.g. ["-p", "--port"]
   valueName?: string; // present = the flag takes a value, shown as <valueName> in help
   values?: readonly string[]; // enumerable values
+  list?: boolean; // the value is a comma-separated list of those values
   description: string;
   commands: readonly CliCommand[]; // commands that accept it
   subcommands?: readonly string[]; // for commands with subcommands: only these accept it
@@ -24,10 +25,10 @@ export const FLAG_SPECS: readonly FlagSpec[] = [
   { names: ["--json"], description: "with --wait, print the review record as JSON instead of the prompt", commands: ["review"] },
   { names: ["--no-lsp"], description: "start no language servers", commands: REVIEW_AND_SHOW },
   { names: ["--review-id"], valueName: "id", description: "open an existing durable Review Record", commands: ["review"] },
-  { names: ["-v", "--version"], description: "print the installed version", commands: REVIEW_AND_SHOW },
-  { names: ["--license"], description: "print the bundled MIT license notice", commands: REVIEW_AND_SHOW },
+  { names: ["-v", "--version"], description: "print the installed version", commands: EVERY_COMMAND },
+  { names: ["--license"], description: "print the bundled MIT license notice", commands: EVERY_COMMAND },
   { names: ["--agent"], valueName: "id", values: HOOK_AGENTS, description: "the agent calling the hook: codex or claude-code", commands: ["hook"] },
-  { names: ["--agents"], valueName: "ids", values: AGENT_IDS, description: "comma-separated agent ids, skips the prompt (e.g. claude,cursor)", commands: ["setup"] },
+  { names: ["--agents"], valueName: "ids", values: AGENT_IDS, list: true, description: "comma-separated agent ids, skips the prompt (e.g. claude,cursor)", commands: ["setup"] },
   { names: ["--remove"], description: `unwire ${PRODUCT.name} instead`, commands: ["setup"] },
   { names: ["--shell"], valueName: "shell", values: COMPLETION_SHELLS, description: `shell to generate for: ${COMPLETION_SHELLS.join(", ")}`, commands: ["completion"] },
   { names: ["--yes"], description: "skip the confirmation prompt", commands: ["cleanup", "doctor", "setup", "mcp"], subcommands: ["restart"] },
