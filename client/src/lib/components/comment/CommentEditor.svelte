@@ -3,6 +3,7 @@
   import Check from "@lucide/svelte/icons/check";
   import type { CommentTag } from "$types";
   import ComposerHint from "./ComposerHint.svelte";
+  import { focusDiff, revealInDiff } from "$lib/diff/focusDiff";
 
   let {
     initial = "",
@@ -33,7 +34,19 @@
       ta.style.height = `${ta.scrollHeight}px`;
     }
   });
-  $effect(() => ta?.focus());
+  // focus without the browser's own scroll (it can leave the editor under the sticky header),
+  // then bring the editor fully into view.
+  $effect(() => {
+    if (!ta) return;
+    ta.focus({ preventScroll: true });
+    revealInDiff(ta.closest<HTMLElement>(".composer") ?? ta);
+  });
+
+  // closing hands focus back to the diff, so the keys work again and the cursor is where it was
+  function cancel(): void {
+    onCancel();
+    focusDiff();
+  }
 
   async function submit(): Promise<void> {
     const trimmed = text.trim();
@@ -42,6 +55,7 @@
     saveError = null;
     try {
       saveError = await onSave(trimmed, tag);
+      if (!saveError) focusDiff();
     } catch (error) {
       saveError = error instanceof Error ? error.message : String(error);
     } finally {
@@ -52,7 +66,7 @@
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      onCancel();
+      cancel();
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       void submit();
@@ -73,7 +87,7 @@
   ></textarea>
   <div class="mt-2 flex flex-wrap items-center gap-2">
     <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
-    <button class="comment-btn" onclick={onCancel}>Cancel</button>
+    <button class="comment-btn" onclick={cancel}>Cancel</button>
     <ComposerHint id={hintId} action="save" class="@max-2xl:hidden" />
     <div role="group" aria-label="Tag" class="ml-auto flex flex-wrap gap-1.5 @max-md:ml-0 @max-md:basis-full">
       {#each TAGS as t (t)}

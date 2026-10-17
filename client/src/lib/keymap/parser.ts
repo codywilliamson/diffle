@@ -26,7 +26,9 @@ export function tokenOf(input: KeyInput): string | null {
   return ctrl ? `Ctrl+${input.key.toLowerCase()}` : input.key;
 }
 
-const inMode = (binding: Binding, mode: Mode): boolean => binding.mode === mode || binding.mode === "any";
+// visual mode keeps the motions: j k J K ] [ gg G and the rest of the Move group still apply.
+const inMode = (binding: Binding, mode: Mode): boolean =>
+  binding.mode === mode || binding.mode === "any" || (mode === "visual" && binding.mode === "normal" && binding.group === "Move");
 const isPending = (state: ParserState): boolean => state.count !== "" || state.prefix !== null;
 
 function findBinding(table: Binding[], mode: Mode, tokens: string[]): Binding | undefined {

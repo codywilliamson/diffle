@@ -104,6 +104,11 @@
     untrack(() => (splitState = syncGlobalSplit(splitState, globalSplit)));
   });
 
+  // a file comment on a collapsed file opens it, so the editor has somewhere to render
+  $effect(() => {
+    if (addingFile) collapsed = false;
+  });
+
   async function saveFileComment(text: string, tag?: CommentTag): Promise<string | null> {
     const error = await comments.add(newComment({ file: file.path, line: null, lineContent: null, text, tag }));
     if (!error) ui.cancelAdd();
