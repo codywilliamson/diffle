@@ -1,0 +1,34 @@
+/* in-file search: every match is a tinted <mark class="sm">, the active one is stronger with an outline */
+
+:root,
+:root[data-theme="dark"] {
+  --match-bg: #5f4f17;
+  --match-active-bg: #8d7220;
+  --match-edge: #e4c55e;
+}
+:root[data-theme="light"] {
+  --match-bg: #f7e58f;
+  --match-active-bg: #f2b830;
+  --match-edge: #7a5400;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --match-bg: #f7e58f;
+    --match-active-bg: #f2b830;
+    --match-edge: #7a5400;
+  }
+}
+
+.sm {
+  border-radius: 2px;
+  color: inherit;
+  background: var(--match-bg);
+}
+.sm-active {
+  background: var(--match-active-bg);
+  box-shadow: 0 0 0 1px var(--match-edge);
+  color: var(--text);
+}
+.sm-active * {
+  color: inherit;
+}
