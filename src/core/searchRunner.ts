@@ -11,6 +11,39 @@ const EMBEDDED_WORKER_PATH = "./src/core/searchWorker.ts";
 const workerLocation = () => (IN_COMPILED_BINARY ? EMBEDDED_WORKER_PATH : new URL("./searchWorker.ts", import.meta.url));
 
 export class SearchTimeoutError extends Error {}
+export class SearchBusyError extends Error {}
+
+export const MAX_CONCURRENT_SEARCHES = 2;
+export const MAX_QUEUED_SEARCHES = 4;
+
+// admission control: at most MAX_CONCURRENT_SEARCHES run, MAX_QUEUED_SEARCHES wait, the rest are refused
+// before they load anything. a slot is handed straight to the next waiter so the count never dips.
+let running = 0;
+const waiting: (() => void)[] = [];
+
+async function acquireSlot(): Promise<void> {
+  if (running < MAX_CONCURRENT_SEARCHES) {
+    running += 1;
+    return;
+  }
+  if (waiting.length >= MAX_QUEUED_SEARCHES) throw new SearchBusyError("too many searches running, try again");
+  await new Promise<void>((resolve) => waiting.push(resolve));
+}
+
+function releaseSlot(): void {
+  const next = waiting.shift();
+  if (next) next();
+  else running -= 1;
+}
+
+export async function withSearchSlot<T>(run: () => Promise<T>): Promise<T> {
+  await acquireSlot();
+  try {
+    return await run();
+  } finally {
+    releaseSlot();
+  }
+}
 
 // partial results on timeout come back with truncated: true; nothing found at all throws SearchTimeoutError.
 export function runSearchInWorker(request: SearchWorkerRequest, budgetMs = SEARCH_TOTAL_BUDGET_MS): Promise<SearchResponse> {
@@ -34,6 +67,6 @@ export function runSearchInWorker(request: SearchWorkerRequest, budgetMs = SEARC
       else finish(() => reject(new Error(data.message)));
     };
     worker.onerror = (event) => finish(() => reject(new Error(event.message || "search worker failed")));
-    worker.postMessage(request);
+    worker.postMessage(request, Object.values(request.contents));
   });
 }
