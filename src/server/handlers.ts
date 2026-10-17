@@ -13,6 +13,7 @@ import { collectDiff } from "../utils/git";
 import { apiError, json } from "./respond";
 import { readReviewRecord, updateReviewRecord } from "../core/reviewRecords";
 import { mergeReviewerComments } from "../core/commentMerge";
+import type { Presence } from "./presence";
 
 export interface ServerContext {
   diff: DiffResult; // seeded at launch, re-run on each GET /api/diff for live review
@@ -29,6 +30,7 @@ export interface ServerContext {
   reviewId?: string; // durable Review Record selected by the MCP/CLI integration
   host: SessionHost; // which integration launched this server; read by /api/session/stop
   sessionId?: string; // this server's session registry id; set by reviewLaunch, checked by /api/session/stop
+  presence?: Presence; // open browser tabs; `--wait` watches it to notice the last tab closing
   shutdown?: () => void | Promise<void>; // set by reviewLaunch once the server exists; mutable by design
 }
 

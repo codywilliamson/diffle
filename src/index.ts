@@ -21,6 +21,8 @@ import { PRODUCT } from "./core/product";
 import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations } from "./core/migration";
 import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
+import { EXIT_INTERRUPTED } from "./core/waitExit";
+import { resumeHint, runWait } from "./utils/waitCli";
 
 // ansi styling, skipped when stdout isn't a terminal.
 const tty = process.stdout.isTTY === true;
@@ -91,18 +93,27 @@ export async function main(): Promise<void> {
   // keep the session registry tidy on ctrl+c / kill instead of leaving a dead-pid entry behind.
   let stopped = false;
   const stopSelf = () => { if (stopped) return; stopped = true; launch.stop(); };
-  process.on("SIGINT", () => { stopSelf(); process.exit(0); });
-  process.on("SIGTERM", () => { stopSelf(); process.exit(0); });
+  // while waiting, a quiet exit 0 would look like an approval, so interrupts get their own code.
+  const interruptCode = opts.wait ? EXIT_INTERRUPTED : 0;
+  const onInterrupt = () => {
+    stopSelf();
+    if (opts.wait) console.error(`${tag} ${resumeHint(launch.review.id)}`);
+    process.exit(interruptCode);
+  };
+  process.on("SIGINT", onInterrupt);
+  process.on("SIGTERM", onInterrupt);
   process.on("exit", stopSelf);
 
+  // with --wait stdout carries only the result, so every status line goes to stderr.
+  const say = opts.wait ? console.error : console.log;
   const files = launch.diff.files.length;
   const changed = launch.diff.meta?.mode === "browse" ? "" : " changed";
-  console.log(`${accent(tag)} ${dim(`v${currentVersion(productRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
-  console.log(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
-  void launchUpdateNotice(productRoot).then((notice) => notice && console.log(`${accent(tag)} ${dim(notice)}`));
+  say(`${accent(tag)} ${dim(`v${currentVersion(productRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
+  say(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
+  void launchUpdateNotice(productRoot).then((notice) => notice && say(`${accent(tag)} ${dim(notice)}`));
 
   if (staleLegacyPlugin()) {
-    console.log(`${accent(tag)} ${dim(`stale ${PRODUCT.legacyPlugin.name} plugin detected — run ${PRODUCT.name} doctor`)}`);
+    say(`${accent(tag)} ${dim(`stale ${PRODUCT.legacyPlugin.name} plugin detected — run ${PRODUCT.name} doctor`)}`);
   }
 
   const { stale, live } = await classifySessions();
@@ -112,7 +123,13 @@ export async function main(): Promise<void> {
   });
   const staleCount = stale.length + finished.length;
   if (staleCount > 0) {
-    console.log(`${accent(tag)} ${dim(`${staleCount} stale session${staleCount === 1 ? "" : "s"} — run ${PRODUCT.name} cleanup`)}`);
+    say(`${accent(tag)} ${dim(`${staleCount} stale session${staleCount === 1 ? "" : "s"} — run ${PRODUCT.name} cleanup`)}`);
+  }
+
+  if (opts.wait) {
+    const code = await runWait(launch, opts.json, (line) => console.error(`${accent(tag)} ${line}`));
+    stopSelf();
+    process.exit(code);
   }
 }
 
