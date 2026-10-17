@@ -5,6 +5,7 @@ import { basename } from "node:path";
 import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
 import { confirmProceed } from "./confirm";
+import { agentChecks, agentPlanLines, findAgentIssues, repairAgents } from "./doctorAgents";
 import { diagnoseClaudePlugins, readClaudePluginState, type Check, type CheckLevel, type RepairStep } from "./claudePlugins";
 import { fetchReleaseTags } from "../core/updateCheck";
 import { fetchReleaseStatus, UPDATE_CHECK_OPT_OUT, updateCheckDisabled, updateHint } from "../core/updateNotice";
@@ -64,32 +65,44 @@ export async function runDoctorCommand(opts: DoctorOptions, productRoot: string,
   const { checks, plan, ok } = diagnoseClaudePlugins(
     state, Bun.which(PRODUCT.name) ?? undefined, Bun.which(PRODUCT.legacyName) ?? undefined, usingLegacyDataDir,
   );
-  checks.push(await releaseCheck(productRoot, fetchTags));
+  const issues = findAgentIssues();
+  const agentRepairs = agentPlanLines(issues);
+  checks.push(...agentChecks(issues), await releaseCheck(productRoot, fetchTags));
+  const healthy = ok && issues.length === 0;
 
-  console.log(`${PRODUCT.name} doctor — Claude Code plugin health (${state.configDir})\n`);
+  console.log(`${PRODUCT.name} doctor — agent plugin health (${state.configDir})\n`);
   const width = Math.max(...checks.map((check) => check.label.length));
   for (const check of checks) console.log(`  ${BADGE[check.level]}  ${check.label.padEnd(width)}  ${check.detail}`);
 
-  if (plan.length === 0) {
+  if (plan.length === 0 && agentRepairs.length === 0) {
     console.log(`\nnothing to repair`);
-    if (!ok) process.exit(1);
+    if (!healthy) process.exit(1);
     return;
   }
 
+  const printAll = (heading: string, yes = false) => {
+    if (plan.length > 0) printPlan(plan, heading, yes);
+    if (agentRepairs.length === 0) return;
+    if (plan.length === 0) console.log(`\n${heading}`);
+    for (const line of agentRepairs) console.log(`  ${line}`);
+  };
+
   if (!opts.fix) {
-    printPlan(plan, "To repair, run:");
+    printAll("To repair, run:");
     console.log(`\nor let ${PRODUCT.name} run them: ${PRODUCT.name} doctor --fix`);
-    if (!ok) process.exit(1);
+    if (!healthy) process.exit(1);
     return;
   }
 
   const claude = Bun.which(CLAUDE_CLI);
-  if (!claude) {
+  if (plan.length > 0 && !claude) {
     printPlan(plan, `\`${CLAUDE_CLI}\` is not on PATH — nothing was run. Run these yourself:`, opts.yes);
     process.exit(1);
   }
 
-  printPlan(plan, "plan:", opts.yes);
+  printAll("plan:", opts.yes);
   if (!(await confirmProceed(opts.yes))) return;
-  applyPlan(plan, claude, opts.yes);
+  if (agentRepairs.length > 0) repairAgents(issues);
+  if (plan.length > 0 && claude) applyPlan(plan, claude, opts.yes);
+  else console.log(`\ndone — ${RELOAD_HINT}`);
 }

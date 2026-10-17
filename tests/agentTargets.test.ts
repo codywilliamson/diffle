@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { installedBinaryPath } from "../src/core/installedBinary";
 import { type AgentEnv, agentTargets, isDetected, isRegistered, MCP_SERVER_NAME, serverCommand } from "../src/core/agentTargets";
 import { PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
@@ -141,7 +142,12 @@ test("serverCommand pins the installed binary and falls back to the bare name", 
   expect(serverCommand("/home/u/.nittle/bin/nittle")).toBe("/home/u/.nittle/bin/nittle");
   expect(serverCommand("C:/Users/u/.nittle/bin/Nittle.exe")).toBe("C:/Users/u/.nittle/bin/Nittle.exe");
   expect(serverCommand("/usr/local/bin/bun")).toBe(PRODUCT.name);
-  expect(serverCommand("/home/u/.diffle/bin/diffle")).toBe(PRODUCT.name);
+});
+
+test("the transition binary pins the installed nittle path, never its own exe or a bare name", () => {
+  expect(serverCommand("/home/u/.diffle/bin/diffle", "/home/u", "linux")).toBe(join("/home/u", ".nittle", "bin", "nittle"));
+  expect(serverCommand("C:/Users/u/.diffle/bin/diffle.exe", "C:/Users/u", "win32")).toBe(join("C:/Users/u", ".nittle", "bin", "nittle.exe"));
+  expect(installedBinaryPath("/home/u", "darwin")).toBe(join("/home/u", ".nittle", "bin", "nittle"));
 });
 
 test("mcp entries launch the injected command", () => {

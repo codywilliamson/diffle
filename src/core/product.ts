@@ -5,6 +5,7 @@
 
 const name = "nittle";
 const legacyName = "diffle";
+const loupeName = "loupe"; // the name before diffle; only ever migrated away from
 
 export const PRODUCT = {
   name,
@@ -26,6 +27,12 @@ export const PRODUCT = {
   // claude code plugin identity — must match .claude-plugin/marketplace.json
   plugin: { name: `${name}-review`, marketplace: `${name}-local` },
   legacyPlugin: { name: `${legacyName}-review`, marketplace: `${legacyName}-local` },
+  // every plugin / command identity the migration removes from agents (diffle's and loupe's)
+  retiredPlugins: [
+    { name: `${legacyName}-review`, marketplace: `${legacyName}-local` },
+    { name: `${loupeName}-review`, marketplace: `${loupeName}-local` },
+  ],
+  retiredNames: [legacyName, loupeName],
 } as const;
 
 // owner/repo slug for `claude plugin marketplace add`
