@@ -8,7 +8,7 @@ import type { DiffFile } from "$types";
 import type { Side } from "$lib/diff/threads";
 import { GIANT_FILE_LINES, lineCountOf } from "$lib/diff/metrics";
 import {
-  FILE_LEVEL, buildIndex, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
+  FILE_LEVEL, buildIndex, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines, ownStops,
   reanchor, samePos, switchSide, type CursorPos, type FileView, type StopIndex,
 } from "./cursorSteps";
 import { resolveVisual, type VisualRange } from "./cursorVisual";
@@ -76,8 +76,19 @@ export function createCursorStore(deps: CursorDeps) {
     return path ? { path, side: pref, line: FILE_LEVEL } : null;
   }
 
-  function commit(next: CursorPos | null, from: CursorPos | null, opts: { jump?: boolean; reveal: RevealKind }): void {
-    if (!next) return;
+  // while a range is open the cursor cannot leave the file it started in: past an edge it stops there
+  function keepInVisualFile(next: CursorPos, index: StopIndex): CursorPos {
+    if (!visualAnchor || next.path === visualAnchor.path) return next;
+    const own = ownStops(index, visualAnchor.path);
+    if (own.length === 0) return visualAnchor;
+    const after = (index.fileOf.get(next.path) ?? 0) > (index.fileOf.get(visualAnchor.path) ?? 0);
+    const edge = own[after ? own.length - 1 : 0]!;
+    return { path: edge.path, side: edge.side, line: edge.line };
+  }
+
+  function commit(target: CursorPos | null, from: CursorPos | null, opts: { jump?: boolean; reveal: RevealKind }): void {
+    if (!target) return;
+    const next = keepInVisualFile(target, snapshot().index);
     if (opts.jump) history = recordJump(history, from);
     pos = next;
     const { views, index } = snapshot();
@@ -110,7 +121,8 @@ export function createCursorStore(deps: CursorDeps) {
   }
 
   function commentPos(seed: string | undefined): CursorPos | null {
-    if (!pos) run(seed, (v, from, i) => firstLine(v, pref, from.path, i));
+    // nothing yet, parked on a header, or the reader picked another file: land on its first line
+    if (base(seed)?.line === FILE_LEVEL) run(seed, (v, from, i) => firstLine(v, pref, from.path, i));
     return base(seed);
   }
 
