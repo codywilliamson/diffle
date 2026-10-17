@@ -8,6 +8,8 @@ const fontHref =
 export default defineConfig({
   // keep in sync with PRODUCT.site (src/core/product.ts); node can't import that .ts file here
   site: "https://nittle.dev",
+  // the old published route keeps working after the page rename
+  redirects: { "/guides/migrating-from-loupe": "/guides/migrating-from-diffle/" },
   integrations: [
     starlight({
       title: "nittle",
