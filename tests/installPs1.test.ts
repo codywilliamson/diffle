@@ -109,7 +109,7 @@ describe.skipIf(!pwsh)("install.ps1", () => {
   test("a custom-dir diffle install is found on the user PATH and named to the binary", async () => {
     const result = await run({
       env: { DIFFLE_INSTALL_DIR: "" },
-      userPath: "<dir>\\tools\\diffle-bin;C:\\Windows",
+      userPath: `${join("<dir>", "tools", "diffle-bin")};C:\\Windows`,
       before: (dir) => seed(join(dir, "tools", "diffle-bin", "diffle.exe"), "old"),
     });
     expect(result.code).toBe(0);
@@ -119,7 +119,7 @@ describe.skipIf(!pwsh)("install.ps1", () => {
   test("--uninstall removes a custom-dir diffle install it discovered", async () => {
     const result = await run({
       env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1", DIFFLE_INSTALL_DIR: "" },
-      userPath: "<dir>\\tools\\diffle-bin",
+      userPath: join("<dir>", "tools", "diffle-bin"),
       before: (dir) => seed(join(dir, "tools", "diffle-bin", "diffle.exe")),
     });
     expect(result.code).toBe(0);
