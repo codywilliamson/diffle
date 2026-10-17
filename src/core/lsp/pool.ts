@@ -169,7 +169,8 @@ export class LspPool {
   }
 
   private cleanup(): void {
-    if (this.logDir) rmSync(this.logDir, { recursive: true, force: true });
+    // best effort: on windows a server that is still dying keeps its cwd (this dir) locked
+    if (this.logDir) { try { rmSync(this.logDir, { recursive: true, force: true }); } catch { /* temp dir; the os cleans it */ } }
     this.logDir = undefined;
   }
 }

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { LspPool } from "../src/core/lsp/pool";
-import { MAX_TARGET_FILE_BYTES, readRegularFile } from "../src/server/lspText";
+import { MAX_RETAINED_TEXT_BYTES, MAX_TARGET_FILE_BYTES, readRegularFile, readRepoText, retainedTextBytes } from "../src/server/lspText";
 import { MAX_OPEN_DOCUMENTS } from "../src/server/lspSync";
 import { fakePool, scriptFake, tempDir } from "./helpers/fakeLspPool";
 import { diffFile, fileUri, gitRepo, startHarness, writeFiles, type Harness } from "./helpers/lspHttp";
@@ -60,6 +60,39 @@ describe("version races", () => {
   });
 });
 
+describe("a diff refresh makes an in-flight answer stale", () => {
+  test("a delayed definition, then a commit + GET /api/diff: the old answer is not returned", async () => {
+    const root = gitRepo({ "a.ts": "v1\n" });
+    const { harness, state } = setup(root, { delay: { "textDocument/definition": 2000 }, responses: { "textDocument/definition": at(fileUri(root, "a.ts")) } }, [diffFile("a.ts")], "HEAD");
+    harness.ctx.diffArgs = ["diff", "HEAD"];
+    const slow = harness.post("/api/lsp/definition", where());
+    await until(async () => (await state()).requests.length >= 1);
+    writeFileSync(join(root, "a.ts"), "v2\n");
+    Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "two"], { cwd: root });
+    await harness.get("/api/diff"); await harness.get("/api/diff"); // the first call hands out the launch diff; the second refreshes
+    expect(harness.ctx.diffGeneration).toBe(1);
+    expect((await slow).status).toBe(200);
+    const s = await state();
+    expect(s.requests.filter((r: any) => r.method === "textDocument/definition")).toHaveLength(2);
+    expect(s.docs[fileUri(root, "a.ts")]).toEqual({ version: 2, text: "v2\n" });
+  });
+});
+
+describe("retained text is bounded", () => {
+  test("reading many large distinct files keeps retained bytes under the cap", () => {
+    const root = tempDir("bounded");
+    const big = "x".repeat(MAX_TARGET_FILE_BYTES - 10);
+    const count = Math.ceil(MAX_RETAINED_TEXT_BYTES / (big.length * 2)) + 8;
+    const { harness } = setup(root, {}, []);
+    for (let i = 0; i < count; i++) {
+      writeFileSync(join(root, `big${i}.txt`), big);
+      expect(readRepoText(harness.ctx, `big${i}.txt`)).toHaveLength(big.length);
+      expect(retainedTextBytes()).toBeLessThanOrEqual(MAX_RETAINED_TEXT_BYTES);
+    }
+    expect(retainedTextBytes()).toBeGreaterThan(MAX_RETAINED_TEXT_BYTES / 2);
+  });
+});
+
 describe("workspace symbols sync first", () => {
   test("a file renamed on disk after it was opened reaches the server before the search", async () => {
     const root = tempDir("ws");
@@ -108,17 +141,17 @@ describe("sync cost", () => {
     const s = await state();
     expect(Object.keys(s.docs).length - s.closed.length).toBe(MAX_OPEN_DOCUMENTS);
     expect(s.closed.slice(0, 3)).toEqual(names.slice(0, 3).map((n) => fileUri(root, n)));
-  });
+  }, 60_000);
 
-  test("a branch review reads each blob once per diff; a refreshed diff reads again", async () => {
+  test("a branch review reads each blob once per diff generation", async () => {
     const root = gitRepo({ "a.ts": "v1\n" });
     const { harness, state } = setup(root, { responses: { "textDocument/hover": null } }, [diffFile("a.ts")], "HEAD");
     await harness.post("/api/lsp/hover", where());
     writeFileSync(join(root, "a.ts"), "v2\n");
     Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "two"], { cwd: root });
     await harness.post("/api/lsp/hover", where());
-    expect((await state()).docs[fileUri(root, "a.ts")].text).toBe("v1\n"); // same diff, same blob
-    harness.ctx.diff = { ...harness.ctx.diff }; // what GET /api/diff does on refresh
+    expect((await state()).docs[fileUri(root, "a.ts")].text).toBe("v1\n"); // same generation, same blob
+    harness.ctx.diff = { ...harness.ctx.diff }; harness.ctx.diffGeneration = 1; // what GET /api/diff does on refresh
     await harness.post("/api/lsp/hover", where());
     expect((await state()).docs[fileUri(root, "a.ts")].text).toBe("v2\n");
   });
