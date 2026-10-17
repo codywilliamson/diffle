@@ -18,7 +18,7 @@ export interface AppState {
   analysis: AnalysisStore;
 }
 
-const KEY = Symbol("diffle-app-state");
+const KEY = Symbol("nittle-app-state");
 
 // the durable Review Record for this launch is selected by the ?review= query.
 function reviewIdFromUrl(): string | undefined {
