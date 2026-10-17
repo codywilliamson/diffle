@@ -1,7 +1,9 @@
 // what each keymap action does. thin: every handler calls a store method. reserved actions
-// (comment, search, LSP) have no handler yet and dispatch nothing.
+// (search, LSP) have no handler yet and dispatch nothing.
 
 import type { AppState } from "$lib/state/context";
+import { commitRange } from "$lib/diff/selectDrag";
+import { FILE_LEVEL } from "$lib/state/cursorSteps";
 import { pagePosition } from "./pageMove";
 import type { ActionId } from "./types";
 
@@ -31,6 +33,24 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "side.new": () => cursor.switchTo(currentPath(), "new"),
     "jump.back": () => cursor.back(currentPath()),
     "jump.forward": () => cursor.forward(currentPath()),
+
+    "comment.line": () => {
+      const at = cursor.commentPos(currentPath());
+      if (!at) return;
+      if (at.line === FILE_LEVEL) ui.startFileAdd(at.path);
+      else commitRange(ui, at.path, at.side, at.line, at.line);
+    },
+    "comment.file": () => {
+      const at = cursor.commentPos(currentPath());
+      if (at) ui.startFileAdd(at.path);
+    },
+    "visual.start": () => cursor.startVisual(currentPath()),
+    "comment.range": () => {
+      const range = cursor.visualRange;
+      cursor.endVisual();
+      if (range) commitRange(ui, range.path, range.side, range.from, range.to);
+      else ui.clearSelect();
+    },
 
     "review.viewed": () => {
       const path = currentPath();

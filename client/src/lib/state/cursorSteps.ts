@@ -81,7 +81,7 @@ export function buildIndex(views: FileView[], pref: Side): StopIndex {
 const toPos = (s: Stop): CursorPos => ({ path: s.path, side: s.side, line: s.line });
 const fileIndexOf = (index: StopIndex, path: string): number => index.fileOf.get(path) ?? -1;
 
-function ownStops(index: StopIndex, path: string): Stop[] {
+export function ownStops(index: StopIndex, path: string): Stop[] {
   const fi = fileIndexOf(index, path);
   return fi === -1 ? [] : index.stops.slice(index.fileStart[fi], index.fileStart[fi + 1]);
 }

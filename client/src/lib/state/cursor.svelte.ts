@@ -11,6 +11,7 @@ import {
   FILE_LEVEL, buildIndex, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
   reanchor, samePos, switchSide, type CursorPos, type FileView, type StopIndex,
 } from "./cursorSteps";
+import { resolveVisual, type VisualRange } from "./cursorVisual";
 import { EMPTY_HISTORY, jumpBack, jumpForward, recordJump, type JumpHistory } from "./jumpHistory";
 
 export interface CursorDeps {
@@ -44,6 +45,7 @@ interface Snapshot {
 export function createCursorStore(deps: CursorDeps) {
   let pos = $state<CursorPos | null>(null);
   let pref = $state<Side>("new");
+  let visualAnchor = $state<CursorPos | null>(null);
   let revealSeq = $state(0);
   let revealKind: RevealKind = "line";
   let anchor: string | null = null;
@@ -107,6 +109,11 @@ export function createCursorStore(deps: CursorDeps) {
     commit(reanchor(views, pref, target, null, index), from, { reveal: "line" });
   }
 
+  function commentPos(seed: string | undefined): CursorPos | null {
+    if (!pos) run(seed, (v, from, i) => firstLine(v, pref, from.path, i));
+    return base(seed);
+  }
+
   return {
     get pos(): CursorPos | null {
       return pos;
@@ -119,6 +126,23 @@ export function createCursorStore(deps: CursorDeps) {
     },
     get revealKind(): RevealKind {
       return revealKind;
+    },
+    get visual(): boolean {
+      return visualAnchor !== null;
+    },
+    // the visual range as the mouse would have selected it, or null outside visual mode
+    get visualRange(): VisualRange | null {
+      if (!visualAnchor) return null;
+      return resolveVisual(snapshot().index, visualAnchor, pos);
+    },
+    // where a comment starts: the cursor, landing on the first line when nothing has moved yet
+    commentPos,
+    startVisual(seed: string | undefined): void {
+      const from = commentPos(seed);
+      if (from && from.line !== FILE_LEVEL) visualAnchor = from;
+    },
+    endVisual(): void {
+      visualAnchor = null;
     },
     posFor(path: string): CursorPos | null {
       return pos && pos.path === path ? pos : null;
@@ -134,6 +158,7 @@ export function createCursorStore(deps: CursorDeps) {
     bottom: (seed: string | undefined) => run(seed, (v, from, i) => lastLine(v, pref, from.path, i), { jump: true }),
     lineNumber: (seed: string | undefined, number: number) => run(seed, (v, from) => goToLineNumber(v, pref, from.path, number), { jump: true }),
     switchTo(seed: string | undefined, target: Side): void {
+      if (visualAnchor) return; // the range stays on the side it started on
       const from = base(seed);
       const next = from ? switchSide(snapshot().views, from, target) : null;
       if (!next) return;

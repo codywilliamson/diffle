@@ -40,9 +40,10 @@ export const BINDINGS: Binding[] = [
   bind("Ctrl+o", "Move", "Jump back", "jump.back"),
   bind("Ctrl+i", "Move", "Jump forward", "jump.forward"),
 
-  bind("c", "Comment", "Comment on the line", "comment.line", { reserved: true }),
-  bind("V", "Comment", "Start a visual range", "visual.start", { reserved: true }),
-  bind("C", "Comment", "Comment on the file", "comment.file", { reserved: true }),
+  bind("c", "Comment", "Comment on the cursor line", "comment.line"),
+  bind("V", "Comment", "Start a visual range (j k ] [ extend it, Esc cancels)", "visual.start"),
+  bind("c", "Comment", "Visual range: comment on the range", "comment.range", { mode: "visual" }),
+  bind("C", "Comment", "Comment on the cursor's file", "comment.file"),
 
   bind("/", "Search", "Search the file", "search.file", { reserved: true }),
   bind("n", "Search", "Next match", "search.next", { count: true, reserved: true }),
