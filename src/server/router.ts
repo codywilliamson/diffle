@@ -16,7 +16,9 @@ import { handleGetState, handlePostState } from "./stateHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleGetInterdiff } from "./interdiffHandlers";
 import { handleGetScorecard } from "./analysisHandlers";
+import { handleGetLspStatus } from "./lspHandlers";
 import { handleSessionStop } from "./sessionHandlers";
+import { handlePresence } from "./presence";
 import { apiError } from "./respond";
 import { isLoopbackHttpOrigin } from "../utils/origin";
 
@@ -44,7 +46,13 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/review") return handleGetReview(new URL(req.url), ctx.reviewId);
     if (pathname === "/api/review/legacy") return handleGetLegacyReview(ctx.cwd);
     if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
+    if (pathname === "/api/presence" && ctx.presence) return handlePresence(ctx.presence, req);
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
+    if (pathname === "/api/lsp/status") {
+      // reveals installed tooling and local paths, so it also refuses a foreign Host (dns rebinding)
+      if (!hasAllowedOrigin(req, serverPort) || !isLoopbackHttpOrigin(new URL(req.url), serverPort)) return apiError("origin mismatch", 403);
+      return handleGetLspStatus(ctx);
+    }
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 

@@ -29,7 +29,7 @@ export async function handleSessionStop(ctx: ServerContext, req: Request): Promi
       console.error(`[${PRODUCT.name}] session stop failed: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }
-    if (ctx.host === "cli" || ctx.host === "hook") process.exit(0);
+    if (ctx.host === "cli" || ctx.host === "hook") process.exit(ctx.exitCodeOnStop?.() ?? 0);
   }, SHUTDOWN_DELAY_MS);
   return json({ stopped: true });
 }

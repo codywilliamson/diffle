@@ -9,7 +9,8 @@ import {
 import type { ReviewOperationResult, ReviewOperations } from "./operations";
 import { scorecardForReview } from "./scorecardOperation";
 
-function found(reviewId: string): ReviewOperationResult {
+// the get_review result shape; `--wait --json` prints the same thing.
+export function found(reviewId: string): ReviewOperationResult {
   const review = readReviewRecord(reviewId);
   if (!review) throw new Error("review record not found");
   return { review };

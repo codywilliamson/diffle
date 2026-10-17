@@ -7,6 +7,9 @@ import { createServer, type ServerContext } from "../server/router";
 import { resolveClientAssets } from "./standalone";
 import { createReviewRecord, readReviewRecord } from "./reviewRecords";
 import { loadReviewTarget } from "./reviewTarget";
+import { createPresence } from "../server/presence";
+import { createLspPool } from "./lsp/launchPool";
+import type { LspPool } from "./lsp/pool";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
 
 export interface ReviewLaunchInput {
@@ -20,6 +23,8 @@ export interface ReviewLaunchInput {
   port?: number;
   open?: boolean;
   requireChanges?: boolean;
+  lsp?: boolean; // false (--no-lsp) never starts a language server
+  lspPool?: LspPool; // replaces the default pool; tests inject a fake-backed one
   host: SessionHost;
 }
 
@@ -28,6 +33,7 @@ export interface ReviewLaunch {
   url: string;
   server: Server<undefined>;
   diff: DiffResult;
+  ctx: ServerContext; // live server state: the refreshed diff and the open-tab presence
   stop: () => void; // stops the server and removes its session registry entry
 }
 
@@ -47,14 +53,15 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   });
   const assets = resolveClientAssets(input.productRoot);
   const sessionId = randomUUID();
-  const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId };
+  const lsp = input.lspPool ?? createLspPool(cwd, input.lsp !== false);
+  const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId, presence: createPresence(), lsp };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
   const origin = `http://localhost:${port}`;
   const url = `${origin}/?review=${encodeURIComponent(review.id)}`;
   // best-effort synchronous full stop for callers that already hold this launch directly
   // (ctrl+c, MCP's stopAll, tests) — always tears down and unregisters, no gating.
-  const stop = (): void => { server.stop(true); unregisterSession(sessionId); };
+  const stop = (): void => { server.stop(true); unregisterSession(sessionId); lsp.killAll(); };
   try {
     registerSession({ sessionId, reviewId: review.id, pid: process.pid, port, url: origin, cwd, host: input.host, startedAt: new Date().toISOString() });
     let stoppedOnce = false;
@@ -66,11 +73,12 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
       stoppedOnce = true;
       await server.stop(true);
       unregisterSession(sessionId);
+      await lsp.shutdown(); // graceful; the sync stop() above still kills anything left on process exit
     };
     if (input.open !== false) openBrowser(url);
   } catch (error) {
     stop();
     throw error;
   }
-  return { review, url, server, diff: loaded.diff, stop };
+  return { review, url, server, diff: loaded.diff, ctx, stop };
 }

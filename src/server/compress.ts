@@ -4,7 +4,7 @@
 import { gzipSync } from "bun";
 
 const MIN_COMPRESS_BYTES = 1024;
-const COMPRESSIBLE = /^(application\/json|text\/)/;
+const COMPRESSIBLE = /^(application\/json|text\/(?!event-stream))/; // event streams must not be buffered
 
 export async function maybeCompress(req: Request, res: Response): Promise<Response> {
   const accepts = req.headers.get("Accept-Encoding") ?? "";
