@@ -52,9 +52,11 @@ describe("version races", () => {
     const { harness, state } = setup(root, { delay: { "textDocument/definition": 500 }, responses: { "textDocument/definition": at(fileUri(root, "a.ts")), "textDocument/hover": null } });
     const slow = harness.post("/api/lsp/definition", where());
     let edits = 0;
-    const timer = setInterval(() => { writeFileSync(join(root, "a.ts"), `${++edits}${"x".repeat(edits)}\n`); void harness.post("/api/lsp/hover", where()); }, 120);
+    const hovers: Promise<unknown>[] = [];
+    const timer = setInterval(() => { writeFileSync(join(root, "a.ts"), `${++edits}${"x".repeat(edits)}\n`); hovers.push(harness.post("/api/lsp/hover", where()).catch(() => undefined)); }, 120);
     const res = await slow;
     clearInterval(timer);
+    await Promise.all(hovers); // none may outlive the test and fail a later one
     expect([res.status, (await res.json() as any).code]).toEqual([409, "stale"]);
     expect((await state()).requests.length).toBeGreaterThan(1);
   });
