@@ -35,6 +35,9 @@ jobs:
           key: bun-${{ runner.os }}-root-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: bun x tsc --noEmit -p .
+      # the completion tests run zsh and fish for real when they are installed
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends zsh fish
       # process-table and stdio tests take ~4s on windows runners, close to bun's 5s default.
       - run: bun test --timeout 10000
       - run: bun run test:agent-loop
