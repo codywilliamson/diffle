@@ -73,7 +73,8 @@ export function migrateInstallDir(overrides: Partial<InstallDirDeps> = {}): stri
   const lines: string[] = [];
   const say = (line: string) => { log(line); lines.push(line); };
   const binaryName = exeName(PRODUCT.legacyName, platform);
-  if (existsSync(join(legacyDir, binaryName))) deps.stopServers();
+  const hasBinary = existsSync(join(legacyDir, binaryName));
+  if (hasBinary) deps.stopServers();
 
   // the transition asset installs itself; a nittle binary is already wherever it was installed
   const configured = env[`${PRODUCT.envPrefix}INSTALL_DIR`];
@@ -82,10 +83,11 @@ export function migrateInstallDir(overrides: Partial<InstallDirDeps> = {}): stri
     const target = join(newDir, exeName(PRODUCT.name, platform));
     say(`${installBinaryCopy(execPath, target, platform) === "installed" ? "installed" : "already installed:"} ${target}`);
   }
-  if (!samePath(legacyDir, newDir, platform)) swapPath(deps, legacyDir, newDir);
+  // leftovers alone (a windows retry) mean the PATH was already handled by the run that retired the binary
+  if (hasBinary && !samePath(legacyDir, newDir, platform)) swapPath(deps, legacyDir, newDir);
 
   const cleanup = clearLegacyInstall(legacyDir, binaryName, platform);
-  if (cleanup.removed && !cleanup.deferred.length) say(`removed ${join(legacyDir, binaryName)}`);
+  if (hasBinary && cleanup.removed && !cleanup.deferred.length) say(`removed ${join(legacyDir, binaryName)}`);
   if (cleanup.deferred.length) say(`${cleanup.deferred.join(", ")} is still in use; the next ${PRODUCT.name} run removes it`);
   if (cleanup.dirRemoved) say(`removed ${legacyDir}`);
   removeEmptyLegacyDirs(home);

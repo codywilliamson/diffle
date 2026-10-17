@@ -166,9 +166,10 @@ describe("install dir migration from a nittle binary", () => {
   test("an empty or leftover-only diffle bin dir needs no process scan", () => {
     write(nittle(), "newer");
     write(join(home, ".diffle", "bin", ".diffle.exe.old"), "retired");
-    const { run, stops } = setup({ execPath: nittle(), platform: "win32" });
+    const { run, stops, logs } = setup({ execPath: nittle(), platform: "win32" });
     run();
     expect(stops).toEqual([]);
+    expect(logs.join("\n")).not.toContain("PATH");
     expect(existsSync(join(home, ".diffle"))).toBe(false);
   });
 
