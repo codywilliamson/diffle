@@ -22,5 +22,11 @@ export function uniqueFlagNames(model: CompletionCommand[]): Map<string, Complet
   return seen;
 }
 
-// 0-based word index (program = 0) where a command's first positional sits: refs and subcommands live there.
-export const firstPositionalIndex = (command: CompletionCommand) => (command.name === "review" ? 1 : 2);
+// how many positional words (flags and flag values skipped) come before a command's ref or
+// subcommand slot: 0 for the default review, 1 behind a named command.
+export const slotAfterPositionals = (command: CompletionCommand) => (command.name === "review" ? 0 : 1);
+
+// every flag spelling that is followed by a value, across all commands.
+export function valueFlagNames(model: CompletionCommand[]): string[] {
+  return [...uniqueFlagNames(model)].filter(([, flag]) => flag.takesValue).map(([name]) => name);
+}

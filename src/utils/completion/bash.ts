@@ -1,7 +1,7 @@
 // bash completion script. refs are listed when tab is pressed, not when this is generated.
 
 import { completionModel, namedCommands, type CompletionCommand } from "./model";
-import { PROGRAM, firstPositionalIndex, flagNames, posixRefCommand } from "./shared";
+import { PROGRAM, flagNames, posixRefCommand, slotAfterPositionals, valueFlagNames } from "./shared";
 
 function valueCases(model: CompletionCommand[]): string {
   const seen = new Set<string>();
@@ -20,8 +20,8 @@ function valueCases(model: CompletionCommand[]): string {
 
 function commandCases(model: CompletionCommand[]): string {
   return model.map((command) => {
-    const refPos = command.completesRefs ? firstPositionalIndex(command) : 0;
-    const subPos = command.subcommands.length ? firstPositionalIndex(command) : 0;
+    const refPos = command.completesRefs ? slotAfterPositionals(command) : -1;
+    const subPos = command.subcommands.length ? slotAfterPositionals(command) : -1;
     return [
       `    ${command.name})`,
       `      flags="${flagNames(command).join(" ")}"`,
@@ -38,15 +38,22 @@ export function renderBash(): string {
   return `# bash completion for ${PROGRAM}
 # install: eval "$(${PROGRAM} completion --shell bash)"
 _${PROGRAM}() {
-  local cur prev cmd=review flags subs words refpos subpos candidates
+  local cur prev cmd=review flags subs words refpos subpos candidates npos=0 skip=0 first="" word i
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   COMPREPLY=()
-  if (( COMP_CWORD > 1 )); then
-    case "\${COMP_WORDS[1]}" in
-      ${named.join("|")}) cmd="\${COMP_WORDS[1]}" ;;
+  for (( i = 1; i < COMP_CWORD; i++ )); do
+    word="\${COMP_WORDS[i]}"
+    if (( skip )); then skip=0; continue; fi
+    case "$word" in
+      ${valueFlagNames(model).join("|")}) skip=1 ;;
+      -*) ;;
+      *) (( npos == 0 )) && first="$word"; npos=$(( npos + 1 )) ;;
     esac
-  fi
+  done
+  case "$first" in
+    ${named.join("|")}) cmd="$first" ;;
+  esac
   case "$prev" in
 ${valueCases(model)}
   esac
@@ -62,9 +69,9 @@ ${commandCases(model)}
     return
   fi
   candidates=""
-  if (( COMP_CWORD == 1 )); then candidates="${named.join(" ")}"; fi
-  if (( subpos > 0 && COMP_CWORD == subpos )); then candidates="$candidates $subs"; fi
-  if (( refpos > 0 && COMP_CWORD == refpos )); then
+  if (( npos == 0 )); then candidates="${named.join(" ")}"; fi
+  if (( subpos >= 0 && npos == subpos )); then candidates="$candidates $subs"; fi
+  if (( refpos >= 0 && npos == refpos )); then
     candidates="$candidates $words $(${posixRefCommand()})"
   fi
   COMPREPLY=($(compgen -W "$candidates" -- "$cur"))
