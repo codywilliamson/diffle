@@ -6,6 +6,9 @@
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
+// worker modules the compiled binary spawns; bun only embeds them when listed as extra entrypoints
+export const WORKER_ENTRY_FILES = ["src/core/searchWorker.ts"];
+
 export interface StandaloneEntry {
   entryFile: string;
   version: string;

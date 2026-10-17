@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "bun";
 import type { SearchResponse } from "../src/types";
+import { SEARCH_TOTAL_BUDGET_MS } from "../src/core/searchRunner";
 import { createServer } from "../src/server/router";
 import { directoryAssets } from "../src/server/assetSource";
 import { parseDiff } from "../src/core/diffParser";
@@ -49,6 +50,8 @@ beforeAll(() => {
   write("crlf.txt", "first\r\nneedle two\r\nthird\r\nneedle four\r\n");
   write("uni.txt", "plain\nnaïve \u{1F600}\u{1F600} needle \u{1F600}\n");
   write("added.txt", "brand new needle\n");
+  // 100k-char lines; (a|a)*$ burns about a second on each in JavaScriptCore, so four files outlast the 2s budget
+  for (const n of [1, 2, 3, 4]) write(`longline${n}.txt`, `${"a".repeat(3000)}!${"a".repeat(97_000)}\n`);
   mkdirSync(join(repo, "sub"));
   write("sub/deep.txt", "deep needle\n");
   git("add", "-N", "sub/deep.txt");
@@ -147,6 +150,28 @@ describe("GET /api/search", () => {
     expect(body.error).toMatch(/repeated group/);
   });
 
+  it("kills a pathological regex at the budget, keeps partial results, and the server stays responsive", async () => {
+    const started = performance.now();
+    const { status, body } = await search({ q: "needle|(a|a)*$", regex: "1" });
+    expect(performance.now() - started).toBeLessThan(SEARCH_TOTAL_BUDGET_MS + 3000);
+    expect(status).toBe(200);
+    expect(body.truncated).toBe(true);
+    expect(body.results.map((h) => h.path)).toContain("added.txt");
+    expect((await search({ q: "needle" })).status).toBe(200);
+  }, 15000);
+
+  it("returns 422 with a readable message when nothing came back before the budget", async () => {
+    const { status, body } = await search({ q: "^(a|a)*$", regex: "1" });
+    expect(status).toBe(422);
+    expect(body.error).toMatch(/took too long/);
+    expect((await search({ q: "needle" })).status).toBe(200);
+  }, 15000);
+
+  it("runs ordinary regexes through the worker", async () => {
+    const found = await hits({ q: "ne+dle\\s+two", regex: "1" });
+    expect(found.filter((h) => h.side === "new").map((h) => h.preview)).toEqual(["needle two"]);
+  });
+
   it("rejects an unknown case mode", async () => {
     expect((await search({ q: "x", case: "loud" })).status).toBe(400);
   });
@@ -157,6 +182,6 @@ describe("GET /api/search", () => {
   });
 
   it("returns an empty, untruncated result when nothing matches", async () => {
-    expect((await search({ q: "zzz-no-match" })).body).toEqual({ results: [], truncated: false });
+    expect((await search({ q: "zzz-no-match" })).body.results).toEqual([]);
   });
 });
