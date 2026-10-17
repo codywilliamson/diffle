@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// diffle cli entry point: launch a browser review or run the local MCP server.
+// nittle cli entry point: launch a browser review or run the local MCP server.
 
 import { join } from "node:path";
 import { helpFor, parseCliArgs } from "./utils/cli";
@@ -18,6 +18,7 @@ import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugi
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
 import { PRODUCT } from "./core/product";
+import { LEGACY_MIGRATION_STEPS, runLegacyMigrations } from "./core/migration";
 import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
 
@@ -41,7 +42,7 @@ function fail(message: string): never {
 
 export async function main(): Promise<void> {
   const cwd = process.cwd();
-  const loupeRoot = installationRoot(join(import.meta.dir, ".."));
+  const productRoot = installationRoot(join(import.meta.dir, ".."));
 
   let opts;
   try {
@@ -49,26 +50,29 @@ export async function main(): Promise<void> {
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
   }
+  for (const result of await runLegacyMigrations(LEGACY_MIGRATION_STEPS)) {
+    if (!result.ok) console.error(`migration ${result.name} failed: ${result.summary}`);
+  }
   if (opts.help) return console.log(helpFor(opts.command, opts.spec));
-  if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(loupeRoot)}`);
-  if (opts.license) return console.log(resolveLicenseText(loupeRoot).trimEnd());
+  if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(productRoot)}\n${PRODUCT.lineage}`);
+  if (opts.license) return console.log(resolveLicenseText(productRoot).trimEnd());
   if (opts.mcpAction === "serve") return runMcpServer(cwd);
   if (opts.mcpAction === "list") return runMcpListCommand();
   if (opts.mcpAction === "restart") return runMcpRestartCommand({ yes: opts.yes });
   if (opts.command === "hook") {
     if (!opts.agent) fail("hook stop requires --agent codex or claude-code");
-    return runCompletionHook(opts.agent, loupeRoot);
+    return runCompletionHook(opts.agent, productRoot);
   }
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
-  if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes }, loupeRoot);
+  if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes }, productRoot);
   if (opts.command === "setup") {
     const code = await runSetup({ remove: opts.remove, agents: opts.agents, yes: opts.yes });
     if (code !== 0) process.exit(code);
     return;
   }
   if (opts.command === "update") {
-    try { return await runUpdate(loupeRoot, opts.check); }
+    try { return await runUpdate(productRoot, opts.check); }
     catch (err) { fail(err instanceof Error ? err.message : String(err)); }
   }
 
@@ -76,7 +80,7 @@ export async function main(): Promise<void> {
   let launch;
   try {
     launch = launchReview({
-      cwd, loupeRoot, spec: opts.spec, scope: opts.scope, reviewId: opts.reviewId,
+      cwd, productRoot, spec: opts.spec, scope: opts.scope, reviewId: opts.reviewId,
       policy: "handoff", port: opts.port, open: opts.open, host,
     });
   } catch (err) {
@@ -92,9 +96,9 @@ export async function main(): Promise<void> {
 
   const files = launch.diff.files.length;
   const changed = launch.diff.meta?.mode === "browse" ? "" : " changed";
-  console.log(`${accent(tag)} ${dim(`v${currentVersion(loupeRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
+  console.log(`${accent(tag)} ${dim(`v${currentVersion(productRoot)}`)} — reviewing ${bold(launch.diff.ref)} (${files} file${files === 1 ? "" : "s"}${changed})`);
   console.log(`  ${bold(launch.url)}  ${dim("(ctrl+c to stop)")}`);
-  void launchUpdateNotice(loupeRoot).then((notice) => notice && console.log(`${accent(tag)} ${dim(notice)}`));
+  void launchUpdateNotice(productRoot).then((notice) => notice && console.log(`${accent(tag)} ${dim(notice)}`));
 
   if (staleLegacyPlugin()) {
     console.log(`${accent(tag)} ${dim(`stale ${PRODUCT.legacyPlugin.name} plugin detected — run ${PRODUCT.name} doctor`)}`);
