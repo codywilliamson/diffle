@@ -21,18 +21,19 @@ import { handleSessionStop } from "./sessionHandlers";
 import { handlePresence } from "./presence";
 import { handleGetSearch } from "./searchHandlers";
 import { apiError } from "./respond";
-import { isLoopbackHttpOrigin, isLoopbackRequest } from "../utils/origin";
+import { checkLoopbackRequest } from "../utils/origin";
 
 export type { ServerContext } from "./handlers";
 
-function hasAllowedOrigin(req: Request, serverPort: number): boolean {
-  const origin = req.headers.get("origin");
-  if (origin === null) return true;
-  const url = new URL(req.url);
-  return isLoopbackHttpOrigin(url, serverPort) && origin === url.origin;
+// one gate for every route (api, sse, static): refuse non-loopback hosts before dispatch
+function guardRequest(req: Request, serverPort: number): Response | null {
+  const verdict = checkLoopbackRequest(req, serverPort);
+  if (verdict === "host") return apiError("host not allowed", 403);
+  if (verdict === "origin") return apiError("origin mismatch", 403);
+  return null;
 }
 
-function route(ctx: ServerContext, req: Request, serverPort: number): Response | Promise<Response> {
+function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
   const { pathname } = new URL(req.url);
   const { method } = req;
 
@@ -49,18 +50,12 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
     if (pathname === "/api/interdiff") return handleGetInterdiff(ctx, new URL(req.url));
     if (pathname === "/api/presence" && ctx.presence) return handlePresence(ctx.presence, req);
     if (pathname === "/api/scorecard") return handleGetScorecard(ctx);
-    if (pathname === "/api/lsp/status") {
-      // reveals installed tooling and local paths, so it also refuses a foreign Host (dns rebinding)
-      if (!hasAllowedOrigin(req, serverPort) || !isLoopbackHttpOrigin(new URL(req.url), serverPort)) return apiError("origin mismatch", 403);
-      return handleGetLspStatus(ctx);
-    }
-    if (pathname === "/api/search") return isLoopbackRequest(req, serverPort) ? handleGetSearch(ctx, new URL(req.url)) : apiError("host or origin mismatch", 403);
+    if (pathname === "/api/lsp/status") return handleGetLspStatus(ctx);
+    if (pathname === "/api/search") return handleGetSearch(ctx, new URL(req.url));
     if (!pathname.startsWith("/api/")) return serveStatic(ctx.assets, pathname);
   }
 
   if (method === "POST") {
-    if (!hasAllowedOrigin(req, serverPort)) return apiError("origin mismatch", 403);
-
     if (pathname === "/api/comments") return handlePostComments(ctx, req);
     if (pathname === "/api/viewed") return handlePostViewed(ctx, req);
     if (pathname === "/api/state") return handlePostState(req);
@@ -77,7 +72,7 @@ function route(ctx: ServerContext, req: Request, serverPort: number): Response |
 export function createServer(ctx: ServerContext, port = 0): Server<undefined> {
   const server: Server<undefined> = Bun.serve({
     port,
-    fetch: async (req) => maybeCompress(req, await route(ctx, req, server.port ?? port)),
+    fetch: async (req) => guardRequest(req, server.port ?? port) ?? maybeCompress(req, await route(ctx, req)),
   });
   return server;
 }
