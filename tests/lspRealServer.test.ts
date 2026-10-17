@@ -8,7 +8,7 @@ import { LspPool } from "../src/core/lsp/pool";
 import { findExecutable } from "../src/core/lsp/which";
 import { isAlive, tempDir, waitFor } from "./helpers/fakeLspPool";
 
-const server = findExecutable("typescript-language-server");
+const server = findExecutable("typescript-language-server").path;
 const installed = server !== undefined;
 
 // the server wants a typescript it can resolve from the workspace; reuse the one installed beside it

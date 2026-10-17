@@ -9,6 +9,16 @@ function repositoryRoot(cwd: string): string {
   try { return resolve(runGit(["rev-parse", "--show-toplevel"], cwd).trim()); } catch { return resolve(cwd); }
 }
 
+// every checkout of this repository: a server planted in any of them is untrusted.
+function worktreeRoots(cwd: string): string[] {
+  try {
+    return runGit(["worktree", "list", "--porcelain"], cwd).split(/\r?\n/)
+      .filter((line) => line.startsWith("worktree ")).map((line) => resolve(line.slice("worktree ".length)));
+  } catch { return []; }
+}
+
 export function createLspPool(cwd: string, enabled: boolean): LspPool {
-  return new LspPool({ root: enabled ? repositoryRoot(cwd) : resolve(cwd), enabled });
+  if (!enabled) return new LspPool({ root: resolve(cwd), enabled });
+  const root = repositoryRoot(cwd);
+  return new LspPool({ root, enabled, excludeRoots: [root, ...worktreeRoots(cwd)] });
 }

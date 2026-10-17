@@ -17,6 +17,7 @@ export interface PoolOptions {
   enabled?: boolean; // false (--no-lsp) starts nothing, ever
   registry?: Partial<Record<LspLanguage, LanguageEntry>>; // test override
   searchPath?: string; // test override for PATH
+  excludeRoots?: readonly string[]; // servers resolving inside these are refused; defaults to [root]
   shutdownTimeoutMs?: number; // per server, before it is killed
 }
 
@@ -36,6 +37,7 @@ export class LspPool {
   private readonly slots = new Map<string, Slot>();
   private readonly retired = new WeakSet<LspBridge>();
   private readonly resolved = new Map<LspLanguage, ServerSpec | null>();
+  private readonly rejected = new Set<LspLanguage>(); // a candidate existed but sat inside the repository
   private logDir: string | undefined;
   private disposed = false;
 
@@ -50,7 +52,7 @@ export class LspPool {
       const found = this.resolve(language);
       return found
         ? { language, state: "idle", restarts: 0, server: found.command }
-        : { language, state: "missing", restarts: 0, hint: this.entry(language).installHint };
+        : { language, state: "missing", restarts: 0, hint: this.hintFor(language) };
     });
   }
 
@@ -100,12 +102,18 @@ export class LspPool {
       const logDir = this.logDirectory();
       let spec: ServerSpec | null = null;
       for (const candidate of this.entry(language).candidates) {
-        const command = findExecutable(candidate.command, this.options.searchPath);
+        const { path: command, rejected } = findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
+        if (rejected) this.rejected.add(language);
         if (command) { spec = { command, args: candidate.args(logDir) }; break; }
       }
       this.resolved.set(language, spec);
     }
     return this.resolved.get(language) ?? undefined;
+  }
+
+  private hintFor(language: LspLanguage): string {
+    const install = this.entry(language).installHint;
+    return this.rejected.has(language) ? `ignored a server inside the repository; ${install}` : install;
   }
 
   private logDirectory(): string {
