@@ -58,6 +58,15 @@ describe("nittle --wait", () => {
     expect(readReviewRecord(run.reviewId)?.status).toBe("approved");
   });
 
+  it("prints the approved record as JSON with --json and exits 0", async () => {
+    const run = await startWait(repo, ["--json"], env());
+    await run.outcome("approved");
+    expect(await run.exited).toBe(EXIT_RETURNED);
+    const parsed = JSON.parse(await run.stdout) as { review: ReviewRecord };
+    expect(parsed.review.id).toBe(run.reviewId);
+    expect(parsed.review.status).toBe("approved");
+  });
+
   it("exits 2 with empty stdout when cancelled", async () => {
     const run = await startWait(repo, [], env());
     await run.outcome("cancelled");

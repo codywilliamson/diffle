@@ -8,10 +8,13 @@ export const EXIT_STOPPED = 4; // session stopped from outside (cleanup, /api/se
 
 export const WAIT_EXIT_HELP = [
   "Exit codes with --wait:",
-  `  ${EXIT_RETURNED}   feedback returned (prompt on stdout) or review approved (stdout empty)`,
-  `  ${EXIT_CANCELLED}   review cancelled (stdout empty)`,
+  `  ${EXIT_RETURNED}   feedback returned (prompt on stdout) or review approved (stdout empty without --json)`,
+  `  ${EXIT_CANCELLED}   review cancelled (stdout empty without --json)`,
   `  ${EXIT_TAB_CLOSED}   last tab closed without returning feedback (stdout empty, resume hint on stderr)`,
   "  1   error",
   `  ${EXIT_INTERRUPTED}  interrupted (ctrl+c) while waiting; the review stays open`,
   `  ${EXIT_STOPPED}   session stopped from outside (for example by cleanup); the review stays open`,
+  "",
+  "With --json, stdout is always the get_review JSON for feedback, approved and cancelled.",
+  "Without it, only returned feedback prints (the prompt). Tab closed, stopped and errors print nothing.",
 ];
