@@ -15,6 +15,8 @@ export interface CliOptions {
   reviewId: string | undefined; // durable Review Record supplied by an integration
   port: number; // 0 = any free port
   open: boolean; // open the browser once serving
+  wait: boolean; // review: block until the reviewer hands off, then print the result on stdout
+  json: boolean; // review --wait: print the get_review structure instead of the prompt
   yes: boolean; // cleanup/doctor/setup/mcp restart: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
@@ -28,10 +30,12 @@ export interface CliOptions {
 
 const MAX_PORT = 65535;
 
-type CommandFlag = "yes" | "all" | "fix" | "check" | "remove";
+type CommandFlag = "wait" | "json" | "yes" | "all" | "fix" | "check" | "remove";
 
 // subcommand-only boolean flags: the option each sets and the commands that accept it.
 const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly CliOptions["command"][] }> = {
+  "--wait": { field: "wait", commands: ["review"] },
+  "--json": { field: "json", commands: ["review"] },
   "--yes": { field: "yes", commands: ["cleanup", "doctor", "setup", "mcp"] },
   "--all": { field: "all", commands: ["cleanup"] },
   "--fix": { field: "fix", commands: ["doctor"] },
@@ -61,7 +65,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = MCP_ACTIONS.find((action) => command === "mcp" && action === argv[1]);
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
@@ -109,6 +113,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
       throw new Error(`unexpected argument: ${arg} (only one ref spec, try --help)`);
     }
   }
+  if (opts.json && !opts.wait) throw new Error("--json needs --wait");
   if (opts.yes && opts.command === "mcp" && opts.mcpAction !== "restart") throw new Error("unexpected argument: --yes (only mcp restart accepts it)");
   return opts;
 }

@@ -7,6 +7,7 @@ import { createServer, type ServerContext } from "../server/router";
 import { resolveClientAssets } from "./standalone";
 import { createReviewRecord, readReviewRecord } from "./reviewRecords";
 import { loadReviewTarget } from "./reviewTarget";
+import { createPresence } from "../server/presence";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
 
 export interface ReviewLaunchInput {
@@ -28,6 +29,7 @@ export interface ReviewLaunch {
   url: string;
   server: Server<undefined>;
   diff: DiffResult;
+  ctx: ServerContext; // live server state: the refreshed diff and the open-tab presence
   stop: () => void; // stops the server and removes its session registry entry
 }
 
@@ -46,7 +48,7 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   });
   const assets = resolveClientAssets(input.productRoot);
   const sessionId = randomUUID();
-  const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId };
+  const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId, presence: createPresence() };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
   const origin = `http://localhost:${port}`;
@@ -71,5 +73,5 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
     stop();
     throw error;
   }
-  return { review, url, server, diff: loaded.diff, stop };
+  return { review, url, server, diff: loaded.diff, ctx, stop };
 }

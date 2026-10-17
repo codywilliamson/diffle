@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { dataDir } from "./dataDir";
+import { notifyReviewSaved } from "./reviewEvents";
 import {
   REVIEW_FILE,
   REVIEW_SCHEMA_VERSION,
@@ -59,6 +60,7 @@ function save(record: ReviewRecord): void {
   const temp = join(dir, `.review-${randomUUID()}.tmp`);
   writeFileSync(temp, `${JSON.stringify(record, null, 2)}\n`, "utf8");
   renameSync(temp, pathFor(record.id));
+  notifyReviewSaved(record.id);
 }
 function requireRecord(id: string): ReviewRecord {
   const record = readAt(pathFor(id));
