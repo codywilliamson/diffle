@@ -3,6 +3,16 @@ import { carriesTransitionAssets, TRANSITION_ASSET_RELEASES, transitionAssetName
 
 const history = ["v0.27.0", "v0.28.0", "v0.28.1"];
 
+describe("publishedReleaseTags", () => {
+  test("only published, non-draft, non-prerelease releases count; an unreadable API is null", async () => {
+    const { publishedReleaseTags } = await import("../scripts/publishedReleases");
+    const body = [{ tag_name: "v0.29.0" }, { tag_name: "v0.29.1", draft: true }, { tag_name: "v0.29.2", prerelease: true }, {}];
+    expect(await publishedReleaseTags(async () => new Response(JSON.stringify(body)), "t")).toEqual(["v0.29.0"]);
+    expect(await publishedReleaseTags(async () => new Response("", { status: 403 }), "t")).toBeNull();
+    expect(await publishedReleaseTags(async () => { throw new Error("offline"); }, "t")).toBeNull();
+  });
+});
+
 describe("transitionAssetName", () => {
   test("swaps the product prefix for the legacy one", () => {
     expect(transitionAssetName("nittle-linux-x64")).toBe("diffle-linux-x64");
