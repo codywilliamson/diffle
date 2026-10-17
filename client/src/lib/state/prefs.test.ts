@@ -12,6 +12,9 @@ function fakeStorage(seed: Record<string, string> = {}): FakeStorage {
     setItem: (key, value) => {
       data[key] = value;
     },
+    removeItem: (key) => {
+      delete data[key];
+    },
   };
 }
 
@@ -97,6 +100,17 @@ describe("prefs store", () => {
     expect(storage.data[`${PREFS_PREFIX}sidebar`]).toBe("360");
     expect(storage.data[`${PREFS_PREFIX}split`]).toBe("true");
     expect(storage.data[`${PREFS_PREFIX}view`]).toBe("single");
+    // and the old keys are deleted
+    expect(storage.data[`${LEGACY_PREFS_PREFIX}sidebar`]).toBeUndefined();
+    expect(storage.data[`${LEGACY_PREFS_PREFIX}view`]).toBeUndefined();
+  });
+
+  it("leaves no legacy diffle-* key behind after construction", () => {
+    const storage = fakeStorage({ [`${LEGACY_PREFS_PREFIX}file-order`]: "review", [`${LEGACY_PREFS_PREFIX}theme`]: "claude-dark" });
+    const prefs = createPrefsStore({ storage, matchMedia: media(false) });
+    expect(prefs.fileOrder).toBe("review");
+    expect(prefs.theme).toBe("dark");
+    expect(Object.keys(storage.data).filter((k) => k.startsWith(LEGACY_PREFS_PREFIX))).toEqual([]);
   });
 
   it("prefers an existing diffle-* value over the legacy loupe-* one", () => {
