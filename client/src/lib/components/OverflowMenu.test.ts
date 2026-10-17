@@ -43,7 +43,7 @@ describe("OverflowMenu", () => {
       "Side-by-side (all files) s",
       "Wrap lines w",
       "Toggle theme t",
-      "What's new n",
+      "What's new gw",
       "Keyboard shortcuts ?",
     ]);
 

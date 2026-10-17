@@ -39,7 +39,7 @@ for (const theme of THEMES) {
 
     test("feedback preview", async ({ page }) => {
       await withScene(page, { files: STANDARD_FILES, theme, comments: COMMENTS_MIXED }, async (p) => {
-        await p.keyboard.press("c");
+        await p.keyboard.press("P");
         await expect(p.getByRole("dialog", { name: "Feedback preview" })).toBeVisible();
         await expect(p.getByText("Compiling feedback")).toHaveCount(0);
         await expectSnapshot(p, "feedback-preview", theme);

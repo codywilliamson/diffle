@@ -73,11 +73,12 @@ describe("scorecard ui", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Review scorecard" })).toBeNull());
   });
 
-  it("g toggles the panel", async () => {
+  it("gc toggles the panel", async () => {
     stubApi(scorecard);
     render(App);
     await screen.findByRole("button", { name: /review scorecard/i });
     await fireEvent.keyDown(window, { key: "g" });
+    await fireEvent.keyDown(window, { key: "c" });
     expect(await screen.findByRole("dialog", { name: "Review scorecard" })).toBeInTheDocument();
   });
 

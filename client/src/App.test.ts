@@ -81,9 +81,9 @@ describe("App shell", () => {
     render(App);
     await screen.findByText(/2 files\b/);
 
-    await fireEvent.keyDown(window, { key: "j" });
+    await fireEvent.keyDown(window, { key: "J" });
     expect(document.querySelector('button[aria-current="true"]')).toHaveTextContent("b.ts");
-    await fireEvent.keyDown(window, { key: "k" });
+    await fireEvent.keyDown(window, { key: "K" });
     expect(document.querySelector('button[aria-current="true"]')).toHaveTextContent("a.ts");
 
     await fireEvent.keyDown(window, { key: "v" });
@@ -92,9 +92,46 @@ describe("App shell", () => {
       expect.objectContaining({ method: "POST", body: JSON.stringify({ viewed: ["src/a.ts"] }) }),
     ));
 
-    await fireEvent.keyDown(window, { key: "c" });
+    await fireEvent.keyDown(window, { key: "P" });
     expect(await screen.findByRole("heading", { name: "Feedback preview" })).toBeInTheDocument();
     expect(await screen.findByText("compiled feedback")).toBeInTheDocument();
+  });
+
+  it("moves a line cursor with j and k and keeps it on its line across a refresh", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    Element.prototype.animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
+    globalThis.IntersectionObserver = class { observe(): void {} disconnect(): void {} unobserve(): void {} } as unknown as typeof IntersectionObserver;
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const line = (n: number, text: string, type: "context" | "addition" = "context") =>
+      ({ type, oldLine: type === "context" ? n : null, newLine: n, content: text });
+    const body = (lines: ReturnType<typeof line>[]): DiffResult => ({
+      ref: "HEAD",
+      files: [{ path: "a.ts", oldPath: null, changeType: "modified", additions: 1, deletions: 0, hunks: [{ header: "@@", lines }] }],
+    });
+    let current = body([line(1, "one"), line(2, "two"), line(3, "three", "addition")]);
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/api/diff") return jsonResponse(current, 200);
+      if (path === "/api/comments") return jsonResponse({ meta: { ref: "HEAD", createdAt: "", updatedAt: "" }, viewed: [], comments: [] }, 200);
+      if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
+      return jsonResponse({}, 404);
+    }));
+    render(App);
+    await screen.findByText(/1 file\b/);
+    const cursorLine = (): string | null => document.querySelector("[data-cursor]")?.getAttribute("data-newline") ?? null;
+
+    expect(cursorLine()).toBeNull();
+    await fireEvent.keyDown(window, { key: "j" });
+    await fireEvent.keyDown(window, { key: "j" });
+    await waitFor(() => expect(cursorLine()).toBe("2"));
+    await fireEvent.keyDown(window, { key: "1" });
+    await fireEvent.keyDown(window, { key: "j" });
+    await waitFor(() => expect(cursorLine()).toBe("3"));
+
+    // a line is inserted above, so "three" is now line 4
+    current = body([line(1, "one"), line(2, "new"), line(3, "two"), line(4, "three", "addition")]);
+    await fireEvent.keyDown(window, { key: "r" });
+    await waitFor(() => expect(cursorLine()).toBe("4"));
   });
 
   it("expands the review menu into a modal that keeps the draft and renders the agent update", async () => {
