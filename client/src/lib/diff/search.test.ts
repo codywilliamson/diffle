@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { DiffFile, DiffLine } from "$types";
 import {
-  MAX_RANGES_PER_LINE, MAX_SCAN_LINE_CHARS, compileQuery, findFileMatches, groupByLine, markHits, orderOfCursor, rangesInLine, stepTarget,
+  MAX_FILE_MATCHES, MAX_RANGES_PER_LINE, MAX_SCAN_LINE_CHARS, compileQuery, findFileMatches, groupByLine, markHits, orderOfCursor, rangesInLine, stepTarget,
 } from "./search";
 
 const ranges = (query: string, text: string) => {
   const regex = compileQuery(query);
-  return regex ? rangesInLine(regex, text).map((r) => [r.start, r.end]) : [];
+  return regex ? rangesInLine(regex, text).ranges.map((r) => [r.start, r.end]) : [];
 };
 
 function fileOf(...contents: string[]): DiffFile {
@@ -62,12 +62,36 @@ describe("rangesInLine", () => {
 
 describe("findFileMatches", () => {
   it("numbers matches in reading order with their line", () => {
-    const matches = findFileMatches(fileOf("foo bar", "none", "foo foo"), "foo");
+    const { matches } = findFileMatches(fileOf("foo bar", "none", "foo foo"), "foo");
     expect(matches.map((m) => [m.index, m.order, m.newLine, m.start])).toEqual([[0, 0, 1, 0], [1, 2, 3, 0], [2, 2, 3, 4]]);
   });
 
+  it("reports no truncation for an ordinary file", () => {
+    expect(findFileMatches(fileOf("foo", "bar"), "foo").partial).toBeNull();
+  });
+
+  it("reports a cap when a line has more matches than it shows", () => {
+    const result = findFileMatches(fileOf("x".repeat(MAX_RANGES_PER_LINE + 5)), "x");
+    expect(result.matches).toHaveLength(MAX_RANGES_PER_LINE);
+    expect(result.partial).toBe("capped");
+  });
+
+  it("reports a cap when the file has more matches than the limit", () => {
+    const lines = Array.from({ length: MAX_FILE_MATCHES + 1 }, () => "x");
+    const result = findFileMatches(fileOf(...lines), "x");
+    expect(result.matches).toHaveLength(MAX_FILE_MATCHES);
+    expect(result.partial).toBe("capped");
+  });
+
+  it("reports a cut when a long line hides an occurrence past the scan limit", () => {
+    const hidden = findFileMatches(fileOf("y".repeat(MAX_SCAN_LINE_CHARS) + "needle"), "needle");
+    expect(hidden.matches).toHaveLength(0);
+    expect(hidden.partial).toBe("cut");
+    expect(findFileMatches(fileOf("y".repeat(MAX_SCAN_LINE_CHARS) + "zzz"), "needle").partial).toBeNull();
+  });
+
   it("groups matches by line for rendering", () => {
-    const byLine = groupByLine(findFileMatches(fileOf("foo foo", "x"), "foo"));
+    const byLine = groupByLine(findFileMatches(fileOf("foo foo", "x"), "foo").matches);
     expect(byLine.get("1:1")).toEqual([{ index: 0, start: 0, end: 3 }, { index: 1, start: 4, end: 7 }]);
     expect(byLine.has("2:2")).toBe(false);
   });
@@ -97,7 +121,7 @@ describe("markHits", () => {
 });
 
 describe("stepping", () => {
-  const matches = findFileMatches(fileOf("a", "x", "a", "x", "a"), "a"); // orders 0, 2, 4
+  const matches = findFileMatches(fileOf("a", "x", "a", "x", "a"), "a").matches; // orders 0, 2, 4
 
   it("walks forward and wraps at the end", () => {
     expect(stepTarget(matches, 0, 1, -1)).toBe(1);

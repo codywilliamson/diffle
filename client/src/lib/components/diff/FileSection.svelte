@@ -31,7 +31,7 @@
   import CommentEditor from "../comment/CommentEditor.svelte";
 
   let { file }: { file: DiffFile } = $props();
-  const { ui, comments, prefs, diff, analysis, cursor } = getAppState();
+  const { ui, comments, prefs, diff, analysis, cursor, search } = getAppState();
   const NOISE_LABEL = { generated: "Generated file", lockfile: "Lockfile" } as const;
   // deleted files collapse by default (github-style) — the removal is rarely re-read line by line.
   let collapsed = $state(untrack(() => file.changeType === "deleted"));
@@ -48,6 +48,12 @@
   const interdiffOn = $derived(sinceReview && changedSinceReview);
   const interdiff = createInterdiff(() => ({ path: file.path, enabled: interdiffOn, version: file }));
   const interdiffState = $derived(interdiff.state);
+  // search matches the real diff, so it steps aside while this file shows the interdiff
+  $effect(() => {
+    const path = file.path;
+    untrack(() => search.setInterdiff(path, interdiffOn));
+    return () => untrack(() => search.setInterdiff(path, false));
+  });
   // the file the body renders: the full diff, or the interdiff once it has loaded.
   const shown = $derived(interdiffOn && interdiffState.status === "ready" && interdiffState.file ? interdiffState.file : file);
   const annotations = $derived<DiffAnnotations>(
