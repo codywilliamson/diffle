@@ -2,7 +2,8 @@
 
 import { basename, join } from "node:path";
 import { existsSync } from "node:fs";
-import { REVIEW_FILE } from "../types";
+import { REVIEW_FILE, type CommitInfo } from "../types";
+import { isCommitSpec, resolveCommit } from "./commitTarget";
 
 // how to produce the diff plus the review context shown in the ui.
 export interface DiffPlan {
@@ -13,6 +14,8 @@ export interface DiffPlan {
   source: string; // the "new" side label
   target: string; // the "base" side label
   includeUntracked: boolean; // working-tree mode also surfaces untracked files
+  pinnedSpec?: string; // spec to store on the review record when the typed one can move (commit: full hash)
+  commit?: CommitInfo; // single-commit targets carry their message and author
 }
 
 // runs `git <args>` in cwd and returns raw stdout bytes. throws with stderr on failure.
@@ -122,6 +125,8 @@ export function resolveRef(spec: string | undefined, cwd: string): DiffPlan {
     const target = currentBranch(cwd);
     return { diffArgs: ["diff", "--staged"], refLabel: "staged", newRef: "", mode: "staged", source: "staged", target, includeUntracked: false };
   }
+
+  if (isCommitSpec(spec)) return resolveCommit(spec, cwd);
 
   const parts = spec.split("..");
   if (parts.length === 2) {

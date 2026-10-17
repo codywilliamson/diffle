@@ -44,6 +44,25 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     examples: [`${n}`, `${n} staged --no-open`, `${n} main`, `${n} browse src/`],
     related: ["sessions", "cleanup"],
   },
+  show: {
+    summary: "review one commit against its first parent",
+    usage: [`${n} show [rev] [options]`],
+    details: [
+      "Shows the commit's message, author and hash above the files. The same diff as",
+      `\`${n} <rev>^!\`. With no rev it reviews HEAD. A root commit is compared with`,
+      "the empty tree and a merge commit with its first parent.",
+      "",
+      "The review is pinned to the full commit hash, so reopening it later shows the",
+      "same diff even after HEAD moves.",
+    ],
+    options: [
+      ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
+      ["--no-open", "don't open the browser automatically"],
+      ["-h, --help", "show help"],
+    ],
+    examples: [`${n} show`, `${n} show HEAD~2`, `${n} show a1b2c3d --no-open`],
+    related: ["review"],
+  },
   mcp: {
     summary: "run or manage the local MCP server agents talk to",
     usage: [`${n} mcp serve`, `${n} mcp list`, `${n} mcp restart [--yes]`],

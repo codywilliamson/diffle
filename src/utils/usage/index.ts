@@ -5,6 +5,7 @@ import { COMMAND_HELP, renderCommandHelp, type HelpTopic } from "./commandHelp";
 
 const TASKS: [string, string][] = [
   ["review the current changes", PRODUCT.name],
+  ["review the last commit", `${PRODUCT.name} show`],
   [`wire ${PRODUCT.name} into your coding agents`, `${PRODUCT.name} setup`],
   ["after updating, reload the MCP server", `${PRODUCT.name} mcp restart`],
   ["reclaim stuck or finished reviews", `${PRODUCT.name} cleanup`],

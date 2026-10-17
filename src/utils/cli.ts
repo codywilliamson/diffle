@@ -2,12 +2,13 @@
 
 
 export { USAGE, helpFor } from "./usage";
+import { COMMIT_SPEC_SUFFIX } from "./commitTarget";
 
 const MCP_ACTIONS = ["serve", "list", "restart"] as const;
 export type McpAction = (typeof MCP_ACTIONS)[number];
 
 export interface CliOptions {
-  command: "review" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup";
+  command: "review" | "show" | "mcp" | "hook" | "sessions" | "cleanup" | "update" | "doctor" | "setup";
   mcpAction: McpAction | undefined; // mcp only
   agent: "codex" | "claude-code" | undefined;
   spec: string | undefined; // ref spec; absent = working tree vs HEAD
@@ -44,6 +45,7 @@ const COMMAND_FLAGS: Record<string, { field: CommandFlag; commands: readonly Cli
 export function parseCliArgs(argv: string[]): CliOptions {
   const args = [...argv];
   const command =
+    args[0] === "show" ? "show" :
     args[0] === "mcp" ? "mcp" :
     args[0] === "hook" ? "hook" :
     args[0] === "sessions" ? "sessions" :
@@ -99,16 +101,17 @@ export function parseCliArgs(argv: string[]): CliOptions {
       opts.port = port;
     } else if (arg.startsWith("-")) {
       throw new Error(`unknown option: ${arg} (try --help)`);
-    } else if (opts.command !== "review") {
+    } else if (opts.command !== "review" && opts.command !== "show") {
       throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
     } else if (opts.spec === undefined) {
       opts.spec = arg;
-    } else if (opts.spec === "browse" && opts.scope === undefined) {
+    } else if (opts.command === "review" && opts.spec === "browse" && opts.scope === undefined) {
       opts.scope = arg;
     } else {
       throw new Error(`unexpected argument: ${arg} (only one ref spec, try --help)`);
     }
   }
+  if (opts.command === "show") opts.spec = `${opts.spec ?? "HEAD"}${COMMIT_SPEC_SUFFIX}`;
   if (opts.yes && opts.command === "mcp" && opts.mcpAction !== "restart") throw new Error("unexpected argument: --yes (only mcp restart accepts it)");
   return opts;
 }
