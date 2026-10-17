@@ -212,6 +212,39 @@ legacy_install_present() {
   return 1
 }
 
+# a 0.28.x install made once with a custom DIFFLE_INSTALL_DIR leaves no variable behind; its dir is
+# still recorded in the old installer's marker block and on PATH. the dir is only trusted when it
+# really holds a diffle binary, and system package dirs are never considered
+legacy_dir_from_rc() {
+  eval "set -- $RC_CANDIDATES_CMD"
+  for rc_candidate in "$@"; do
+    [ -f "$rc_candidate" ] || continue
+    block_dir="$(awk -v s="$LEGACY_MARKER_START" -v e="$LEGACY_MARKER_END" '
+      $0 == s { inside = 1; next }
+      $0 == e { inside = 0; next }
+      inside { print }' "$rc_candidate" | sed -n -e 's/^export PATH="\(.*\):\$PATH"$/\1/p' -e 's/^fish_add_path "\(.*\)"$/\1/p' | head -n1)"
+    if [ -n "$block_dir" ] && [ -f "$block_dir/$LEGACY_NAME" ]; then printf '%s' "$block_dir"; return 0; fi
+  done
+  return 1
+}
+
+legacy_dir_from_path() {
+  path_rest="$PATH:"
+  while [ -n "$path_rest" ]; do
+    path_entry="${path_rest%%:*}"; path_rest="${path_rest#*:}"
+    case "$path_entry" in ""|/usr/*|/bin|/sbin|/opt/homebrew/*|/nix/*|*/Cellar/*) continue ;; esac
+    if [ -f "$path_entry/$LEGACY_NAME" ]; then printf '%s' "$path_entry"; return 0; fi
+  done
+  return 1
+}
+
+discover_legacy_dir() {
+  [ -z "${DIFFLE_INSTALL_DIR:-}" ] || return 0
+  [ ! -f "$LEGACY_BIN_DIR/$LEGACY_NAME" ] || return 0
+  found_dir="$(legacy_dir_from_rc || legacy_dir_from_path || true)"
+  if [ -n "$found_dir" ]; then LEGACY_BIN_DIR="$found_dir"; fi
+}
+
 remove_file() {
   if [ -f "$1" ]; then
     rm -f "$1"
@@ -320,6 +353,8 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 
+discover_legacy_dir
+
 if [ "${1:-}" = "--uninstall" ] || [ -n "$UNINSTALL" ]; then
   uninstall_nittle
   exit 0
@@ -404,7 +439,8 @@ migrate_legacy_install() {
     log WAIT "dry run: would run '$NAME --version' so the existing $LEGACY_NAME install migrates"
     return 0
   fi
-  if "$BIN_DIR/$NAME" --version; then
+  # NITTLE_LEGACY_INSTALL_DIR tells the binary where the diffle install is, wherever it was put
+  if NITTLE_LEGACY_INSTALL_DIR="$LEGACY_BIN_DIR" "$BIN_DIR/$NAME" --version; then
     log OK "$LEGACY_NAME install migrated"
   else
     log WARN "'$NAME --version' failed; the $LEGACY_NAME leftovers go on the next successful $NAME run"
