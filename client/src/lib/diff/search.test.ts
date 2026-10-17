@@ -90,6 +90,18 @@ describe("findFileMatches", () => {
     expect(findFileMatches(fileOf("y".repeat(MAX_SCAN_LINE_CHARS) + "zzz"), "needle").partial).toBeNull();
   });
 
+  it("reports a cut when an occurrence straddles the scan limit", () => {
+    const straddling = findFileMatches(fileOf("x".repeat(MAX_SCAN_LINE_CHARS - 2) + "needle"), "needle");
+    expect(straddling.matches).toHaveLength(0);
+    expect(straddling.partial).toBe("cut");
+  });
+
+  it("does not report a cut for an occurrence that ends exactly at the limit", () => {
+    const fits = findFileMatches(fileOf("x".repeat(MAX_SCAN_LINE_CHARS - 6) + "needle" + "zzzz"), "needle");
+    expect(fits.matches).toHaveLength(1);
+    expect(fits.partial).toBeNull();
+  });
+
   it("groups matches by line for rendering", () => {
     const byLine = groupByLine(findFileMatches(fileOf("foo foo", "x"), "foo").matches);
     expect(byLine.get("1:1")).toEqual([{ index: 0, start: 0, end: 3 }, { index: 1, start: 4, end: 7 }]);

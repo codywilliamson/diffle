@@ -46,11 +46,24 @@ const splitsPair = (text: string, index: number): boolean => {
 };
 
 // the part of a line that is scanned: no trailing \r, and cut (never inside an emoji) when huge.
-function scanned(text: string): { line: string; rest: string } {
-  const line = text.endsWith("\r") ? text.slice(0, -1) : text;
-  if (line.length <= MAX_SCAN_LINE_CHARS) return { line, rest: "" };
-  const at = splitsPair(line, MAX_SCAN_LINE_CHARS) ? MAX_SCAN_LINE_CHARS - 1 : MAX_SCAN_LINE_CHARS;
-  return { line: line.slice(0, at), rest: line.slice(at) };
+function scanned(text: string): { full: string; line: string; at: number } {
+  const full = text.endsWith("\r") ? text.slice(0, -1) : text;
+  if (full.length <= MAX_SCAN_LINE_CHARS) return { full, line: full, at: full.length };
+  const at = splitsPair(full, MAX_SCAN_LINE_CHARS) ? MAX_SCAN_LINE_CHARS - 1 : MAX_SCAN_LINE_CHARS;
+  return { full, line: full.slice(0, at), at };
+}
+
+// does an occurrence reach past the scan cut? the tail is read with a (queryLength - 1) overlap so
+// one straddling the cut counts; one that ends inside the scanned part was already found.
+function hiddenPastCut(regex: RegExp, full: string, at: number, queryLength: number): boolean {
+  if (at >= full.length) return false;
+  const from = Math.max(0, at - (queryLength - 1));
+  const tail = full.slice(from);
+  regex.lastIndex = 0;
+  for (let m = regex.exec(tail); m; m = regex.exec(tail)) {
+    if (m.index + m[0].length > at - from) return true;
+  }
+  return false;
 }
 
 // why a result is incomplete: a cap cut matches off, or a long line hid some past the scan limit.
@@ -62,16 +75,15 @@ export interface LineScan {
   cut: boolean; // the unscanned tail of a long line holds another occurrence
 }
 
-export function rangesInLine(regex: RegExp, text: string): LineScan {
-  const { line, rest } = scanned(text);
+export function rangesInLine(regex: RegExp, text: string, queryLength = 1): LineScan {
+  const { full, line, at } = scanned(text);
   const ranges: LineRange[] = [];
   regex.lastIndex = 0;
   let m = regex.exec(line);
   for (; m && ranges.length < MAX_RANGES_PER_LINE; m = regex.exec(line)) {
     ranges.push({ start: m.index, end: m.index + m[0].length });
   }
-  regex.lastIndex = 0;
-  return { ranges, capped: m !== null, cut: rest !== "" && regex.test(rest) };
+  return { ranges, capped: m !== null, cut: hiddenPastCut(regex, full, at, queryLength) };
 }
 
 export interface FileSearch {
@@ -92,7 +104,7 @@ export function findFileMatches(file: DiffFile, query: string): FileSearch {
   let order = 0;
   for (const hunk of file.hunks) {
     for (const line of hunk.lines) {
-      const scan = rangesInLine(regex, line.content);
+      const scan = rangesInLine(regex, line.content, query.length);
       capped ||= scan.capped;
       cut ||= scan.cut;
       for (const range of scan.ranges) {
