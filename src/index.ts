@@ -84,7 +84,7 @@ export async function main(): Promise<void> {
   try {
     launch = launchReview({
       cwd, productRoot, spec: opts.spec, scope: opts.scope, reviewId: opts.reviewId,
-      policy: "handoff", port: opts.port, open: opts.open, host,
+      policy: "handoff", port: opts.port, open: opts.open, lsp: opts.lsp, host,
     });
   } catch (err) {
     fail(err instanceof Error ? err.message : `port ${opts.port} is already in use`);
