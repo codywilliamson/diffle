@@ -1,4 +1,4 @@
-// `diffle setup` — wire diffle into coding agents (plugin install or mcp config edit), or unwire it.
+// `nittle setup` — wire nittle into coding agents (plugin install or mcp config edit), or unwire it.
 
 import { PRODUCT } from "../core/product";
 import { agentTargets, isDetected, isRegistered, type AgentTarget } from "../core/agentTargets";
@@ -74,7 +74,7 @@ export async function runSetup(opts: SetupOptions, overrides: Partial<SetupDeps>
       log(`valid ids: ${deps.targets.map((target) => target.id).join(", ")}`);
       return 1;
     }
-    // install pre-checks detected agents; remove pre-checks the ones diffle is actually wired into
+    // install pre-checks detected agents; remove pre-checks the ones nittle is actually wired into
     const preferred = opts.remove ? deps.registered : detected;
     const ordered = [...deps.targets.filter(preferred), ...deps.targets.filter((target) => !preferred(target))];
     const items = ordered.map((target) => ({

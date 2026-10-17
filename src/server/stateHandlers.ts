@@ -1,4 +1,4 @@
-// /api/state — user-level state in ~/.loupe/state.json. carries the dismissed what's-new
+// /api/state — user-level state in ~/.nittle/state.json. carries the dismissed what's-new
 // version across launches, since each launch's random port gives
 // localStorage a fresh origin. these are the only handlers with no ServerContext to read.
 

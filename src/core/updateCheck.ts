@@ -1,4 +1,4 @@
-// checks the GitHub Releases channel for a newer diffle than the one running. best-effort and
+// checks the GitHub Releases channel for a newer nittle than the one running. best-effort and
 // throttled; any network failure reports "up to date" so the ui never blocks or errors offline.
 // the installed version is the build-time constant (standalone binary) or package.json (source).
 
@@ -39,11 +39,11 @@ export function latestVersion(current: string, tags: string[]): string {
 }
 
 // installed version: the build-time constant in the standalone binary, else package.json.
-export function currentVersion(loupeRoot: string): string {
+export function currentVersion(productRoot: string): string {
   const injected = injectedVersion();
   if (injected) return injected;
   try {
-    const pkg = JSON.parse(readFileSync(join(loupeRoot, "package.json"), "utf8"));
+    const pkg = JSON.parse(readFileSync(join(productRoot, "package.json"), "utf8"));
     return String(pkg.version ?? "0.0.0");
   } catch {
     return "0.0.0";
@@ -77,8 +77,8 @@ export async function fetchReleaseTags(): Promise<string[]> {
 }
 
 // current install vs the newest published release. `fetchTags` is injectable for tests.
-export async function checkForUpdate(loupeRoot: string, fetchTags: () => Promise<string[]> = fetchReleaseTags): Promise<UpdateStatus> {
-  const current = currentVersion(loupeRoot);
+export async function checkForUpdate(productRoot: string, fetchTags: () => Promise<string[]> = fetchReleaseTags): Promise<UpdateStatus> {
+  const current = currentVersion(productRoot);
   const now = Date.now();
   if (cache && now - cache.at < CACHE_MS && cache.status.current === current) return cache.status;
   const latest = latestVersion(current, await fetchTags());

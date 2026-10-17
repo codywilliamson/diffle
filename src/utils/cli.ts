@@ -1,4 +1,4 @@
-// cli argument parsing for the diffle entry point. pure — no io, fully unit-tested.
+// cli argument parsing for the nittle entry point. pure — no io, fully unit-tested.
 
 
 export { USAGE, helpFor } from "./usage";

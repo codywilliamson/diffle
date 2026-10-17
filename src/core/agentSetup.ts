@@ -1,4 +1,4 @@
-// applies (or removes) one agent's diffle integration and reports what happened per step.
+// applies (or removes) one agent's nittle integration and reports what happened per step.
 
 import { marketplaceState } from "./marketplaceState";
 import { PRODUCT } from "./product";

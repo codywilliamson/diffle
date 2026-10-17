@@ -11,7 +11,7 @@ import { registerSession, unregisterSession, type SessionHost } from "./sessions
 
 export interface ReviewLaunchInput {
   cwd: string;
-  loupeRoot: string;
+  productRoot: string;
   spec?: string;
   scope?: string;
   reviewId?: string;
@@ -44,9 +44,9 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
     target: { cwd, ref: loaded.diff.ref, ...(spec ? { spec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
     policy: input.policy ?? "handoff", ...(input.origin ? { origin: input.origin } : {}),
   });
-  const assets = resolveClientAssets(input.loupeRoot);
+  const assets = resolveClientAssets(input.productRoot);
   const sessionId = randomUUID();
-  const ctx: ServerContext = { ...loaded, cwd, assets, loupeRoot: input.loupeRoot, served: false, reviewId: review.id, host: input.host, sessionId };
+  const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
   const origin = `http://localhost:${port}`;
@@ -59,7 +59,7 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
     let stoppedOnce = false;
     // /api/session/stop calls this from a deferred block (see sessionHandlers): idempotent, and
     // it only unregisters once the server has actually stopped, so a throwing stop leaves the
-    // entry discoverable for `loupe cleanup` to retry.
+    // entry discoverable for `nittle cleanup` to retry.
     ctx.shutdown = async () => {
       if (stoppedOnce) return;
       stoppedOnce = true;

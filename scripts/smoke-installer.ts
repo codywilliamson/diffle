@@ -42,7 +42,7 @@ try {
     run(command, args, root, env);
     const binary = join(installDir, `${PRODUCT.name}${windows ? ".exe" : ""}`);
     if (!existsSync(binary)) throw new Error(`${shell} did not install ${binary}`);
-    const reported = run(binary, ["--version"], installDir, env);
+    const reported = run(binary, ["--version"], installDir, env).split("\n")[0]!.trim();
     if (reported !== `${PRODUCT.name} ${tag}`) throw new Error(`${shell} installed ${reported}, expected ${tag}`);
 
     run(command, args, root, { ...env, DIFFLE_UNINSTALL: "1" });

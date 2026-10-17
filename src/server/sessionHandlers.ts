@@ -25,7 +25,7 @@ export async function handleSessionStop(ctx: ServerContext, req: Request): Promi
     try {
       await ctx.shutdown?.();
     } catch (error) {
-      // stop failed partway — the registry entry is left in place so `diffle cleanup` can retry.
+      // stop failed partway — the registry entry is left in place so `nittle cleanup` can retry.
       console.error(`[${PRODUCT.name}] session stop failed: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }

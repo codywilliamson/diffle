@@ -6,7 +6,7 @@ import type { ChangeFlag, DiffFile, FileNoise } from "../../../types";
 
 export interface ReviewGroupKey {
   id: string; // stable key, e.g. the .csproj path or "src/core"
-  label: string; // shown in the ui, e.g. "Diffle.Core" or "src/core"
+  label: string; // shown in the ui, e.g. "Nittle.Core" or "src/core"
 }
 
 export interface LanguageAdapter {

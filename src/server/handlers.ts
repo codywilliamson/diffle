@@ -18,7 +18,7 @@ export interface ServerContext {
   diff: DiffResult; // seeded at launch, re-run on each GET /api/diff for live review
   cwd: string; // directory where the .review file lives
   assets: AssetSource; // source for the built client (index.html + assets)
-  loupeRoot: string; // loupe's own repo root, for the release-update check
+  productRoot: string; // nittle's own repo root, for the release-update check
   newRef: string | null; // ref for new-side file content; null = read working tree from disk
   diffArgs: string[]; // git args to re-run the diff on demand (refresh)
   includeUntracked: boolean; // working-tree mode also surfaces untracked files
@@ -136,7 +136,7 @@ export function handleGetCompile(ctx: ServerContext, url: URL): Response {
   return json({ prompt: compileReviewPrompt(ctx.diff, review, summary) } satisfies CompilePromptResponse);
 }
 
-// reports whether a newer diffle release is published (best-effort, never throws).
+// reports whether a newer nittle release is published (best-effort, never throws).
 export async function handleGetUpdate(ctx: ServerContext): Promise<Response> {
-  return json(await checkForUpdate(ctx.loupeRoot));
+  return json(await checkForUpdate(ctx.productRoot));
 }

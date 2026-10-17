@@ -11,9 +11,9 @@ const tag = process.env.TAG;
 if (!source || !tag?.startsWith("v")) throw new Error("usage: TAG=vX.Y.Z bun scripts/smoke-binary.ts <binary>");
 
 const version = tag.slice(1);
-const temp = mkdtempSync(join(tmpdir(), "diffle-release-smoke-"));
+const temp = mkdtempSync(join(tmpdir(), "nittle-release-smoke-"));
 const binary = join(temp, basename(source));
-const env = { ...process.env, DIFFLE_NO_UPDATE_CHECK: "1", DIFFLE_DATA_DIR: join(temp, "data") } as Record<string, string>;
+const env = { ...process.env, NITTLE_NO_UPDATE_CHECK: "1", NITTLE_DATA_DIR: join(temp, "data") } as Record<string, string>;
 
 function run(command: string, args: string[], cwd: string): string {
   const result = Bun.spawnSync([command, ...args], { cwd, env, stdout: "pipe", stderr: "pipe" });
@@ -58,13 +58,13 @@ async function checkCli(repo: string): Promise<void> {
 try {
   copyFileSync(resolve(source), binary);
   chmodSync(binary, 0o755);
-  const reported = run(binary, ["--version"], temp);
+  const reported = run(binary, ["--version"], temp).split("\n")[0]!.trim();
   if (reported !== `${PRODUCT.name} v${version}`) throw new Error(`expected ${PRODUCT.name} v${version}, got ${reported}`);
   const license = run(binary, ["--license"], temp);
   if (license !== readFileSync(join(import.meta.dir, "..", "LICENSE"), "utf8").trim()) throw new Error("binary omitted the MIT license notice");
 
   const transport = new StdioClientTransport({ command: binary, args: ["mcp", "serve"], cwd: temp, env });
-  const client = new Client({ name: "diffle-release-smoke", version: "1" });
+  const client = new Client({ name: "nittle-release-smoke", version: "1" });
   try {
     await client.connect(transport);
     const server = client.getServerVersion();

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// builds the self-contained diffle binary for THIS host: generate the embed entry, then compile.
+// builds the self-contained nittle binary for THIS host: generate the embed entry, then compile.
 
 import { join } from "node:path";
 import { PRODUCT } from "../src/core/product";

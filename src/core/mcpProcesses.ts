@@ -1,4 +1,4 @@
-// finds running `diffle mcp serve` processes by scanning the os process table. a registry
+// finds running `nittle mcp serve` processes by scanning the os process table. a registry
 // wouldn't see servers started by older releases, and those are exactly the ones an update
 // needs to replace. agents own the stdio pipe, so we can only stop a server — the agent
 // relaunches it (with the new binary) when it reconnects.

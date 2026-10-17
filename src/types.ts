@@ -45,7 +45,7 @@ export interface DiffResult {
 
 // ── review / comments ────────────────────────────────────────────────────────
 
-// legacy comment file; current Review Records live under the user's diffle data directory.
+// legacy comment file; current Review Records live under the user's nittle data directory.
 export const REVIEW_FILE = ".review";
 
 // optional severity/intent label; the compiled prompt prefixes the text with [tag]
@@ -185,7 +185,7 @@ export interface LegacyReviewRequest {
 }
 
 export interface UserState {
-  seenVersion?: string; // loupe version whose what's-new highlights the user has dismissed
+  seenVersion?: string; // nittle version whose what's-new highlights the user has dismissed
   updateCheckedAt?: string; // iso time of the last launch-time release check (throttles the notice)
   latestKnownVersion?: string; // newest release seen by that check
 }

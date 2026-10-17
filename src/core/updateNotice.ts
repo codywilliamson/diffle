@@ -32,7 +32,7 @@ function toStatus(current: string, latest: string): UpdateStatus {
   return { behind: latest !== current, current, latest };
 }
 
-// how to get the newer release: the owning package manager's command, else `diffle update`.
+// how to get the newer release: the owning package manager's command, else `nittle update`.
 export function updateHint(isInstalled = runningAsBinary(), execPath = process.execPath): string {
   if (!isInstalled) return SOURCE_HINT;
   const manager = detectPackageManager(execPath);
@@ -41,16 +41,16 @@ export function updateHint(isInstalled = runningAsBinary(), execPath = process.e
 }
 
 // live check against GitHub Releases; null when the channel is unreachable or empty.
-export async function fetchReleaseStatus(loupeRoot: string, fetchTags: FetchTags = fetchReleaseTags): Promise<UpdateStatus | null> {
+export async function fetchReleaseStatus(productRoot: string, fetchTags: FetchTags = fetchReleaseTags): Promise<UpdateStatus | null> {
   const tags = await fetchTags().catch(() => []);
   if (tags.length === 0) return null;
-  const current = currentVersion(loupeRoot);
+  const current = currentVersion(productRoot);
   return toStatus(current, latestVersion(current, tags));
 }
 
 // the launch notice text, or null. inside 24 h of the last successful check it reuses the cached
 // latest version instead of hitting GitHub. never throws — a failed check is just silent.
-export async function launchUpdateNotice(loupeRoot: string, deps: LaunchNoticeDeps = {}): Promise<string | null> {
+export async function launchUpdateNotice(productRoot: string, deps: LaunchNoticeDeps = {}): Promise<string | null> {
   const { now = Date.now, home = homedir(), fetchTags = fetchReleaseTags, isInstalled = runningAsBinary() } = deps;
   if (!isInstalled || updateCheckDisabled() || process.env.CI) return null;
   try {
@@ -58,12 +58,12 @@ export async function launchUpdateNotice(loupeRoot: string, deps: LaunchNoticeDe
     const age = now() - Date.parse(state.updateCheckedAt ?? "");
     let latest = state.latestKnownVersion;
     if (!latest || !(age >= 0 && age < THROTTLE_MS)) {
-      const fresh = await fetchReleaseStatus(loupeRoot, fetchTags);
+      const fresh = await fetchReleaseStatus(productRoot, fetchTags);
       if (!fresh) return null;
       latest = fresh.latest;
       writeUserState({ updateCheckedAt: new Date(now()).toISOString(), latestKnownVersion: latest }, home);
     }
-    const current = currentVersion(loupeRoot);
+    const current = currentVersion(productRoot);
     const status = toStatus(current, latestVersion(current, [latest]));
     return status.behind ? `v${status.latest} available — ${updateHint(isInstalled)}` : null;
   } catch {

@@ -1,4 +1,4 @@
-// renders what `diffle setup` is about to do, per agent.
+// renders what `nittle setup` is about to do, per agent.
 
 import { MCP_SERVER_NAME, type AgentTarget } from "../core/agentTargets";
 import { pluginStepArgs, renderCommand, type SetupMode } from "../core/agentSetup";

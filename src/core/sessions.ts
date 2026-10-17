@@ -1,6 +1,6 @@
-// session registry: one json file per running loupe server, under <data dir>/sessions/<session-id>.json.
+// session registry: one json file per running nittle server, under <data dir>/sessions/<session-id>.json.
 // keyed by session id (not review id) so two launches of the same review can coexist as separate
-// entries. lets `loupe sessions`/`cleanup` and the MCP process discover and stop servers they
+// entries. lets `nittle sessions`/`cleanup` and the MCP process discover and stop servers they
 // didn't launch directly.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";

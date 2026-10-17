@@ -60,7 +60,7 @@ function pipeAndWatch(child: ChildProcess, pattern: RegExp, label: string): Prom
 
 const backend = spawn("bun", [join(ROOT, "src", "index.ts"), "--no-open", ...process.argv.slice(2)], {
   cwd: process.cwd(),
-  env: { ...process.env, DIFFLE_SESSION_HOST: "cli" },
+  env: { ...process.env, NITTLE_SESSION_HOST: "cli" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 children.push(backend);
@@ -71,16 +71,16 @@ try {
 
   const vite = spawn("bun", ["x", "vite"], {
     cwd: ROOT,
-    env: { ...process.env, DIFFLE_API_TARGET: apiTarget },
+    env: { ...process.env, NITTLE_API_TARGET: apiTarget },
     stdio: ["ignore", "pipe", "pipe"],
   });
   children.push(vite);
 
   const [viteBase] = await pipeAndWatch(vite, VITE_LOCAL, "vite");
   const url = `${viteBase.replace(/\/$/, "")}/?review=${reviewId}`;
-  console.log(`\n[diffle dev] opening ${url}\n`);
+  console.log(`\n[nittle dev] opening ${url}\n`);
   openBrowser(url);
 } catch (error) {
-  console.error(`[diffle dev] ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`[nittle dev] ${error instanceof Error ? error.message : String(error)}`);
   shutdown(1);
 }

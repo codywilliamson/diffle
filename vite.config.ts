@@ -17,8 +17,8 @@ export const aliases = {
   $lib: resolve(clientDir, "src/lib"),
 };
 
-// dev proxies /api to the real bun review backend; `bun run dev` sets DIFFLE_API_TARGET.
-const apiTarget = process.env.DIFFLE_API_TARGET ?? "http://localhost:0";
+// dev proxies /api to the real bun review backend; `bun run dev` sets NITTLE_API_TARGET.
+const apiTarget = process.env.NITTLE_API_TARGET ?? "http://localhost:0";
 
 function isDevUiOrigin(req: IncomingMessage): boolean {
   const origin = req.headers.origin;

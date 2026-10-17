@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { PRODUCT } from "./product";
 import { productEnv } from "../utils/env";
 
-// ~/.diffle for new users; an existing ~/.loupe (with no ~/.diffle) is kept in place so an
+// the product data dir for new users; an existing legacy dir (with no new one) is kept in place so an
 // upgrade never strands records — never copied or deleted. `home` is injectable for tests.
 export function homeDataDir(home = homedir()): string {
   const next = join(home, PRODUCT.dataDir);
@@ -14,7 +14,7 @@ export function homeDataDir(home = homedir()): string {
   return !existsSync(next) && existsSync(legacy) ? legacy : next;
 }
 
-// DIFFLE_DATA_DIR / legacy LOUPE_DATA_DIR wins; else the resolved home data dir.
+// NITTLE_DATA_DIR / legacy DIFFLE_DATA_DIR wins; else the resolved home data dir.
 export function dataDir(): string {
   return productEnv("DATA_DIR") ?? homeDataDir();
 }

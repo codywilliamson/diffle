@@ -63,7 +63,7 @@ function untrackedDiff(path: string, cwd: string): string {
   return proc.stdout.toString();
 }
 
-// loupe excludes .review from git, so `--exclude-standard` drops it from the untracked listing.
+// nittle excludes .review from git, so `--exclude-standard` drops it from the untracked listing.
 // when the user opts into reviewing it we add it back — unless it is tracked, in which case the
 // plain diff already covers it and a synthetic entry would duplicate the file.
 function untrackedReviewFile(cwd: string): string[] {
@@ -97,8 +97,8 @@ function refExists(ref: string, cwd: string): boolean {
 }
 
 // Prefer the ref exactly as typed. If it is not available locally, accept the
-// corresponding origin ref so `loupe feature/x` works after a fetch without
-// requiring the more verbose `loupe origin/feature/x`.
+// corresponding origin ref so `nittle feature/x` works after a fetch without
+// requiring the more verbose `nittle origin/feature/x`.
 function resolveAvailableRef(ref: string, cwd: string): string | null {
   if (refExists(ref, cwd)) return ref;
   const originRef = `origin/${ref}`;
@@ -112,7 +112,7 @@ function currentBranch(cwd: string): string {
 // maps the optional cli arg into a diff plan, validating refs against the local repo.
 // throws a clear message the cli can print before exiting.
 export function resolveRef(spec: string | undefined, cwd: string): DiffPlan {
-  if (!isGitRepo(cwd)) throw new Error("not a git repository (run loupe inside one)");
+  if (!isGitRepo(cwd)) throw new Error("not a git repository (run nittle inside one)");
 
   if (!spec || spec === "HEAD") {
     const target = currentBranch(cwd);

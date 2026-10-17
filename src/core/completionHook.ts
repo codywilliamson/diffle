@@ -13,13 +13,13 @@ interface HookPayload {
   last_assistant_message?: string;
 }
 
-function childCommand(loupeRoot: string, reviewId: string): string[] {
+function childCommand(productRoot: string, reviewId: string): string[] {
   return isProductBinary(basename(process.execPath))
     ? [process.execPath, "--review-id", reviewId]
-    : [process.execPath, join(loupeRoot, "src", "index.ts"), "--review-id", reviewId];
+    : [process.execPath, join(productRoot, "src", "index.ts"), "--review-id", reviewId];
 }
 
-async function performCompletionHook(agent: ReviewOrigin["agent"], loupeRoot: string): Promise<void> {
+async function performCompletionHook(agent: ReviewOrigin["agent"], productRoot: string): Promise<void> {
   let payload: HookPayload = {};
   try { payload = JSON.parse(await Bun.stdin.text()) as HookPayload; } catch { /* use cwd fallback */ }
   const cwd = payload.cwd ?? process.cwd();
@@ -30,7 +30,7 @@ async function performCompletionHook(agent: ReviewOrigin["agent"], loupeRoot: st
   if (loaded.diff.files.length === 0) return;
   const record = createReviewRecord({ target: { cwd, ref: loaded.diff.ref, ...(loaded.meta ? { meta: loaded.meta } : {}) }, policy: "required", origin });
   if (productEnv("HOOK_NO_SPAWN") !== "1") {
-    const command = childCommand(loupeRoot, record.id);
+    const command = childCommand(productRoot, record.id);
     if (productEnv("NO_OPEN") === "1") command.push("--no-open");
     const child = Bun.spawn(command, { cwd, env: { ...process.env, [`${PRODUCT.envPrefix}SESSION_HOST`]: "hook" }, stdin: "ignore", stdout: "ignore", stderr: "ignore" });
     child.unref();
@@ -38,8 +38,8 @@ async function performCompletionHook(agent: ReviewOrigin["agent"], loupeRoot: st
   console.log(JSON.stringify({ systemMessage: `${PRODUCT.displayName} ${record.id} opened. Resume after reviewing, or explicitly continue without waiting.` }));
 }
 
-export async function runCompletionHook(agent: ReviewOrigin["agent"], loupeRoot: string): Promise<void> {
-  try { await performCompletionHook(agent, loupeRoot); }
+export async function runCompletionHook(agent: ReviewOrigin["agent"], productRoot: string): Promise<void> {
+  try { await performCompletionHook(agent, productRoot); }
   catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     console.log(JSON.stringify({ systemMessage: `${PRODUCT.displayName} was not opened: ${message}` }));

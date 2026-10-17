@@ -1,5 +1,5 @@
-// keeps loupe's own .review out of the file list it renders. git's exclude rules already hide
-// an untracked one, but a .review committed before loupe ever ran still shows up in branch,
+// keeps nittle's own .review out of the file list it renders. git's exclude rules already hide
+// an untracked one, but a .review committed before nittle ever ran still shows up in branch,
 // range, staged and browse listings — this is the one place that decides, for every mode.
 
 import { REVIEW_FILE, type DiffResult } from "../types";

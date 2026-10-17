@@ -1,4 +1,4 @@
-// `diffle update`: download the matching asset from the latest GitHub Release, verify its
+// `nittle update`: download the matching asset from the latest GitHub Release, verify its
 // sha-256 against the published checksum manifest, swap the running binary, then stop idle MCP
 // servers so agents relaunch them on the new version. refuses when a package manager owns the
 // install, or when running from a source checkout.
@@ -45,19 +45,19 @@ function replaceBinary(bytes: Buffer): void {
 }
 
 // `update --check`: report only, never download. works in a source checkout too.
-async function reportUpdate(loupeRoot: string): Promise<void> {
-  console.log(`${tag} ${updateCheckReport(await fetchReleaseStatus(loupeRoot))}`);
+async function reportUpdate(productRoot: string): Promise<void> {
+  console.log(`${tag} ${updateCheckReport(await fetchReleaseStatus(productRoot))}`);
 }
 
-export async function runUpdate(loupeRoot: string, check = false): Promise<void> {
-  if (check) return reportUpdate(loupeRoot);
+export async function runUpdate(productRoot: string, check = false): Promise<void> {
+  if (check) return reportUpdate(productRoot);
   if (!isProductBinary(basename(process.execPath))) {
     return console.log(`${tag} 'update' applies to an installed ${PRODUCT.name} binary; in a source checkout, use git pull.`);
   }
   const manager = detectPackageManager(process.execPath);
   if (manager) return console.log(`${tag} installed via ${manager} — update with: ${managerCommand(manager)}`);
 
-  const status = await checkForUpdate(loupeRoot);
+  const status = await checkForUpdate(productRoot);
   if (!status.behind) return console.log(`${tag} already on the latest release (v${status.current}).`);
 
   console.log(`${tag} updating v${status.current} → v${status.latest}…`);

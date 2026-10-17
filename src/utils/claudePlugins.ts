@@ -76,12 +76,14 @@ function enabledMatching(settings: Json | undefined, pluginName: string): string
   return Object.entries(enabled).filter(([key, on]) => on === true && pattern.test(key)).map(([key]) => key);
 }
 
-// a marketplace is legacy when it carries the old name or points at the old repo.
+// a marketplace is legacy when it carries the old name or points at the old repo. the current
+// marketplace is never legacy: until the github repo is renamed it points at the old slug too.
 function legacyMarketplaces(known: Json | undefined, settings: Json | undefined): string[] {
   const extra = asObject(settings?.extraKnownMarketplaces) ?? {};
   const names = new Set<string>();
   for (const [name, entry] of [...Object.entries(known ?? {}), ...Object.entries(extra)]) {
     const repo = str(asObject(asObject(entry)?.source)?.repo) ?? "";
+    if (name === PRODUCT.plugin.marketplace) continue;
     if (name === PRODUCT.legacyPlugin.marketplace || repo.endsWith(`/${PRODUCT.legacyName}`)) names.add(name);
   }
   return [...names];
@@ -149,7 +151,7 @@ function buildPlan(state: ClaudePluginState): RepairStep[] {
 const list = (plugins: InstalledPlugin[]) => plugins.map((p) => `${p.key} v${p.version}`).join(", ");
 
 // checks + repair plan. `productPath`/`legacyPath` are Bun.which() results, passed in so this
-// stays pure; `legacyDataDir` reports the ~/.loupe fallback (info only).
+// stays pure; `legacyDataDir` reports the legacy data dir fallback (info only).
 export function diagnoseClaudePlugins(
   state: ClaudePluginState, productPath?: string, legacyPath?: string, legacyDataDir = false,
 ): Diagnosis {
