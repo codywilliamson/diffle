@@ -1,6 +1,6 @@
 // main-thread side of regex search: hands the work to a worker and kills it when the total budget runs out.
 
-import type { SearchResponse } from "../types";
+import type { DiffFile, SearchCase, SearchResponse } from "../types";
 import type { SearchWorkerMessage, SearchWorkerRequest } from "./searchWorker";
 
 export const SEARCH_TOTAL_BUDGET_MS = 2_000;
@@ -9,6 +9,11 @@ export const SEARCH_TOTAL_BUDGET_MS = 2_000;
 const IN_COMPILED_BINARY = /~BUN|\$bunfs/.test(import.meta.dir);
 const EMBEDDED_WORKER_PATH = "./src/core/searchWorker.ts";
 const workerLocation = () => (IN_COMPILED_BINARY ? EMBEDDED_WORKER_PATH : new URL("./searchWorker.ts", import.meta.url));
+
+// the only per-file fields the worker needs; a patch can be tens of MB and must not be cloned along
+export function toWorkerRequest(files: DiffFile[], contents: Record<string, ArrayBuffer>, query: string, caseMode: SearchCase): SearchWorkerRequest {
+  return { files: files.map(({ path, oldPath, changeType, binary }) => ({ path, oldPath, changeType, binary })), contents, query, caseMode };
+}
 
 export class SearchTimeoutError extends Error {}
 export class SearchBusyError extends Error {}
