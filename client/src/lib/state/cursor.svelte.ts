@@ -125,6 +125,9 @@ export function createCursorStore(deps: CursorDeps) {
     },
 
     lines: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveLines(v, pref, from, delta, i)),
+    // move to a measured destination (rendered rows), else step `fallback` rows
+    page: (seed: string | undefined, measured: () => CursorPos | null, fallback: number) =>
+      run(seed, (v, from, i) => measured() ?? moveLines(v, pref, from, fallback, i)),
     files: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveFiles(v, pref, from, delta, i), { jump: true, reveal: "file" }),
     hunks: (seed: string | undefined, delta: number) => run(seed, (v, from, i) => moveHunks(v, pref, from, delta, i), { jump: true }),
     top: (seed: string | undefined) => run(seed, (v, from, i) => firstLine(v, pref, from.path, i), { jump: true }),
