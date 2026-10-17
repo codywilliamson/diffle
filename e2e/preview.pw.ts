@@ -6,7 +6,7 @@ test("production preview serves the svelte client with a real diff", async ({ pa
   const { server, url } = startPreview(fixture);
   try {
     await gotoApp(page, await url);
-    await expect(page.getByText("diffle", { exact: true })).toBeVisible();
+    await expect(page.getByText("nittle", { exact: true })).toBeVisible();
     await expect(page.getByText(/1 file\b/)).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Changed files" })).toBeVisible();
   } finally {
