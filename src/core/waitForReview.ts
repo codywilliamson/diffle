@@ -32,8 +32,10 @@ const outcomeOf = (reviewId: string): WaitOutcome | undefined => {
 export function waitForReview({ reviewId, presence, graceMs = TAB_CLOSE_GRACE_MS }: WaitInput): Promise<WaitOutcome> {
   return new Promise((resolve) => {
     let grace: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
     const stops: Array<() => void> = [];
     const finish = (outcome: WaitOutcome) => {
+      settled = true;
       clearTimeout(grace);
       for (const stop of stops) stop();
       resolve(outcome);
@@ -46,5 +48,6 @@ export function waitForReview({ reviewId, presence, graceMs = TAB_CLOSE_GRACE_MS
     };
     stops.push(onReviewSaved(reviewId, checkRecord), presence.onChange(checkTabs));
     checkRecord();
+    if (!settled) checkTabs(); // a tab may have come and gone before we started listening
   });
 }
