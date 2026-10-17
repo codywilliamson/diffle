@@ -142,6 +142,10 @@ test("the moved keys open their overlays and help lists the table", async ({ pag
     await expect(help).toBeVisible();
     await expect(help.getByRole("region", { name: "Move" })).toBeVisible();
     await expect(help.locator("kbd", { hasText: /^gc$/ })).toBeVisible();
+    // Esc peels one layer: the pending count first, then the dialog
+    await page.keyboard.press("5");
+    await page.keyboard.press("Escape");
+    await expect(help).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(help).toHaveCount(0);
 

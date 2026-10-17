@@ -124,6 +124,8 @@ describe("App shell", () => {
     await fireEvent.keyDown(window, { key: "j" });
     await fireEvent.keyDown(window, { key: "j" });
     await waitFor(() => expect(cursorLine()).toBe("2"));
+    expect(document.querySelector("[data-cursor]")).toHaveAttribute("aria-current", "location");
+    await waitFor(() => expect(document.querySelector("[data-cursor-announcer]")).toHaveTextContent("a.ts line 2, new side"));
     await fireEvent.keyDown(window, { key: "1" });
     await fireEvent.keyDown(window, { key: "j" });
     await waitFor(() => expect(cursorLine()).toBe("3"));
@@ -132,6 +134,31 @@ describe("App shell", () => {
     current = body([line(1, "one"), line(2, "new"), line(3, "two"), line(4, "three", "addition")]);
     await fireEvent.keyDown(window, { key: "r" });
     await waitFor(() => expect(cursorLine()).toBe("4"));
+  });
+
+  it("peels one Esc layer per press: a pending count first, then the open dialog", async () => {
+    const animate = vi.fn(() => ({ cancel: vi.fn(), onfinish: null }) as unknown as Animation);
+    Element.prototype.animate = animate;
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/api/diff") return jsonResponse(keyboardDiff, 200);
+      if (path === "/api/comments") return jsonResponse({ meta: { ref: "HEAD", createdAt: "", updatedAt: "" }, viewed: [], comments: [] }, 200);
+      if (path === "/api/state") return jsonResponse({ seenVersion: WHATS_NEW.version }, 200);
+      return jsonResponse({}, 404);
+    }));
+    render(App);
+    await screen.findByText(/2 files\b/);
+    await fireEvent.keyDown(window, { key: "?" });
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    await fireEvent.keyDown(window, { key: "5" });
+    const before = animate.mock.calls.length;
+    await fireEvent.keyDown(window, { key: "Escape" });
+    // the count absorbed the first Esc: no closing transition has started
+    expect(animate.mock.calls.length).toBe(before);
+    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    await fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(animate.mock.calls.length).toBeGreaterThan(before));
   });
 
   it("expands the review menu into a modal that keeps the draft and renders the agent update", async () => {

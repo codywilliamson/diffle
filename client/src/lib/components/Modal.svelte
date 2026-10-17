@@ -25,8 +25,8 @@
   // escape closes; tab cycles within the dialog (focus trap).
   function onKeydown(e: KeyboardEvent): void {
     if (e.key === "Escape") {
-      e.stopPropagation();
-      onClose();
+      // the keymap sees Esc first and marks it handled while it cancels a pending count or chord
+      if (!e.defaultPrevented) onClose();
       return;
     }
     if (e.key !== "Tab") return;

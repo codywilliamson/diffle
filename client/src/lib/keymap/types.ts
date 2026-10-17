@@ -31,6 +31,7 @@ export interface KeyInput {
   ctrl: boolean;
   shift: boolean;
   alt: boolean;
+  altGraph: boolean; // AltGraph modifier active (some layouts type ] and friends with it)
   meta: boolean;
   editable: boolean;
 }
