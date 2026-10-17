@@ -3,9 +3,8 @@ import { homedir, tmpdir } from "node:os";
 import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations, type MigrationStep } from "../src/core/migration";
 
 describe("runLegacyMigrations", () => {
-  it("ships with no steps yet and resolves to an empty report", async () => {
-    expect(LEGACY_MIGRATION_STEPS).toEqual([]);
-    expect(await runLegacyMigrations(LEGACY_MIGRATION_STEPS)).toEqual([]);
+  it("registers the agent plugin step", () => {
+    expect(LEGACY_MIGRATION_STEPS.map((step) => step.name)).toContain("agent-plugins");
   });
 
   it("runs steps in order and reports each summary", async () => {

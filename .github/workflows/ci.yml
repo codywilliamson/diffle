@@ -37,6 +37,7 @@ jobs:
       - run: bun x tsc --noEmit -p .
       # process-table and stdio tests take ~4s on windows runners, close to bun's 5s default.
       - run: bun test --timeout 10000
+      - run: bun run test:agent-loop
 
   client:
     runs-on: ubuntu-latest
