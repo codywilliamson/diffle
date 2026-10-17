@@ -94,6 +94,7 @@ const run = (cmd: string[], cwd?: string, env: Record<string, string> = {}) =>
   Bun.spawnSync(cmd, { cwd, env: { ...process.env, ...env } as Record<string, string> });
 // pwsh is a store alias bun cannot resolve on some windows installs, so fall back to windows powershell
 const findPowerShell = () => Bun.which("pwsh") ?? Bun.which("powershell");
+const SLOW_SHELL_MS = 60_000; // powershell cold start can take several seconds on a busy machine
 const skip = (tool: string) => { console.log(`skipping ${tool} completion check: ${tool} is not installed`); };
 
 describe("completion syntax checks", () => {
@@ -128,7 +129,7 @@ describe("completion syntax checks", () => {
     const result = run([pwsh, "-NoProfile", "-Command", parse], undefined, { COMPLETION_FILE: writeScript("powershell", "ps1") });
     expect(result.stdout.toString()).toBe("");
     expect(result.exitCode).toBe(0);
-  });
+  }, SLOW_SHELL_MS);
 });
 
 describe("completion in a live shell", () => {
@@ -160,7 +161,7 @@ describe("completion in a live shell", () => {
     expect(lines[3]).toBe("feature/late-branch");
     expect(lines[4]!.split(" ")).toEqual(expect.arrayContaining(["show", "mcp", "completion", "staged", "main", "feature/late-branch", "v9.9.9"]));
     expect(lines[5]).toBe("--yes");
-  });
+  }, SLOW_SHELL_MS);
 
   test("powershell completes subcommands, flag values and refs", () => {
     const pwsh = findPowerShell();
@@ -175,5 +176,5 @@ describe("completion in a live shell", () => {
     const result = run([pwsh, "-NoProfile", "-Command", driver], repo, { COMPLETION_FILE: script });
     const lines = result.stdout.toString().replace(/\r/g, "").trim().split("\n");
     expect(lines).toEqual(["list restart serve", "claude-code codex", "feature/late-branch", "--yes"]);
-  });
+  }, SLOW_SHELL_MS);
 });
