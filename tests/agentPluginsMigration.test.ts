@@ -111,11 +111,11 @@ describe("agent plugin migration", () => {
     expect(after).toContain("model = \"gpt\"\n\n[mcp_servers.other]\ncommand = \"other\"\n");
     expect(after).not.toContain("mcp_servers.diffle");
     expect(result.calls).toEqual([
+      "codex plugin marketplace add codywilliamson/diffle",
+      "codex plugin add nittle-review@nittle-local",
       "codex plugin remove diffle-review@diffle-local",
       "codex plugin remove loupe-review@loupe-local",
       "codex plugin marketplace remove diffle-local",
-      "codex plugin marketplace add codywilliamson/diffle",
-      "codex plugin add nittle-review@nittle-local",
     ]);
     expect(result.lines).toHaveLength(1);
     expect(result.lines[0]).toContain("Codex");
@@ -131,9 +131,17 @@ describe("agent plugin migration", () => {
     const result = migrate(home, claudeDir);
     expect(result.calls).toContain("claude plugin uninstall diffle-review@diffle-local");
     expect(result.calls).toContain("claude plugin uninstall loupe-review@loupe-local");
-    expect(result.calls.at(-1)).toBe("claude plugin install nittle-review@nittle-local --scope user --yes");
+    const install = result.calls.indexOf("claude plugin install nittle-review@nittle-local --scope user --yes");
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(install).toBeLessThan(result.calls.indexOf("claude plugin uninstall diffle-review@diffle-local"));
     expect(result.calls.every((call) => !call.includes("install nittle") || call.includes("--yes"))).toBe(true);
     expect(result.lines).toEqual([expect.stringContaining("Claude Code: removed")]);
+  });
+
+  it("keeps the retired plugin when installing nittle-review fails", () => {
+    const result = migrate(tempDir(), staleConfigDir(), (_cli, args) => (args.includes("add") || args.includes("install") ? 1 : 0));
+    expect(result.calls.some((call) => call.includes("uninstall") || call.includes("marketplace remove"))).toBe(false);
+    expect(result.lines[0]).toContain("left:");
   });
 
   it("leaves a failing claude swap for doctor and says so", () => {
@@ -152,7 +160,61 @@ describe("agent plugin migration", () => {
   });
 });
 
+describe("codex toml collisions and strings", () => {
+  const codex = (home: string, body: string) => {
+    mkdirSync(join(home, ".codex"), { recursive: true });
+    writeFileSync(join(home, ".codex", "config.toml"), body);
+    return join(home, ".codex", "config.toml");
+  };
+  const table = (name: string) => `[mcp_servers.${name}]\ncommand = "${name}"\nargs = ["mcp", "serve"]\n\n`;
+  type Servers = { mcp_servers: Record<string, { command: string }> };
+
+  it("renames the first retired table and drops the others instead of duplicating nittle", () => {
+    const home = tempDir();
+    const path = codex(home, table("diffle") + table("loupe") + table("diffle-review"));
+    migrate(home);
+    const parsed = Bun.TOML.parse(read(path)) as Servers;
+    expect(Object.keys(parsed.mcp_servers)).toEqual(["nittle"]);
+    expect(parsed.mcp_servers.nittle!.command).toBe(NITTLE);
+  });
+
+  it("keeps an existing nittle table and drops every retired one", () => {
+    const home = tempDir();
+    const path = codex(home, table("diffle") + `[mcp_servers.nittle]\ncommand = "mine"\n\n` + table("loupe"));
+    migrate(home);
+    expect((Bun.TOML.parse(read(path)) as Servers).mcp_servers).toEqual({ nittle: { command: "mine" } });
+  });
+
+  it("ignores table-like lines inside multiline strings", () => {
+    const home = tempDir();
+    const note = `notes = """\n[mcp_servers.diffle]\ncommand = "diffle"\n"""\nliteral = '''\n[mcp_servers.loupe]\n'''\n\n`;
+    const path = codex(home, note + table("diffle"));
+    migrate(home);
+    const after = read(path);
+    expect(after.startsWith(note)).toBe(true);
+    expect(Object.keys((Bun.TOML.parse(after) as Servers).mcp_servers)).toEqual(["nittle"]);
+  });
+
+  it("refuses to write an unparseable file and reports it", () => {
+    const home = tempDir();
+    const broken = `${table("diffle")}this is = = not toml\n`;
+    const path = codex(home, broken);
+    const result = migrate(home);
+    expect(read(path)).toBe(broken);
+    expect(result.lines[0]).toContain("can't be edited automatically");
+  });
+});
+
 describe("stopLegacyMcpServers", () => {
+  it("matches retired executable names exactly, not by prefix", () => {
+    const stopped: number[] = [];
+    stopLegacyMcpServers(
+      () => [{ pid: 1, path: "/h/loupe" }, { pid: 2, path: "/h/loupe-helper" }, { pid: 3, path: "C:\\x\\diffle.exe" }, { pid: 4, path: "/h/diffle-tool" }],
+      (pid) => { stopped.push(pid); return true; },
+    );
+    expect(stopped).toEqual([1, 3]);
+  });
+
   it("stops only retired-binary servers", () => {
     const stopped: number[] = [];
     const result = stopLegacyMcpServers(

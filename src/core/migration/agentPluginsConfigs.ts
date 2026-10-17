@@ -6,7 +6,7 @@ import type { AgentTarget } from "../agentTargets";
 import { rewriteMcpServers, writeTextAtomic } from "../mcpConfigFile";
 import { PRODUCT } from "../product";
 import { hasLegacyServer, rewriteLegacyServers } from "./agentPluginsJson";
-import { hasLegacyToml, rewriteLegacyToml } from "./agentPluginsToml";
+import { hasLegacyToml, isValidToml, rewriteLegacyToml } from "./agentPluginsToml";
 
 // "unreadable" = the file mentions a retired identity but can't be edited safely (comments, odd shape)
 export type ConfigState = "clean" | "legacy" | "unreadable";
@@ -43,7 +43,8 @@ function jsonState(path: string, key: string): ConfigState {
 
 function tomlState(path: string): ConfigState {
   const text = readText(path);
-  return text !== undefined && hasLegacyToml(text) ? "legacy" : "clean";
+  if (text === undefined || !hasLegacyToml(text)) return "clean";
+  return isValidToml(text) ? "legacy" : "unreadable";
 }
 
 function isCodexToml(target: AgentTarget): boolean {
@@ -71,6 +72,7 @@ export function rewriteConfig(target: AgentTarget, command: string): ConfigRewri
   const text = readText(integration.registry);
   if (text === undefined) return "unchanged";
   const next = rewriteLegacyToml(text, command);
+  if (next === undefined) return "unreadable";
   if (next === text) return "unchanged";
   writeTextAtomic(integration.registry, next);
   return "rewritten";

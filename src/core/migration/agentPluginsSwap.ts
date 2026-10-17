@@ -47,10 +47,12 @@ function codexSteps(integration: PluginIntegration): PluginSwapStep[] {
 export function planPluginSwap(target: AgentTarget): PluginSwapStep[] {
   const { integration } = target;
   if (integration.kind !== "plugin") return [];
-  return integration.cli === "claude" ? claudeSteps(integration) : codexSteps(integration);
+  const steps = integration.cli === "claude" ? claudeSteps(integration) : codexSteps(integration);
+  // install first: if it fails, the retired markers stay so the next pass (and doctor) still see the work
+  return [...steps.filter((step) => step.kind === "install"), ...steps.filter((step) => step.kind === "remove")];
 }
 
-// runs removals first, then the install; stops at the first failing step so nothing half-installs
+// runs the steps in plan order; stops at the first failing step, leaving later removals undone
 export function runPluginSwap(target: AgentTarget, steps: PluginSwapStep[], run: RunCommand): SwapOutcome {
   const outcome: SwapOutcome = { removed: [], installed: false, failed: [] };
   const { integration } = target;

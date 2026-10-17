@@ -41,8 +41,17 @@ export function agentPlanLines(findings: AgentFinding[]): string[] {
   });
 }
 
-export function repairAgents(findings: AgentFinding[]): void {
+// repairs each agent independently (one agent's missing cli never blocks another) and returns
+// what is still unfinished, re-checked from disk so a step that "succeeded" but changed nothing shows
+export function repairAgents(findings: AgentFinding[]): string[] {
   const deps = { ...defaultAgentPluginsDeps(), log: (line: string) => console.log(line) };
   deps.stopServers();
-  for (const finding of findings) deps.log(migrateFinding(finding, deps));
+  const leftovers: string[] = [];
+  for (const finding of findings) {
+    const outcome = migrateFinding(finding, deps);
+    deps.log(outcome.line);
+    leftovers.push(...outcome.left.map((item) => `${finding.target.displayName}: ${item}`));
+  }
+  const remaining = findAgentIssues().map(({ target }) => `${target.displayName}: still has a retired plugin or config`);
+  return leftovers.length > 0 ? leftovers : remaining;
 }

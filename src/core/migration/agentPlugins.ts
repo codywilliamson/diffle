@@ -39,7 +39,9 @@ export function findLegacyAgents(agentEnv: AgentEnv): AgentFinding[] {
     .filter((finding) => finding.steps.length > 0 || finding.config !== "clean");
 }
 
-export function migrateFinding({ target, steps, config }: AgentFinding, deps: AgentPluginsDeps): string {
+export interface FindingOutcome { line: string; left: string[]; }
+
+export function migrateFinding({ target, steps, config }: AgentFinding, deps: AgentPluginsDeps): FindingOutcome {
   const parts: string[] = [];
   const left: string[] = [];
   const { integration } = target;
@@ -58,7 +60,7 @@ export function migrateFinding({ target, steps, config }: AgentFinding, deps: Ag
     else if (result === "unreadable") left.push(`${configPath(target)} can't be edited automatically`);
   }
   const summary = parts.length > 0 ? parts.join(", ") : "nothing changed";
-  return `${TAG} ${target.displayName}: ${summary}${left.length > 0 ? ` — left: ${left.join("; ")} (${DOCTOR_HINT})` : ""}`;
+  return { left, line: `${TAG} ${target.displayName}: ${summary}${left.length > 0 ? ` — left: ${left.join("; ")} (${DOCTOR_HINT})` : ""}` };
 }
 
 // returns the summary lines it logged
@@ -67,7 +69,7 @@ export function migrateAgentPlugins(overrides: Partial<AgentPluginsDeps> = {}): 
   const findings = findLegacyAgents(deps.agentEnv);
   if (findings.length === 0) return [];
   deps.stopServers();
-  const lines = findings.map((finding) => migrateFinding(finding, deps));
+  const lines = findings.map((finding) => migrateFinding(finding, deps).line);
   for (const line of lines) deps.log(line);
   return lines;
 }

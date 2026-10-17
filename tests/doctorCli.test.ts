@@ -76,6 +76,8 @@ describe("nittle doctor", () => {
     expect(code).toBe(1);
     expect(logLines(log)).toHaveLength(1);
     expect(out).toContain("step failed");
+    expect(out).toContain("repairs incomplete");
+    expect(out).not.toContain("done —");
   });
 });
 
@@ -94,6 +96,18 @@ describe("nittle doctor agent configs", () => {
     expect(fixed.code).toBe(0);
     expect(JSON.parse(readFileSync(cursor, "utf8")).mcpServers).toEqual({ nittle: { command: "nittle", args: ["mcp", "serve"] }, other: { command: "o" } });
     expect((await doctor(healthyConfigDir(), [], tempDir(), env)).code).toBe(0);
+  });
+
+  it("a missing claude cli does not block repairs for the other agents, but the run exits nonzero", async () => {
+    const home = tempDir();
+    const cursor = join(home, ".cursor", "mcp.json");
+    writeFile(cursor, { mcpServers: { diffle: { command: "diffle", args: ["mcp", "serve"] } } });
+    const { code, out } = await doctor(staleConfigDir(), ["--fix", "--yes"], tempDir(), { HOME: home, USERPROFILE: home });
+    expect(JSON.parse(readFileSync(cursor, "utf8")).mcpServers).toEqual({ nittle: { command: "nittle", args: ["mcp", "serve"] } });
+    expect(code).toBe(1);
+    expect(out).toContain("repairs incomplete");
+    expect(out).toContain("`claude` is not on PATH");
+    expect(out).not.toContain("done —");
   });
 
   it("flags a config it can't edit as a failure with no automatic repair", async () => {

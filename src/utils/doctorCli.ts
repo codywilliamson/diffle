@@ -28,7 +28,7 @@ function printPlan(plan: RepairStep[], heading: string, yes = false): void {
 }
 
 // runs the plan through the `claude` cli, sequentially, stopping on the first real failure.
-function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
+function applyPlan(plan: RepairStep[], claude: string, yes: boolean): boolean {
   for (const step of plan) {
     const args = stepArgs(step, yes);
     console.log(`\n${render(step, args)}`);
@@ -42,9 +42,9 @@ function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
       continue;
     }
     console.error(`\nstep failed (exit ${result.exitCode}): ${render(step, args)}`);
-    process.exit(1);
+    return false;
   }
-  console.log(`\ndone — ${RELOAD_HINT}`);
+  return true;
 }
 
 // live release check (doctor is explicit, so no throttle); skipped when the user opted out.
@@ -95,14 +95,22 @@ export async function runDoctorCommand(opts: DoctorOptions, productRoot: string,
   }
 
   const claude = Bun.which(CLAUDE_CLI);
-  if (plan.length > 0 && !claude) {
-    printPlan(plan, `\`${CLAUDE_CLI}\` is not on PATH — nothing was run. Run these yourself:`, opts.yes);
-    process.exit(1);
-  }
-
   printAll("plan:", opts.yes);
   if (!(await confirmProceed(opts.yes))) return;
-  if (agentRepairs.length > 0) repairAgents(issues);
-  if (plan.length > 0 && claude) applyPlan(plan, claude, opts.yes);
-  else console.log(`\ndone — ${RELOAD_HINT}`);
+
+  // each agent is repaired on its own: a missing or failing cli only marks that agent incomplete
+  const incomplete: string[] = [];
+  if (agentRepairs.length > 0) incomplete.push(...repairAgents(issues));
+  if (plan.length > 0) {
+    if (!claude) {
+      printPlan(plan, `\`${CLAUDE_CLI}\` is not on PATH — run these yourself:`, opts.yes);
+      incomplete.push(`Claude Code: \`${CLAUDE_CLI}\` is not on PATH`);
+    } else if (!applyPlan(plan, claude, opts.yes)) incomplete.push("Claude Code: a repair step failed");
+  }
+
+  if (incomplete.length > 0) {
+    console.error(`\nrepairs incomplete:\n${incomplete.map((item) => `  ${item}`).join("\n")}`);
+    process.exit(1);
+  }
+  console.log(`\ndone — ${RELOAD_HINT}`);
 }

@@ -24,3 +24,6 @@ export const needsServeArgs = (command: string): boolean => commandBaseName(comm
 export function isRetiredServerName(name: string): boolean {
   return RETIRED.some((retired) => name === retired || name === `${retired}-review`);
 }
+
+// exact executable-name match (no prefix), for finding running retired servers
+export const isRetiredExecutable = (path: string): boolean => RETIRED.includes(commandBaseName(path));

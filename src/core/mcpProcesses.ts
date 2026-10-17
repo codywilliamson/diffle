@@ -5,6 +5,7 @@
 
 import { basename, resolve } from "node:path";
 import { PRODUCT } from "./product";
+import { isRetiredExecutable } from "./migration/retiredCommand";
 import { isProductBinary } from "../utils/installRoot";
 
 export interface McpProcess {
@@ -18,7 +19,7 @@ const WINDOWS_QUERY = `Get-CimInstance Win32_Process -Filter "${[PRODUCT.name, .
 
 interface CimRow { ProcessId: number; ExecutablePath: string | null; CommandLine: string | null; }
 
-const isProductPath = (path: string) => isProductBinary(basename(path).replace(/^["']|["']$/g, ""));
+const isProductPath = (path: string) => isProductBinary(basename(path).replace(/^["']|["']$/g, "")) || isRetiredExecutable(path);
 
 // `ps -Ao pid=,args=` output → mcp servers. argv[0] may contain spaces (mcpb installs), so the
 // path is everything between the pid and the trailing `mcp serve`.
@@ -73,7 +74,7 @@ export interface StopLegacyResult { found: number; stopped: number; failed: numb
 export function stopLegacyMcpServers(list = listMcpProcesses, stop = stopMcpProcess): StopLegacyResult {
   let legacy: McpProcess[] = [];
   try {
-    legacy = list().filter((proc) => PRODUCT.retiredNames.some((name) => basename(proc.path).replace(/^["']|["']$/g, "").toLowerCase().startsWith(name)));
+    legacy = list().filter((proc) => isRetiredExecutable(proc.path));
   } catch {
     return { found: 0, stopped: 0, failed: 0 };
   }
