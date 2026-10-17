@@ -1,6 +1,6 @@
-# diffle demos
+# nittle demos
 
-Product demo footage for diffle. This is an **isolated, build-only package** (its own
+Product demo footage for nittle. This is an **isolated, build-only package** (its own
 `package.json`, like `web/`) — React and Remotion are demo dependencies and never touch the
 app's runtime deps.
 

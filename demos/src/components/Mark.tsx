@@ -1,4 +1,4 @@
-// diffle "hunk" mark, frame-driven so renders stay deterministic: the context lines draw in,
+// nittle "hunk" mark, frame-driven so renders stay deterministic: the context lines draw in,
 // then the reviewed band sweeps across. geometry mirrors client/public/favicon.svg.
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { THEME } from "../theme";
