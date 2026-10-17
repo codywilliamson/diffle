@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-diffle lets you annotate a diff with inline comments while you review. Comments are the feedback you hand back to an agent — see [Agent feedback](/guides/agent-feedback/).
+nittle lets you annotate a diff with inline comments while you review. Comments are the feedback you hand back to an agent — see [Agent feedback](/guides/agent-feedback/).
 
 ## Comment on a line
 
@@ -37,7 +37,7 @@ When a comment's line or file leaves the current diff — because the code chang
 
 ## Durable Review Records
 
-Comments are saved to durable **Review Records** under the data directory. They survive restarts and re-runs, so you can close diffle, come back, and pick up your review where you left off.
+Comments are saved to durable **Review Records** under the data directory. They survive restarts and re-runs, so you can close nittle, come back, and pick up your review where you left off.
 
 ## Next steps
 

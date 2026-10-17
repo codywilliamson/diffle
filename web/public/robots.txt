@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://diffle.dev/sitemap-index.xml
+Sitemap: https://nittle.dev/sitemap-index.xml
