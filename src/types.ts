@@ -343,3 +343,99 @@ export interface LspStatusResponse {
   enabled: boolean; // false under --no-lsp
   languages: LspLanguageStatus[];
 }
+
+// ── lsp navigation ───────────────────────────────────────────────────────────
+// POST /api/lsp/{definition,hover,references}, GET /api/lsp/{symbols,file}. the client speaks
+// diff coordinates: line is 1-based, character is a 0-based js string (utf-16) offset. the server
+// converts to and from whatever encoding the language server negotiated.
+
+export type LspSide = "old" | "new";
+
+export interface LspPosition { line: number; character: number }
+export interface LspRange { start: LspPosition; end: LspPosition }
+
+export interface LspPositionRequest {
+  path: string; // repo-relative
+  side: LspSide; // only "new" is served until the detached worktree lands
+  line: number;
+  character: number;
+}
+
+export type LspDefinitionKind = "definition" | "typeDefinition";
+export interface LspDefinitionRequest extends LspPositionRequest { kind?: LspDefinitionKind }
+
+export type LspErrorCode =
+  | "server-unavailable" // 409: missing, failed or disabled; state + hint say why
+  | "old-side-unsupported" // 409: old-side navigation needs the detached worktree (#186)
+  | "invalid-request" // 400
+  | "file-not-found" // 404
+  | "forbidden" // 403: /api/lsp/file only serves paths the server returned as targets
+  | "cancelled" // 499: superseded or aborted
+  | "request-failed"; // 502: the server answered with an error
+
+export interface LspErrorResponse extends ApiError {
+  code: LspErrorCode;
+  state?: LspState;
+  hint?: string;
+  stderr?: string;
+}
+
+export interface LspLocation {
+  uri: string;
+  path: string | null; // repo-relative, null outside the repo
+  absolutePath: string;
+  inRepo: boolean;
+  inDiff: boolean; // the file is part of the current diff
+}
+
+export interface LspTarget extends LspLocation { range: LspRange }
+
+export interface LspDefinitionResponse {
+  targets: LspTarget[];
+  onDefinition: boolean; // the request sits on the definition itself; the client shows references instead
+}
+
+export interface LspHoverResponse {
+  contents: string; // markdown; empty when the server has nothing
+  range?: LspRange;
+}
+
+export interface LspReference {
+  range: LspRange;
+  contextStartLine: number; // 1-based line of contextLines[0]
+  contextLines: string[];
+}
+
+export interface LspReferenceFile extends LspLocation {
+  changed: boolean; // same as inDiff; kept explicit for the badge
+  references: LspReference[];
+}
+
+export interface LspReferencesResponse {
+  files: LspReferenceFile[]; // files in the diff first
+  total: number; // before the cap
+  truncated: boolean;
+}
+
+export interface LspSymbol {
+  name: string;
+  kind: string; // "class" | "method" | "function" ...
+  detail?: string;
+  range: LspRange;
+  selectionRange: LspRange;
+  changed: boolean; // overlaps a changed line of the diff
+  children: LspSymbol[];
+}
+
+export interface LspDocumentSymbolsResponse { path: string; symbols: LspSymbol[] }
+
+export interface LspWorkspaceSymbol extends LspLocation {
+  name: string;
+  kind: string;
+  containerName?: string;
+  range: LspRange;
+}
+
+export interface LspWorkspaceSymbolsResponse { symbols: LspWorkspaceSymbol[]; total: number; truncated: boolean }
+
+export interface LspFileResponse extends LspLocation { content: string }
