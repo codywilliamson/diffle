@@ -1,4 +1,4 @@
-// registry of coding agents diffle can wire itself into, plus install detection.
+// registry of coding agents nittle can wire itself into, plus install detection.
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -95,7 +95,7 @@ export function isDetected(
   return (!!target.binary && !!which(target.binary)) || (!!target.configDir && exists(target.configDir));
 }
 
-// whether diffle is currently wired into this agent. the quoted plugin ref matches both claude's
+// whether nittle is currently wired into this agent. the quoted plugin ref matches both claude's
 // json registry key and codex's `[plugins."…"]` toml table
 export function isRegistered({ integration }: AgentTarget): boolean {
   if (integration.kind === "mcp-config") return hasMcpEntry(integration.path, integration.key, MCP_SERVER_NAME);

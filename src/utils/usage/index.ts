@@ -1,4 +1,4 @@
-// help text for the diffle cli: the overview plus per-command help.
+// help text for the nittle cli: the overview plus per-command help.
 
 import { PRODUCT } from "../../core/product";
 import { COMMAND_HELP, renderCommandHelp, type HelpTopic } from "./commandHelp";
@@ -20,8 +20,6 @@ export const USAGE = `${PRODUCT.name} — local git diff review with inline comm
 
 Usage
 ${usageLines.join("\n")}
-
-  (the deprecated \`${PRODUCT.legacyName}\` command and \`${PRODUCT.legacyEnvPrefix}*\` env vars still work for now)
 
 Commands
 ${commandLines.join("\n")}

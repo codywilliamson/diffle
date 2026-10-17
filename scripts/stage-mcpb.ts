@@ -1,5 +1,5 @@
-// stages the self-contained diffle binary and a platform-specific MCPB manifest.
-// no arg → the host binary (dist/diffle[.exe]); a target arg (e.g. "windows-x64") → that target's
+// stages the self-contained nittle binary and a platform-specific MCPB manifest.
+// no arg → the host binary (dist/nittle[.exe]); a target arg (e.g. "windows-x64") → that target's
 // release binary (dist/release/…), so CI can build one MCPB per target. the binary embeds the
 // client, so no separate client tree or package.json is copied here.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";

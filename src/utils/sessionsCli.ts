@@ -1,4 +1,4 @@
-// `diffle sessions` and `diffle cleanup` — list and reclaim orphaned/finished review servers.
+// `nittle sessions` and `nittle cleanup` — list and reclaim orphaned/finished review servers.
 
 import { classifySessions, stopSession, unregisterSession, type SessionEntry } from "../core/sessions";
 import { readReviewRecord } from "../core/reviewRecords";

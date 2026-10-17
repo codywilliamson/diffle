@@ -11,7 +11,7 @@ export interface ReviewOperationResult {
   [key: string]: unknown;
   review: ReviewRecord;
   url?: string;
-  staleSessions?: number; // count of stale/orphaned loupe sessions found at start_review time
+  staleSessions?: number; // count of stale/orphaned nittle sessions found at start_review time
 }
 
 export interface ReviewOperations {

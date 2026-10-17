@@ -1,5 +1,5 @@
-// product env lookup: DIFFLE_<name> preferred, a legacy LOUPE_<name> value honored for one
-// minor release. writers should set the DIFFLE_<name> form; readers go through here.
+// product env lookup: NITTLE_<name> preferred, a legacy DIFFLE_<name> value honored for now.
+// writers should set the NITTLE_<name> form; readers go through here.
 
 import { PRODUCT } from "../core/product";
 

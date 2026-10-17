@@ -15,12 +15,12 @@ function found(reviewId: string): ReviewOperationResult {
   return { review };
 }
 
-export function createReviewOperations(loupeRoot: string): ReviewOperations {
+export function createReviewOperations(productRoot: string): ReviewOperations {
   const launches = new Map<string, ReviewLaunch>();
   return {
     async startReview(input) {
       const launch = launchReview({
-        cwd: resolve(input.cwd), loupeRoot, spec: input.ref, policy: input.policy ?? "required",
+        cwd: resolve(input.cwd), productRoot, spec: input.ref, policy: input.policy ?? "required",
         open: productEnv("NO_OPEN") !== "1", requireChanges: true, host: "mcp",
         ...(input.origin ? { origin: input.origin } : {}),
       });

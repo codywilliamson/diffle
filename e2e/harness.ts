@@ -27,10 +27,10 @@ function write(dir: string, rel: string, content: string): void {
 
 // a throwaway git repo whose working tree differs from HEAD, so a real diff is served.
 export function makeFixture(files: FixtureFile[]): string {
-  const dir = mkdtempSync(join(tmpdir(), "diffle-e2e-"));
+  const dir = mkdtempSync(join(tmpdir(), "nittle-e2e-"));
   git(dir, "init", "-q");
-  git(dir, "config", "user.email", "e2e@diffle.test");
-  git(dir, "config", "user.name", "diffle e2e");
+  git(dir, "config", "user.email", "e2e@nittle.test");
+  git(dir, "config", "user.name", "nittle e2e");
   const committed = files.filter((f) => f.base !== undefined);
   for (const f of committed) write(dir, f.path, f.base as string);
   write(dir, ".gitkeep", "");
@@ -41,14 +41,14 @@ export function makeFixture(files: FixtureFile[]): string {
 }
 
 // review records + state live beside the fixture (inside it they'd show up in the diff), never
-// in the real ~/.diffle.
+// in the real ~/.nittle.
 const dataDirFor = (fixture: string): string => `${fixture}-data`;
 
 // launch the real bun backend in the fixture and return the review url it prints.
 export function startPreview(fixture: string): { server: ChildProcess; url: Promise<string> } {
   const server = spawn("bun", [join(LOUPE_ROOT, "src", "index.ts"), "--no-open"], {
     cwd: fixture,
-    env: { ...process.env, LOUPE_SESSION_HOST: "cli", DIFFLE_DATA_DIR: dataDirFor(fixture) },
+    env: { ...process.env, NITTLE_SESSION_HOST: "cli", NITTLE_DATA_DIR: dataDirFor(fixture) },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const url = new Promise<string>((resolve, reject) => {

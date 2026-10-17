@@ -1,8 +1,9 @@
 import { basename, dirname, resolve } from "node:path";
 import { PRODUCT } from "../core/product";
 
-// true when `executable` is the compiled product binary (current or legacy name), so a
-// `diffle`/`diffle-mcp` or a still-installed `loupe`/`loupe-mcp` binary is both recognized.
+// true when `executable` is the compiled product binary. the legacy name is kept on purpose:
+// the transition release asset `diffle-<os>-<arch>` is the nittle binary under its old name and
+// must still be able to run `update`.
 export function isProductBinary(executable: string): boolean {
   const name = executable.toLowerCase();
   return name.startsWith(PRODUCT.name) || name.startsWith(PRODUCT.legacyName);

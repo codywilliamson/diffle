@@ -1,4 +1,4 @@
-// `diffle doctor` — report (and optionally repair) a stale legacy Claude Code plugin install.
+// `nittle doctor` — report (and optionally repair) a stale legacy Claude Code plugin install.
 // repairs go through the `claude` cli; claude's own json registry is never edited here.
 
 import { basename } from "node:path";
@@ -47,10 +47,10 @@ function applyPlan(plan: RepairStep[], claude: string, yes: boolean): void {
 }
 
 // live release check (doctor is explicit, so no throttle); skipped when the user opted out.
-async function releaseCheck(loupeRoot: string, fetchTags: () => Promise<string[]>): Promise<Check> {
+async function releaseCheck(productRoot: string, fetchTags: () => Promise<string[]>): Promise<Check> {
   const label = "release";
   if (updateCheckDisabled()) return { level: "info", label, detail: `check disabled (${PRODUCT.envPrefix}${UPDATE_CHECK_OPT_OUT})` };
-  const status = await fetchReleaseStatus(loupeRoot, fetchTags);
+  const status = await fetchReleaseStatus(productRoot, fetchTags);
   if (!status) return { level: "info", label, detail: "could not reach GitHub" };
   return status.behind
     ? { level: "warn", label, detail: `v${status.latest} available — ${updateHint()}` }
@@ -58,13 +58,13 @@ async function releaseCheck(loupeRoot: string, fetchTags: () => Promise<string[]
 }
 
 // `fetchTags` is injectable so tests never reach GitHub.
-export async function runDoctorCommand(opts: DoctorOptions, loupeRoot: string, fetchTags = fetchReleaseTags): Promise<void> {
+export async function runDoctorCommand(opts: DoctorOptions, productRoot: string, fetchTags = fetchReleaseTags): Promise<void> {
   const state = readClaudePluginState();
   const usingLegacyDataDir = basename(homeDataDir()) === PRODUCT.legacyDataDir;
   const { checks, plan, ok } = diagnoseClaudePlugins(
     state, Bun.which(PRODUCT.name) ?? undefined, Bun.which(PRODUCT.legacyName) ?? undefined, usingLegacyDataDir,
   );
-  checks.push(await releaseCheck(loupeRoot, fetchTags));
+  checks.push(await releaseCheck(productRoot, fetchTags));
 
   console.log(`${PRODUCT.name} doctor — Claude Code plugin health (${state.configDir})\n`);
   const width = Math.max(...checks.map((check) => check.label.length));

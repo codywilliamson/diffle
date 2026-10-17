@@ -10,7 +10,7 @@ export function platformTarget(platform: NodeJS.Platform = process.platform, arc
   return `${os}-${cpu}`;
 }
 
-// the per-target executable asset name, e.g. "diffle-windows-x64.exe".
+// the per-target executable asset name, e.g. "nittle-windows-x64.exe".
 export function assetName(target = platformTarget()): string {
   const ext = target.startsWith("windows") ? ".exe" : "";
   return `${PRODUCT.name}-${target}${ext}`;

@@ -23,11 +23,11 @@ export function injectedVersion(): string | null {
   return build?.version ?? null;
 }
 
-export function resolveLicenseText(loupeRoot: string): string {
-  return build?.licenseText ?? readFileSync(join(loupeRoot, "LICENSE"), "utf8");
+export function resolveLicenseText(productRoot: string): string {
+  return build?.licenseText ?? readFileSync(join(productRoot, "LICENSE"), "utf8");
 }
 
 // embedded client assets in the binary, or a directory adapter over dist/client otherwise.
-export function resolveClientAssets(loupeRoot: string): AssetSource {
-  return build?.assets ?? directoryAssets(join(loupeRoot, "dist", "client"));
+export function resolveClientAssets(productRoot: string): AssetSource {
+  return build?.assets ?? directoryAssets(join(productRoot, "dist", "client"));
 }

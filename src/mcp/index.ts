@@ -6,8 +6,8 @@ import { currentVersion } from "../core/updateCheck";
 import { installationRoot } from "../utils/installRoot";
 
 export async function runMcpServer(cwd = process.cwd()): Promise<void> {
-  const loupeRoot = installationRoot(join(import.meta.dir, "..", ".."));
-  await serveMcp(createReviewOperations(loupeRoot), configuredRoots(cwd), currentVersion(loupeRoot));
+  const productRoot = installationRoot(join(import.meta.dir, "..", ".."));
+  await serveMcp(createReviewOperations(productRoot), configuredRoots(cwd), currentVersion(productRoot));
 }
 
 if (import.meta.main) await runMcpServer();

@@ -1,7 +1,7 @@
 // read/write <data dir>/state.json — user-level state that persists across launches. the
 // what's-new modal lives here (not localStorage) because each launch picks a random port, and
 // localStorage is scoped per origin (host:port) so it never carries over. this always resolves
-// against the real home (not DIFFLE_DATA_DIR, which only relocates review records).
+// against the real home (not NITTLE_DATA_DIR, which only relocates review records).
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -15,7 +15,7 @@ function statePath(home: string): string {
   return join(homeDataDir(home), STATE_FILE);
 }
 
-// reads ~/.loupe/state.json; empty state if absent or unparseable. home is injectable for tests.
+// reads ~/.nittle/state.json; empty state if absent or unparseable. home is injectable for tests.
 export function readUserState(home = homedir()): UserState {
   const path = statePath(home);
   if (!existsSync(path)) return {};

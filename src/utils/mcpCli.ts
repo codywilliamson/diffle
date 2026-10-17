@@ -1,4 +1,4 @@
-// `diffle mcp list` and `diffle mcp restart` — find and stop running MCP servers so agents
+// `nittle mcp list` and `nittle mcp restart` — find and stop running MCP servers so agents
 // relaunch them (e.g. on the new binary after an update).
 
 import { classifySessions } from "../core/sessions";

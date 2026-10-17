@@ -1,4 +1,4 @@
-// builds an all-context DiffResult from the repo's tracked files so loupe can browse and
+// builds an all-context DiffResult from the repo's tracked files so nittle can browse and
 // comment on the whole codebase. each file becomes one hunk of context lines (oldLine ===
 // newLine), which the existing diff view, anchoring, and prompt compiler already handle.
 

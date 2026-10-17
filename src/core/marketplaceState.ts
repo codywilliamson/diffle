@@ -1,4 +1,4 @@
-// where the agent's `diffle-local` marketplace points: absent, our repo, someone else's source, or
+// where the agent's `nittle-local` marketplace points: absent, our repo, someone else's source, or
 // unknown (a file exists but can't be read or parsed). read-only; every source file may be missing.
 
 import { readFileSync } from "node:fs";
@@ -25,7 +25,7 @@ export function normalizeRepo(source: string): string {
     .replace(/\.git$/, "");
 }
 
-// exact match only — a substring check would accept owner/diffle-anything
+// exact match only — a substring check would accept owner/nittle-anything
 const classify = (source: Source): MarketplaceState =>
   source === undefined ? "absent" : source !== null && normalizeRepo(source) === repositorySlug().toLowerCase() ? "ours" : "foreign";
 

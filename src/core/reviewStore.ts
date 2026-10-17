@@ -29,7 +29,7 @@ export function writeReview(dir: string, review: ReviewFile, excludeFromGit = tr
 }
 
 // .git/info/exclude, not .gitignore: .gitignore is tracked, so editing it would show up as a
-// repo change in the very review loupe is running. the exclude file is per-clone and private.
+// repo change in the very review nittle is running. the exclude file is per-clone and private.
 function appendToGitExclude(dir: string): void {
   const relative = gitExcludePath(dir);
   if (!relative || isIgnored(REVIEW_FILE, dir)) return;
