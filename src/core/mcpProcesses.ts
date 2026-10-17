@@ -3,7 +3,8 @@
 // needs to replace. agents own the stdio pipe, so we can only stop a server — the agent
 // relaunches it (with the new binary) when it reconnects.
 
-import { basename, resolve } from "node:path";
+import { basename } from "node:path";
+import { samePath } from "../utils/pathWithin";
 import { PRODUCT } from "./product";
 import { isRetiredExecutable } from "./migration/retiredCommand";
 import { isProductBinary } from "../utils/installRoot";
@@ -44,8 +45,7 @@ export function parseWindowsCim(output: string): McpProcess[] {
 // a bare command name was resolved through PATH, so it's the installed binary.
 export function isOwnInstall(proc: McpProcess, execPath: string): boolean {
   if (!/[\\/]/.test(proc.path)) return true;
-  const fold = (path: string) => (process.platform === "win32" ? resolve(path).toLowerCase() : resolve(path));
-  return fold(proc.path) === fold(execPath);
+  return samePath(proc.path, execPath);
 }
 
 export function listMcpProcesses(): McpProcess[] {

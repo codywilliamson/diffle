@@ -13,9 +13,9 @@ describe("runLegacyMigrations", () => {
     expect(await runLegacyMigrations([])).toEqual([]);
   });
 
-  it("registers the agent plugin step last", () => {
+  it("registers the install dir step last, after the agent plugin step", () => {
     const names = LEGACY_MIGRATION_STEPS.map((step) => step.name);
-    expect(names.at(-1)).toBe("agent-plugins");
+    expect(names.slice(-3)).toEqual(["install-binary", "agent-plugins", "install-dir"]);
   });
 
   it("runs steps in order and reports each summary", async () => {

@@ -1,16 +1,32 @@
 #!/bin/sh
-# diffle installer — downloads the matching release binary, verifies its sha-256, installs it to
-# ~/.diffle/bin, and persists that directory on PATH via a marker block in your shell rc.
+# nittle installer — downloads the matching release binary, verifies its sha-256, installs it to
+# ~/.nittle/bin, and persists that directory on PATH via a marker block in your shell rc.
+# An existing diffle install is migrated: after installing, `nittle --version` runs once and the
+# binary's own startup migration moves data and plugins and removes every diffle leftover.
 # Usage: curl -fsSL https://<host>/install | sh   (uninstall: sh install.sh --uninstall)
-# Env: DIFFLE_INSTALL_DIR, DIFFLE_NO_MODIFY_PATH, DIFFLE_NO_SETUP, DIFFLE_DRY_RUN, DIFFLE_UNINSTALL, NO_COLOR,
+# Env: NITTLE_INSTALL_DIR, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_DRY_RUN, NITTLE_UNINSTALL, NO_COLOR,
 #      GITHUB_TOKEN (optional; authenticates the release lookup)
+#      each NITTLE_* falls back to its deprecated DIFFLE_* twin
 set -eu
 
-REPO="codywilliamson/diffle"
-NAME="diffle"
-BIN_DIR="${DIFFLE_INSTALL_DIR:-$HOME/.diffle/bin}"
-MARKER_START="# >>> diffle >>>"
-MARKER_END="# <<< diffle <<<"
+REPO="codywilliamson/diffle" # the github repo keeps its old slug until it is renamed
+NAME="nittle"
+LEGACY_NAME="diffle"
+
+# NITTLE_<name>, else the deprecated DIFFLE_<name>
+opt() { eval "printf '%s' \"\${NITTLE_$1:-\${DIFFLE_$1:-}}\""; }
+INSTALL_DIR_OVERRIDE="$(opt INSTALL_DIR)"
+NO_MODIFY_PATH="$(opt NO_MODIFY_PATH)"
+NO_SETUP="$(opt NO_SETUP)"
+DRY_RUN="$(opt DRY_RUN)"
+UNINSTALL="$(opt UNINSTALL)"
+
+BIN_DIR="${INSTALL_DIR_OVERRIDE:-$HOME/.nittle/bin}"
+LEGACY_BIN_DIR="${DIFFLE_INSTALL_DIR:-$HOME/.diffle/bin}"
+MARKER_START="# >>> nittle >>>"
+MARKER_END="# <<< nittle <<<"
+LEGACY_MARKER_START="# >>> diffle >>>"
+LEGACY_MARKER_END="# <<< diffle <<<"
 RULE="=================================================="
 BLANK="                                                                      "
 BG_PID=""
@@ -43,7 +59,7 @@ log() {
 
 section() { printf '%s%s%s\n%s%s%s\n' "$C_DIM" "$RULE" "$C_RESET" "$C_BOLD" "$1" "$C_RESET"; }
 
-fail() { printf '%sdiffle install: %s%s\n' "$C_RED" "$*" "$C_RESET" >&2; exit 1; }
+fail() { printf '%snittle install: %s%s\n' "$C_RED" "$*" "$C_RESET" >&2; exit 1; }
 
 for dep in awk cat cp curl date grep head install mkdir mktemp mv rm sed sleep uname; do
   command -v "$dep" >/dev/null 2>&1 || fail "required command not found: $dep"
@@ -66,7 +82,7 @@ append_block() {
   append_rc="$1"; append_body="$2"
   mkdir -p "${append_rc%/*}"
   if [ -f "$append_rc" ]; then
-    append_backup="$append_rc.diffle.bak-$(date +%Y%m%d-%H%M%S)"
+    append_backup="$append_rc.nittle.bak-$(date +%Y%m%d-%H%M%S)"
     cp "$append_rc" "$append_backup"
     log INFO "backed up $append_rc to $append_backup"
   fi
@@ -80,11 +96,11 @@ append_block() {
 # drops the marker block plus the single blank line we inserted above it, so the rest of the file
 # stays byte-identical to what it was before the install
 strip_block() {
-  strip_rc="$1"
+  strip_rc="$1"; strip_start="$2"; strip_end="$3"
   [ -f "$strip_rc" ] || return 0
-  grep -qF "$MARKER_START" "$strip_rc" || return 0
-  strip_tmp="$strip_rc.diffle.tmp.$$"
-  awk -v s="$MARKER_START" -v e="$MARKER_END" '
+  grep -qxF "$strip_start" "$strip_rc" || return 0
+  strip_tmp="$strip_rc.nittle.tmp.$$"
+  awk -v s="$strip_start" -v e="$strip_end" '
     function flush_blanks(  i) { for (i = 0; i < held; i++) print ""; held = 0 }
     BEGIN { held = 0; skip = 0 }
     skip { if ($0 == e) skip = 0; next }
@@ -94,7 +110,7 @@ strip_block() {
     END { flush_blanks() }
   ' "$strip_rc" > "$strip_tmp"
   mv -f "$strip_tmp" "$strip_rc"
-  log OK "removed the diffle PATH block from $strip_rc"
+  log OK "removed the PATH block ($strip_start) from $strip_rc"
 }
 
 manual_path_line() {
@@ -113,7 +129,7 @@ ensure_bash_profile() {
     log INFO "$bash_profile already sources .bashrc; no change"
     return 0
   fi
-  if [ -n "${DIFFLE_DRY_RUN:-}" ]; then
+  if [ -n "$DRY_RUN" ]; then
     log WAIT "dry run: would make $bash_profile source .bashrc"
     return 0
   fi
@@ -132,8 +148,8 @@ activation_hint() {
 configure_path() {
   section "PATH"
   resolve_rc
-  if [ -n "${DIFFLE_NO_MODIFY_PATH:-}" ]; then
-    log INFO "DIFFLE_NO_MODIFY_PATH is set; leaving $RC_FILE untouched"
+  if [ -n "$NO_MODIFY_PATH" ]; then
+    log INFO "NITTLE_NO_MODIFY_PATH is set; leaving $RC_FILE untouched"
     manual_path_line
     return 0
   fi
@@ -151,8 +167,8 @@ configure_path() {
   else
     path_body="export PATH=\"$BIN_DIR:\$PATH\""
   fi
-  if [ -n "${DIFFLE_DRY_RUN:-}" ]; then
-    log WAIT "dry run: would append the diffle PATH block to $RC_FILE"
+  if [ -n "$DRY_RUN" ]; then
+    log WAIT "dry run: would append the nittle PATH block to $RC_FILE"
     log INFO "  $path_body"
     ensure_bash_profile
     return 0
@@ -171,36 +187,99 @@ has_terminal() {
 # agent configs point at the binary, so unregister them while it still exists. releases before
 # `setup` existed would treat it as a git ref, so check the help text first
 offer_agent_teardown() {
-  [ -z "${DIFFLE_NO_SETUP:-}" ] || return 0
+  [ -z "$NO_SETUP" ] || return 0
   [ -x "$BIN_DIR/$NAME" ] && "$BIN_DIR/$NAME" --help 2>/dev/null | grep -q " setup" || return 0
   if has_terminal; then
     # a cancelled or failed teardown keeps the binary so `setup --remove` can still be rerun
     "$BIN_DIR/$NAME" setup --remove </dev/tty \
-      || fail "agent teardown did not finish, so $NAME is still installed; rerun, or set DIFFLE_NO_SETUP=1 to skip it"
+      || fail "agent teardown did not finish, so $NAME is still installed; rerun, or set NITTLE_NO_SETUP=1 to skip it"
   else
     log INFO "no terminal: if you ran '$NAME setup', run '$NAME setup --remove' before uninstalling"
   fi
 }
 
-uninstall_diffle() {
+# every file this installer (or the diffle one) may have written a PATH block into
+RC_CANDIDATES_CMD='"${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile" "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"'
+
+# an existing diffle install: its binary, its PATH entry, or its marker block
+legacy_install_present() {
+  [ -e "$LEGACY_BIN_DIR/$LEGACY_NAME" ] && return 0
+  case ":$PATH:" in *":$LEGACY_BIN_DIR:"*) return 0 ;; esac
+  eval "set -- $RC_CANDIDATES_CMD"
+  for rc_candidate in "$@"; do
+    if [ -f "$rc_candidate" ] && grep -qxF "$LEGACY_MARKER_START" "$rc_candidate"; then return 0; fi
+  done
+  return 1
+}
+
+# a 0.28.x install made once with a custom DIFFLE_INSTALL_DIR leaves no variable behind; its dir is
+# still recorded in the old installer's marker block and on PATH. the dir is only trusted when it
+# really holds a diffle binary, and system package dirs are never considered
+legacy_dir_from_rc() {
+  eval "set -- $RC_CANDIDATES_CMD"
+  for rc_candidate in "$@"; do
+    [ -f "$rc_candidate" ] || continue
+    block_dir="$(awk -v s="$LEGACY_MARKER_START" -v e="$LEGACY_MARKER_END" '
+      $0 == s { inside = 1; next }
+      $0 == e { inside = 0; next }
+      inside { print }' "$rc_candidate" | sed -n -e 's/^export PATH="\(.*\):\$PATH"$/\1/p' -e 's/^fish_add_path "\(.*\)"$/\1/p' | head -n1)"
+    if [ -n "$block_dir" ] && [ -f "$block_dir/$LEGACY_NAME" ]; then printf '%s' "$block_dir"; return 0; fi
+  done
+  return 1
+}
+
+legacy_dir_from_path() {
+  path_rest="$PATH:"
+  while [ -n "$path_rest" ]; do
+    path_entry="${path_rest%%:*}"; path_rest="${path_rest#*:}"
+    case "$path_entry" in ""|/usr/*|/bin|/sbin|/opt/homebrew/*|/nix/*|*/Cellar/*) continue ;; esac
+    if [ -f "$path_entry/$LEGACY_NAME" ]; then printf '%s' "$path_entry"; return 0; fi
+  done
+  return 1
+}
+
+discover_legacy_dir() {
+  [ -z "${DIFFLE_INSTALL_DIR:-}" ] || return 0
+  [ ! -f "$LEGACY_BIN_DIR/$LEGACY_NAME" ] || return 0
+  found_dir="$(legacy_dir_from_rc || legacy_dir_from_path || true)"
+  if [ -n "$found_dir" ]; then LEGACY_BIN_DIR="$found_dir"; fi
+}
+
+remove_file() {
+  if [ -f "$1" ]; then
+    rm -f "$1"
+    log OK "removed $1"
+  fi
+}
+
+# removes only a dir that is already empty
+remove_empty_dir() {
+  rmdir "$1" 2>/dev/null && log OK "removed empty $1" || true
+}
+
+uninstall_nittle() {
   section "Uninstall"
   resolve_rc
-  if [ -n "${DIFFLE_DRY_RUN:-}" ]; then
-    log WAIT "dry run: would remove the diffle PATH block and $BIN_DIR/$NAME"
+  if [ -n "$DRY_RUN" ]; then
+    log WAIT "dry run: would remove the PATH blocks, $BIN_DIR/$NAME and any $LEGACY_NAME leftovers"
     return 0
   fi
   offer_agent_teardown
-  for rc_candidate in "${ZDOTDIR:-$HOME}/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile" \
-    "$HOME/.profile" "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"; do
-    strip_block "$rc_candidate"
+  eval "set -- $RC_CANDIDATES_CMD"
+  for rc_candidate in "$@"; do
+    strip_block "$rc_candidate" "$MARKER_START" "$MARKER_END"
+    strip_block "$rc_candidate" "$LEGACY_MARKER_START" "$LEGACY_MARKER_END"
   done
-  if [ -f "$BIN_DIR/$NAME" ]; then
-    rm -f "$BIN_DIR/$NAME"
-    log OK "removed $BIN_DIR/$NAME"
-  else
-    log INFO "no binary at $BIN_DIR/$NAME"
+  remove_file "$BIN_DIR/$NAME"
+  remove_file "$LEGACY_BIN_DIR/$LEGACY_NAME"
+  rm -f "$BIN_DIR"/."$NAME".new-* "$LEGACY_BIN_DIR"/."$LEGACY_NAME".new-* 2>/dev/null || true
+  remove_empty_dir "$BIN_DIR"
+  remove_empty_dir "$LEGACY_BIN_DIR"
+  remove_empty_dir "$HOME/.nittle"
+  remove_empty_dir "$HOME/.diffle"
+  if [ -d "$HOME/.nittle" ]; then
+    log INFO "review records and settings remain — remove them with: rm -rf ~/.nittle"
   fi
-  log INFO "review records and settings remain — remove them with: rm -rf ~/.diffle"
   log OK "uninstalled $NAME"
 }
 
@@ -274,14 +353,18 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 
-if [ "${1:-}" = "--uninstall" ] || [ -n "${DIFFLE_UNINSTALL:-}" ]; then
-  uninstall_diffle
+discover_legacy_dir
+
+if [ "${1:-}" = "--uninstall" ] || [ -n "$UNINSTALL" ]; then
+  uninstall_nittle
   exit 0
 fi
 
 # --- detect -------------------------------------------------------------------------------------
 
 section "Detect"
+LEGACY_FOUND=0
+if legacy_install_present; then LEGACY_FOUND=1; log INFO "found an existing $LEGACY_NAME install"; fi
 os="$(uname -s)"; arch="$(uname -m)"
 case "$os" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail "unsupported OS: $os" ;; esac
 case "$arch" in x86_64|amd64) ARCH=x64 ;; arm64|aarch64) ARCH=arm64 ;; *) fail "unsupported architecture: $arch" ;; esac
@@ -296,7 +379,7 @@ log OK "target asset: $ASSET"
 # --- download -----------------------------------------------------------------------------------
 
 section "Download"
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/diffle-install.XXXXXX")"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/nittle-install.XXXXXX")"
 release_json="$tmp/release.json"
 spinner_wait "fetching the latest release metadata" fetch_release_json \
   "https://api.github.com/repos/$REPO/releases/latest" "$release_json" \
@@ -307,8 +390,8 @@ TAG="$(sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' "$release_json" | 
 case "$TAG" in *[!A-Za-z0-9._-]*) fail "latest GitHub release has an invalid tag" ;; esac
 
 asset_names="$(sed -n 's/^[[:space:]]*"name":[[:space:]]*"\([^"]*\)".*/\1/p' "$release_json")"
-printf '%s\n' "$asset_names" | grep -Fqx "$ASSET" || fail "latest release $TAG is missing required asset: $ASSET; no compatible diffle release is available yet"
-printf '%s\n' "$asset_names" | grep -Fqx 'checksums.txt' || fail "latest release $TAG is missing required asset: checksums.txt; no compatible diffle release is available yet"
+printf '%s\n' "$asset_names" | grep -Fqx "$ASSET" || fail "latest release $TAG is missing required asset: $ASSET; no compatible nittle release is available yet"
+printf '%s\n' "$asset_names" | grep -Fqx 'checksums.txt' || fail "latest release $TAG is missing required asset: checksums.txt; no compatible nittle release is available yet"
 log INFO "latest release is $TAG"
 
 BASE="https://github.com/$REPO/releases/download/$TAG"
@@ -332,7 +415,7 @@ log OK "sha-256 matches the published checksum"
 # --- install ------------------------------------------------------------------------------------
 
 section "Install"
-if [ -n "${DIFFLE_DRY_RUN:-}" ]; then
+if [ -n "$DRY_RUN" ]; then
   log WAIT "dry run: would install $NAME $TAG to $BIN_DIR/$NAME"
 else
   mkdir -p "$BIN_DIR"
@@ -345,13 +428,34 @@ fi
 
 configure_path
 
+# --- migrate diffle -----------------------------------------------------------------------------
+
+# the installed binary migrates data, plugins, PATH and the diffle binary on its first run; the
+# installer only triggers that run, it carries none of the logic
+migrate_legacy_install() {
+  [ "$LEGACY_FOUND" = 1 ] || return 0
+  section "Migrate $LEGACY_NAME"
+  if [ -n "$DRY_RUN" ]; then
+    log WAIT "dry run: would run '$NAME --version' so the existing $LEGACY_NAME install migrates"
+    return 0
+  fi
+  # NITTLE_LEGACY_INSTALL_DIR tells the binary where the diffle install is, wherever it was put
+  if NITTLE_LEGACY_INSTALL_DIR="$LEGACY_BIN_DIR" "$BIN_DIR/$NAME" --version; then
+    log OK "$LEGACY_NAME install migrated"
+  else
+    log WARN "'$NAME --version' failed; the $LEGACY_NAME leftovers go on the next successful $NAME run"
+  fi
+}
+
+migrate_legacy_install
+
 # --- agent setup --------------------------------------------------------------------------------
 
 # stdin is the curl pipe, so the prompt and the setup command both talk to /dev/tty; skipped when
-# there is no usable terminal, on dry runs, or when DIFFLE_NO_SETUP is set. a failed setup never
+# there is no usable terminal, on dry runs, or when NITTLE_NO_SETUP is set. a failed setup never
 # fails the install
 offer_agent_setup() {
-  if [ -n "${DIFFLE_DRY_RUN:-}" ] || [ -n "${DIFFLE_NO_SETUP:-}" ]; then return 0; fi
+  if [ -n "$DRY_RUN" ] || [ -n "$NO_SETUP" ]; then return 0; fi
   has_terminal || return 0
   section "Agent setup"
   printf 'Set up %s for your coding agents? [Y/n] ' "$NAME"

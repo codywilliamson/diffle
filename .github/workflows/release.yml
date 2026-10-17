@@ -37,8 +37,11 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    outputs:
+      transition: ${{ steps.build.outputs.transition }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAG: ${{ needs.release-please.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v7
@@ -46,8 +49,15 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      # cross-compiles all six targets to dist/release/* and writes checksums.txt
+      # cross-compiles all six targets to dist/release/* and writes checksums.txt. the first
+      # TRANSITION_ASSET_RELEASES releases after 0.28.1 (src/core/transitionAssets.ts) also get
+      # byte-identical diffle-<os>-<arch>[.exe] copies so 0.28.x `diffle update` finds an asset;
+      # the 4th release after 0.28.1 is the first without them. the window counts published
+      # releases (read-only GitHub API call with GH_TOKEN), never tags, so a failed or draft
+      # release can't use it up; if the API is unreadable the copies are published. the step
+      # reports `transition=true|false` for the jobs that depend on the diffle assets.
       - name: Build target binaries + checksum manifest
+        id: build
         run: bun scripts/build-release.ts
       # one self-contained MCPB per target (the binary already embeds the client)
       - name: Pack per-target MCPBs
@@ -55,10 +65,17 @@ jobs:
           for t in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64 windows-arm64; do
             bun scripts/stage-mcpb.ts "$t"
             bun x mcpb validate mcpb/manifest.json
-            bun x mcpb pack mcpb "dist/release/diffle-$t.mcpb"
+            bun x mcpb pack mcpb "dist/release/nittle-$t.mcpb"
           done
       - name: Smoke compiled Linux binary
-        run: bun scripts/smoke-binary.ts dist/release/diffle-linux-x64
+        run: bun scripts/smoke-binary.ts dist/release/nittle-linux-x64
+      # the transition copy (when this release has one) must run as itself under its old name
+      - name: Smoke the diffle-named transition asset
+        run: |
+          if [ -f dist/release/diffle-linux-x64 ]; then
+            bun scripts/smoke-binary.ts dist/release/diffle-linux-x64
+            cmp dist/release/nittle-linux-x64 dist/release/diffle-linux-x64
+          fi
       - name: Upload assets into the draft release
         run: gh release upload "$TAG" dist/release/* --clobber
       # publish only after every asset uploaded successfully
@@ -97,6 +114,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bun scripts/report-installer-failure.ts
+
+  # a real `diffle update` from 0.28.1 against the release that was just published. passes only while
+  # the release still carries the diffle-named transition assets (src/core/transitionAssets.ts)
+  upgrade-smoke:
+    needs: [release-please, assets]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && needs.assets.outputs.transition == 'true' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/upgrade-smoke.yml
+    with:
+      mode: live
 
   release-pr:
     needs: [release-please, assets]
