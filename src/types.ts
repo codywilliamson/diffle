@@ -300,6 +300,26 @@ export interface InterdiffResponse {
   file: DiffFile | null; // null when the file is unchanged since the round
 }
 
+export type SearchSide = "old" | "new";
+
+// smart = insensitive unless the query has an uppercase letter
+export type SearchCase = "smart" | "sensitive" | "insensitive";
+
+// one matching line from GET /api/search
+export interface SearchHit {
+  path: string; // old path for old-side hits (renames), new path for new-side hits
+  side: SearchSide;
+  line: number; // 1-based line in that side's file
+  preview: string; // the line without its line ending, cut to a window around the first match when long
+  ranges: [number, number][]; // [start, end) match spans in JS string code units, relative to `preview`
+}
+
+// GET /api/search?q=&regex=0|1&case=smart|sensitive|insensitive
+export interface SearchResponse {
+  results: SearchHit[];
+  truncated: boolean; // a cap (result count, file size, line length, time) cut the search short
+}
+
 // error envelope returned with any non-2xx status
 export interface ApiError {
   error: string;
