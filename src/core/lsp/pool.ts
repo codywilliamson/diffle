@@ -124,7 +124,7 @@ export class LspPool {
   private launch(slot: Slot, spec: ServerSpec): void {
     slot.state = "starting";
     const bridge = new LspBridge({
-      command: spec.command, args: spec.args, root: this.options.root,
+      command: spec.command, args: spec.args, root: this.options.root, cwd: this.logDirectory(),
       initializationOptions: this.entry(slot.language).initializationOptions?.(this.logDirectory()),
     });
     slot.bridge = bridge;

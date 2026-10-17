@@ -120,4 +120,15 @@ describe.skipIf(!WIN)("windows cleanup never runs a planted taskkill", () => {
     await child.exited;
     expect(existsSync(marker)).toBe(false);
   });
+
+  it("a node.cmd planted at the repo root is not picked up by a shim that calls node", async () => {
+    const repo = tempDir("repo"); const outside = tempDir("outside"); const markers = tempDir("markers");
+    const marker = join(markers, "ran");
+    writeFileSync(join(repo, "node.cmd"), `@echo off\r\necho ran> "${marker}"\r\n`);
+    writeShim(join(outside, "bin"), "", "node -e \"process.exit(0)\"");
+    const p = pool(repo, join(outside, "bin"));
+    pools.push(p);
+    await p.ensure("typescript"); // the shim exits without speaking lsp, so this ends failed; only the marker matters
+    expect(existsSync(marker)).toBe(false);
+  });
 });

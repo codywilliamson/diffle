@@ -16,7 +16,8 @@ const STDERR_DRAIN_MS = 250;
 export interface BridgeOptions {
   command: string;
   args: string[];
-  root: string;
+  root: string; // workspace root sent to the server (rootUri); never used as its cwd
+  cwd: string; // neutral working directory: a checkout must not influence how the server resolves commands
   initializationOptions?: unknown;
   env?: Record<string, string | undefined>;
 }
@@ -49,7 +50,7 @@ export class LspBridge {
 
   async start(): Promise<void> {
     const proc = Bun.spawn([this.options.command, ...this.options.args], {
-      cwd: this.options.root, stdin: "pipe", stdout: "pipe", stderr: "pipe",
+      cwd: this.options.cwd, stdin: "pipe", stdout: "pipe", stderr: "pipe",
       detached: usesProcessGroups, // own process group on posix, so we can signal server + helpers together
       env: { ...process.env, ...this.options.env },
     });

@@ -31,7 +31,7 @@ export function fakePool(root: string, options: Partial<PoolOptions> = {}): LspP
 }
 
 export function fakeBridge(root: string): LspBridge {
-  return new LspBridge({ command: process.execPath, args: [FAKE_LSP_PATH], root });
+  return new LspBridge({ command: process.execPath, args: [FAKE_LSP_PATH], root, cwd: tempDir("bridge-cwd") });
 }
 
 export async function waitFor(check: () => boolean, timeoutMs = 5000): Promise<void> {
