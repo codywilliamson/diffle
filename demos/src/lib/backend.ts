@@ -1,4 +1,4 @@
-// launches the real diffle backend against a throwaway git fixture and hands back the review
+// launches the real nittle backend against a throwaway git fixture and hands back the review
 // url it prints — the same approach as e2e/harness.ts, so captures are of the actual product,
 // never hand-authored UI. node-only (playwright under bun on windows hangs).
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
@@ -30,12 +30,12 @@ function write(dir: string, rel: string, content: string): void {
 
 export function makeFixture(files: FixtureFile[]): string {
   // nest the repo under a fixed name so the top bar reads "api", not a random temp suffix.
-  const parent = mkdtempSync(join(tmpdir(), "diffle-demo-"));
+  const parent = mkdtempSync(join(tmpdir(), "nittle-demo-"));
   const dir = join(parent, "api");
   mkdirSync(dir, { recursive: true });
   git(dir, "init", "-q");
-  git(dir, "config", "user.email", "demo@diffle.dev");
-  git(dir, "config", "user.name", "diffle demo");
+  git(dir, "config", "user.email", "demo@nittle.dev");
+  git(dir, "config", "user.name", "nittle demo");
   for (const f of files.filter((f) => f.base !== undefined)) write(dir, f.path, f.base as string);
   write(dir, ".gitkeep", "");
   git(dir, "add", ".");
@@ -47,8 +47,8 @@ export function makeFixture(files: FixtureFile[]): string {
 export function startBackend(fixture: string): { server: ChildProcess; url: Promise<string> } {
   const server = spawn("bun", [join(REPO_ROOT, "src", "index.ts"), "--no-open"], {
     cwd: fixture,
-    // keep review records + state in the throwaway parent dir, never the real ~/.diffle
-    env: { ...process.env, LOUPE_SESSION_HOST: "cli", DIFFLE_DATA_DIR: join(dirname(fixture), "data") },
+    // keep review records + state in the throwaway parent dir, never the real ~/.nittle
+    env: { ...process.env, NITTLE_DATA_DIR: join(dirname(fixture), "data") },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const url = new Promise<string>((resolve, reject) => {

@@ -1,4 +1,4 @@
-// diffle D5 dark brand tokens, mirrored for the demo chrome (captions, bookends, bars).
+// nittle D5 dark brand tokens, mirrored for the demo chrome (captions, bookends, bars).
 export const THEME = {
   bg: "#0b0e16",
   surface: "#141826",

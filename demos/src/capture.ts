@@ -1,4 +1,4 @@
-// drives the real diffle app through one review and screenshots each scene into
+// drives the real nittle app through one review and screenshots each scene into
 // public/captures/<id>.png. remotion then composites those frames — nothing here is
 // hand-authored UI. run with node (tsx), never bun (playwright+bun+windows hangs).
 import { chromium, type Page } from "playwright";
