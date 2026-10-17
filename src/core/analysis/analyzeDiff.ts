@@ -21,10 +21,12 @@ export interface AnalyzeOptions {
   round?: ReviewRound | undefined;
 }
 
-// branch and range diffs exclude the change under review from churn by counting up to the base ref
+// branch, range and commit diffs exclude the change under review from churn by counting up to the base ref.
+// for a commit that's its first parent; a root commit's `<hash>^` doesn't resolve, so churn is zero.
 export function churnBaseFor(meta: DiffMeta | undefined): string | null {
   if (meta?.mode === "branch") return meta.target;
   if (meta?.mode === "range") return meta.source;
+  if (meta?.mode === "commit" && meta.commit) return `${meta.commit.hash}^`;
   return null;
 }
 

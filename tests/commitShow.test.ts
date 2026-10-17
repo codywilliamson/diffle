@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { analyzeDiff, churnBaseFor } from "../src/core/analysis/analyzeDiff";
 import { launchReview } from "../src/core/reviewLaunch";
 import { readReviewRecord } from "../src/core/reviewRecords";
 import { loadReviewTarget } from "../src/core/reviewTarget";
@@ -96,6 +97,16 @@ describe("nittle show", () => {
     expect(paths(`${mergeHash}^!`)).toEqual(["side.txt"]);
     expect(loaded.meta?.commit?.isMerge).toBe(true);
     expect(loaded.meta?.commit?.baseShortHash).toBe(firstParent.slice(0, 7));
+  });
+
+  it("scorecard churn counts history before the commit, not after it", () => {
+    const churnOf = (spec: string) => {
+      const loaded = loadReviewTarget(repo, spec);
+      const card = analyzeDiff(loaded.diff, { cwd: repo, newRef: loaded.newRef, churnBase: churnBaseFor(loaded.meta) });
+      return card.files.find((f) => f.path === "a.txt")?.churn;
+    };
+    expect(churnOf(`${secondHash}^!`)).toBe(1); // only the root commit touched a.txt before it
+    expect(churnOf(`${rootHash}^!`)).toBe(0);
   });
 
   it("rejects an unknown commit", () => {
