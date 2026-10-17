@@ -13,7 +13,7 @@
 
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, delimiter, dirname, join } from "node:path";
 import { installDir } from "../installedBinary";
 import { stopLegacyMcpServers } from "../mcpProcesses";
 import { PRODUCT } from "../product";
@@ -51,7 +51,7 @@ function defaultDeps(overrides: Partial<InstallDirDeps>): InstallDirDeps {
 // is `dir` already reachable from a new shell: on this process's PATH, in the user PATH (windows),
 // or behind a nittle block in an rc file (unix)
 function reachable(deps: InstallDirDeps, dir: string): boolean {
-  const separator = deps.platform === "win32" ? ";" : ":";
+  const separator = deps.platform === process.platform ? delimiter : deps.platform === "win32" ? ";" : ":";
   const onPath = (deps.env.PATH ?? deps.env.Path ?? "").split(separator).some((entry) => entry !== "" && samePath(entry, dir, deps.platform));
   return onPath || (deps.platform === "win32" ? userPathHas(deps.pathStore, dir) : hasNittleBlock(deps.home, deps.env));
 }
