@@ -158,9 +158,10 @@ test("the moved keys open their overlays and help lists the table", async ({ pag
     await expect(page.getByRole("dialog", { name: /What's new/ })).toBeVisible();
     await page.keyboard.press("Escape");
 
-    // a lone c is reserved and does not open the preview
+    // c comments on the cursor line now; it no longer opens the preview
     await page.keyboard.press("c");
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Comment text" })).toBeFocused();
   } finally {
     await stop(server);
     cleanup(fixture);

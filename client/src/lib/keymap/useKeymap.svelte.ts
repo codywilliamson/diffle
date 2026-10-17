@@ -8,12 +8,11 @@ import { ROW_HEIGHT } from "$lib/diff/metrics";
 import { isEditable } from "./editable";
 import { createActions } from "./actions";
 import { EMPTY_STATE, step } from "./parser";
-import type { KeyInput, Mode } from "./types";
+import type { KeyInput } from "./types";
 
 // right after a sidebar selection the pane is still smooth-scrolling to it, so trust the
 // selection over the scroll position.
 const SMOOTH_SCROLL_MS = 600;
-const NORMAL: Mode = "normal"; // visual and search modes arrive with #176-#178
 
 export interface Keymap {
   onKeydown: (event: KeyboardEvent) => void;
@@ -22,7 +21,7 @@ export interface Keymap {
 
 export function useKeymap(): Keymap {
   const app = getAppState();
-  const { ui, prefs } = app;
+  const { ui, prefs, cursor } = app;
   const ordered = useOrderedFiles();
   let state = EMPTY_STATE;
   let lastSelectAt = -Infinity;
@@ -42,14 +41,34 @@ export function useKeymap(): Keymap {
     return Math.max(1, Math.floor((pane?.clientHeight ?? 0) / ROW_HEIGHT / 2));
   }
 
+  // the visual range shows through the same highlight a mouse drag uses. a range that stopped
+  // resolving (its file left the diff) ends the mode.
+  $effect(() => {
+    if (!cursor.visual) return;
+    const range = cursor.visualRange;
+    untrack(() => {
+      if (range) ui.selectMove(range.path, range.side, range.from, range.to);
+      else exitVisual();
+    });
+  });
+
+  function exitVisual(): void {
+    cursor.endVisual();
+    ui.clearSelect();
+  }
+
   const actions = createActions({ app, currentPath, halfPageRows });
 
   // Esc runs in the capture phase so a pending count or chord is cancelled before an editor or
   // dialog swallows the event. outside a field the Esc is consumed (it only cancels the count);
   // inside one it passes through, so the editor still closes on the same press.
   const onKeydownCapture = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape" || (state.count === "" && state.prefix === null)) return;
+    if (event.key !== "Escape") return;
+    const pending = state.count !== "" || state.prefix !== null;
+    // layer order: a pending count or chord, then the visual mode, then the dialog
+    if (!pending && !(cursor.visual && !isEditable(event.target))) return;
     state = EMPTY_STATE;
+    if (!pending) exitVisual();
     if (isEditable(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -65,7 +84,7 @@ export function useKeymap(): Keymap {
       meta: event.metaKey,
       editable: isEditable(event.target),
     };
-    const { state: next, outcome } = step(state, input, NORMAL, performance.now());
+    const { state: next, outcome } = step(state, input, cursor.visual ? "visual" : "normal", performance.now());
     state = next;
     switch (outcome.kind) {
       case "ignored":
