@@ -304,3 +304,22 @@ export interface InterdiffResponse {
 export interface ApiError {
   error: string;
 }
+
+// GET /api/lsp/status — language servers for the languages present in the diff
+export type LspLanguage = "typescript" | "csharp";
+// idle = installed but not started yet (servers start on the first navigation request)
+export type LspState = "missing" | "idle" | "starting" | "indexing" | "ready" | "failed";
+
+export interface LspLanguageStatus {
+  language: LspLanguage;
+  state: LspState;
+  restarts: number;
+  server?: string; // resolved executable
+  hint?: string; // how to install it, when missing
+  stderr?: string; // bounded stderr tail, when the server failed or crashed
+}
+
+export interface LspStatusResponse {
+  enabled: boolean; // false under --no-lsp
+  languages: LspLanguageStatus[];
+}
