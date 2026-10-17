@@ -46,6 +46,29 @@ describe("json-rpc connection", () => {
     expect(seen).toEqual([{ x: "日本" }]);
   });
 
+  test("a notification handler that rejects or throws does not raise or kill the stream", async () => {
+    const { a, b } = pair();
+    const unhandled: unknown[] = [];
+    const record = (reason: unknown) => { unhandled.push(reason); };
+    process.on("unhandledRejection", record);
+    try {
+      b.onNotification("async-bad", async () => { throw new Error("rejected"); });
+      b.onNotification("sync-bad", () => { throw new Error("thrown"); });
+      b.onRequest("ok", () => "still here");
+      a.notify("async-bad", {});
+      a.notify("sync-bad", {});
+      expect(await a.request<string>("ok")).toBe("still here");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(unhandled).toEqual([]);
+    } finally { process.off("unhandledRejection", record); }
+  });
+
+  test("a request handler that rejects answers with an error instead of an unhandled rejection", async () => {
+    const { a, b } = pair();
+    b.onRequest("bad", async () => { throw new Error("nope"); });
+    expect(((await a.request("bad").catch((e) => e)) as Error).message).toBe("nope");
+  });
+
   test("an abort sends $/cancelRequest and rejects with a named error", async () => {
     const { a, b, sentByA } = pair();
     b.onRequest("never", () => new Promise(() => {}));
