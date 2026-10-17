@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { installedBinaryPath } from "../src/core/installedBinary";
 import { migrateInstallDir, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
@@ -105,7 +105,7 @@ describe("install dir migration from the diffle binary", () => {
 
   test("a hand-added entry that already points at the nittle dir lets the cleanup proceed", () => {
     installLegacy();
-    setup({ env: { PATH: `/usr/bin:${join(home, ".nittle", "bin")}` } }).run();
+    setup({ env: { PATH: `/usr/bin${delimiter}${join(home, ".nittle", "bin")}` } }).run();
     expect(existsSync(join(home, ".diffle"))).toBe(false);
   });
 
