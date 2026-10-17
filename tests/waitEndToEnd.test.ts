@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ReviewRecord } from "../src/types";
 import { readReviewRecord } from "../src/core/reviewRecords";
-import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_TAB_CLOSED } from "../src/core/waitExit";
+import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_STOPPED, EXIT_TAB_CLOSED } from "../src/core/waitExit";
+import { listSessions, stopSession } from "../src/core/sessions";
 import { makeFixtureRepo, startWait } from "./helpers/waitRun";
 
 let repo: string;
@@ -88,6 +89,16 @@ describe("nittle --wait", () => {
     await run.outcome("feedback");
     expect(await run.exited).toBe(EXIT_RETURNED);
     expect(await run.stdout).toContain("why the bump?");
+  });
+
+  it("exits 4 with a resume hint when the session is stopped from outside", async () => {
+    const run = await startWait(repo, [], env());
+    const entry = listSessions().find((s) => s.reviewId === run.reviewId)!;
+    expect(await stopSession(entry)).toBe(true);
+    expect(await run.exited).toBe(EXIT_STOPPED);
+    expect(await run.stdout).toBe("");
+    expect(run.stderr()).toContain(`--review-id ${run.reviewId}`);
+    expect(readReviewRecord(run.reviewId)?.status).toBe("awaiting_human");
   });
 
   it("returns feedback even if the tab closes right after sending it", async () => {

@@ -31,6 +31,7 @@ export interface ServerContext {
   host: SessionHost; // which integration launched this server; read by /api/session/stop
   sessionId?: string; // this server's session registry id; set by reviewLaunch, checked by /api/session/stop
   presence?: Presence; // open browser tabs; `--wait` watches it to notice the last tab closing
+  exitCodeOnStop?: () => number; // `--wait` sets this so a remote stop exits non-zero instead of looking like approval
   shutdown?: () => void | Promise<void>; // set by reviewLaunch once the server exists; mutable by design
 }
 
