@@ -36,6 +36,11 @@ const CASES: LiveCase[] = [
   { words: ["nittle", "show", "--licen"], offers: ["--license"], why: "show accepts --license" },
   { words: ["nittle", "show", "--wa"], offers: [], why: "show rejects --wait" },
   { words: ["nittle", "hook", "stop", "--ag"], offers: ["--agent"], why: "hook stop accepts --agent" },
+  { words: ["nittle", "sessions", "--vers"], offers: ["--version"], why: "--version is accepted after any command" },
+  { words: ["nittle", "mcp", "serve", "--licen"], offers: ["--license"], why: "--license is accepted after any subcommand" },
+  // powershell replaces only the last list item, so it offers the id without the typed prefix
+  { words: ["nittle", "setup", "--agents", "claude,co"], offers: ["claude,codex", "claude,copilot"], powershell: ["codex", "copilot"], why: "a comma-separated list completes after the last comma" },
+  { words: ["nittle", "setup", "--agents", "c"], offers: ["claude", "codex", "copilot", "cursor"], why: "the first list item completes too" },
 ];
 
 const dirs: string[] = [];
@@ -96,9 +101,11 @@ describe("live completion", () => {
     // stand-ins for the completion builtins: print what would be offered, filtered by the typed prefix
     const driver = [
       `source "$1"`,
-      `compadd() { local a; if [[ $1 == -a ]]; then for a in "\${(@P)2}"; do [[ $a == \${~PREFIX}* ]] && print -r -- $a; done; return 0; fi; [[ $1 == -- ]] && shift; for a in "$@"; do [[ $a == \${~PREFIX}* ]] && print -r -- $a; done; return 0 }`,
+      `compadd() { local a; if [[ $1 == -a ]]; then for a in "\${(@P)2}"; do [[ $a == \${~PREFIX}* ]] && print -r -- "$IPREFIX$a"; done; return 0; fi; [[ $1 == -- ]] && shift; for a in "$@"; do [[ $a == \${~PREFIX}* ]] && print -r -- "$IPREFIX$a"; done; return 0 }`,
+      // compset -P '*,' moves everything through the last comma from PREFIX into IPREFIX
+      `compset() { [[ $1 == -P && $2 == '*,' && $PREFIX == *,* ]] || return 1; IPREFIX=\${PREFIX%"\${PREFIX##*,}"}; PREFIX=\${PREFIX##*,}; return 0 }`,
       `_describe() { local arr=\${@[-1]} e; for e in "\${(@P)arr}"; do e=\${e%%:*}; [[ $e == \${~PREFIX}* ]] && print -r -- $e; done; return 0 }`,
-      `try() { words=("$@"); CURRENT=$#; PREFIX=\${@[-1]}; print -r -- "$(_nittle | sort | tr '\\n' ' ')" }`,
+      `try() { words=("$@"); CURRENT=$#; IPREFIX=""; PREFIX=\${@[-1]}; print -r -- "$(_nittle | sort | tr '\\n' ' ')" }`,
       ...CASES.map((entry) => `try ${entry.words.map(shQuote).join(" ")}`),
     ].join("\n");
     const repo = repoWithBranches();
@@ -152,5 +159,25 @@ describe("live completion", () => {
     const script = write("powershell", "nittle.ps1", renderCompletion("powershell"));
     const repo = repoWithBranches();
     check(lines(run([pwsh, "-NoProfile", "-Command", driver], repo, { COMPLETION_FILE: script }).stdout), repo, "powershell");
+  }, TEST_TIMEOUT_MS);
+
+  test("powershell completes with the cursor in the middle of the line", () => {
+    const pwsh = findPowerShell();
+    if (!pwsh) return skip("powershell");
+    // [text before the cursor][text after it]: words after the cursor must not count
+    const MID_LINE: [string, string, string[]][] = [
+      ["nittle sh", " --no-open", ["show"]],
+      ["nittle mcp ", " serve", ["list", "restart", "serve"]],
+      ["nittle show --no", " main", ["--no-lsp", "--no-open"]],
+      ["nittle setup --agents claude,co", " --yes", ["codex", "copilot"]],
+      ["nittle sh", "ow", ["show"]],
+    ];
+    const driver = [
+      "Invoke-Expression (Get-Content -Raw $env:COMPLETION_FILE)",
+      "function t($before, $after) { (TabExpansion2 ($before + $after) $before.Length).CompletionMatches | ForEach-Object { $_.CompletionText } }",
+      ...MID_LINE.map(([before, after]) => `(t '${before}' '${after}') -join ' '`),
+    ].join("\n");
+    const out = lines(run([pwsh, "-NoProfile", "-Command", driver], repoWithBranches(), { COMPLETION_FILE: write("powershell", "nittle.ps1", renderCompletion("powershell")) }).stdout);
+    expect(out.map(normalize)).toEqual(MID_LINE.map(([, , offers]) => [...offers].sort()));
   }, TEST_TIMEOUT_MS);
 });

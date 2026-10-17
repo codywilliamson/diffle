@@ -10,6 +10,7 @@ export interface CompletionFlag {
   description: string;
   takesValue: boolean;
   values: readonly string[]; // enumerable values; empty = free text
+  list: boolean; // comma-separated list of those values
 }
 
 // the flags valid at one point: a command, or a command plus its subcommand ("mcp serve").
@@ -35,7 +36,7 @@ const SUBCOMMANDS: Partial<Record<HelpTopic, readonly string[]>> = { mcp: MCP_AC
 const REF_COMMANDS: readonly HelpTopic[] = ["review", "show"];
 
 const toFlag = (spec: FlagSpec): CompletionFlag => ({
-  names: [...spec.names], description: spec.description, takesValue: spec.valueName !== undefined, values: spec.values ?? [],
+  names: [...spec.names], description: spec.description, takesValue: spec.valueName !== undefined, values: spec.values ?? [], list: spec.list === true,
 });
 
 function scopeFlags(command: HelpTopic, hasSubcommands: boolean, subcommand?: string): CompletionFlag[] {

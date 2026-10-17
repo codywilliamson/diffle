@@ -8,6 +8,7 @@ import { AGENT_IDS, COMPLETION_SHELLS, type CompletionShell } from "../src/utils
 import { parseCliArgs } from "../src/utils/cli";
 import { renderCompletion } from "../src/utils/completion";
 import { completionModel } from "../src/utils/completion/model";
+import { describeEntry } from "../src/utils/completion/zsh";
 
 const dirs: string[] = [];
 const temp = (name: string) => { const dir = mkdtempSync(join(tmpdir(), name)); dirs.push(dir); return dir; };
@@ -76,9 +77,27 @@ describe("completion scripts", () => {
     expect(offered("mcp serve").has("--yes")).toBe(false);
     expect(offered("mcp restart").has("--yes")).toBe(true);
     expect([...offered("mcp")]).toEqual(["-h", "--help"]);
-    for (const flag of ["--version", "-v", "--license"]) expect(offered("show").has(flag)).toBe(true);
+    for (const key of ["review", "show", "sessions", "completion", "mcp serve", "mcp restart", "hook stop"]) {
+      for (const flag of ["--version", "-v", "--license"]) expect({ key, flag, offered: offered(key).has(flag) }).toEqual({ key, flag, offered: true });
+    }
+    expect(offered("mcp").has("--version")).toBe(false);
+    expect(parseCliArgs(["sessions", "--version"]).version).toBe(true);
+    expect(parseCliArgs(["mcp", "serve", "--license"]).license).toBe(true);
     expect(offered("review").has("--wait")).toBe(true);
     expect(offered("show").has("--wait")).toBe(false);
+  });
+
+  test("zsh escapes backslashes before colons in _describe entries", () => {
+    expect(describeEntry("a:b", "d")).toBe("'a\\:b:d'");
+    expect(describeEntry("a\\b", "d")).toBe("'a\\\\b:d'");
+    // a backslash right before a colon must not turn the colon escape into an escaped backslash
+    expect(describeEntry("a\\:b", "d")).toBe("'a\\\\\\:b:d'");
+    expect(describeEntry("it's", "o'k")).toBe("'it'\\''s:o'\\''k'");
+  });
+
+  test("--agents is a comma-separated list of agent ids", () => {
+    expect(findFlag("--agents")!.list).toBe(true);
+    expect(model.find((command) => command.name === "setup")!.scopes[0]!.flags.find((flag) => flag.names.includes("--agents"))!.list).toBe(true);
   });
 
   test("flag values come from the parser's own tables", () => {

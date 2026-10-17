@@ -9,7 +9,7 @@ function flagLine(scopeKey: string, flag: CompletionFlag): string {
   const parts = [`complete -c ${PROGRAM} -n '${FN}_scope_is "${scopeKey}"'`];
   for (const name of flag.names) parts.push(name.startsWith("--") ? `-l ${name.slice(2)}` : `-s ${name.slice(1)}`);
   if (flag.takesValue) parts.push("-x");
-  if (flag.values.length) parts.push(`-a ${fishSingleQuote(flag.values.join(" "))}`);
+  if (flag.values.length) parts.push(flag.list ? `-a '(${FN}_list_values ${flag.values.join(" ")})'` : `-a ${fishSingleQuote(flag.values.join(" "))}`);
   parts.push(`-d ${fishSingleQuote(flag.description)}`);
   return parts.join(" ");
 }
@@ -88,6 +88,14 @@ export function renderFish(): string {
     `end`,
     `function ${FN}_wants_review_word`,
     `    test (${FN}_cmd) = review; and test (count (${FN}_args)) -eq 0`,
+    `end`,
+    // comma-separated list value: keep what was typed through the last comma, complete the rest
+    `function ${FN}_list_values`,
+    `    set -l token (commandline -ct)`,
+    `    set -l head (string replace -r '[^,]*$' '' -- "$token")`,
+    `    for value in $argv`,
+    `        echo "$head$value"`,
+    `    end`,
     `end`,
     `function ${FN}_refs`,
     `    ${posixRefCommand()}`,
