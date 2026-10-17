@@ -44,6 +44,17 @@ export function removeEmptyLegacyDirs(home = homedir()): void {
   }
 }
 
+// legacy home dirs still holding data (bin aside): what `doctor` reports as a pending/deferred move.
+export function pendingLegacyDataDirs(home = homedir()): string[] {
+  return LEGACY_HOME_DATA_DIRS.map((name) => join(home, name)).filter((dir) => {
+    try {
+      return readdirSync(dir).some((name) => !SKIPPED_TOP_LEVEL.has(name));
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function createDataDirStep(opts: DataDirOptions = {}): MigrationStep {
   return {
     name: "data-dir",
@@ -57,7 +68,14 @@ export function createDataDirStep(opts: DataDirOptions = {}): MigrationStep {
       const override = opts.override ?? productEnv("DATA_DIR");
       const customRecords = Boolean(override) && resolve(override!) !== resolve(dest);
 
-      const writers = (opts.liveWriters ?? findLiveLegacyWriters)(sources);
+      let writers: string[];
+      try {
+        writers = (opts.liveWriters ?? findLiveLegacyWriters)(sources);
+      } catch (err) {
+        const why = err instanceof Error ? err.message : String(err);
+        warn(`data move to ${dest} deferred: could not check for running ${PRODUCT.legacyName} processes (${why}). fix that and relaunch, or run \`${PRODUCT.name} doctor\`.`);
+        return "deferred";
+      }
       if (writers.length > 0) {
         warn(`data move to ${dest} deferred until these exit: ${writers.join(", ")}`);
         return "deferred";

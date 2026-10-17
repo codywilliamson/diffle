@@ -4,6 +4,7 @@
 import { basename } from "node:path";
 import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
+import { pendingLegacyDataDirs } from "../core/migration/dataDir";
 import { confirmProceed } from "./confirm";
 import { diagnoseClaudePlugins, readClaudePluginState, type Check, type CheckLevel, type RepairStep } from "./claudePlugins";
 import { fetchReleaseTags } from "../core/updateCheck";
@@ -64,6 +65,10 @@ export async function runDoctorCommand(opts: DoctorOptions, productRoot: string,
   const { checks, plan, ok } = diagnoseClaudePlugins(
     state, Bun.which(PRODUCT.name) ?? undefined, Bun.which(PRODUCT.legacyName) ?? undefined, usingLegacyDataDir,
   );
+  const pending = pendingLegacyDataDirs();
+  if (pending.length > 0) {
+    checks.push({ level: "warn", label: "data migration", detail: `${pending.join(", ")} not yet moved to ~/${PRODUCT.dataDir} (deferred or failed); relaunch ${PRODUCT.name} once old ${PRODUCT.legacyName} processes have exited` });
+  }
   checks.push(await releaseCheck(productRoot, fetchTags));
 
   console.log(`${PRODUCT.name} doctor — Claude Code plugin health (${state.configDir})\n`);
