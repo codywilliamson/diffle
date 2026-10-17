@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { connect } from "node:net";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "bun";
 import type { SearchResponse } from "../src/types";
-import { SEARCH_TOTAL_BUDGET_MS } from "../src/core/searchRunner";
+import { MAX_CONCURRENT_SEARCHES, MAX_QUEUED_SEARCHES, SEARCH_TOTAL_BUDGET_MS } from "../src/core/searchRunner";
 import { createServer } from "../src/server/router";
 import { directoryAssets } from "../src/server/assetSource";
 import { parseDiff } from "../src/core/diffParser";
@@ -25,6 +26,17 @@ const write = (name: string, content: string | Buffer) => writeFileSync(join(rep
 async function search(params: Record<string, string>, headers: Record<string, string> = {}) {
   const res = await fetch(`${base}/api/search?${new URLSearchParams(params)}`, { headers });
   return { status: res.status, body: (await res.json()) as SearchResponse & { error?: string } };
+}
+
+// fetch won't let us lie about Host, so speak http by hand; resolves with the status code
+function rawGet(port: number, host: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const socket = connect(port, "127.0.0.1", () => socket.write(`GET /api/search?q=needle HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`));
+    let data = "";
+    socket.on("data", (chunk) => { data += chunk; });
+    socket.on("close", () => resolve(Number(/^HTTP\/1\.1 (\d+)/.exec(data)?.[1])));
+    socket.on("error", reject);
+  });
 }
 
 const hits = async (params: Record<string, string>) => (await search(params)).body.results;
@@ -50,6 +62,7 @@ beforeAll(() => {
   write("crlf.txt", "first\r\nneedle two\r\nthird\r\nneedle four\r\n");
   write("uni.txt", "plain\nnaïve \u{1F600}\u{1F600} needle \u{1F600}\n");
   write("added.txt", "brand new needle\n");
+  write("big.txt", "needle\n".repeat(450_000)); // over the per-file cap
   // 100k-char lines; (a|a)*$ burns about a second on each in JavaScriptCore, so four files outlast the 2s budget
   for (const n of [1, 2, 3, 4]) write(`longline${n}.txt`, `${"a".repeat(3000)}!${"a".repeat(97_000)}\n`);
   mkdirSync(join(repo, "sub"));
@@ -171,6 +184,34 @@ describe("GET /api/search", () => {
     const found = await hits({ q: "ne+dle\\s+two", regex: "1" });
     expect(found.filter((h) => h.side === "new").map((h) => h.preview)).toEqual(["needle two"]);
   });
+
+  it("skips an oversized file, flags truncated, and stays responsive", async () => {
+    const { status, body } = await search({ q: "needle" });
+    expect(status).toBe(200);
+    expect(body.truncated).toBe(true);
+    expect(body.results.some((h) => h.path === "big.txt")).toBe(false);
+    expect(body.results.some((h) => h.path === "added.txt")).toBe(true);
+  });
+
+  it("refuses a rebinding Host without an Origin, and a loopback Host on the wrong port", async () => {
+    const port = server.port!;
+    expect(await rawGet(port, `evil.example:${port}`)).toBe(403);
+    expect(await rawGet(port, `localhost:${port + 1}`)).toBe(403);
+    expect(await rawGet(port, `localhost:${port}`)).toBe(200);
+    expect(await rawGet(port, `127.0.0.1:${port}`)).toBe(200);
+  });
+
+  it("holds the admission limits under concurrent pathological searches", async () => {
+    const burst = MAX_CONCURRENT_SEARCHES + MAX_QUEUED_SEARCHES + 2;
+    const pending = Array.from({ length: burst }, () => search({ q: "needle|(a|a)*$", regex: "1" }));
+    const plain = await search({ q: "needle" });
+    expect(plain.status).toBe(200);
+    const statuses = (await Promise.all(pending)).map((r) => r.status);
+    expect(statuses.filter((s) => s === 429).length).toBe(2);
+    expect(statuses.filter((s) => s === 200 || s === 422).length).toBe(MAX_CONCURRENT_SEARCHES + MAX_QUEUED_SEARCHES);
+    const refused = (await search({ q: "needle|(a|a)*$", regex: "1" })).status;
+    expect([200, 422]).toContain(refused);
+  }, 30000);
 
   it("rejects an unknown case mode", async () => {
     expect((await search({ q: "x", case: "loud" })).status).toBe(400);
