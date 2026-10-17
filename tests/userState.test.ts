@@ -7,7 +7,7 @@ import { readUserState, writeUserState } from "../src/core/userState";
 describe("userState", () => {
   let home: string;
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), "diffle-state-"));
+    home = mkdtempSync(join(tmpdir(), "nittle-state-"));
   });
   afterEach(() => {
     rmSync(home, { recursive: true, force: true });
