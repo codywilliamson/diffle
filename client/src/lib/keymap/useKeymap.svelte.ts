@@ -43,6 +43,7 @@ export function useKeymap(): (event: KeyboardEvent) => void {
     const input: KeyInput = {
       key: event.key,
       ctrl: event.ctrlKey,
+      altGraph: event.getModifierState?.("AltGraph") ?? false,
       shift: event.shiftKey,
       alt: event.altKey,
       meta: event.metaKey,
@@ -54,7 +55,8 @@ export function useKeymap(): (event: KeyboardEvent) => void {
       case "ignored":
         return;
       case "escape":
-        ui.closeOverlay(); // a visual or search mode would exit here first
+        // nothing pending: a visual or search mode would exit here first. the open dialog closes
+        // itself on this same Esc (Modal), so its own dismiss logic (what's new) still runs.
         return;
       case "dispatch": {
         const { binding, count } = outcome;

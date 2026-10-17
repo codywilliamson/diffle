@@ -16,10 +16,14 @@ export function splitKeys(keys: string): string[] {
 
 // the keymap's name for a keyboard event, or null for keys it never binds (modified combos etc.).
 export function tokenOf(input: KeyInput): string | null {
-  if (input.alt || input.meta || (input.ctrl && input.shift)) return null;
+  // AltGr layouts report ctrl+alt for a plain printable symbol like ]; that is just the symbol.
+  const altGrSymbol = input.altGraph && input.key.length === 1 && !/[a-z]/i.test(input.key);
+  const ctrl = altGrSymbol ? false : input.ctrl;
+  const alt = altGrSymbol ? false : input.alt;
+  if (alt || input.meta || (ctrl && input.shift)) return null;
   if (input.key === "Escape") return ESC;
   if (input.key.length !== 1) return null;
-  return input.ctrl ? `Ctrl+${input.key.toLowerCase()}` : input.key;
+  return ctrl ? `Ctrl+${input.key.toLowerCase()}` : input.key;
 }
 
 const inMode = (binding: Binding, mode: Mode): boolean => binding.mode === mode || binding.mode === "any";
@@ -59,7 +63,8 @@ export function step(
   const token = tokenOf(input);
   // editable fields keep every key except Esc
   if (input.editable && token !== ESC) return result(previous, { kind: "ignored" });
-  const state = isPending(previous) && now - previous.at > CHORD_TIMEOUT_MS ? EMPTY_STATE : previous;
+  // only a half-typed chord times out; a count waits until a key or Esc ends it
+  const state = previous.prefix !== null && now - previous.at > CHORD_TIMEOUT_MS ? { ...previous, prefix: null } : previous;
   if (token === null) return result(state, { kind: "ignored" });
 
   if (token === ESC) {
