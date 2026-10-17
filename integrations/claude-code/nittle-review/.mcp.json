@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "diffle": {
-      "command": "diffle",
+    "nittle": {
+      "command": "nittle",
       "args": ["mcp", "serve"]
     }
   }

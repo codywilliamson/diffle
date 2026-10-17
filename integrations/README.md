@@ -1,11 +1,11 @@
-# Diffle integrations
+# Nittle integrations
 
 These adapters launch the local stdio MCP server and provide review-session
-context. Review Records and the browser remain Diffle's source of truth.
+context. Review Records and the browser remain Nittle's source of truth.
 
 Codex and Claude Code each ship two packages:
 
-- `diffle-review` — the explicit skill plus local MCP configuration.
+- `nittle-review` — the explicit skill plus local MCP configuration.
 
 Install the explicit package by default. Add the hook package only when automatic
 completion review is desired; a user interrupt bypasses the hook, and an existing
@@ -13,16 +13,16 @@ active Review Record prevents duplicate launches.
 
 ## Local installation
 
-`diffle setup` installs these for you (and wires the MCP server into other agents); the commands below are the manual equivalent.
+`nittle setup` installs these for you (and wires the MCP server into other agents); the commands below are the manual equivalent.
 
 Register the marketplace, then install the explicit review plugin:
 
 ```text
 codex plugin marketplace add codywilliamson/diffle
-codex plugin add diffle-review@diffle-local
+codex plugin add nittle-review@nittle-local
 
 claude plugin marketplace add codywilliamson/diffle
-claude plugin install diffle-review@diffle-local --scope user
+claude plugin install nittle-review@nittle-local --scope user
 ```
 
 
