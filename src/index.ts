@@ -18,7 +18,7 @@ import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugi
 import { classifySessions } from "./core/sessions";
 import { readReviewRecord } from "./core/reviewRecords";
 import { PRODUCT } from "./core/product";
-import { LEGACY_MIGRATION_STEPS, runLegacyMigrations } from "./core/migration";
+import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations } from "./core/migration";
 import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
 
@@ -50,7 +50,8 @@ export async function main(): Promise<void> {
   } catch (err) {
     fail(err instanceof Error ? err.message : String(err));
   }
-  for (const result of await runLegacyMigrations(LEGACY_MIGRATION_STEPS)) {
+  const steps = shouldRunLegacyMigrations() ? LEGACY_MIGRATION_STEPS : [];
+  for (const result of await runLegacyMigrations(steps)) {
     if (!result.ok) console.error(`migration ${result.name} failed: ${result.summary}`);
   }
   if (opts.help) return console.log(helpFor(opts.command, opts.spec));
