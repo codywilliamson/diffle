@@ -20,7 +20,7 @@ function migrate(home: string, claudeDir = join(home, ".claude"), run = (_cli: s
   const lines = migrateAgentPlugins({
     agentEnv: { home, platform: "linux", env: { CLAUDE_CONFIG_DIR: claudeDir }, command: NITTLE },
     run: (cli, args) => { calls.push(`${cli} ${args.join(" ")}`); return run(cli, args); },
-    which: (bin) => `/usr/bin/${bin}`, log: () => {}, stopServers: () => { stopped++; },
+    which: (bin) => `/usr/bin/${bin}`, log: () => {}, stopServers: () => { stopped++; }, binaryExists: () => true,
   });
   return { lines, calls, stopped, home, claudeDir };
 }
@@ -34,6 +34,19 @@ function seedMcpConfigs(home: string): void {
   writeFile(join(home, ".config", "opencode", "opencode.json"), { mcp: { diffle: { type: "local", command: ["diffle", ...serve], enabled: true } } });
   writeFile(join(home, ".config", "zed", "settings.json"), { context_servers: { custom: { source: "custom", command: "keep" }, diffle: { source: "custom", command: "diffle", args: serve } } });
 }
+
+describe("agent configs never point at a missing binary", () => {
+  it("leaves a retired config alone and says so when the nittle binary is not installed yet", () => {
+    const home = tempDir();
+    writeFile(join(home, ".cursor", "mcp.json"), { mcpServers: { diffle: { command: "/h/.diffle/bin/diffle", args: serve } } });
+    const lines = migrateAgentPlugins({
+      agentEnv: { home, platform: "linux", env: {}, command: NITTLE },
+      run: () => 0, which: () => null, log: () => {}, stopServers: () => {}, binaryExists: () => false,
+    });
+    expect(lines.join("\n")).toContain("is not installed yet");
+    expect(readJson(join(home, ".cursor", "mcp.json")).mcpServers.diffle.command).toBe("/h/.diffle/bin/diffle");
+  });
+});
 
 describe("agent plugin migration", () => {
   it("is a no-op without touching anything when no legacy plugin or config exists", () => {

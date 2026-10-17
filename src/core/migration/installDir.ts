@@ -15,6 +15,7 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, join } from "node:path";
 import { installDir } from "../installedBinary";
+import { detectPackageManager } from "../updateTarget";
 import { stopLegacyMcpServers } from "../mcpProcesses";
 import { PRODUCT } from "../product";
 import { isLegacyProductBinary, isProductBinary } from "../../utils/installRoot";
@@ -53,7 +54,7 @@ function defaultDeps(overrides: Partial<InstallDirDeps>): InstallDirDeps {
 function reachable(deps: InstallDirDeps, dir: string): boolean {
   const separator = deps.platform === "win32" ? ";" : delimiter; // non-win32 only differs from the host in tests
   const onPath = (deps.env.PATH ?? deps.env.Path ?? "").split(separator).some((entry) => entry !== "" && samePath(entry, dir, deps.platform));
-  return onPath || (deps.platform === "win32" ? userPathHas(deps.pathStore, dir) : hasNittleBlock(deps.home, deps.env));
+  return onPath || (deps.platform === "win32" ? userPathHas(deps.pathStore, dir) : hasNittleBlock(deps.home, deps.env, dir));
 }
 
 // swaps the managed diffle PATH entry for the nittle one. true when the nittle dir is reachable afterwards.
@@ -74,33 +75,66 @@ function swapPath(deps: InstallDirDeps, legacyDir: string, newDir: string): bool
   return false;
 }
 
-export function migrateInstallDir(overrides: Partial<InstallDirDeps> = {}): string {
-  const deps = defaultDeps(overrides);
+
+interface Plan {
+  legacyDir: string;
+  binaryName: string;
+  hasBinary: boolean;
+  fromLegacyDir: boolean; // the running binary is the diffle install being retired
+  newDir: string;
+  target: string; // the nittle binary the install is moving to (or already is)
+}
+
+// what to do for this run, or null when there is no diffle install to move. an installed binary
+// literally named diffle (not a package-manager copy) is the install itself, wherever it lives, so a
+// 0.28.x install made once with DIFFLE_INSTALL_DIR=/custom is found without the variable.
+function plan(deps: InstallDirDeps): Plan | null {
   const { platform, home, env, execPath } = deps;
-  const legacyDir = env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? join(home, PRODUCT.legacyDataDir, "bin");
-  if (!existsSync(legacyDir)) return "";
-
   const runningName = basename(execPath);
-  const fromLegacyDir = isLegacyProductBinary(runningName) && samePath(dirname(execPath), legacyDir, platform);
-  if (!fromLegacyDir && !(isProductBinary(runningName) && !isLegacyProductBinary(runningName))) return "";
-
-  const log = (line: string) => deps.log(`${TAG} ${line}`);
-  const lines: string[] = [];
-  const say = (line: string) => { log(line); lines.push(line); };
-  const binaryName = exeName(PRODUCT.legacyName, platform);
-  const hasBinary = existsSync(join(legacyDir, binaryName));
-  if (hasBinary) deps.stopServers();
+  const fromLegacyDir = runningName.replace(/\.exe$/i, "").toLowerCase() === PRODUCT.legacyName && !detectPackageManager(execPath);
+  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? join(home, PRODUCT.legacyDataDir, "bin");
+  if (!existsSync(legacyDir)) return null;
+  if (!fromLegacyDir && !(isProductBinary(runningName) && !isLegacyProductBinary(runningName))) return null;
 
   // the transition asset installs itself; a nittle binary is already wherever it was installed
   const newDir = fromLegacyDir ? installDir(home, env) : dirname(execPath);
-  const target = fromLegacyDir ? join(newDir, exeName(PRODUCT.name, platform)) : execPath;
-  if (fromLegacyDir) say(`${installBinaryCopy(execPath, target, platform) === "installed" ? "installed" : "already installed:"} ${target}`);
+  const binaryName = exeName(PRODUCT.legacyName, platform);
+  return {
+    legacyDir, binaryName, fromLegacyDir, newDir,
+    hasBinary: existsSync(join(legacyDir, binaryName)),
+    target: fromLegacyDir ? join(newDir, exeName(PRODUCT.name, platform)) : execPath,
+  };
+}
+
+// phase 1 (runs before the agent step, so agent configs never point at a missing binary): stop the
+// legacy mcp servers holding the diffle binary open and copy this binary to the install dir
+export function installNittleBinary(overrides: Partial<InstallDirDeps> = {}): string {
+  const deps = defaultDeps(overrides);
+  const found = plan(deps);
+  if (!found) return "";
+  if (found.hasBinary) deps.stopServers();
+  if (!found.fromLegacyDir) return "";
+  const outcome = installBinaryCopy(deps.execPath, found.target, deps.platform);
+  const line = `${outcome === "installed" ? "installed" : "already installed:"} ${found.target}`;
+  deps.log(`${TAG} ${line}`);
+  return line;
+}
+
+// phase 2 (last): verify the nittle binary is in place, make sure its dir is on PATH, then delete
+// the diffle binary and bin dir
+export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): string {
+  const deps = defaultDeps(overrides);
+  const found = plan(deps);
+  if (!found) return "";
+  const { platform, home } = deps;
+  const { legacyDir, binaryName, hasBinary, newDir, target } = found;
   if (!existsSync(target)) throw new Error(`${target} is missing; keeping the ${PRODUCT.legacyName} install`);
 
   // leftovers alone (a windows retry) mean the PATH was already handled by the run that retired the binary
-  const sameDir = samePath(legacyDir, newDir, platform);
-  if (hasBinary && !sameDir && !swapPath(deps, legacyDir, newDir)) return lines.join("\n");
+  if (hasBinary && !samePath(legacyDir, newDir, platform) && !swapPath(deps, legacyDir, newDir)) return "";
 
+  const lines: string[] = [];
+  const say = (line: string) => { deps.log(`${TAG} ${line}`); lines.push(line); };
   const cleanup = clearLegacyInstall(legacyDir, binaryName, platform);
   if (hasBinary && cleanup.removed && !cleanup.deferred.length) say(`removed ${join(legacyDir, binaryName)}`);
   if (cleanup.deferred.length) say(`${cleanup.deferred.join(", ")} is still in use; the next ${PRODUCT.name} run removes it`);
@@ -109,8 +143,18 @@ export function migrateInstallDir(overrides: Partial<InstallDirDeps> = {}): stri
   return lines.join("\n");
 }
 
-export function createInstallDirStep(overrides: Partial<InstallDirDeps> = {}): MigrationStep {
-  return { name: "install-dir", run: () => migrateInstallDir(overrides) };
+// both phases in one call, for `update` and tests
+export function migrateInstallDir(overrides: Partial<InstallDirDeps> = {}): string {
+  return [installNittleBinary(overrides), removeDiffleInstall(overrides)].filter(Boolean).join("\n");
 }
 
+export function createInstallBinaryStep(overrides: Partial<InstallDirDeps> = {}): MigrationStep {
+  return { name: "install-binary", run: () => installNittleBinary(overrides) };
+}
+
+export function createInstallDirStep(overrides: Partial<InstallDirDeps> = {}): MigrationStep {
+  return { name: "install-dir", run: () => removeDiffleInstall(overrides) };
+}
+
+export const installBinaryStep = createInstallBinaryStep();
 export const installDirStep = createInstallDirStep();
