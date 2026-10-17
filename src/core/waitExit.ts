@@ -4,6 +4,7 @@ export const EXIT_RETURNED = 0; // feedback returned (prompt on stdout) or revie
 export const EXIT_CANCELLED = 2; // reviewer cancelled the review
 export const EXIT_TAB_CLOSED = 3; // last tab closed before the reviewer returned anything
 export const EXIT_INTERRUPTED = 130; // ctrl+c / kill while waiting
+export const EXIT_STOPPED = 4; // session stopped from outside (cleanup, /api/session/stop) while waiting
 
 export const WAIT_EXIT_HELP = [
   "Exit codes with --wait:",
@@ -12,4 +13,5 @@ export const WAIT_EXIT_HELP = [
   `  ${EXIT_TAB_CLOSED}   last tab closed without returning feedback (stdout empty, resume hint on stderr)`,
   "  1   error",
   `  ${EXIT_INTERRUPTED}  interrupted (ctrl+c) while waiting; the review stays open`,
+  `  ${EXIT_STOPPED}   session stopped from outside (for example by cleanup); the review stays open`,
 ];
