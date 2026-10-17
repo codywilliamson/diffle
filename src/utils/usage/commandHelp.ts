@@ -36,6 +36,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     options: [
       ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
       ["--no-open", "don't open the browser automatically"],
+      ["--no-lsp", "start no language servers"],
       ["--review-id <id>", "open an existing durable Review Record"],
       ["-v, --version", "print the installed version"],
       ["--license", "print the bundled MIT license notice"],
@@ -59,6 +60,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     options: [
       ["-p, --port <n>", "serve on a fixed port (default: any free port)"],
       ["--no-open", "don't open the browser automatically"],
+      ["--no-lsp", "start no language servers"],
       ["-h, --help", "show help"],
     ],
     examples: [`${n} show`, `${n} show HEAD~2`, `${n} show a1b2c3d --no-open`],

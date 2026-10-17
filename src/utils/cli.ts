@@ -16,6 +16,7 @@ export interface CliOptions {
   reviewId: string | undefined; // durable Review Record supplied by an integration
   port: number; // 0 = any free port
   open: boolean; // open the browser once serving
+  lsp: boolean; // start language servers for code navigation; --no-lsp turns it off
   yes: boolean; // cleanup/doctor/setup/mcp restart: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
@@ -63,13 +64,17 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = MCP_ACTIONS.find((action) => command === "mcp" && action === argv[1]);
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, lsp: true, yes: false, all: false, fix: false, check: false, remove: false, agents: undefined, help: false, version: false, license: false };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg === "-h" || arg === "--help") opts.help = true;
     else if (arg === "-v" || arg === "--version") opts.version = true;
     else if (arg === "--license") opts.license = true;
     else if (arg === "--no-open") opts.open = false;
+    else if (arg === "--no-lsp") {
+      if (opts.command !== "review" && opts.command !== "show") throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
+      opts.lsp = false;
+    }
     else if (Object.hasOwn(COMMAND_FLAGS, arg)) {
       const flag = COMMAND_FLAGS[arg]!;
       if (!flag.commands.includes(opts.command)) throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
