@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 import type { IncomingMessage } from "node:http";
 import { isLoopbackHttpOrigin } from "./src/utils/origin.ts";
+import { PRODUCT } from "./src/core/product.ts";
 
 const rootDir = import.meta.dirname;
 export const clientDir = resolve(rootDir, "client");
@@ -49,7 +50,12 @@ function createApiProxy(target: string): ProxyOptions {
 
 export default defineConfig({
   root: clientDir,
-  plugins: [tailwindcss(), svelte()],
+  plugins: [
+    tailwindcss(),
+    svelte(),
+    // the page title comes from the product identity, like every other user-facing name
+    { name: "product-title", transformIndexHtml: (html: string) => html.replace("%PRODUCT_NAME%", PRODUCT.name) },
+  ],
   resolve: { alias: aliases },
   server: {
     // allow importing shared contracts and identity that live outside the vite root
