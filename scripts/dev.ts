@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { openBrowser } from "../src/utils/browser";
 
 const ROOT = join(import.meta.dir, "..");
-const REVIEW_URL = /http:\/\/localhost:(\d+)\/\?review=([\w-]+)/;
+const REVIEW_URL = /http:\/\/127\.0\.0\.1:(\d+)\/\?review=([\w-]+)/;
 const VITE_LOCAL = /https?:\/\/localhost:\d+\/?/;
 const START_TIMEOUT_MS = 45_000;
 // vite colorizes its output, wrapping even the port number in ansi escapes; strip them
@@ -67,7 +67,7 @@ children.push(backend);
 
 try {
   const [, backendPort, reviewId] = await pipeAndWatch(backend, REVIEW_URL, "review backend");
-  const apiTarget = `http://localhost:${backendPort}`;
+  const apiTarget = `http://127.0.0.1:${backendPort}`;
 
   const vite = spawn("bun", ["x", "vite"], {
     cwd: ROOT,

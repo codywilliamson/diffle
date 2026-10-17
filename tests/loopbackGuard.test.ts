@@ -57,6 +57,16 @@ describe("loopback host guard (dns rebinding)", () => {
     });
   }
 
+  it("refuses malformed Host authorities", async () => {
+    for (const host of [`evil.example@localhost:${port}`, `localhost:${port}/evil`, `localhost:${port}?x`, `localhost:${port}#x`, `localhost:${port}:${port}`, `localhost:${port} x`, `user:pw@127.0.0.1:${port}`]) {
+      expect((await raw("GET", "/api/diff", host)).status).toBe(403);
+    }
+  });
+
+  it("binds to loopback only", () => {
+    expect(server.hostname).toBe("127.0.0.1");
+  });
+
   it("refuses a missing Host", async () => {
     expect((await raw("GET", "/api/diff", null)).status).toBe(403);
   });

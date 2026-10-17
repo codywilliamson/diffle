@@ -21,7 +21,7 @@ import { handleSessionStop } from "./sessionHandlers";
 import { handlePresence } from "./presence";
 import { handleGetSearch } from "./searchHandlers";
 import { apiError } from "./respond";
-import { checkLoopbackRequest } from "../utils/origin";
+import { LOOPBACK_BIND_HOST, checkLoopbackRequest } from "../utils/origin";
 
 export type { ServerContext } from "./handlers";
 
@@ -72,6 +72,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
 export function createServer(ctx: ServerContext, port = 0): Server<undefined> {
   const server: Server<undefined> = Bun.serve({
     port,
+    hostname: LOOPBACK_BIND_HOST,
     fetch: async (req) => guardRequest(req, server.port ?? port) ?? maybeCompress(req, await route(ctx, req)),
   });
   return server;

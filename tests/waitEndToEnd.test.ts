@@ -34,7 +34,7 @@ describe("nittle --wait", () => {
     const out = await run.stdout;
     expect(out).toContain("## Code Review");
     expect(out).toContain("why the bump?");
-    expect(out).not.toContain("http://localhost");
+    expect(out).not.toContain("http://127.0.0.1");
     expect(run.stderr()).toContain(run.origin);
     expect(readReviewRecord(run.reviewId)?.status).toBe("feedback_ready");
   });

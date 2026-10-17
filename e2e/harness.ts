@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test";
 import { PRODUCT } from "../src/core/product";
 
 const REPO_ROOT = process.cwd();
-const URL_PATTERN = /http:\/\/localhost:\d+\/\?review=[\w-]+/;
+const URL_PATTERN = /http:\/\/127\.0\.0\.1:\d+\/\?review=[\w-]+/;
 const FIXTURE_PARENT_PREFIX = "nittle-e2e-";
 const WHATS_NEW_SOURCE = join(REPO_ROOT, "client", "src", "lib", "whatsNew.ts");
 
