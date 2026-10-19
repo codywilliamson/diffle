@@ -45,3 +45,11 @@ The TypeScript server needs a `typescript` package it can resolve, either in the
 - `failed`: crashed twice (a crashed server is restarted once). The last stderr output is included.
 
 Under `--no-lsp` the response is `{ "enabled": false, "languages": [] }`.
+
+## Limits today
+
+Language servers read your checkout from disk. For a branch, range or commit review, answers that point into other files can reflect the checked-out files instead of the reviewed revision. The old side of a diff can't be navigated at all. Both limits stay until nittle can serve those revisions from a detached worktree (tracked in issue 186), and it will never switch your checkout to do it.
+
+## Coming next
+
+The server side for go-to-definition, hover and references is in. The review UI doesn't use it yet, so there are no keys to press. They land in a later release, and this page will list them when they do.
