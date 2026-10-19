@@ -12,7 +12,7 @@ const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "d
 const OWNER_PID = new RegExp(`^${WORKTREE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\d+)-`);
 
 const fold = (path: string): string => (CASE_INSENSITIVE ? path.toLowerCase() : path);
-const real = (path: string): string => { try { return realpathSync(path); } catch { return resolve(path); } };
+const real = (path: string): string => { try { return realpathSync.native(path); } catch { return resolve(path); } };
 
 export function isProcessAlive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === "EPERM"; }

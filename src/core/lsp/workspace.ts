@@ -71,7 +71,7 @@ export class LspWorkspace {
   }
 
   private addWorktree(side: LspSide, commit: string): string {
-    this.baseDir ??= realpathSync(mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${process.pid}-`)));
+    this.baseDir ??= realpathSync.native(mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${process.pid}-`)));
     const path = join(this.baseDir, side);
     addDetachedWorktree(this.repoRoot, path, commit);
     this.slots.set(side, { path, commit });
