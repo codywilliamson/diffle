@@ -171,9 +171,18 @@ describe("document sync: the server sees what the reviewer sees", () => {
     expect(s.changes).toHaveLength(1);
   });
 
-  test("a branch review sends the ref's blob, not the checkout on disk", async () => {
+  test("a branch review on a dirty checkout is served from a worktree, not the files on disk", async () => {
     const root = gitRepo({ "a.ts": "committed\n" });
     writeFileSync(join(root, "a.ts"), "dirty on disk\n");
+    const { harness, pool } = setup(root, { responses: { "textDocument/hover": null } }, [diffFile("a.ts")], "HEAD");
+    await harness.post("/api/lsp/hover", { path: "a.ts", side: "new", line: 1, character: 0 });
+    const docs = ((await pool.running()[0]!.request("fake/state")) as any).docs as Record<string, { text: string }>;
+    expect(Object.values(docs).map((doc) => doc.text.replace(/\r\n/g, "\n"))).toEqual(["committed\n"]);
+    expect(docs[fileUri(root, "a.ts")]).toBeUndefined();
+  });
+
+  test("a branch review on a clean checkout uses the checkout itself", async () => {
+    const root = gitRepo({ "a.ts": "committed\n" });
     const { harness, state } = setup(root, { responses: { "textDocument/hover": null } }, [diffFile("a.ts")], "HEAD");
     await harness.post("/api/lsp/hover", { path: "a.ts", side: "new", line: 1, character: 0 });
     expect((await state()).docs[fileUri(root, "a.ts")].text).toBe("committed\n");
@@ -264,13 +273,13 @@ describe("errors", () => {
     expect(res.status).toBe(409);
   });
 
-  test("the old side says it needs the detached worktree, and starts nothing", async () => {
+  test("the old side of a review with no base commit is refused, and starts nothing", async () => {
     const root = tempDir("old");
     writeFiles(root, { "a.ts": "x\n" });
     const { harness, pool } = setup(root, {});
     const res = await harness.post("/api/lsp/definition", { path: "a.ts", side: "old", line: 1, character: 0 });
     expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ code: "old-side-unsupported", hint: expect.stringContaining("#186") });
+    expect(await res.json()).toMatchObject({ code: "old-side-unsupported", hint: expect.stringContaining("no base commit") });
     expect(pool.status(["typescript"])[0]?.state).toBe("idle");
   });
 

@@ -3,7 +3,7 @@
 import type { DiffResult, DiffMeta, ReviewFile, Comment, CompilePromptResponse } from "../types";
 import type { AssetSource } from "./assetSource";
 import type { SessionHost } from "../core/sessions";
-import type { LspPool } from "../core/lsp/pool";
+import type { LspHandle } from "../core/lsp/pool";
 import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
 import { compileReviewPrompt } from "../core/promptCompiler";
@@ -34,7 +34,7 @@ export interface ServerContext {
   sessionId?: string; // this server's session registry id; set by reviewLaunch, checked by /api/session/stop
   presence?: Presence; // open browser tabs; `--wait` watches it to notice the last tab closing
   exitCodeOnStop?: () => number; // `--wait` sets this so a remote stop exits non-zero instead of looking like approval
-  lsp?: LspPool; // language server pool; absent in tests that don't exercise it
+  lsp?: LspHandle; // language server pool; absent in tests that don't exercise it
   shutdown?: () => void | Promise<void>; // set by reviewLaunch once the server exists; mutable by design
 }
 

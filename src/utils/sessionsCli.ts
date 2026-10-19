@@ -3,6 +3,7 @@
 import { classifySessions, stopSession, unregisterSession, type SessionEntry } from "../core/sessions";
 import { readReviewRecord } from "../core/reviewRecords";
 import { PRODUCT } from "../core/product";
+import { findOrphanWorktrees, removeOrphanWorktrees } from "../core/lsp/orphanWorktrees";
 import { confirmProceed } from "./confirm";
 
 const NO_SESSIONS = `no ${PRODUCT.name} sessions`;
@@ -68,14 +69,17 @@ export async function applyCleanupPlan(plan: CleanupPlan, stop: Stopper = stopSe
 export async function runCleanupCommand(opts: CleanupOptions): Promise<void> {
   const { live, stale } = await classifySessions();
   const plan = buildCleanupPlan(live, stale, opts);
-  if (plan.toDelete.length === 0 && plan.toStop.length === 0) return console.log(NO_SESSIONS);
+  const orphans = findOrphanWorktrees(process.cwd());
+  if (plan.toDelete.length === 0 && plan.toStop.length === 0 && orphans.length === 0) return console.log(NO_SESSIONS);
 
   console.log("plan:");
   for (const entry of plan.toDelete) console.log(`  delete stale entry ${entry.reviewId} (${entry.host}, pid ${entry.pid})`);
   for (const entry of plan.toStop) console.log(`  stop ${entry.reviewId} (${entry.host}, port ${entry.port}, ${recordStatus(entry.reviewId)})`);
+  for (const path of orphans) console.log(`  remove leftover language server worktree ${path}`);
 
   if (!(await confirmProceed(opts.yes))) return;
 
+  removeOrphanWorktrees(process.cwd(), orphans);
   const failed = await applyCleanupPlan(plan);
   if (failed.length > 0) {
     console.log("failed to stop:");
