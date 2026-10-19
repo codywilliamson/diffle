@@ -74,6 +74,23 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `Ctrl+o` | Jump back |
 | `Ctrl+i` | Jump forward |
 
+### Comment
+
+| key | action |
+| --- | --- |
+| `c` | Comment on the cursor line |
+| `V` | Start a visual range (j k ] [ extend it, Esc cancels) |
+| `c` | Visual range: comment on the range |
+| `C` | Comment on the cursor's file |
+
+### Search
+
+| key | action |
+| --- | --- |
+| `/` | Search the file |
+| `n` | Next match (takes a count) |
+| `N` | Previous match (takes a count) |
+
 ### View
 
 | key | action |
