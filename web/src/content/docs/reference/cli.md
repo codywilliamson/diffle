@@ -176,6 +176,54 @@ nittle doctor --fix
 | `--license` | print the bundled MIT license notice |
 | `-h, --help` | show help |
 
+## Shell completion
+
+`nittle completion --shell <bash|zsh|fish|powershell>` prints a tab-completion script to stdout. It completes commands (`show`, `mcp`, `setup`, `doctor`, `sessions`, `cleanup`, `update`, `completion`), subcommands (`mcp serve|list|restart`), each command's flags, enumerable flag values (`--shell`, `--agent`, `--agents`), and refs for the review and `show` commands: branches, remote branches and tags.
+
+Refs are read from git when you press tab, so a branch you created a minute ago shows up without regenerating anything. The script comes from the same table that drives `--help`, so a new flag shows up in all four shells in the next release.
+
+nittle never edits your shell profile. Add the line for your shell yourself.
+
+### bash
+
+Add to `~/.bashrc`:
+
+```bash
+eval "$(nittle completion --shell bash)"
+```
+
+### zsh
+
+Add to `~/.zshrc`, after `compinit`:
+
+```zsh
+source <(nittle completion --shell zsh)
+```
+
+Or save the script as `_nittle` in a directory on your `$fpath` (before `compinit`) and compinit loads it on demand:
+
+```zsh
+nittle completion --shell zsh > ~/.zfunc/_nittle
+```
+
+### fish
+
+Add to `~/.config/fish/config.fish`, or save the output as `~/.config/fish/completions/nittle.fish` to load it on demand:
+
+```fish
+nittle completion --shell fish | source
+```
+
+### PowerShell
+
+Add to your profile (`notepad $PROFILE`):
+
+```powershell
+nittle completion --shell powershell | Out-String | Invoke-Expression
+```
+
+Open a new shell afterwards. Tab completes `nittle <tab>`, `nittle mcp <tab>`, `nittle setup --<tab>` and `nittle show <tab>`.
+
 ## Old command names
 
 There is no `diffle` or `loupe` alias. The binary is `nittle`, and the first run moves an older install over. See [Migrating from diffle](/guides/migrating-from-diffle/).
