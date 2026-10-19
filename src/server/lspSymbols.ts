@@ -8,7 +8,7 @@ import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol, t
 import type { ServerContext } from "./handlers";
 import { json } from "./respond";
 import { sideContext } from "./lspSide";
-import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, unavailable } from "./lspSession";
+import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, sideFailure, unavailable } from "./lspSession";
 import { prepareBridge } from "./lspSync";
 import { fileUriOf, pathKey, TargetResolver } from "./lspTargets";
 
@@ -60,7 +60,7 @@ const rank = (symbol: { inDiff: boolean; inRepo: boolean }): number => (symbol.i
 
 export async function handleLspWorkspaceSymbols(base: ServerContext, query: string, signal: AbortSignal): Promise<Response> {
   const sided = sideContext(base, "new");
-  if ("unavailable" in sided) return lspError("server-unavailable", sided.unavailable, 409, { hint: sided.unavailable });
+  if ("unavailable" in sided) return sideFailure("new", sided);
   const ctx = sided;
   const pool = ctx.lsp;
   const diffPaths = ctx.diff.files.map((file) => file.path);

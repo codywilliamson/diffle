@@ -362,6 +362,7 @@ export interface LspLanguageStatus {
 export interface LspStatusResponse {
   enabled: boolean; // false under --no-lsp
   languages: LspLanguageStatus[];
+  limited?: string; // a detached worktree runs without the checkout's installed dependencies
   blocker?: string; // why a detached worktree could not follow the review (it has local changes), when it could not
 }
 
@@ -388,6 +389,7 @@ export interface LspDefinitionRequest extends LspPositionRequest { kind?: LspDef
 export type LspErrorCode =
   | "server-unavailable" // 409: missing, failed or disabled; state + hint say why
   | "old-side-unsupported" // 409: the review has no base commit to open an old-side worktree at
+  | "worktree-blocked" // 409: the side's worktree has local changes and cannot move to the reviewed revision
   | "invalid-request" // 400
   | "file-not-found" // 404
   | "forbidden" // 403: /api/lsp/file only serves paths the server returned as targets
