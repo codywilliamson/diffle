@@ -19,6 +19,7 @@ const OWNER_PID = new RegExp(`^${WORKTREE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, 
 const fold = (path: string): string => (CASE_INSENSITIVE ? path.toLowerCase() : path);
 const real = (path: string): string => { try { return realpathSync.native(path); } catch { return resolve(path); } };
 const same = (a: string, b: string): boolean => fold(real(a)) === fold(real(b));
+const insideOrAt = (root: string, dir: string): boolean => { const inner = fold(real(dir)); const outer = fold(real(root)); return inner === outer || inner.startsWith(outer + sep); };
 
 export function isProcessAlive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === "EPERM"; }
@@ -50,7 +51,7 @@ export function removeOrphanWorktrees(cwd: string, paths: readonly string[]): st
   const removed: string[] = [];
   for (const path of paths) {
     const parent = dirname(path);
-    const links = (readOwnership(parent)?.links ?? []).filter((link) => resolve(link).startsWith(resolve(path) + sep));
+    const links = (readOwnership(parent)?.links ?? []).filter((link) => insideOrAt(path, dirname(link)));
     if (!unlinkDependencies(links)) continue; // cannot prove the user's files are safe from the removal
     try { removeWorktree(top, path); removed.push(path); } catch { /* leave it for the next run */ }
   }
