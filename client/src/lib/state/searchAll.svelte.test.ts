@@ -122,6 +122,14 @@ describe("keyboard selection", () => {
     expect(jump).not.toHaveBeenCalled();
   });
 
+  it("click, then j, then Enter jumps to the highlighted hit, one jump each", async () => {
+    const { search, jump } = await loaded();
+    search.activate(0);
+    search.move(1);
+    search.activate();
+    expect(jump.mock.calls).toEqual([[hit("a.ts", 1)], [hit("a.ts", 5)]]);
+  });
+
   it("activates a clicked row", async () => {
     const { search, jump } = await loaded();
     search.activate(1);
