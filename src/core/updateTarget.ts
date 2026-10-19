@@ -30,9 +30,9 @@ export function parseChecksum(manifest: string, name: string): string | null {
 // replace ourselves. self-update through a manager would fight the manager, so we refuse it.
 export function detectPackageManager(execPath: string): string | null {
   const p = execPath.replace(/\\/g, "/").toLowerCase();
+  if (isNpmInstalledPath(p)) return "npm"; // first: npm globals live under /opt/homebrew, scoop and /usr too
   if (p.includes("/homebrew/") || p.includes("/cellar/")) return "homebrew";
   if (p.includes("/scoop/")) return "scoop";
-  if (isNpmInstalledPath(p)) return "npm";
   if (p.includes("/winget") || p.includes("/windowsapps/")) return "winget";
   if (p.startsWith("/usr/") || p.startsWith("/nix/store/")) return "system package manager";
   return null;
