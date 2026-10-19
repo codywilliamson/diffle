@@ -198,6 +198,19 @@ describe("App shell", () => {
       await waitFor(() => expect(document.querySelector("[data-cursor-announcer]")).toHaveTextContent("visual cancelled"));
     });
 
+    it.each(["c", "C", "V"])("%s does nothing behind an open dialog", async (key) => {
+      setup();
+      render(App);
+      await screen.findByText(/1 file\b/);
+      await fireEvent.keyDown(window, { key: "j" });
+      await fireEvent.keyDown(window, { key: "?" });
+      const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+      await fireEvent.keyDown(window, { key });
+      expect(screen.queryByRole("textbox", { name: "Comment text" })).toBeNull();
+      expect(picked()).toBe(0);
+      expect(dialog).toBeInTheDocument();
+    });
+
     it("announces the visual range as it grows", async () => {
       setup();
       render(App);

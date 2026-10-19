@@ -121,4 +121,17 @@ describe("cursor visual mode", () => {
     cursor.lines("a.ts", -3); // k past the start, same file
     expect(cursor.pos).toMatchObject({ path: "a.ts", line: 1 });
   });
+
+  it("Ctrl+o skips history entries on another side while a range is open (split view)", () => {
+    let active: string | null = null;
+    const cursor = createCursorStore({ files: () => [A, B], defaultSplit: () => true, activePath: () => active, follow: (p) => (active = p) });
+    cursor.lines("a.ts", 1); // j: first line, new side
+    cursor.bottom("a.ts"); // G records a jump from the new side
+    cursor.switchTo("a.ts", "old"); // h
+    cursor.startVisual("a.ts"); // V
+    cursor.back("a.ts"); // Ctrl+o would land on the new side
+    expect(cursor.visual).toBe(true);
+    expect(cursor.side).toBe("old");
+    expect(cursor.visualRange).toMatchObject({ path: "a.ts", side: "old" });
+  });
 });

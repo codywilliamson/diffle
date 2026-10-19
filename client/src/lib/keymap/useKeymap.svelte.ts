@@ -96,8 +96,9 @@ export function useKeymap(): Keymap {
         return;
       case "dispatch": {
         const { binding, count } = outcome;
-        // motion is paused behind an open dialog
-        if (binding.group !== "Move" || !ui.activeOverlay) actions[binding.action]?.(count);
+        // motion and commenting are paused behind an open dialog
+        const paused = (binding.group === "Move" || binding.group === "Comment") && ui.activeOverlay;
+        if (!paused) actions[binding.action]?.(count);
         break;
       }
       default:
