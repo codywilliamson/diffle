@@ -16,6 +16,18 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # a malformed workflow (a missing space in `if:`, a bad expression) fails the whole file at push time,
+  # so every workflow is linted on every run. the download script and the release are both pinned.
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Lint every workflow
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
   server:
     name: server (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
