@@ -108,6 +108,20 @@ describe("keyboard selection", () => {
     expect(jump).toHaveBeenCalledWith(hit("b.ts", 2));
   });
 
+  it("drops stale hits as soon as the query or regex changes, so Enter does nothing", async () => {
+    const { search, jump } = await loaded();
+    search.setQuery("xy");
+    expect(search.hits).toEqual([]);
+    search.activate();
+    expect(jump).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+    expect(search.hits).toHaveLength(3);
+    search.toggleRegex();
+    expect(search.hits).toEqual([]);
+    search.activate();
+    expect(jump).not.toHaveBeenCalled();
+  });
+
   it("activates a clicked row", async () => {
     const { search, jump } = await loaded();
     search.activate(1);
