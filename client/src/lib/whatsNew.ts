@@ -21,5 +21,6 @@ export const WHATS_NEW = {
     "Comment from the keyboard: c on the cursor line, V then j or k then c for a range, C for the whole file.",
     "Search the current file with /: matches are highlighted on both sides, n and N step through them, Esc clears.",
     "Search every changed file with g/: hits are grouped by file, Enter jumps to the line, Ctrl+o comes back.",
+    "Suggest a change: in a line or range comment, Suggest change inserts the lines to edit. Agents get the original and suggested text as structured data.",
   ],
 };

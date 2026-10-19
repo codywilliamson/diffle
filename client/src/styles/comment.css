@@ -150,3 +150,50 @@
   line-height: 18px;
   color: var(--accent);
 }
+
+/* a suggestion rendered as a removed/added mini diff, using the diff row colors */
+.suggestion {
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: var(--ff-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+}
+.suggestion-title {
+  padding: 2px 10px;
+  font-family: var(--ff-sans, inherit);
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--divider);
+}
+.suggestion-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.suggestion-sign {
+  flex: none;
+  user-select: none;
+  color: var(--dim);
+}
+.row-addition .suggestion-sign {
+  color: var(--add-text);
+}
+.row-deletion .suggestion-sign {
+  color: var(--del-text);
+}
+.suggestion-text {
+  min-width: 0;
+  color: var(--text);
+}
+.suggestion-note {
+  padding: 2px 10px;
+  font-family: var(--ff-sans, inherit);
+  font-size: 12px;
+  color: var(--muted);
+}
