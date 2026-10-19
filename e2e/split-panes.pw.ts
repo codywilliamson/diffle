@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { makeFixture, startPreview, stop, cleanup, gotoApp } from "./harness";
 import { PRODUCT } from "../src/core/product";
 
@@ -26,6 +26,12 @@ async function aligned(page: Page): Promise<void> {
       return sameTop && sameHeight;
     });
   })).toBe(true);
+}
+
+// focus the separator and confirm it kept focus, so the next key press cannot land elsewhere.
+async function focusDivider(divider: Locator): Promise<void> {
+  await divider.focus();
+  await expect(divider).toBeFocused();
 }
 
 for (const theme of ["dark", "light"]) for (const width of [1440, 390]) {
@@ -78,12 +84,17 @@ for (const theme of ["dark", "light"]) for (const width of [1440, 390]) {
       await page.getByRole("button", { name: "Comment on new line 4", exact: true }).press("Enter");
       await editor.fill("Check the replacement too.");
       await page.getByRole("button", { name: "Save", exact: true }).click();
+      // saving closes the composer and hands focus back to the diff on a later tick; keys sent
+      // to the divider before that land on the pane instead.
+      await expect(fresh.getByText("Check the replacement too.")).toBeVisible();
+      await expect(editor).toHaveCount(0);
       await aligned(page);
 
       // unequal widths + wrapping + differently sized threads must keep the next row aligned.
-      await divider.press("ArrowRight");
+      await focusDivider(divider);
+      await page.keyboard.press("ArrowRight");
       await expect(divider).toHaveAttribute("aria-valuenow", "52");
-      await divider.press("Shift+ArrowRight");
+      await page.keyboard.press("Shift+ArrowRight");
       await expect(divider).toHaveAttribute("aria-valuenow", "62");
       await page.keyboard.press("w");
       await expect(page.locator(".wrap")).toBeVisible();
