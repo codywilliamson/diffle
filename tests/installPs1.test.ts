@@ -140,6 +140,20 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     expect(result.out).toContain("missing required asset(s): nittle-windows-x64.exe");
   });
 
+  test("a user PATH stored with a trailing newline is read and compared normalized", async () => {
+    const again = await run({ userPath: "C:\\Windows;<bin>\n" });
+    expect(again.out).toContain("already on the user PATH");
+    expect(again.userPath).toBe(`C:\\Windows;${again.bin}\n`);
+    const gone = await run({
+      env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1" },
+      userPath: "<legacy>;C:\\Windows;<bin>\r\n",
+      before: (dir) => seed(join(dir, "home", ".nittle", "bin", "nittle.exe")),
+    });
+    expect(gone.code).toBe(0);
+    expect(gone.userPath).toBe("C:\\Windows");
+    expect(gone.out).not.toContain("is not on the user PATH");
+  });
+
   test("--uninstall removes nittle and every diffle leftover but keeps non-empty data", async () => {
     const result = await run({
       env: { NITTLE_UNINSTALL: "1", NITTLE_NO_SETUP: "1" },

@@ -147,9 +147,15 @@ public static extern System.IntPtr SendMessageTimeout(System.IntPtr hWnd, uint M
   }
 }
 
+# whitespace and newlines (Set-Content leaves one), trailing slashes; comparison is case-insensitive
+function ConvertTo-PathKey {
+  param([Parameter(Mandatory)][AllowEmptyString()][string] $Entry)
+  return $Entry.Trim().TrimEnd('\', '/').Trim()
+}
+
 function Test-SamePathEntry {
   param([Parameter(Mandatory)][AllowEmptyString()][string] $Entry, [Parameter(Mandatory)][string] $Directory)
-  return $Entry.TrimEnd('\') -ieq $Directory.TrimEnd('\')
+  return (ConvertTo-PathKey $Entry) -ieq (ConvertTo-PathKey $Directory)
 }
 
 function Add-NittleToUserPath {

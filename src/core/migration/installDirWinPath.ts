@@ -56,7 +56,10 @@ export function defaultUserPathStore(env: NodeJS.ProcessEnv = process.env): User
   return file ? scopeFileStore(file) : registryStore(env);
 }
 
-const sameEntry = (entry: string, dir: string) => entry.trim().replace(/[\\/]+$/, "").toLowerCase() === dir.replace(/[\\/]+$/, "").toLowerCase();
+// whitespace and newlines (a Set-Content write leaves one), trailing slashes, and case never matter
+export const normalizePathEntry = (entry: string): string => entry.trim().replace(/[\\/]+$/, "").trim().toLowerCase();
+
+const sameEntry = (entry: string, dir: string) => normalizePathEntry(entry) === normalizePathEntry(dir);
 
 export const userPathHas = (store: UserPathStore, dir: string): boolean => store.read().split(PATH_SEPARATOR).some((entry) => sameEntry(entry, dir));
 

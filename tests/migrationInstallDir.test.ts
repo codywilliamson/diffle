@@ -7,7 +7,7 @@ import { readUserState } from "../src/core/userState";
 import { isLeftover } from "../src/core/migration/installDirCopy";
 import { installNittleBinary, migrateInstallDir, removeDiffleInstall, type InstallDirDeps } from "../src/core/migration/installDir";
 import { swapBlocks } from "../src/core/migration/installDirRc";
-import { swapPathEntry, type UserPathStore } from "../src/core/migration/installDirWinPath";
+import { swapPathEntry, userPathHas, type UserPathStore } from "../src/core/migration/installDirWinPath";
 
 let home = "";
 beforeEach(() => { home = mkdtempSync(join(tmpdir(), "install-dir-")); });
@@ -470,6 +470,13 @@ describe("swapPathEntry", () => {
 
   test("matches case-insensitively and ignores a trailing slash", () => {
     expect(swapPathEntry(`${old.toUpperCase()}\\;B`, old, next)).toBe(`${next};B`);
+  });
+
+  test("ignores a trailing newline and whitespace on entries", () => {
+    expect(swapPathEntry(`A;${old}\r\n`, old, next)).toBe(`A;${next}`);
+    expect(swapPathEntry(`A; ${old}\\ \n;B`, old, next)).toBe(`A;${next};B`);
+    const store = { read: () => `A;${next}\n`, write: () => {} };
+    expect(userPathHas(store, next)).toBe(true);
   });
 
   test("never duplicates an existing nittle entry", () => {
