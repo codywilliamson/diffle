@@ -160,6 +160,17 @@ export interface ReviewRecord {
   lastRound?: ReviewRound;
 }
 
+// a ```suggestion fence in a line or range comment, with the lines it replaces (get_review, --json)
+export interface ReviewSuggestion {
+  commentId: string;
+  path: string;
+  side: "old" | "new";
+  startLine: number;
+  endLine: number;
+  original: string; // the anchored lines as currently in the diff, "" when not available
+  suggested: string; // the replacement text, "" means delete the original lines
+}
+
 export interface FeedbackBundle {
   reviewId: string;
   target: ReviewTarget;

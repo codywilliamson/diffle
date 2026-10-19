@@ -1,4 +1,4 @@
-import type { ReviewOrigin, ReviewPolicy, ReviewRecord, ReviewScorecard } from "../types";
+import type { ReviewOrigin, ReviewPolicy, ReviewRecord, ReviewScorecard, ReviewSuggestion } from "../types";
 
 export interface StartReviewInput {
   cwd: string;
@@ -11,6 +11,7 @@ export interface ReviewOperationResult {
   [key: string]: unknown;
   review: ReviewRecord;
   url?: string;
+  suggestions?: ReviewSuggestion[]; // open suggestion blocks in line comments, ready to apply
   staleSessions?: number; // count of stale/orphaned nittle sessions found at start_review time
 }
 
