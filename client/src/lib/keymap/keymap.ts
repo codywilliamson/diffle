@@ -47,7 +47,7 @@ export const BINDINGS: Binding[] = [
   bind("/", "Search", "Search the file", "search.file"),
   bind("n", "Search", "Next match", "search.next", { count: true }),
   bind("N", "Search", "Previous match", "search.prev", { count: true }),
-  bind("g/", "Search", "Search all changed files", "search.all", { reserved: true }),
+  bind("g/", "Search", "Search all changed files", "search.all"),
 
   bind("m", "View", "File list: tree / review order", "view.order"),
   bind("t", "View", "Light / dark theme", "view.theme"),
