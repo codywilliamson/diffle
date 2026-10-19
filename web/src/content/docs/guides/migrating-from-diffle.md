@@ -16,7 +16,7 @@ Installs from the loupe era are migrated too, so the same applies if you skipped
 - Agent plugins and MCP configs. The `diffle-review` plugin becomes `nittle-review`, and any `diffle` MCP server entry in your agents' configs is renamed to `nittle`.
 - Browser preferences. Settings stored under `diffle-*` keys are carried over to `nittle-*`.
 
-Your shell profile is left alone. If something can't be moved, nittle keeps both copies, prints exactly what is left, and tries again on the next run.
+In your shell profile, nittle touches only the old installer's own `# >>> diffle >>>` block. It rewrites that block to the nittle one, after backing the file up, and leaves every other line alone. If something can't be moved, nittle keeps both copies, prints exactly what is left, and tries again on the next run.
 
 ## Environment variables
 

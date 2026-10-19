@@ -9,7 +9,7 @@ nittle can talk to a language server for the languages in your diff. It is optio
 
 ## How servers start
 
-Servers start lazily. Opening a review starts nothing. A server for a language starts the first time something asks it a question, and only for languages that appear in the diff. Servers stay warm for the rest of the run and shut down when nittle exits, including ctrl+c, closing the last tab and the `--wait` exit paths.
+Servers start lazily. Opening a review starts nothing. A server for a language starts the first time something asks it a question, and only for languages that appear in the diff. Servers stay warm for the rest of the run and shut down when nittle exits. A normal review keeps running until you press ctrl+c or run `nittle cleanup`, and closing the last browser tab does not end it. With `--wait`, closing the last tab ends the process, and so do its other exit paths.
 
 Pass `--no-lsp` to start none at all. The flag works on the default command and on `nittle show`.
 
