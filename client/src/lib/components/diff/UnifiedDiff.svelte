@@ -85,7 +85,7 @@
           </td>
           <td class="lineno" class:sel={a} onmousedown={a ? (e) => startSelect(e, ui, file.path, a.side, a.line) : undefined}>{line.oldLine ?? ""}</td>
           <td class="lineno" class:sel={a} onmousedown={a ? (e) => startSelect(e, ui, file.path, a.side, a.line) : undefined}>{line.newLine ?? ""}</td>
-          <td class="code">{#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="sign">{SIGN[line.type]}</span><span class="code-inner">{@html render(line, marks)}</span></td>
+          <td class="code">{#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="sign">{SIGN[line.type]}</span><span class="code-inner" data-lsp-side={a?.side} data-lsp-line={a?.line}>{@html render(line, marks)}</span></td>
         </tr>
         {#if a}
           {@const list = commentsForLine(fileComments, a.side, a.line)}

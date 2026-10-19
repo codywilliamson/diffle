@@ -26,8 +26,8 @@ test("a long file index cannot extend the document below the review", async ({ p
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - innerHeight)).toBeLessThanOrEqual(1);
 
     // wheel scrolling past the end of the actual diff cannot reveal another page of emptiness.
-    await page.locator("main > div > section").evaluate((node) => { node.scrollTop = node.scrollHeight; });
-    await page.locator("main > div > section").hover();
+    await page.locator("[data-diff-pane]").evaluate((node) => { node.scrollTop = node.scrollHeight; });
+    await page.locator("[data-diff-pane]").hover();
     await page.mouse.wheel(0, 3000);
     expect(await page.evaluate(() => document.documentElement.scrollTop)).toBe(0);
     await page.setViewportSize({ width: 390, height: 900 });

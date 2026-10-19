@@ -13,6 +13,8 @@ import type { KeyInput } from "./types";
 // right after a sidebar selection the pane is still smooth-scrolling to it, so trust the
 // selection over the scroll position.
 const SMOOTH_SCROLL_MS = 600;
+const OWN_KEYS_PANELS = "[data-search-results], [data-lsp-panel]";
+const PAUSED_GROUPS = new Set(["Move", "Search", "Comment", "Code"]);
 
 export interface Keymap {
   onKeydown: (event: KeyboardEvent) => void;
@@ -82,9 +84,16 @@ export function useKeymap(): Keymap {
     if (active instanceof HTMLElement && active.closest("[data-search-all]")) active.blur();
   }
 
+  // hand the keyboard back to the page when the panel it was typed in disappears
+  function closeLspFocus(): void {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.closest("[data-lsp-panel]")) active.blur();
+  }
+
   const onKeydown = (event: KeyboardEvent): void => {
-    // the results list owns its plain keys (j, k, arrows, Enter); Esc and Ctrl+o stay the keymap's
-    if (event.key !== "Escape" && !event.ctrlKey && (event.target as HTMLElement | null)?.closest?.("[data-search-results]")) return;
+    // the results lists and code-navigation panels own their plain keys (j, k, arrows, Enter);
+    // Esc and Ctrl+o stay the keymap's
+    if (event.key !== "Escape" && !event.ctrlKey && (event.target as HTMLElement | null)?.closest?.(OWN_KEYS_PANELS)) return;
     const input: KeyInput = {
       key: event.key,
       ctrl: event.ctrlKey,
@@ -103,14 +112,18 @@ export function useKeymap(): Keymap {
         // nothing pending: leave search first (one layer per press). an open dialog closes
         // itself on this same Esc (Modal), so its own dismiss logic (what's new) still runs.
         if (ui.activeOverlay) return;
-        if (app.searchAll.open) closeSearchAll();
+        // code-navigation layers sit above the search docks: one layer per press
+        if (app.lsp.closeTopmost()) closeLspFocus();
+        else if (app.searchAll.open) closeSearchAll();
         else if (app.search.open) app.search.close();
         else return;
         break;
       case "dispatch": {
         const { binding, count } = outcome;
-        // motion, search and commenting are paused behind an open dialog
-        const paused = (binding.group === "Move" || binding.group === "Search" || binding.group === "Comment") && ui.activeOverlay;
+        // motion, search, commenting and code navigation are paused behind an open dialog, and
+        // behind the read-only viewer (except jumping back out of it)
+        const covered = ui.activeOverlay || (app.lsp.viewer && !binding.action.startsWith("jump."));
+        const paused = PAUSED_GROUPS.has(binding.group) && covered;
         if (!paused) actions[binding.action]?.(count);
         break;
       }

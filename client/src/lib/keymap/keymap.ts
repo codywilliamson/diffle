@@ -61,12 +61,12 @@ export const BINDINGS: Binding[] = [
   bind("P", "Review", "Preview review feedback", "review.preview"),
   bind("gc", "Review", "Open the review scorecard", "review.scorecard"),
 
-  bind("gd", "Code", "Go to definition", "code.definition", { reserved: true }),
-  bind("gy", "Code", "Go to type definition", "code.typeDefinition", { reserved: true }),
-  bind("gh", "Code", "Hover", "code.hover", { reserved: true }),
-  bind("gr", "Code", "References", "code.references", { reserved: true }),
-  bind("gs", "Code", "Document symbols", "code.symbols", { reserved: true }),
-  bind("gS", "Code", "Workspace symbols", "code.workspaceSymbols", { reserved: true }),
+  bind("gd", "Code", "Go to definition (on a definition: list references)", "code.definition"),
+  bind("gy", "Code", "Go to type definition", "code.typeDefinition"),
+  bind("gh", "Code", "Hover docs for the cursor word", "code.hover"),
+  bind("gA", "Code", "List references", "code.references"),
+  bind("gs", "Code", "Symbols in this file", "code.symbols"),
+  bind("gS", "Code", "Symbols in the repository", "code.workspaceSymbols"),
 
   bind("gw", "Help", "What's new", "help.whatsNew"),
   bind("?", "Help", "Keyboard help", "help.keys", { mode: "any" }),

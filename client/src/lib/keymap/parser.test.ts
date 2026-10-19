@@ -77,12 +77,13 @@ describe("chords", () => {
     expect(dispatched(last(outcomes))).toEqual({ action: "goto.top", count: null });
   });
 
-  it("recognises reserved chords so they never fall through", () => {
-    for (const second of ["d", "y", "h", "r", "s", "S"]) {
+  it("binds the code chords for real and leaves gr unbound", () => {
+    const actions = { d: "code.definition", y: "code.typeDefinition", h: "code.hover", A: "code.references", s: "code.symbols", S: "code.workspaceSymbols" };
+    for (const [second, action] of Object.entries(actions)) {
       const outcome = last(run(["g", second]).outcomes);
-      expect(outcome.kind, `g${second}`).toBe("dispatch");
-      expect(outcome.kind === "dispatch" && outcome.binding.reserved, `g${second}`).toBe(true);
+      expect(outcome.kind === "dispatch" && [outcome.binding.action, outcome.binding.reserved], `g${second}`).toEqual([action, undefined]);
     }
+    expect(last(run(["g", "r"]).outcomes).kind).toBe("dropped");
   });
 
   it("binds g/ to the cross-file search", () => {
@@ -238,6 +239,6 @@ describe("the table", () => {
     expect(shown.some((b) => b.reserved)).toBe(false);
     expect(shown.find((b) => b.keys === "j")?.count).toBe(true);
     expect(shown.find((b) => b.keys === "t")?.count).toBe(false);
-    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "Comment", "Search", "View", "Review", "Help"]);
+    expect(helpGroups().map((g) => g.group)).toEqual(["Move", "Comment", "Search", "View", "Review", "Code", "Help"]);
   });
 });

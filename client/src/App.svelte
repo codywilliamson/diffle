@@ -19,6 +19,13 @@
   import { useKeymap } from "$lib/keymap/useKeymap.svelte";
   import { useCursorReconcile } from "$lib/state/cursorReconcile.svelte";
   import ScorecardPanel from "$lib/components/scorecard/ScorecardPanel.svelte";
+  import ReferencesPanel from "$lib/components/lsp/ReferencesPanel.svelte";
+  import ReadOnlyFile from "$lib/components/lsp/ReadOnlyFile.svelte";
+  import DefinitionPicker from "$lib/components/lsp/DefinitionPicker.svelte";
+  import SymbolPicker from "$lib/components/lsp/SymbolPicker.svelte";
+  import HoverCard from "$lib/components/lsp/HoverCard.svelte";
+  import LspToast from "$lib/components/lsp/LspToast.svelte";
+  import { lspPointer } from "$lib/lsp/pointer";
 
   // compose the domain stores once at the root and share them through context.
   const app = setAppState(createAppState());
@@ -62,15 +69,19 @@
     {/if}
     <SearchBar />
     <SearchResults />
+    <ReferencesPanel />
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>
       {/if}
       <FileIndex />
-      <section data-diff-pane tabindex="-1" class="min-w-0 flex-1 overflow-auto outline-none">
-        {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
-        <DiffView />
-      </section>
+      <div class="relative flex min-w-0 flex-1 flex-col">
+        <section data-diff-pane use:lspPointer={app.lsp} data-lsp-old-off={app.lsp.removedSideHint ? "" : undefined} tabindex="-1" class="min-h-0 flex-1 overflow-auto outline-none">
+          {#if diff.meta?.commit}<CommitHeader commit={diff.meta.commit} />{/if}
+          <DiffView />
+        </section>
+        <ReadOnlyFile />
+      </div>
     </div>
   {:else}
     <div role="status" class="flex flex-1 flex-col items-center justify-center gap-4">
@@ -80,6 +91,10 @@
   {/if}
 
   <CursorAnnouncer />
+  <HoverCard />
+  <DefinitionPicker />
+  <SymbolPicker />
+  <LspToast />
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
   {#if ui.activeOverlay === "scorecard" && analysis.scorecard}<ScorecardPanel scorecard={analysis.scorecard} />{/if}
