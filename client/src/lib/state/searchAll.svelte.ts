@@ -72,6 +72,11 @@ export function createSearchAllStore(deps: SearchAllDeps) {
   function schedule(): void {
     cancel();
     if (query.trim() === "") return reset();
+    // old hits answer an old query: drop them so Enter cannot jump to one
+    hits = [];
+    truncated = false;
+    error = null;
+    selected = 0;
     status = "loading";
     timer = setTimeout(() => void run(), debounceMs);
   }

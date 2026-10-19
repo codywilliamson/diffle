@@ -54,6 +54,7 @@ export function createCursorStore(deps: CursorDeps) {
   let cache: Snapshot | null = null;
   const bodies = new SvelteMap<string, BodyReport>();
   let pendingHit: SearchHit | null = null; // a search hit waiting for its file to become navigable
+  let pendingFrom: CursorPos | null = null; // where the cursor was when that hit was picked
 
   // views and the flattened stops, rebuilt only when the files, a body's mode or the side change.
   function snapshot(): Snapshot {
@@ -112,14 +113,15 @@ export function createCursorStore(deps: CursorDeps) {
   }
 
   // land on a search hit. false when its file has no lines to rest on yet (collapsed, gated).
-  function landOnHit(hit: SearchHit): boolean {
+  function landOnHit(hit: SearchHit, from: CursorPos | null): boolean {
     const file = resolveHitFile(deps.files(), hit);
     if (!file) return true;
     const view = snapshot().views.find((v) => v.file.path === file.path);
     if (!view?.navigable) return false;
     if (view.split) pref = hit.side;
     const stop = findHitStop(snapshot().index, file.path, hit.side, hit.line, view.split);
-    if (stop) commit({ path: file.path, side: stop.side, line: stop.line }, base(file.path), { jump: true, reveal: "line" });
+    if (stop) commit({ path: file.path, side: stop.side, line: stop.line }, from, { jump: true, reveal: "line" });
+    else commit({ path: file.path, side: pref, line: FILE_LEVEL }, from, { jump: true, reveal: "file" });
     return true;
   }
 
@@ -179,10 +181,19 @@ export function createCursorStore(deps: CursorDeps) {
     // a result from the cross-file search: opens the file first when it is collapsed or gated
     goToHit(hit: SearchHit): void {
       pendingHit = null;
-      if (landOnHit(hit)) return;
-      pendingHit = hit;
       const file = resolveHitFile(deps.files(), hit);
-      if (file) deps.open?.(file.path);
+      if (!file) return;
+      const from = base(undefined);
+      // nothing to draw (pure rename, mode change, binary): park on the file header
+      if (file.binary || file.hunks.length === 0) {
+        commit({ path: file.path, side: pref, line: FILE_LEVEL }, from, { jump: true, reveal: "file" });
+        return;
+      }
+      if (landOnHit(hit, from)) return;
+      pendingHit = hit;
+      pendingFrom = from;
+      deps.follow(file.path); // single-file view only mounts the active file
+      deps.open?.(file.path);
     },
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
@@ -207,7 +218,7 @@ export function createCursorStore(deps: CursorDeps) {
     reportBody(path: string, report: BodyReport): void {
       const known = untrack(() => bodies.get(path));
       if (!known || known.split !== report.split || known.navigable !== report.navigable) bodies.set(path, report);
-      if (pendingHit && untrack(() => landOnHit(pendingHit as SearchHit))) pendingHit = null;
+      if (pendingHit && untrack(() => landOnHit(pendingHit as SearchHit, pendingFrom))) pendingHit = null;
     },
     forgetBody(path: string): void {
       untrack(() => bodies.delete(path));
