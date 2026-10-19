@@ -8,12 +8,13 @@ import {
 } from "../core/reviewRecords";
 import type { ReviewOperationResult, ReviewOperations } from "./operations";
 import { scorecardForReview } from "./scorecardOperation";
+import { suggestionsFor } from "./reviewSuggestions";
 
 // the get_review result shape; `--wait --json` prints the same thing.
 export function found(reviewId: string): ReviewOperationResult {
   const review = readReviewRecord(reviewId);
   if (!review) throw new Error("review record not found");
-  return { review };
+  return { review, suggestions: suggestionsFor(review) };
 }
 
 export function createReviewOperations(productRoot: string): ReviewOperations {

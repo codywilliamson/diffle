@@ -9,14 +9,17 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PRODUCT } from "../src/core/product";
-import type { ReviewRecord } from "../src/types";
+import type { ReviewRecord, ReviewSuggestion } from "../src/types";
 
 const root = join(import.meta.dir, "..");
 const COMMENT_ID = "c1";
 const REVIEWER_NOTE = "please rename this";
 const AGENT_REPLY = "renamed it";
+const SUGGESTION_ID = "c2";
+const SUGGESTED_TEXT = "three";
+const SUGGESTION_BODY = ["swap it", "```suggestion", SUGGESTED_TEXT, "```"].join("\n");
 
-interface Result { review: ReviewRecord; url?: string; }
+interface Result { review: ReviewRecord; url?: string; suggestions?: ReviewSuggestion[]; }
 
 function tempGitRepo(): string {
   const repo = mkdtempSync(join(tmpdir(), "nittle-loop-repo-"));
@@ -53,7 +56,8 @@ describe("agent loop over mcp stdio", () => {
 
       const posted = await fetch(`${baseUrl}/api/comments`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comments: [{ id: COMMENT_ID, file: "a.ts", line: 1, lineContent: "+two", text: REVIEWER_NOTE, createdAt: new Date().toISOString() }] }),
+        body: JSON.stringify({ comments: [{ id: COMMENT_ID, file: "a.ts", line: 1, lineContent: "+two", text: REVIEWER_NOTE, createdAt: new Date().toISOString() },
+          { id: SUGGESTION_ID, file: "a.ts", line: 1, lineContent: "+two", text: SUGGESTION_BODY, createdAt: new Date().toISOString() }] }),
       });
       expect(posted.ok).toBe(true);
       const outcome = await fetch(`${baseUrl}/api/review/outcome`, {
@@ -66,6 +70,9 @@ describe("agent loop over mcp stdio", () => {
       const comment = fetched.review.comments.find((item) => item.id === COMMENT_ID);
       expect(comment?.text).toBe(REVIEWER_NOTE);
       expect(fetched.review.summary).toBe("needs changes");
+      expect(fetched.suggestions).toEqual([
+        { commentId: SUGGESTION_ID, path: "a.ts", side: "new", startLine: 1, endLine: 1, original: "two", suggested: SUGGESTED_TEXT },
+      ]);
 
       const replied = await call("reply_to_comment", { reviewId, commentId: COMMENT_ID, text: AGENT_REPLY });
       const reply = replied.review.comments.find((item) => item.id === COMMENT_ID)?.replies?.at(-1);
