@@ -17,7 +17,7 @@ export interface ActionEnv {
 }
 
 export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Partial<Record<ActionId, ActionHandler>> {
-  const { ui, prefs, diff, comments, analysis, cursor, search } = app;
+  const { ui, prefs, diff, comments, analysis, cursor, search, searchAll } = app;
   const n = (count: number | null): number => count ?? 1;
   return {
     "line.next": (c) => cursor.lines(currentPath(), n(c)),
@@ -35,7 +35,14 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "jump.back": () => cursor.back(currentPath()),
     "jump.forward": () => cursor.forward(currentPath()),
 
-    "search.file": () => search.start(currentPath(), selectedSearchText()),
+    "search.file": () => {
+      searchAll.close();
+      search.start(currentPath(), selectedSearchText());
+    },
+    "search.all": () => {
+      search.close();
+      searchAll.start();
+    },
     "search.next": (c) => search.next(n(c)),
     "search.prev": (c) => search.prev(n(c)),
     "comment.line": () => {

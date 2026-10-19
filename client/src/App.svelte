@@ -9,6 +9,7 @@
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
   import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
+  import SearchResults from "$lib/components/SearchResults.svelte";
   import SearchBar from "$lib/components/SearchBar.svelte";
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
@@ -60,6 +61,7 @@
       <p role="alert" class="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{comments.error}</p>
     {/if}
     <SearchBar />
+    <SearchResults />
     <div class="relative flex min-h-0 flex-1">
       {#if ui.drawerOpen}
         <button class="fixed inset-0 z-20 bg-black/40 lg:hidden" aria-label="Close file browser" onclick={() => ui.closeDrawer()}></button>

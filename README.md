@@ -112,6 +112,7 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `/` | Search the file |
 | `n` | Next match (takes a count) |
 | `N` | Previous match (takes a count) |
+| `g/` | Search all changed files |
 
 ### View
 

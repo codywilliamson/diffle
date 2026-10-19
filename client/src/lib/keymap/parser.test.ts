@@ -78,11 +78,15 @@ describe("chords", () => {
   });
 
   it("recognises reserved chords so they never fall through", () => {
-    for (const second of ["d", "y", "h", "r", "s", "S", "/"]) {
+    for (const second of ["d", "y", "h", "r", "s", "S"]) {
       const outcome = last(run(["g", second]).outcomes);
       expect(outcome.kind, `g${second}`).toBe("dispatch");
       expect(outcome.kind === "dispatch" && outcome.binding.reserved, `g${second}`).toBe(true);
     }
+  });
+
+  it("binds g/ to the cross-file search", () => {
+    expect(dispatched(last(run(["g", "/"]).outcomes))?.action).toBe("search.all");
   });
 
   it("drops an unknown second key without running it on its own", () => {

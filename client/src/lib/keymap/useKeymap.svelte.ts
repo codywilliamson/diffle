@@ -75,7 +75,16 @@ export function useKeymap(): Keymap {
     event.stopPropagation();
   };
 
+  // hand the keyboard back to the page when the panel it was typed in disappears
+  function closeSearchAll(): void {
+    app.searchAll.close();
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.closest("[data-search-all]")) active.blur();
+  }
+
   const onKeydown = (event: KeyboardEvent): void => {
+    // the results list owns its plain keys (j, k, arrows, Enter); Esc and Ctrl+o stay the keymap's
+    if (event.key !== "Escape" && !event.ctrlKey && (event.target as HTMLElement | null)?.closest?.("[data-search-results]")) return;
     const input: KeyInput = {
       key: event.key,
       ctrl: event.ctrlKey,
@@ -93,8 +102,10 @@ export function useKeymap(): Keymap {
       case "escape":
         // nothing pending: leave search first (one layer per press). an open dialog closes
         // itself on this same Esc (Modal), so its own dismiss logic (what's new) still runs.
-        if (ui.activeOverlay || !app.search.open) return;
-        app.search.close();
+        if (ui.activeOverlay) return;
+        if (app.searchAll.open) closeSearchAll();
+        else if (app.search.open) app.search.close();
+        else return;
         break;
       case "dispatch": {
         const { binding, count } = outcome;
