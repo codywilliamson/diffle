@@ -253,7 +253,7 @@ jobs:
           path: bucket
       - name: Commit and push both (plain pushes, never forced)
         id: push
-        if:${{ steps.token.outputs.present == 'true' }}
+        if: ${{ steps.token.outputs.present == 'true' }}
         run: |
           version="${TAG#v}"
           mkdir -p tap/Formula bucket/bucket
