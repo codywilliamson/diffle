@@ -56,6 +56,12 @@ describe("detectPackageManager", () => {
     expect(managerCommand("npm")).toBe("npm i -g nittle@latest");
   });
 
+  it("prefers npm over homebrew, scoop and system heuristics for npm global installs", () => {
+    expect(detectPackageManager("/opt/homebrew/lib/node_modules/nittle-darwin-arm64/bin/nittle")).toBe("npm");
+    expect(detectPackageManager("C:/Users/x/scoop/persist/nodejs/bin/node_modules/nittle-win32-x64/bin/nittle.exe")).toBe("npm");
+    expect(detectPackageManager("/usr/lib/node_modules/nittle-linux-x64/bin/nittle")).toBe("npm");
+  });
+
   it("does not mistake an unrelated node_modules path for npm", () => {
     expect(detectPackageManager("/proj/node_modules/nittle/bin/cli.js")).toBeNull();
     expect(detectPackageManager("/home/x/.nittle/bin/nittle")).toBeNull();
