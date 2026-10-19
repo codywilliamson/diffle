@@ -19,8 +19,9 @@ const CURSOR_NOTE =
 const MOVED_KEYS =
   "Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.";
 
-// shortcuts that live outside the keymap table (the comment editor owns them)
+// shortcuts that live outside the keymap table (the comment editor and the diff pane own them)
 const EXTRA_ROWS: Record<string, [string, string][]> = {
+  Code: [["Ctrl/⌘ + click", "Go to definition of the word under the pointer. Resting the pointer on a word shows its hover docs."]],
   Help: [["Ctrl/⌘ + Enter", "Save the open comment"]],
 };
 
