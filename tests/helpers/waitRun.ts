@@ -8,7 +8,9 @@ import type { Comment } from "../../src/types";
 
 const entry = join(import.meta.dir, "..", "..", "src", "index.ts");
 const URL_PATTERN = /(http:\/\/127\.0\.0\.1:\d+)\/\?review=([\w-]+)/;
-const STARTUP_TIMEOUT_MS = 8_000;
+// a cold cli start on a loaded machine can take many seconds; an early exit fails fast instead
+const STARTUP_TIMEOUT_MS = 30_000;
+export const SPAWN_TEST_TIMEOUT_MS = 45_000;
 const TAB_SETTLE_MS = 100;
 
 const git = (args: string[], cwd: string) => Bun.spawnSync(["git", ...args], { cwd });
@@ -55,7 +57,7 @@ export async function startWait(repo: string, args: string[] = [], env: Record<s
 
   const deadline = Date.now() + STARTUP_TIMEOUT_MS;
   let match = URL_PATTERN.exec(stderrText);
-  while (!match && Date.now() < deadline) {
+  while (!match && proc.exitCode === null && Date.now() < deadline) {
     await Bun.sleep(25);
     match = URL_PATTERN.exec(stderrText);
   }

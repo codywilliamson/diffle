@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,7 +6,10 @@ import type { ReviewRecord, ReviewSuggestion } from "../src/types";
 import { readReviewRecord } from "../src/core/reviewRecords";
 import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_STOPPED, EXIT_TAB_CLOSED } from "../src/core/waitExit";
 import { listSessions, stopSession } from "../src/core/sessions";
-import { fixtureComment, makeFixtureRepo, startWait } from "./helpers/waitRun";
+import { SPAWN_TEST_TIMEOUT_MS, fixtureComment, makeFixtureRepo, startWait } from "./helpers/waitRun";
+
+// every test cold-starts a real cli process
+setDefaultTimeout(SPAWN_TEST_TIMEOUT_MS);
 
 let repo: string;
 let data: string;
