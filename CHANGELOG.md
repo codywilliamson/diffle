@@ -2,6 +2,86 @@
 
 All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.29.0](https://github.com/codywilliamson/diffle/compare/v0.28.1...v0.29.0) (2026-10-19)
+
+
+### Features
+
+* **cli:** add --no-lsp ([b1ef445](https://github.com/codywilliamson/diffle/commit/b1ef445c79806963ed495da1774302797d88ff35))
+* **cli:** add --wait to block until review feedback ([1a53b52](https://github.com/codywilliamson/diffle/commit/1a53b529da7fff80e02401d90b74f3e624c2bd4a))
+* **cli:** add completion command for bash, zsh, fish and powershell ([9b853d4](https://github.com/codywilliamson/diffle/commit/9b853d44bf8ac1a89a2a0a33709fa5f5f1646285))
+* **cli:** add legacy migration runner and switch version output ([95d1c2c](https://github.com/codywilliamson/diffle/commit/95d1c2cbf237deb771ff5c1982fba994d6a64ceb))
+* **cli:** add show [rev] to review a single commit ([46bf6c8](https://github.com/codywilliamson/diffle/commit/46bf6c875e0715e7f721f493aafa3b4dedaffe4d))
+* **client:** add the keymap table and count/chord parser ([686e7ed](https://github.com/codywilliamson/diffle/commit/686e7ed29e98b2368d7bfd41e6367458582b6500))
+* **client:** drive review from the keymap and move j/k to lines ([58d80da](https://github.com/codywilliamson/diffle/commit/58d80dadfadf94e1a8d733f09e18de7434ed77d6))
+* **client:** move diffle-* pref keys to nittle-* ([651edf2](https://github.com/codywilliamson/diffle/commit/651edf2dc70ef57a1687d684b1c5cd6ed12953f6))
+* **client:** pure in-file match finder with smartcase ([e6b6d51](https://github.com/codywilliamson/diffle/commit/e6b6d519dab7f3791c18b6c34b8aaf2f12b1beeb))
+* **cli:** migrate ~/.diffle and ~/.loupe into ~/.nittle on first run ([76c2c0b](https://github.com/codywilliamson/diffle/commit/76c2c0b16f4d82005f957f0518a797fec80187d8))
+* **cli:** migrate diffle and loupe review plugins to nittle ([b3a2d71](https://github.com/codywilliamson/diffle/commit/b3a2d71edf6f784a85649224ed7f29bfeb95f457))
+* **cli:** one-time DIFFLE_ env rename notice; document NITTLE_ vars ([079f41a](https://github.com/codywilliamson/diffle/commit/079f41a99ea20c21648c51c44bb9a2ace11b5a64))
+* **cli:** switch product identity to nittle ([63055ac](https://github.com/codywilliamson/diffle/commit/63055ac9c0378bbfb8f52a1ff67592cfcd38b1c5))
+* **server:** add GET /api/search across changed files ([bf2c2b7](https://github.com/codywilliamson/diffle/commit/bf2c2b7265831046512a07afed94c3770f1fab49))
+* **server:** add lsp bridge, pool and typescript/c# registry ([08e187a](https://github.com/codywilliamson/diffle/commit/08e187abb1ad07265b04ee3a1fcb200216027cc5))
+* **server:** add lsp framing, json-rpc and position conversion ([115e107](https://github.com/codywilliamson/diffle/commit/115e1074e6daa586790a5ed6654226c1847d3d13))
+* **server:** run regex search in a killable worker ([b3b726d](https://github.com/codywilliamson/diffle/commit/b3b726dee97dc41e3234a62b65bdac1826612ca9))
+* **server:** serve lsp status and stop servers with the viewer ([759a7c2](https://github.com/codywilliamson/diffle/commit/759a7c2662f6c2a85b63f6eeead08d95438b5e01))
+* **store:** add the line cursor, step functions and jump history ([48f29b5](https://github.com/codywilliamson/diffle/commit/48f29b542cf9ca3770eb820559cac7f71f305bc1))
+* **ui:** add a commit header above the files for show ([212d884](https://github.com/codywilliamson/diffle/commit/212d884bb75c9e4ed65da7b51733265f76db9544))
+* **ui:** add whats new entry for the nittle rename ([09c7fef](https://github.com/codywilliamson/diffle/commit/09c7fef0a8c0d88e2ae17d82e79a3aa2850f396f))
+* **ui:** derive the page title from the product identity ([2fd74af](https://github.com/codywilliamson/diffle/commit/2fd74af1358990586dd93778e1d988c823a536c5))
+* **ui:** mark the cursor row current and announce moves politely ([0e2608a](https://github.com/codywilliamson/diffle/commit/0e2608a9dba8fc12fbd16703c3c315caba546013))
+* **ui:** rename client title and theme to nittle ([9c4d658](https://github.com/codywilliamson/diffle/commit/9c4d658b8d2a216fe0d98985c28280e244c93b77))
+* **ui:** render the cursor row and keep it in view ([bdaec88](https://github.com/codywilliamson/diffle/commit/bdaec884b11423d091fa7dc8d3395e92e9181d15))
+* **ui:** search the current file with / and step with n and N ([3738189](https://github.com/codywilliamson/diffle/commit/37381894bf9bccf6b6dc7cb5b6f9e20b2e9a22f6))
+
+
+### Bug Fixes
+
+* **build:** match the 127.0.0.1 review url in demos ([f1bfca5](https://github.com/codywilliamson/diffle/commit/f1bfca53ad4f586fac09fed4655b7b7c4eb6c843))
+* **build:** run the e2e container as the caller on linux and macos ([69c0941](https://github.com/codywilliamson/diffle/commit/69c0941684b1e5509c29000e165f2571ab103ac1))
+* **build:** set git safe.directory after creating the container home ([9e1c94f](https://github.com/codywilliamson/diffle/commit/9e1c94f24fe1f971447445f0690234d483a8e09e))
+* **cli:** accept --version and --license after any command ([2a9d6fe](https://github.com/codywilliamson/diffle/commit/2a9d6fe5d6154dbebdad2a33d01007ad81f2d18d))
+* **cli:** base scorecard churn for show on the commit's parent ([051e66a](https://github.com/codywilliamson/diffle/commit/051e66adab0630c1e4f792c730b03990294aa43c))
+* **cli:** complete comma lists and mid-line words in completions ([bf9b876](https://github.com/codywilliamson/diffle/commit/bf9b876872febcff29f586fb7f05ece783d27681))
+* **cli:** document that --wait --json prints every outcome ([dbbbfe9](https://github.com/codywilliamson/diffle/commit/dbbbfe9ba960badf00ce897e3921360abae046af))
+* **cli:** end --wait when a tab came and went before waiting began ([591cad7](https://github.com/codywilliamson/diffle/commit/591cad7684af704c902733bd71d26f8dd6bd0c34))
+* **cli:** enforce flag applicability from one table ([5328ea6](https://github.com/codywilliamson/diffle/commit/5328ea606b9eba318611639e5e2ebed159b7d814))
+* **client:** capture Esc for pending counts, page by rendered pixels ([13ad978](https://github.com/codywilliamson/diffle/commit/13ad978c6e9f2861af2174dea103895357bba937))
+* **client:** keep the legacy pref key until the new one reads back ([bdd58a5](https://github.com/codywilliamson/diffle/commit/bdd58a5bc878753e4e1c36f9ca340f13ea804db0))
+* **client:** peel one Esc layer per press, expire only g, accept AltGr ([d2a6ba1](https://github.com/codywilliamson/diffle/commit/d2a6ba1a724b6d67994f70547cec6df1f944adc4))
+* **client:** reopen the presence stream after a bfcache restore ([fe62730](https://github.com/codywilliamson/diffle/commit/fe627306e5de9810fb31c8476534aa9c519fa3be))
+* **cli:** escape backslashes in zsh and shell quoting helpers ([850c7f0](https://github.com/codywilliamson/diffle/commit/850c7f00cfcb9a949807a6340924452d2b7c97c7))
+* **cli:** exit 4 when a waiting session is stopped from outside ([96fea43](https://github.com/codywilliamson/diffle/commit/96fea43b9dfe7524971f0fc5f2713e8d6048e00a))
+* **cli:** guard data dir move against aliases, live writers, races, bin ([9fee392](https://github.com/codywilliamson/diffle/commit/9fee392d49d059485dda083353c9d3ccd1219626))
+* **cli:** harden completion refs and match the parser per scope ([ebc62f7](https://github.com/codywilliamson/diffle/commit/ebc62f75b3ccc1f4cd3069131fd43a50e0edeaab))
+* **cli:** harden data move against links, lock races and ps failures ([89498f4](https://github.com/codywilliamson/diffle/commit/89498f4707b2504d20d0edde8d4786cc04ed97bd))
+* **cli:** lex toml strings and make plugin swaps install-first ([1118dea](https://github.com/codywilliamson/diffle/commit/1118dea55ef7f22ad58cbfdab822d6075cd93872))
+* **cli:** read commit structure apart from free-text metadata ([feb3a72](https://github.com/codywilliamson/diffle/commit/feb3a729d411e06a5617cf5fe358d3403e32aea8))
+* **cli:** refuse a shallow clone's boundary commit in show ([0e3d7f9](https://github.com/codywilliamson/diffle/commit/0e3d7f983bdb7789c734a26fc20d0835a050b6ae))
+* **cli:** reject option-shaped and multi-rev specs in show ([667fe52](https://github.com/codywilliamson/diffle/commit/667fe52cc7165fed1f21cd65f5d7214b10d2b522))
+* **cli:** run legacy migrations only from a compiled binary ([4701749](https://github.com/codywilliamson/diffle/commit/47017493ceb135ef902fd30f91ba032feab22c9a))
+* **cli:** skip flag values when counting positionals in completion ([ffeb3d3](https://github.com/codywilliamson/diffle/commit/ffeb3d3fac649c9804c6684dcef70b763ac8c7b7))
+* **server:** bind to loopback and validate the host authority ([c140d1c](https://github.com/codywilliamson/diffle/commit/c140d1c89335b0eef2da079b90ec32be2c563bbe))
+* **server:** bound search input and cap concurrent regex workers ([9bf808b](https://github.com/codywilliamson/diffle/commit/9bf808bb3112081a5efb1d72202d677afecd0b52))
+* **server:** contain rejected lsp notification handlers ([af528b5](https://github.com/codywilliamson/diffle/commit/af528b59fa65c00919170d1284b45042496f0ae2))
+* **server:** guard lsp status with origin and host checks ([f90d320](https://github.com/codywilliamson/diffle/commit/f90d32091b61a1a7aca2b68aa04823177592550d))
+* **server:** never run a language server from the repository ([d30c2f6](https://github.com/codywilliamson/diffle/commit/d30c2f687c285fbb6825681e1e84616bb45e3db6))
+* **server:** reap the whole lsp process group, bounded ([0cf00fc](https://github.com/codywilliamson/diffle/commit/0cf00fc95043b1d3802829ddb0f99694763cd657))
+* **server:** refuse non-loopback hosts on every route ([81f732f](https://github.com/codywilliamson/diffle/commit/81f732f13a848af0957b40e082820d903137954e))
+* **server:** require a loopback host on /api/search ([4113569](https://github.com/codywilliamson/diffle/commit/4113569eb89ad32b45357bb7e2f1913c35f426c5))
+* **server:** run the system taskkill by absolute path ([4f1b088](https://github.com/codywilliamson/diffle/commit/4f1b0887f2b81ea3c77de17df195d813d965eaf0))
+* **server:** send only search targets to the regex worker ([9d688bb](https://github.com/codywilliamson/diffle/commit/9d688bbbd89854a2a75df1f9900264281c2c2596))
+* **server:** spawn language servers in a neutral cwd ([ecaf925](https://github.com/codywilliamson/diffle/commit/ecaf925e22051c125e8c1071dcc749f18b4110ca))
+* **store:** cache stops, keep jump side, reveal on refresh, fix G ([ddee657](https://github.com/codywilliamson/diffle/commit/ddee657ec9b05cc2bdefeeb70373d7798d387e48))
+* **ui:** drop literal backticks from the rename note ([f95c9ae](https://github.com/codywilliamson/diffle/commit/f95c9ae1220410b66123d8d6030d7c4c8f63ceb0))
+* **ui:** rerun the interdiff search guard and warn on cut occurrences ([f9680c1](https://github.com/codywilliamson/diffle/commit/f9680c1ff5eaf8d5ad68f78c65bf47d4e40f357d))
+* **ui:** search row, interdiff opt-out, and truncation notes ([ccdca1f](https://github.com/codywilliamson/diffle/commit/ccdca1f42d43afb943bdd2242ab7e4d8c22d4859))
+
+
+### Reverts
+
+* defer configuration docs to the release pr ([5c3cdbf](https://github.com/codywilliamson/diffle/commit/5c3cdbfe510117f28ad4ad65786581043750b70f))
+
 ## [0.28.1](https://github.com/codywilliamson/diffle/compare/v0.28.0...v0.28.1) (2026-10-16)
 
 
