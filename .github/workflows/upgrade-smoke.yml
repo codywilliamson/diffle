@@ -80,7 +80,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx 'diffle-linux-x64'; then
+          # capture first: `grep -q` exits early and, with pipefail, SIGPIPE made a good lookup look failed
+          if ! assets=$(gh release view --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'); then
+            echo "::error::could not look up the latest release assets (gh failed); not guessing, failing the job"
+            exit 1
+          fi
+          if grep -qx 'diffle-linux-x64' <<<"$assets"; then
             echo "carry=true" >> "$GITHUB_OUTPUT"
           else
             echo "carry=false" >> "$GITHUB_OUTPUT"
