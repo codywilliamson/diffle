@@ -53,3 +53,37 @@ describe("refresh", () => {
     expect(cursor.revealSeq).toBeGreaterThan(seq);
   });
 });
+
+describe("goToHit", () => {
+  const hit = (path: string, side: "old" | "new", line: number) => ({ path, side, line, preview: "", ranges: [] as [number, number][] });
+
+  it("lands on the hit's side and line and records a jump", () => {
+    const A = file("a.ts", [hunk(ctx(1), del(2), add(2), ctx(3))]);
+    const cursor = store(() => [A], false);
+    cursor.goToHit(hit("a.ts", "old", 2));
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "old", line: 2 });
+    cursor.goToHit(hit("a.ts", "new", 3));
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "new", line: 3 });
+    cursor.back("a.ts");
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "old", line: 2 });
+  });
+
+  it("opens a collapsed file first and lands once its body reports lines", () => {
+    const B = file("b.ts", [hunk(ctx(1), add(2))]);
+    const opened: string[] = [];
+    const cursor = createCursorStore({ files: () => [B], defaultSplit: () => false, activePath: () => null, follow: () => {}, open: (p) => opened.push(p) });
+    cursor.reportBody("b.ts", { split: false, navigable: false });
+    cursor.goToHit(hit("b.ts", "new", 2));
+    expect(opened).toEqual(["b.ts"]);
+    expect(cursor.pos).toBeNull();
+    cursor.reportBody("b.ts", { split: false, navigable: true });
+    expect(cursor.pos).toEqual({ path: "b.ts", side: "new", line: 2 });
+  });
+
+  it("finds an old-side hit in a renamed file by its old path", () => {
+    const R = { ...file("new.ts", [hunk(ctx(1), del(2))]), oldPath: "old.ts", changeType: "renamed" as const };
+    const cursor = store(() => [R], false);
+    cursor.goToHit(hit("old.ts", "old", 2));
+    expect(cursor.pos).toEqual({ path: "new.ts", side: "old", line: 2 });
+  });
+});
