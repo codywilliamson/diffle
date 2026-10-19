@@ -1,7 +1,7 @@
 // picks the filesystem root a request runs against and gives it a context of its own: the new
-// side at the repository root is the context itself; any other root (a detached worktree at the
+// side at the repository root is a view of it on the pool's root; any other root (a detached worktree at the
 // new commit, or at the old side's base commit) is a view of it that reads files from that root
-// and talks to the servers started there. views are cached, so identity (and every cache keyed
+// and talks to only the servers started there (so searches never mix roots). views are cached, so identity (and every cache keyed
 // by context) is stable between requests.
 
 import { resolve } from "node:path";
@@ -26,20 +26,24 @@ function baseRef(ctx: ServerContext): string | null {
 }
 
 // the context to serve `side` from, or why it cannot be served.
-export function sideContext(ctx: ServerContext, side: LspSide): ServerContext | { unavailable: string } {
+export type SideFailure = { unavailable: string; blocked?: boolean };
+
+export function sideContext(ctx: ServerContext, side: LspSide): ServerContext | SideFailure {
   const pool = ctx.lsp;
   if (!pool?.workspace || !pool.view) return side === "new" ? ctx : { unavailable: "this server cannot open the base commit" };
   const answer = pool.workspace.rootFor(side, side === "new" ? ctx.newRef : baseRef(ctx), ctx.diffGeneration ?? 0);
   if ("unavailable" in answer) return answer;
   const root = resolve(answer.root);
-  if (side === "new" && root === resolve(pool.root)) return ctx;
+  const inWorktree = root !== resolve(pool.root);
   const cache = views.get(ctx) ?? new Map<string, ServerContext>();
   views.set(ctx, cache);
   const key = `${side}\0${root}`;
   let view = cache.get(key);
   if (!view) {
     view = Object.create(ctx, {
-      lsp: { value: pool.view(root) }, newRef: { value: null }, lspBase: { value: ctx }, lspSide: { value: side },
+      lsp: { value: pool.view(root) }, lspBase: { value: ctx }, lspSide: { value: side },
+      // the old side, or any worktree: the files on disk are the revision
+      ...(inWorktree || side === "old" ? { newRef: { value: null } } : {}),
     }) as ServerContext;
     cache.set(key, view);
   }

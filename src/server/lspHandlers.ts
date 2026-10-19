@@ -16,7 +16,7 @@ const CLIENT_HEADER = "x-client-id"; // optional: one live hover per client
 export function handleGetLspStatus(ctx: ServerContext): Response {
   const pool = ctx.lsp;
   const body: LspStatusResponse = pool?.enabled
-    ? { enabled: true, languages: pool.status(languagesInPaths(ctx.diff.files.map((file) => file.path))), ...(pool.blocker ? { blocker: pool.blocker } : {}) }
+    ? { enabled: true, languages: pool.status(languagesInPaths(ctx.diff.files.map((file) => file.path))), ...(pool.blocker ? { blocker: pool.blocker } : {}), ...(pool.limited ? { limited: pool.limited } : {}) }
     : { enabled: false, languages: [] };
   return json(body);
 }

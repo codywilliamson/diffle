@@ -3,7 +3,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LspPool } from "../src/core/lsp/pool";
@@ -54,26 +55,32 @@ function snapshot(root: string) {
 
 // a user's checkout in the middle of work: a dirty tracked file, a staged file, an untracked file
 function userCheckout() {
-  const root = gitRepo({ "a.ts": "export const v = 1;\n", "b.ts": "export const b = 1;\n" });
+  const root = gitRepo({ "a.ts": "export const v = 1;\n", "b.ts": "export const b = 1;\n", "package.json": "{}\n" });
   const c1 = git(root, "rev-parse", "HEAD");
   const c2 = commitAll(root, "export const v = 2;\n");
   const c3 = commitAll(root, "export const v = 3;\n");
   writeFiles(root, { "b.ts": "export const b = 'dirty';\n", "staged.ts": "export {};\n", "untracked.txt": "u\n" });
   git(root, "add", "staged.ts");
+  writeFiles(root, { "node_modules/pkg/index.d.ts": "export declare const pkg: number;\n" }); // installed, untracked, not ignored
+  // someone else's stale registration: closing our session must not prune it
+  const stale = join(tmpdir(), `nittle-test-stale-${process.pid}-${Date.now()}`);
+  git(root, "worktree", "add", "--detach", stale, "HEAD~1");
+  rmSync(stale, { recursive: true, force: true });
   git(root, "status"); // settle the index once, so a later read-only status proves nothing wrote it
   return { root, c1, c2, c3 };
 }
 
-function session(root: string, newRef: string | null, diffArgs: string[]) {
-  scriptFake({ responses: { "textDocument/hover": null } });
+function session(root: string, newRef: string | null, diffArgs: string[], responses: Record<string, unknown> = {}) {
+  scriptFake({ responses: { "textDocument/hover": null, ...responses } });
   const pool = fakePool(root);
   pools.push(pool);
   const harness = startHarness(root, pool, [diffFile("a.ts")], newRef);
   harness.ctx.diffArgs = diffArgs;
   harnesses.push(harness);
-  const hover = async (side: "new" | "old") => (await harness.post("/api/lsp/hover", { path: "a.ts", side, line: 1, character: 0 })).status;
+  const hoverRaw = (side: "new" | "old") => harness.post("/api/lsp/hover", { path: "a.ts", side, line: 1, character: 0 });
+  const hover = async (side: "new" | "old") => (await hoverRaw(side)).status;
   const refresh = (ref: string | null) => { harness.ctx.newRef = ref; harness.ctx.diffGeneration = (harness.ctx.diffGeneration ?? 0) + 1; };
-  const status = async () => (await (await harness.get("/api/lsp/status")).json()) as { blocker?: string };
+  const status = async () => (await (await harness.get("/api/lsp/status")).json()) as { blocker?: string; limited?: string };
   // path -> text of every document any server holds open
   const openDocs = async () => {
     const docs: Record<string, string> = {};
@@ -83,7 +90,7 @@ function session(root: string, newRef: string | null, diffArgs: string[]) {
     }
     return docs;
   };
-  return { pool, harness, hover, refresh, status, openDocs };
+  return { pool, harness, hover, hoverRaw, refresh, status, openDocs };
 }
 
 const worktreeDirs = (docs: Record<string, string>) => Object.keys(docs).filter((path) => dirname(dirname(path)).includes(WORKTREE_PREFIX) || dirname(path).includes(WORKTREE_PREFIX));
@@ -104,6 +111,10 @@ describe("detached worktrees", () => {
     expect(newPath && oldPath && newPath !== oldPath).toBe(true);
     expect(git(root, "worktree", "list", "--porcelain").replaceAll("\\", "/").toLowerCase()).toContain(dirname(newPath!).replaceAll("\\", "/").toLowerCase());
     const warm = await s.pool.view(dirname(newPath!)).ensure("typescript");
+    const link = join(dirname(newPath!), "node_modules"); // the checkout's installed packages, linked in
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(existsSync(join(link, "pkg", "index.d.ts"))).toBe(true);
+    expect((await s.status()).limited).toBeUndefined();
 
     // the review moves to c3: the clean worktree follows, at the same path
     s.refresh(c3);
@@ -115,7 +126,9 @@ describe("detached worktrees", () => {
     // a dirty worktree stays where it is and says why
     writeFileSync(newPath!, "export const v = 'scratch';\n");
     s.refresh(c1);
-    expect(await s.hover("new")).toBe(200);
+    const blocked = await s.hoverRaw("new"); // never answered against the wrong revision
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toMatchObject({ code: "worktree-blocked", hint: expect.stringContaining("local changes") });
     expect((await s.status()).blocker).toContain("local changes");
     git(dirname(newPath!), "checkout", "--", "a.ts"); // throw the scratch edit away
     s.refresh(c1);
@@ -133,7 +146,8 @@ describe("detached worktrees", () => {
 
     await s.pool.shutdown();
     expect(existsSync(dirname(dirname(newPath!)))).toBe(false);
-    expect(snapshot(root)).toEqual(before);
+    expect(readFileSync(join(root, "node_modules", "pkg", "index.d.ts"), "utf8")).toContain("pkg"); // the link went, not the packages
+    expect(snapshot(root)).toEqual(before); // includes node_modules and the unrelated stale registration
   }, 30_000);
 
   test("killAll removes the worktrees too (ctrl+c and exit handlers)", async () => {
@@ -158,6 +172,32 @@ describe("detached worktrees", () => {
     expect(await same.hover("new")).toBe(200);
     expect(worktreeDirs(await same.openDocs())).toHaveLength(0);
     expect(git(clean, "worktree", "list", "--porcelain").split("\n").filter((line) => line.startsWith("worktree "))).toHaveLength(1);
+  }, 30_000);
+
+  test("workspace symbol search after old-side navigation only asks the working-tree servers", async () => {
+    const { root } = userCheckout();
+    const s = session(root, null, ["diff", "HEAD"], { "workspace/symbol": [] });
+    expect(await s.hover("old")).toBe(200);
+    expect(await s.hover("new")).toBe(200);
+    expect((await s.harness.get("/api/lsp/symbols?query=v")).status).toBe(200);
+    const asked: string[][] = [];
+    for (const bridge of s.pool.running()) {
+      const state = (await bridge.request("fake/state")) as { requests: Array<{ method: string }>; docs: Record<string, unknown> };
+      if (state.requests.some((request) => request.method === "workspace/symbol")) asked.push(Object.keys(state.docs).map((uri) => fileURLToPath(uri)));
+    }
+    expect(s.pool.running()).toHaveLength(2);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.every((path) => path.startsWith(root))).toBe(true);
+  }, 30_000);
+
+  test("a package directory without installed dependencies is reported as limited", async () => {
+    const root = gitRepo({ "a.ts": "export const v = 1;\n", "package.json": "{}\n" });
+    const base = git(root, "rev-parse", "HEAD");
+    const next = commitAll(root, "export const v = 2;\n");
+    const s = session(root, base, ["diff", `${base}..${next}`]);
+    expect(await s.hover("new")).toBe(200);
+    expect((await s.status()).limited).toBe("dependencies unavailable");
+    await s.pool.shutdown();
   }, 30_000);
 
   test("a review with no base commit still refuses the old side", async () => {

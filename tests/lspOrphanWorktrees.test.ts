@@ -1,50 +1,85 @@
 // `nittle cleanup` removes detached worktrees a killed run left behind, and nothing else.
 
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findOrphanWorktrees, removeOrphanWorktrees } from "../src/core/lsp/orphanWorktrees";
 import { WORKTREE_PREFIX } from "../src/core/lsp/workspace";
+import { writeOwnership, type Ownership } from "../src/core/lsp/worktreeOwnership";
 import { listWorktreePaths } from "../src/utils/gitWorktree";
 import { gitRepo } from "./helpers/lspHttp";
 
+const SLOW_MS = 60_000; // a worktree add is a real checkout
 const git = (cwd: string, ...args: string[]) => {
   const proc = Bun.spawnSync(["git", ...args], { cwd });
   if (proc.exitCode !== 0) throw new Error(proc.stderr.toString());
 };
-const addWorktree = (repo: string, dir: string) => { const path = join(dir, "new"); git(repo, "worktree", "add", "--detach", path, "HEAD"); return path; };
 const deadPid = (): number => { const proc = Bun.spawnSync([process.execPath, "--version"]); return proc.pid; };
+const norm = (path: string) => realpathSync.native(path).replaceAll("\\", "/").toLowerCase();
+
+interface Made { path: string; dir: string }
+// a worktree in <parent>/<dirName>/<leaf>, with an ownership note unless `note` is false
+function make(repo: string, dirName: string, options: { leaf?: string; note?: Partial<Ownership> | false; parent?: string } = {}): Made {
+  const dir = mkdtempSync(join(options.parent ?? tmpdir(), dirName));
+  const path = join(dir, options.leaf ?? "new");
+  git(repo, "worktree", "add", "--detach", path, "HEAD");
+  if (options.note !== false) writeOwnership(dir, { pid: Number(/-(\d+)-/.exec(dirName)?.[1]), repo, worktrees: [path], links: [], ...options.note });
+  return { path, dir };
+}
 
 describe("leftover worktrees", () => {
-  test("only dead-pid worktrees under the product prefix in this repo's list are removed", () => {
+  test("only provably owned, dead-pid worktrees under the product prefix in this repo's list are removed", () => {
     const repo = gitRepo({ "a.ts": "x\n" });
-    const dead = addWorktree(repo, mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${deadPid()}-`)));
-    const live = addWorktree(repo, mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${process.pid}-`)));
-    const lookalike = addWorktree(repo, mkdtempSync(join(tmpdir(), `other-lsp-wt-${deadPid()}-`)));
-    const elsewhere = addWorktree(repo, join(mkdtempSync(join(tmpdir(), "elsewhere-")), `${WORKTREE_PREFIX}${deadPid()}-manual`));
+    const dead = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`);
+    const live = make(repo, `${WORKTREE_PREFIX}${process.pid}-`);
+    const noNote = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`, { note: false });
+    const otherRepo = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`, { note: { repo: tmpdir() } });
+    const oddLeaf = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`, { leaf: "precious" });
+    const lookalike = make(repo, `other-lsp-wt-${deadPid()}-`);
+    const elsewhere = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`, { parent: mkdtempSync(join(tmpdir(), "elsewhere-")) });
     const strangerRepo = gitRepo({ "b.ts": "y\n" });
-    const stranger = addWorktree(strangerRepo, mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${deadPid()}-`)));
+    const stranger = make(strangerRepo, `${WORKTREE_PREFIX}${deadPid()}-`);
 
     const found = findOrphanWorktrees(repo);
-    const norm = (path: string) => realpathSync.native(path).replaceAll("\\", "/").toLowerCase();
-    expect(found.map(norm)).toEqual([norm(dead)]);
+    expect(found.map(norm)).toEqual([norm(dead.path)]);
 
-    removeOrphanWorktrees(repo, found);
-    expect(existsSync(dead)).toBe(false);
-    for (const kept of [live, lookalike, elsewhere]) expect(existsSync(kept)).toBe(true);
-    expect(listWorktreePaths(repo)).toHaveLength(4); // the checkout + the three kept
-    expect(existsSync(stranger)).toBe(true);
+    expect(removeOrphanWorktrees(repo, found)).toHaveLength(1);
+    expect(existsSync(dead.path)).toBe(false);
+    expect(existsSync(dead.dir)).toBe(false); // the parent goes once it is empty
+    for (const kept of [live, noNote, otherRepo, oddLeaf, lookalike, elsewhere, stranger]) expect(existsSync(kept.path)).toBe(true);
+    expect(listWorktreePaths(repo)).toHaveLength(7); // the checkout + the six kept
     expect(listWorktreePaths(strangerRepo)).toHaveLength(2);
-  });
+  }, SLOW_MS);
 
-  test("a directory that is already gone is pruned from git's list", () => {
+  test("a dependency link is unlinked as a link; the user's node_modules is left byte for byte", () => {
     const repo = gitRepo({ "a.ts": "x\n" });
-    const dir = mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${deadPid()}-`));
-    const path = addWorktree(repo, dir);
-    require("node:fs").rmSync(dir, { recursive: true, force: true });
-    removeOrphanWorktrees(repo, findOrphanWorktrees(repo));
-    expect(listWorktreePaths(repo)).toHaveLength(1);
-    expect(existsSync(path)).toBe(false);
-  });
+    const user = mkdtempSync(join(tmpdir(), "user-modules-"));
+    mkdirSync(join(user, "pkg"));
+    writeFileSync(join(user, "pkg", "index.d.ts"), "keep me\n");
+    const owned = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`);
+    const link = join(owned.path, "node_modules");
+    symlinkSync(user, link, "junction");
+    writeOwnership(owned.dir, { pid: Number(/-(\d+)-/.exec(owned.dir)?.[1]), repo, worktrees: [owned.path], links: [link] });
+
+    expect(removeOrphanWorktrees(repo, findOrphanWorktrees(repo))).toHaveLength(1);
+    expect(existsSync(owned.path)).toBe(false);
+    expect(readFileSync(join(user, "pkg", "index.d.ts"), "utf8")).toBe("keep me\n");
+    rmSync(user, { recursive: true, force: true });
+  }, SLOW_MS);
+
+  test("a registration whose directory is gone is not ours to prune", () => {
+    const repo = gitRepo({ "a.ts": "x\n" });
+    const gone = make(repo, `${WORKTREE_PREFIX}${deadPid()}-`);
+    rmSync(gone.dir, { recursive: true, force: true });
+    expect(findOrphanWorktrees(repo)).toEqual([]);
+    removeOrphanWorktrees(repo, []);
+    expect(listWorktreePaths(repo)).toHaveLength(2);
+  }, SLOW_MS);
+
+  test("worktree paths with spaces and non-ascii characters list unquoted", () => {
+    const repo = gitRepo({ "a.ts": "x\n" });
+    const odd = make(repo, "nittle odd ünï ", { note: false });
+    expect(listWorktreePaths(repo).map(norm)).toContain(norm(odd.path));
+  }, SLOW_MS);
 });

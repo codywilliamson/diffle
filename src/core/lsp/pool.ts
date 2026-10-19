@@ -25,6 +25,7 @@ export interface LspHandle {
   readonly root: string;
   readonly workspace?: LspWorkspace; // only the pool decides roots; a narrowed view does not
   readonly blocker?: string;
+  readonly limited?: string;
   view?(root: string): LspHandle;
   ensure(language: LspLanguage): Promise<LspBridge | undefined>;
   status(languages: readonly LspLanguage[]): LspLanguageStatus[];
@@ -60,6 +61,7 @@ export class LspPool implements LspHandle {
   get root(): string { return this.options.root; }
   get workspace(): LspWorkspace { return (this.repoWorkspace ??= new LspWorkspace(this.options.root)); }
   get blocker(): string | undefined { return this.repoWorkspace?.blocker; }
+  get limited(): string | undefined { return this.repoWorkspace?.limited; }
 
   // the same pool seen from one workspace root: its servers, its status.
   view(root: string): LspHandle {

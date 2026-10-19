@@ -3,7 +3,7 @@
 // 409 with a hint and never a 500.
 
 import { posix, win32 } from "node:path";
-import type { LspErrorCode, LspErrorResponse, LspLanguage, LspPosition } from "../types";
+import type { LspErrorCode, LspErrorResponse, LspLanguage, LspPosition, LspSide } from "../types";
 import type { LspBridge } from "../core/lsp/bridge";
 import { LspCancelledError, LspClosedError, LspResponseError, LspTimeoutError } from "../core/lsp/jsonRpc";
 import { toLspCharacter } from "../core/lsp/positions";
@@ -14,13 +14,19 @@ import { json } from "./respond";
 import { fileUriOf, readRepoText, repoRootOf, splitLines, TargetResolver } from "./lspTargets";
 import { fileURLToPath } from "node:url";
 import { syncDocument } from "./lspSync";
-import { sideContext } from "./lspSide";
+import { sideContext, type SideFailure } from "./lspSide";
 
 const STALE_RETRIES = 1;
 export const CANCELLED_STATUS = 499; // nginx's "client closed request"; no standard code fits
 
 export function lspError(code: LspErrorCode, message: string, status: number, extra: Partial<LspErrorResponse> = {}): Response {
   return json({ error: message, code, ...extra } satisfies LspErrorResponse, status);
+}
+
+// why a side cannot be served: its worktree is stuck on another revision, or there is nothing to open
+export function sideFailure(side: LspSide, failure: SideFailure): Response {
+  const code: LspErrorCode = failure.blocked ? "worktree-blocked" : side === "old" ? "old-side-unsupported" : "server-unavailable";
+  return lspError(code, failure.unavailable, 409, { hint: failure.unavailable });
 }
 
 export const invalid = (message: string): Response => lspError("invalid-request", message, 400);
@@ -88,7 +94,7 @@ export async function openDocument(base: ServerContext, path: unknown, side: unk
   const match = languageForPath(path);
   if (!match || !base.lsp?.enabled) return unavailable(base, match?.language);
   const ctx = sideContext(base, side);
-  if ("unavailable" in ctx) return side === "old" ? lspError("old-side-unsupported", ctx.unavailable, 409, { hint: ctx.unavailable }) : lspError("server-unavailable", ctx.unavailable, 409, { hint: ctx.unavailable });
+  if ("unavailable" in ctx) return sideFailure(side, ctx);
   try { readRepoText(ctx, path); } catch { return lspError("file-not-found", "file not found", 404); }
   const bridge = await ctx.lsp!.ensure(match.language);
   if (!bridge) return unavailable(ctx, match.language);
