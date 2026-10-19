@@ -1,0 +1,35 @@
+/* code navigation: Ctrl/Cmd-held pointer, the hover card's markdown, the not-allowed removed side */
+
+.lsp-link-mode [data-lsp-line] {
+  cursor: pointer;
+}
+.lsp-link-mode[data-lsp-old-off] .row-deletion [data-lsp-line] {
+  cursor: not-allowed;
+}
+
+.hover-doc {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.hover-doc pre {
+  margin: 0.4em 0;
+  padding: 0.4em 0.6em;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.hover-doc code {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+}
+.hover-doc :not(pre) > code {
+  padding: 0 0.25em;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.hover-doc p {
+  margin: 0.35em 0;
+}

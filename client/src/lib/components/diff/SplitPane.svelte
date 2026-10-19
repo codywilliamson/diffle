@@ -11,6 +11,7 @@
   import { startSelect } from "$lib/diff/selectDrag";
   import { cursorOnLine } from "$lib/state/cursorSteps";
   import { horizontalWheel } from "$lib/diff/horizontalWheel";
+  import { lspAnchor } from "$lib/lsp/rowAnchor";
   import { PLAIN_ANNOTATIONS, hunkOfRowKey, type DiffAnnotations } from "$lib/diff/annotations";
   import type { MovedMark } from "$lib/diff/movedLines";
   import MovedMarker from "./MovedMarker.svelte";
@@ -91,6 +92,7 @@
       {@const moved = movedAt(line)}
       {@const onCursor = !!line && cursorOnLine(here, line, side)}
       {@const interactive = number != null && !annotations.readonly}
+      {@const lsp = line && interactive ? lspAnchor(line) : null}
       {@const selected = number != null && isPending(ui.adding, ui.selecting, file.path, side, number)}
       {@const ranged = number != null && inSavedRange(fileComments, side, number)}
       <div
@@ -133,7 +135,7 @@
           {/if}
         </div>
         <div class="code code-{line?.type ?? 'empty'}">
-          {#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="code-inner">{#if line}{@html renderCode(line, row.marks)}{/if}</span>
+          {#if moved?.first}<MovedMarker mark={moved} />{/if}<span class="code-inner" data-lsp-side={lsp?.side} data-lsp-line={lsp?.line}>{#if line}{@html renderCode(line, row.marks)}{/if}</span>
         </div>
       </div>
     {:else}

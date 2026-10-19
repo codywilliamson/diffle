@@ -1,5 +1,4 @@
-// what each keymap action does. thin: every handler calls a store method. reserved actions
-// (search, LSP) have no handler yet and dispatch nothing.
+// what each keymap action does. thin: every handler calls a store method.
 
 import type { AppState } from "$lib/state/context";
 import { commitRange } from "$lib/diff/selectDrag";
@@ -17,7 +16,7 @@ export interface ActionEnv {
 }
 
 export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Partial<Record<ActionId, ActionHandler>> {
-  const { ui, prefs, diff, comments, analysis, cursor, search, searchAll } = app;
+  const { ui, prefs, diff, comments, analysis, cursor, search, searchAll, lsp } = app;
   const n = (count: number | null): number => count ?? 1;
   return {
     "line.next": (c) => cursor.lines(currentPath(), n(c)),
@@ -32,15 +31,24 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "page.up": (c) => cursor.page(currentPath(), () => pagePosition(-1, n(c)), -halfPageRows() * n(c)),
     "side.old": () => cursor.switchTo(currentPath(), "old"),
     "side.new": () => cursor.switchTo(currentPath(), "new"),
-    "jump.back": () => cursor.back(currentPath()),
-    "jump.forward": () => cursor.forward(currentPath()),
+    // the viewer is not a cursor position: leaving it is part of going back
+    "jump.back": () => {
+      lsp.closeViewer();
+      cursor.back(currentPath());
+    },
+    "jump.forward": () => {
+      lsp.closeViewer();
+      cursor.forward(currentPath());
+    },
 
     "search.file": () => {
       searchAll.close();
+      lsp.references.close();
       search.start(currentPath(), selectedSearchText());
     },
     "search.all": () => {
       search.close();
+      lsp.references.close();
       searchAll.start();
     },
     "search.next": (c) => search.next(n(c)),
@@ -77,6 +85,12 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "view.wrap": () => prefs.toggleWrap(),
     "view.files": () => prefs.setFileView(prefs.fileView === "single" ? "all" : "single"),
     "view.refresh": () => void diff.refresh(),
+    "code.definition": () => lsp.definitionAtCursor("definition"),
+    "code.typeDefinition": () => lsp.definitionAtCursor("typeDefinition"),
+    "code.hover": () => lsp.hoverAtCursor(),
+    "code.references": () => lsp.referencesAtCursor(),
+    "code.symbols": () => lsp.openDocumentSymbols(currentPath()),
+    "code.workspaceSymbols": () => lsp.openWorkspaceSymbols(),
     "help.whatsNew": () => ui.toggleOverlay("whatsNew"),
     "help.keys": () => ui.toggleOverlay("help"),
   };

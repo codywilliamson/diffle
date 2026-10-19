@@ -23,6 +23,6 @@
         </dl>
       </section>
     {/each}
-    <p class="text-xs text-dim break-inside-avoid">A number before a key repeats it: 10j moves ten lines. A count waits for the next key or Esc. A half-typed g chord is dropped after one second.</p>
+    <p class="text-xs text-dim break-inside-avoid">A number before a key repeats it: 10j moves ten lines. A count waits for the next key or Esc. A half-typed g chord is dropped after one second. Ctrl or Cmd plus click on a word goes to its definition; resting the pointer on a word shows its docs.</p>
   </div>
 </Modal>
