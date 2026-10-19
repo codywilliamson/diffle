@@ -1,7 +1,7 @@
 // pure helpers for the self-updater and installer: which release asset this machine needs,
 // how to read the checksum manifest, and whether a package manager owns this install.
 
-import { isNpmInstalledPath, NPM_MAIN_PACKAGE } from "./npmPackage";
+import { nodePackageManagerFor, nodeUpdateCommand } from "./npmPackage";
 import { PRODUCT } from "./product";
 
 // the release target slug for a platform/arch, e.g. "windows-x64", "darwin-arm64".
@@ -30,7 +30,8 @@ export function parseChecksum(manifest: string, name: string): string | null {
 // replace ourselves. self-update through a manager would fight the manager, so we refuse it.
 export function detectPackageManager(execPath: string): string | null {
   const p = execPath.replace(/\\/g, "/").toLowerCase();
-  if (isNpmInstalledPath(p)) return "npm"; // first: npm globals live under /opt/homebrew, scoop and /usr too
+  const node = nodePackageManagerFor(p);
+  if (node) return node; // first: node globals live under /opt/homebrew, scoop and /usr too
   if (p.includes("/homebrew/") || p.includes("/cellar/")) return "homebrew";
   if (p.includes("/scoop/")) return "scoop";
   if (p.includes("/winget") || p.includes("/windowsapps/")) return "winget";
@@ -42,7 +43,7 @@ export function detectPackageManager(execPath: string): string | null {
 export function managerCommand(manager: string): string {
   if (manager === "homebrew") return `brew upgrade ${PRODUCT.name}`;
   if (manager === "scoop") return `scoop update ${PRODUCT.name}`;
-  if (manager === "npm") return `npm i -g ${NPM_MAIN_PACKAGE}@latest`;
+  if (manager === "npm" || manager === "pnpm" || manager === "yarn") return nodeUpdateCommand(manager);
   if (manager === "winget") return `winget upgrade ${PRODUCT.name}`;
   return `use your package manager to upgrade ${PRODUCT.name}`;
 }
