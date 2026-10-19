@@ -128,6 +128,8 @@
         {#each groups as group (group.path + group.rows[0]?.index)}
           <div class="px-4 pb-0.5 pt-2 font-mono text-xs text-muted" data-search-group>{group.path}</div>
           {#each group.rows as { hit, index } (index)}
+            <!-- keys are handled once, by the listbox -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div
               role="option"
               tabindex="-1"
