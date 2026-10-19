@@ -43,4 +43,23 @@ describe("CommentEditor", () => {
     const editor = screen.getByRole("textbox", { name: "Comment text" });
     expect(editor).toHaveAccessibleDescription(/Enter to save · Esc to cancel/);
   });
+
+  it("offers no Suggest change without anchored lines", () => {
+    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn() });
+    expect(screen.queryByRole("button", { name: "Suggest change" })).toBeNull();
+  });
+
+  it("inserts a suggestion fence prefilled with the anchored lines, by button and by Ctrl+G", async () => {
+    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn(), suggestLines: ["a = 1", "b = 2"] });
+    const editor = screen.getByRole("textbox", { name: "Comment text" });
+
+    await fireEvent.input(editor, { target: { value: "rename these" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Suggest change" }));
+    expect(editor).toHaveValue("rename these\n```suggestion\na = 1\nb = 2\n```");
+
+    await fireEvent.input(editor, { target: { value: "" } });
+    await fireEvent.keyDown(editor, { key: "g", ctrlKey: true });
+    expect(editor).toHaveValue("```suggestion\na = 1\nb = 2\n```");
+    expect(editor).toHaveAccessibleDescription(/Ctrl\+G to suggest a change/);
+  });
 });

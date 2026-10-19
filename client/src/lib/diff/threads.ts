@@ -2,7 +2,8 @@
 // new-side lines never collide. the ui store holds the live add/select state; these functions
 // answer "is this line pending/in-range?" and build the comment to save.
 
-import type { Comment, DiffLine } from "$types";
+import type { Comment, DiffFile, DiffLine } from "$types";
+import { anchoredLines } from "$lib/anchor";
 
 export type Side = "old" | "new";
 
@@ -70,6 +71,14 @@ export function isAddingAt(adding: AddTarget | null, file: string, side: Side, l
     (adding.side ?? "new") === side &&
     (adding.endLine ?? adding.line) === line
   );
+}
+
+// the new-side lines under the open editor, for "Suggest change"; undefined where a suggestion
+// makes no sense (file-level comments, old-side lines).
+export function suggestLinesFor(file: DiffFile, adding: AddTarget | null): string[] | undefined {
+  if (!adding || adding.file !== file.path || adding.line == null || (adding.side ?? "new") !== "new") return undefined;
+  const lines = anchoredLines(file, "new", adding.line, adding.endLine ?? adding.line);
+  return lines.length > 0 ? lines : undefined;
 }
 
 // normalize the pending selection before it becomes a durable comment anchor.
