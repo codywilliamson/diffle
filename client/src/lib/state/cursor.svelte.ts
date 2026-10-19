@@ -110,7 +110,11 @@ export function createCursorStore(deps: CursorDeps) {
 
   function walk(step: typeof jumpBack, seed: string | undefined): void {
     const from = base(seed);
-    const taken = step(history, from);
+    // an open range stays on its side and file: entries that would leave them are passed over
+    let taken = step(history, from);
+    while (taken.target && visualAnchor && (taken.target.path !== visualAnchor.path || taken.target.side !== visualAnchor.side)) {
+      taken = step(taken.history, taken.target);
+    }
     const target = taken.target;
     if (!target) return;
     history = taken.history;
