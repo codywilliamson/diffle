@@ -89,6 +89,36 @@ test("in single-file view a hit in another, collapsed file opens it and Ctrl+o c
   }
 });
 
+test("single-file view opens a hit in a lockfile expanded, and click then j then Enter jumps to the highlighted hit", async ({ page }) => {
+  const fixture = makeFixture([
+    { path: "a.ts", base: "const needle = 1;\n", work: "const needle = 2;\nconst needleTwo = 3;\n" },
+    { path: "package-lock.json", base: '{\n  "lockneedle": 1\n}\n', work: '{\n  "lockneedle": 2\n}\n' },
+  ]);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await gotoApp(page, await url);
+    await expect(page.locator("tr.diff-row, .split-line").first()).toBeVisible();
+    await page.keyboard.press("o");
+    await page.keyboard.press("g");
+    await page.keyboard.press("/");
+    await page.keyboard.type("needle");
+    await expect(options(page)).toHaveCount(5);
+    // click selects and jumps; j moves the highlight; Enter jumps to that one
+    await options(page).nth(0).click();
+    await page.keyboard.press("j");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-file-path='a.ts'] [data-cursor]")).toHaveAttribute("data-newline", "1");
+    await page.keyboard.press("Control+o");
+    await expect(page.locator("[data-file-path='a.ts'] [data-cursor]")).toHaveAttribute("data-oldline", "1");
+    // the lockfile opens expanded and the cursor lands on its hit
+    await options(page).nth(3).click();
+    await expect(page.locator("[data-file-path='package-lock.json'] [data-cursor]")).toHaveAttribute("data-oldline", "2");
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
 test("an old-side hit in a renamed file lands on the old line", async ({ page }) => {
   const { fixture, server, url } = setup();
   try {

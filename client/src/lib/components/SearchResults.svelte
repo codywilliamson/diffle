@@ -135,7 +135,6 @@
               data-hit-index={index}
               class="flex cursor-pointer items-baseline gap-2 px-4 py-0.5 font-mono text-xs hover:bg-surface-2 {index === search.selected ? 'bg-surface-2 shadow-[inset_2px_0_0_var(--accent)]' : ''}"
               onclick={() => search.activate(index)}
-              onkeydown={(event) => event.key === "Enter" && search.activate(index)}
             >
               <span class="w-8 shrink-0 text-dim">{hit.side}</span>
               <span class="w-10 shrink-0 text-right text-dim">{hit.line}</span>

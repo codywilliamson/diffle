@@ -230,11 +230,13 @@ export function createCursorStore(deps: CursorDeps) {
         commit({ path: file.path, side: pref, line: FILE_LEVEL }, from, { jump: true, reveal: "file" });
         return;
       }
+      // always ask for the file open: a file that mounts later (single-file view) would otherwise
+      // collapse itself as noise (lockfile, generated) before the cursor lands
+      deps.open?.(file.path);
       if (landOnHit(hit, from)) return;
       pendingHit = hit;
       pendingFrom = from;
       deps.follow(file.path); // single-file view only mounts the active file
-      deps.open?.(file.path);
     },
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
