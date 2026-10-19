@@ -90,10 +90,22 @@ function renameLegacyBackups(rc: string): void {
   }
 }
 
-// true when some rc file carries a nittle PATH block for `dir` (the installer's, or this migration's)
-export function hasNittleBlock(home: string, env: NodeJS.ProcessEnv, dir: string): boolean {
+// an unmanaged rc line that already puts `dir` on PATH ("export PATH=$HOME/.nittle/bin:$PATH", fish_add_path ...)
+function namesDir(line: string, home: string, dir: string): boolean {
+  const text = line.trim();
+  if (!text || text.startsWith("#") || !/PATH|fish_add_path/.test(text)) return false;
+  const expanded = text.replaceAll("${HOME}", home).replaceAll("$HOME", home).replace(/(^|[\s"'=:])~/g, `$1${home}`);
+  return expanded.split(/["'\s=]+/).some((token) =>
+    [token, token.replace(/:\$\{?PATH\}?$/, ""), ...token.split(":")].some((candidate) => candidate !== "" && candidate !== "$PATH" && samePath(candidate, dir)));
+}
+
+// true when a new shell gets `dir` on PATH from an rc file: a nittle block for it, or a hand-written line naming it
+export function hasRcEntryFor(home: string, env: NodeJS.ProcessEnv, dir: string): boolean {
   return rcCandidates(home, env).some((rc) => {
-    try { return hasNittleBlockFor(readFileSync(rc, "utf8").split("\n"), dir); } catch { return false; }
+    try {
+      const lines = readFileSync(rc, "utf8").split("\n");
+      return hasNittleBlockFor(lines, dir) || lines.some((line) => namesDir(line, home, dir));
+    } catch { return false; }
   });
 }
 

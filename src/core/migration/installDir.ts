@@ -12,107 +12,20 @@
 // summary lines go to stderr; stdout may be carrying mcp protocol.
 
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, delimiter, dirname, join } from "node:path";
-import { installDir } from "../installedBinary";
+import { join } from "node:path";
 import { readUserState, writeUserState } from "../userState";
-import { detectPackageManager } from "../updateTarget";
-import { stopLegacyMcpServers } from "../mcpProcesses";
 import { PRODUCT } from "../product";
 import { samePath } from "../../utils/pathWithin";
 import { findLegacyAgents } from "./agentPlugins";
 import { removeEmptyLegacyDirs } from "./dataDir";
+import { defaultDeps, TAG, type InstallDirDeps } from "./installDirDeps";
 import { clearLegacyInstall, installBinaryCopy, sameBytes } from "./installDirCopy";
-import { hasNittleBlock, swapRcBlocks } from "./installDirRc";
-import { defaultUserPathStore, swapUserPath, userPathHas, type UserPathStore } from "./installDirWinPath";
+import { swapPath, sweepStalePath } from "./installDirPath";
+import { plan, type Plan } from "./installDirPlan";
 import type { MigrationRecord } from "../../types";
 import type { MigrationStep } from "./runner";
 
-export interface InstallDirDeps {
-  home: string;
-  platform: NodeJS.Platform;
-  execPath: string;
-  env: NodeJS.ProcessEnv;
-  pathStore: UserPathStore; // windows user PATH
-  stopServers: () => unknown;
-  log: (line: string) => void;
-}
-
-const TAG = `[${PRODUCT.name}]`;
-const exeName = (name: string, platform: NodeJS.Platform) => (platform === "win32" ? `${name}.exe` : name);
-const fromEnv = (env: NodeJS.ProcessEnv, name: string) => env[PRODUCT.envPrefix + name] ?? env[PRODUCT.legacyEnvPrefix + name];
-
-function defaultDeps(overrides: Partial<InstallDirDeps>): InstallDirDeps {
-  const env = overrides.env ?? process.env;
-  return {
-    home: homedir(), platform: process.platform, execPath: process.execPath, env,
-    pathStore: defaultUserPathStore(env), stopServers: stopLegacyMcpServers, log: (line) => console.error(line),
-    ...overrides,
-  };
-}
-
-// is `dir` already reachable from a new shell: on this process's PATH, in the user PATH (windows),
-// or behind a nittle block in an rc file (unix)
-function reachable(deps: InstallDirDeps, dir: string): boolean {
-  const separator = deps.platform === "win32" ? ";" : delimiter; // non-win32 only differs from the host in tests
-  const onPath = (deps.env.PATH ?? deps.env.Path ?? "").split(separator).some((entry) => entry !== "" && samePath(entry, dir, deps.platform));
-  return onPath || (deps.platform === "win32" ? userPathHas(deps.pathStore, dir) : hasNittleBlock(deps.home, deps.env, dir));
-}
-
-// swaps the managed diffle PATH entry for the nittle one. true when the nittle dir is reachable afterwards.
-// never edits anything but the installer's own entries; otherwise it says what to change by hand.
-function swapPath(deps: InstallDirDeps, legacyDir: string, newDir: string): boolean {
-  const log = (line: string) => deps.log(`${TAG} ${line}`);
-  const manual = `replace ${legacyDir} with ${newDir} on your PATH (shell profile or user PATH), then run ${PRODUCT.name} again; the ${PRODUCT.legacyName} binary stays until then`;
-  if (fromEnv(deps.env, "NO_MODIFY_PATH")) {
-    const ok = reachable(deps, newDir);
-    if (!ok) log(`${PRODUCT.envPrefix}NO_MODIFY_PATH is set; ${manual}`);
-    return ok;
-  }
-  const changed = deps.platform === "win32"
-    ? swapUserPath(deps.pathStore, legacyDir, newDir, log)
-    : swapRcBlocks({ home: deps.home, env: deps.env, legacyDir, newDir, log }).length > 0;
-  if (changed || reachable(deps, newDir)) return true;
-  log(`no ${PRODUCT.legacyName} PATH entry managed by the installer was found; ${manual}`);
-  return false;
-}
-
-
-interface Plan {
-  legacyDir: string;
-  binaryName: string;
-  hasBinary: boolean;
-  fromLegacyDir: boolean; // the running binary is the diffle install being retired
-  newDir: string;
-  target: string; // the nittle binary the install is moving to (or already is)
-}
-
-// the executable's name without extension, when it is exactly `name` (so not nittle-mcp, diffle-linux-x64...)
-const isNamed = (execPath: string, name: string) => basename(execPath).replace(/\.exe$/i, "").toLowerCase() === name;
-
-// what to do for this run, or null when there is no diffle install to move. only an installed copy
-// of exactly `diffle` (not a package-manager one) or `nittle` (running from the install dir) qualifies;
-// MCPB servers (nittle-mcp) and binaries run from anywhere else never migrate and never become the
-// destination. a `diffle` binary is the install itself wherever it lives, so a 0.28.x install made
-// once with DIFFLE_INSTALL_DIR=/custom is found without the variable. a nittle run is told where the
-// diffle install is by the installers (NITTLE_LEGACY_INSTALL_DIR) or the old DIFFLE_INSTALL_DIR.
-function plan(deps: InstallDirDeps): Plan | null {
-  const { platform, home, env, execPath } = deps;
-  const fromLegacyDir = isNamed(execPath, PRODUCT.legacyName) && !detectPackageManager(execPath);
-  const installedNittle = isNamed(execPath, PRODUCT.name) && !detectPackageManager(execPath) && samePath(dirname(execPath), installDir(home, env), platform);
-  if (!fromLegacyDir && !installedNittle) return null;
-  const legacyDir = fromLegacyDir ? dirname(execPath) : env[`${PRODUCT.envPrefix}LEGACY_INSTALL_DIR`] ?? env[`${PRODUCT.legacyEnvPrefix}INSTALL_DIR`] ?? readUserState(home).migration?.legacyDir ?? join(home, PRODUCT.legacyDataDir, "bin");
-  if (!existsSync(legacyDir)) return null;
-
-  // the transition asset installs itself; an installed nittle is already in place
-  const newDir = fromLegacyDir ? installDir(home, env) : dirname(execPath);
-  const binaryName = exeName(PRODUCT.legacyName, platform);
-  return {
-    legacyDir, binaryName, fromLegacyDir, newDir,
-    hasBinary: existsSync(join(legacyDir, binaryName)),
-    target: fromLegacyDir ? join(newDir, exeName(PRODUCT.name, platform)) : execPath,
-  };
-}
+export type { InstallDirDeps } from "./installDirDeps";
 
 // agent configs (or plugins) that still launch the diffle binary, as names; empty when all are migrated
 function stillLaunchingDiffle(deps: InstallDirDeps): string[] {
@@ -128,7 +41,7 @@ function stillLaunchingDiffle(deps: InstallDirDeps): string[] {
 export function installNittleBinary(overrides: Partial<InstallDirDeps> = {}): string {
   const deps = defaultDeps(overrides);
   const found = plan(deps);
-  if (!found) return "";
+  if (!found || !found.legacyExists) return "";
   if (found.hasBinary) deps.stopServers();
   if (!found.fromLegacyDir) return "";
   const outcome = installBinaryCopy(deps.execPath, found.target, deps.platform);
@@ -146,6 +59,12 @@ export function removeDiffleInstall(overrides: Partial<InstallDirDeps> = {}): st
     // a remembered install that is gone by now needs no retry
     const remembered = readUserState(deps.home).migration;
     if (remembered && !existsSync(remembered.legacyDir)) rememberMigration(deps, undefined);
+    return "";
+  }
+  if (!found.legacyExists) {
+    // the bin dir is gone; the installer's PATH entry or marker block may still name it
+    if (!samePath(found.legacyDir, found.newDir, deps.platform)) sweepStalePath(deps, found.legacyDir, found.newDir);
+    if (readUserState(deps.home).migration) rememberMigration(deps, undefined);
     return "";
   }
   let complete = false;
