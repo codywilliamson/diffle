@@ -52,7 +52,24 @@ describe("detectPackageManager", () => {
     expect(detectPackageManager("/usr/local/lib/node_modules/nittle-linux-x64/bin/nittle")).toBe("npm");
     expect(detectPackageManager("/home/x/.nvm/versions/node/v22/lib/node_modules/nittle-darwin-arm64/bin/nittle")).toBe("npm");
     expect(detectPackageManager(String.raw`C:\Users\x\AppData\Roaming\npm\node_modules\nittle-win32-x64\bin\nittle.exe`)).toBe("npm");
-    expect(detectPackageManager("/p/node_modules/.pnpm/nittle-linux-arm64@1.0.0/node_modules/nittle-linux-arm64/bin/nittle")).toBe("npm");
+    expect(detectPackageManager("/p/node_modules/.pnpm/nittle-linux-arm64@1.0.0/node_modules/nittle-linux-arm64/bin/nittle")).toBe("pnpm");
+    expect(managerCommand("npm")).toBe("npm i -g nittle@latest");
+  });
+
+  it("tells pnpm and yarn global installs apart from npm", () => {
+    const pnpm = [
+      "/home/x/.local/share/pnpm/global/5/.pnpm/nittle-linux-x64@1.0.0/node_modules/nittle-linux-x64/bin/nittle",
+      "/p/pnpm-global/5/node_modules/nittle-darwin-arm64/bin/nittle",
+    ];
+    const yarn = [
+      "/home/x/.config/yarn/global/node_modules/nittle-linux-x64/bin/nittle",
+      String.raw`C:\Users\x\AppData\Local\Yarn\Data\global\node_modules\nittle-win32-x64\bin\nittle.exe`,
+      "/home/x/.yarn/berry/global/node_modules/nittle-linux-arm64/bin/nittle",
+    ];
+    for (const p of pnpm) expect(detectPackageManager(p)).toBe("pnpm");
+    for (const p of yarn) expect(detectPackageManager(p)).toBe("yarn");
+    expect(managerCommand("pnpm")).toBe("pnpm add -g nittle@latest");
+    expect(managerCommand("yarn")).toBe("yarn global add nittle@latest");
     expect(managerCommand("npm")).toBe("npm i -g nittle@latest");
   });
 

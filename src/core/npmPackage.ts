@@ -27,6 +27,23 @@ export function npmPlatformPackage(p: NpmPlatform): string {
 // matches .../node_modules/nittle-<os>-<cpu>/... for npm, pnpm and yarn layouts
 const PLATFORM_DIR = new RegExp(`/node_modules/${PRODUCT.name}-(linux|darwin|win32)-(x64|arm64)/`);
 
-export function isNpmInstalledPath(execPath: string): boolean {
-  return PLATFORM_DIR.test(execPath.replaceAll("\\", "/").toLowerCase());
+export type NodePackageManager = "npm" | "pnpm" | "yarn";
+
+// which node package manager installed the binary at execPath, or null when it is not under a platform package.
+export function nodePackageManagerFor(execPath: string): NodePackageManager | null {
+  const p = execPath.replaceAll("\\", "/").toLowerCase();
+  if (!PLATFORM_DIR.test(p)) return null;
+  if (p.includes("/.pnpm/") || p.includes("pnpm-global") || p.includes("/pnpm/global/")) return "pnpm";
+  if (p.includes("/.yarn/") || /\/yarn\/(data\/)?global\//.test(p) || p.includes("/.config/yarn/")) return "yarn";
+  return "npm";
+}
+
+const GLOBAL_INSTALL: Record<NodePackageManager, string> = {
+  npm: "npm i -g",
+  pnpm: "pnpm add -g",
+  yarn: "yarn global add",
+};
+
+export function nodeUpdateCommand(manager: NodePackageManager): string {
+  return `${GLOBAL_INSTALL[manager]} ${NPM_MAIN_PACKAGE}@latest`;
 }
