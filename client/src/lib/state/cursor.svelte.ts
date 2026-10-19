@@ -238,6 +238,11 @@ export function createCursorStore(deps: CursorDeps) {
       pendingFrom = from;
       deps.follow(file.path); // single-file view only mounts the active file
     },
+    // remember where the reader is before they leave the diff for something that is not a cursor
+    // position (the read-only file viewer), so Ctrl+o has somewhere to return to
+    markJump(seed: string | undefined): void {
+      history = recordJump(history, base(seed));
+    },
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
 

@@ -9,6 +9,7 @@ import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
+import { createLspStore, type LspStore } from "$lib/lsp/lsp.svelte";
 import { reviewOrder } from "$lib/diff/reviewOrder";
 import { canOverrideFileSplit } from "$lib/diff/fileMode";
 
@@ -24,6 +25,7 @@ export interface AppState {
   cursor: CursorStore;
   search: SearchStore;
   searchAll: SearchAllStore;
+  lsp: LspStore;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -58,7 +60,16 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     goToLine: cursor.goToLine,
   });
   const searchAll = createSearchAllStore({ jump: cursor.goToHit });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll };
+  const lsp = createLspStore({
+    files: () => diff.files,
+    goToHit: cursor.goToHit,
+    markJump: () => cursor.markJump(undefined),
+    closeSearch: () => {
+      search.close();
+      searchAll.close();
+    },
+  });
+  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp };
 }
 
 // call during component init at the app root.
