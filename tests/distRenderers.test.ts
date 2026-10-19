@@ -23,6 +23,12 @@ describe("homebrew formula", () => {
     }
   });
 
+  it("marks every url nounzip because the assets are raw executables", () => {
+    const urls = renderFormula(VERSION, checksums).split("\n").filter((l) => l.trim().startsWith("url "));
+    expect(urls).toHaveLength(4);
+    for (const line of urls) expect(line).toEndWith(", using: :nounzip");
+  });
+
   it("fails loudly when a checksum is missing", () => {
     expect(() => renderFormula(VERSION, checksums.split("\n").filter((l) => !l.includes("darwin-x64")).join("\n"))).toThrow(
       "nittle-darwin-x64",

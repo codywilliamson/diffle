@@ -8,22 +8,22 @@ exports[`homebrew formula matches the snapshot 1`] = `
 
   on_macos do
     on_arm do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-arm64"
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-arm64", using: :nounzip
       sha256 "4444444444444444444444444444444444444444444444444444444444444444"
     end
     on_intel do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-x64"
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-x64", using: :nounzip
       sha256 "3333333333333333333333333333333333333333333333333333333333333333"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-arm64"
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-arm64", using: :nounzip
       sha256 "2222222222222222222222222222222222222222222222222222222222222222"
     end
     on_intel do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-x64"
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-x64", using: :nounzip
       sha256 "1111111111111111111111111111111111111111111111111111111111111111"
     end
   end
