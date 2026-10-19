@@ -1,7 +1,7 @@
 // GET /api/lsp/symbols: ?path= is the document outline (a tree, with the symbols the diff touches
 // marked changed); ?query= asks every language server in the diff and merges what comes back.
 
-import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspLocation, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
+import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspLocation, LspRange, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
 import type { LspBridge } from "../core/lsp/bridge";
 import { languageForPath, languagesInPaths } from "../core/lsp/registry";
 import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol, type WireWorkspaceSymbol } from "../core/lsp/symbols";
@@ -30,6 +30,9 @@ export function changedNewLines(file: DiffFile | undefined): Set<number> {
   return changed;
 }
 
+// lsp range ends are exclusive: an end at column 0 belongs to the line before it
+export const lastLineOf = (range: LspRange): number => (range.end.character === 0 && range.end.line > range.start.line ? range.end.line - 1 : range.end.line);
+
 function overlaps(changed: Set<number>, first: number, last: number): boolean {
   for (let line = first; line <= last; line++) if (changed.has(line)) return true;
   return false;
@@ -44,7 +47,7 @@ export function handleLspDocumentSymbols(ctx: ServerContext, path: string, signa
       return {
         name: symbol.name, kind: symbol.kind, ...(symbol.detail ? { detail: symbol.detail } : {}),
         range, selectionRange: doc.targets.range(location, symbol.selection),
-        changed: overlaps(changed, range.start.line, range.end.line), children: symbol.children.map(convert),
+        changed: overlaps(changed, range.start.line, lastLineOf(range)), children: symbol.children.map(convert),
       };
     };
     const result = await doc.bridge.request("textDocument/documentSymbol", { textDocument: { uri: doc.uri } }, { signal });
@@ -74,6 +77,11 @@ export async function handleLspWorkspaceSymbols(ctx: ServerContext, query: strin
   return guarded(ctx, languages[0], async () => {
     const answers = await Promise.allSettled(bridges.map((bridge) => bridge.request("workspace/symbol", { query }, { signal })));
     if (signal.aborted) return lspError("cancelled", "request cancelled", CANCELLED_STATUS);
+    const failures = answers.filter((answer): answer is PromiseRejectedResult => answer.status === "rejected");
+    if (failures.length === answers.length) {
+      const reason = failures[0]?.reason;
+      return lspError("request-failed", reason instanceof Error ? reason.message : "workspace symbol search failed", 502);
+    }
     // locate, dedupe, rank and cap first; only the kept symbols get their ranges converted
     const seen = new Set<string>();
     const found: Array<{ symbol: WireWorkspaceSymbol; location: LspLocation; resolver: TargetResolver }> = [];
