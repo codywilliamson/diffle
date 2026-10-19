@@ -4,34 +4,190 @@
 
 ## Rename to nittle (2026-10-17)
 
-Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008-rename-diffle-to-nittle.md)). This section is the resume ledger. The lead updates it after each merge. Everything below it is the diffle-era history and stays as written.
+Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008-rename-diffle-to-nittle.md)). This section is the resume ledger, current as of 2026-10-19 late evening. Everything below it is the diffle-era history and stays as written.
 
-State: set R (slices #207 to #213) is in progress. #214 (manual steps) is Cody's.
+### State
 
-| slice | what | state |
+v0.29.0 is released (the rename). nittle.dev is live, diffle.dev answers every URL with a 301 to the same path and query on nittle.dev, and a real `diffle update` from 0.28.1 to 0.29.0 passed on ubuntu, macos and windows (14, 14 and 13 checks, live smoke run 39336050970). In flight: the language server client halves (#181 to #184), the detached worktree server (#186, PR #261), the fixes from the rename verify pass (PR #269), and Release Please PR #259 (0.30.0).
+
+### Done
+
+| issue | PRs | outcome |
 | --- | --- | --- |
-| #207 | product identity, binary, `src/core/migration/` runner | merged, PR #215 |
-| #208 | data dir, env vars, browser prefs | in review |
-| #209 | plugin, MCP server, doctor migration | in progress |
-| #210 | installers, release assets, `diffle-<os>-<arch>` transition asset | not recorded here yet |
-| #211 | client UI name, mark, what's-new | in review, PR #217 |
-| #212 | docs site to nittle.dev, diffle.dev redirect | not recorded here yet |
-| #213 | repo docs, ADR 0008, `docs/diffle` to `docs/nittle` (this slice) | in review |
-| #214 | repo rename, registries, Cloudflare | Cody, manual |
+| #207 | #215 | product identity, binary and migration runner switched to nittle |
+| #208 | #222 | data dir, env vars and prefs migrate to `~/.nittle` (symlink alias, lock, fail-closed process check) |
+| #209 | #223 | diffle and loupe review plugins and MCP configs swap to nittle; `doctor` per agent |
+| #210 | #241 | installers, `nittle-*` assets plus `diffle-*` transition copies, update path from 0.28.x; upgrade smoke on 3 OSes |
+| #211 | #217 | client UI renamed, What's New entry for 0.29.0 |
+| #212 | #257, #258 | docs site on nittle.dev; Worker serves nittle.dev and diffle.dev via wrangler routes |
+| #213 | #218 | repo docs renamed, ADR 0008, `docs/diffle` to `docs/nittle` |
+| #199 | #225 | visual regression: 26 snapshot tests in a pinned container; follow-up #227 |
+| #175 | #239 | keymap grammar (counts, chords), line cursor, hunk jumps, jump history |
+| #176 | #247 | comment on a line, visual range or file by key; follow-ups in #250 |
+| #177 | #246 | `/` file search with `n` and `N` |
+| #178 | #235, #255 | `GET /api/search` (regex in a killable worker, caps), then the `g/` results panel; follow-ups in #267 |
+| #180 | #232 | language server pool: framing, cancellation, lazy start, restart-once, status |
+| #181 to #184 server half | #245 | definition, hover, references and symbols endpoints; CI bench cold 1227 ms, warm p95 2.8 ms |
+| #187 | #229, #230 | `--wait` blocks for review feedback; `--json` help corrected |
+| #190 | #224 | `nittle show [rev]` reviews one commit; option and field injection closed |
+| #192 | #268, #270 | suggestion blocks in comments and the compiled prompt; #270 restored the visual baselines |
+| #198 | #236 | completions for bash, zsh, fish and powershell from one table |
+| #195, #196 | #251 | npm shim and platform packages, brew and scoop renderers, gated publish jobs, actionlint in CI (issues stay open until Cody enables publishing) |
+| safety | #219 | tests get an isolated home; migrations run only from a compiled binary (D22) |
+| security | #240 | loopback Host guard on every route, loopback bind |
 
-Decisions with evidence:
-- No `diffle` or `loupe` alias, first-run migration, `DIFFLE_*` fallback: epic #206 update of 2026-10-17.
-- Name availability, checked 2026-10-16: nittle free on npm, crates.io and GitHub. nittle.dev registered on Cloudflare.
-- The repo slug stays `codywilliamson/diffle` (badges, marketplace add, advisories) until the GitHub rename. `PRODUCT.repository` flips with it.
+Closed and replaced by a rebuilt PR (linear history, no force-push): #216, #221, #226, #228, #231, #233, #234, #238, #242, #243, #244, #252, #254, #260.
 
-Cloudflare commands run: none recorded yet.
+### In progress
 
-Cody's manual list (#214): rename the GitHub repo, then flip `PRODUCT.repository` to the new slug (one-line PR); claim the nittle package names on npm and crates.io; handles and trademark search; repo description, topics and website; comment the new name on #126. The run itself attaches nittle.dev and the diffle.dev 301 through `cf` after #212 (dry run first, logged here), and cuts the first nittle release once set R is merged and the site is live.
+| PR | what | waiting on |
+| --- | --- | --- |
+| #269 | fixes for #262 to #266 from the verify pass, one commit per issue | final CI and merge; review round 2 had no blocking findings, auto-merge armed |
+| #261 | #186 detached worktrees for non-checked-out revisions | round 2 fixes (fsmonitor during probes, ownership record written before creation), then lead verification |
+| #259 | Release Please 0.30.0 | merge after #269 and #261 land; check the version matches the What's New entry (D19) and the changelog range is not whole-history |
+| dependabot | #253, #173, #168, #166, #163 | triage; #163 is the high alert on source-map-js in `demos/` |
 
-Open risks:
-- The `diffle-<os>-<arch>` transition asset must keep shipping for the set number of releases, or 0.28.x updaters strand.
-- The upgrade smoke job on three OSes is the proof that nothing named diffle survives an update. Until it is green, treat the migration as unproven.
-- Published demo media still shows the diffle wordmark until the demos are rebuilt (`demos/` sources are renamed, nothing re-rendered).
+Client work for #181 to #184 (keys `gd gy gh gA gs gS`, hover card, pickers, read-only view, e2e in the ubuntu lsp job) has a worker running and no PR yet.
+
+### Remaining queue
+
+- #181 to #184 client halves (in progress).
+- #185 language registry, status command, overrides (pending).
+- #186 (PR #261, in review).
+- MKT (pending).
+- The K, H, L and D verify passes.
+- Second parity audit (the five-merge trigger is long past).
+- Flaky test hunt: a worker is on the split-panes 390px drag e2e, load-dependent `bun test` failures (lspNavigation, an MCP stdio timeout), and the bash completion tests under Git Bash.
+- Demo media render, deferred (D30). Tell Cody first, concurrency 2, 12 percent free RAM kill guard.
+- Installer completions offer (snippets in the run's tmp, `installer-completions-198.md`).
+- Open follow-up issues: #227, #249, #250, #256, #267, plus #262 to #266 until #269 merges.
+- Epic and tracking issues still open: #206, #214, #179, #195, #196, #126.
+- Proposed: parallel `site-check` runs can pass against the previous deployment before the Workers build finishes; verify the deployed revision instead.
+
+### Decisions with evidence
+
+- D1 name is nittle (nit + le); nittle.dev registered 2026-10-16.
+- D2 work in a dedicated worktree off origin/main.
+- D3 time budget 48h wall clock, no token cap.
+- D4 the independent verify pass runs through a second model CLI with computer-use tools; checked 2026-10-17.
+- D5 closed as not wanted: #197, #202, #203, #205. Do not reopen.
+- D6 bot review comments are not the gate; the local read-only review is.
+- D7 full rip-and-ship authority within the run brief.
+- D8 no diffle or loupe alias (Cody, epic #206 update).
+- D9 atomic rename to `~/.nittle`, merge records by id if both exist, delete `~/.diffle` only after the data is confirmed (Cody, #208 update).
+- D10 how many releases keep the `diffle-*` transition assets: set to 3 (`TRANSITION_ASSET_RELEASES`, PR #241).
+- D11 only the installer's marker block in the shell rc file is replaced; nothing else in a profile is touched.
+- D12 `PRODUCT.repository` stays `codywilliamson/diffle` until the repo is renamed (#214), then a one-line PR flips it.
+- D13 no release until set R is merged and nittle.dev is live. Followed: release #248 merged 2026-10-19T21:34Z.
+- D14 the migration runs on the first invocation of the new binary, because the 0.28.x updater swaps the binary and never runs it.
+- D15 #207 does the mechanical rename including plugin dirs and adds the empty migration runner; #208, #209 and #210 each add a step.
+- D16 review gate is a read-only exec run against `git diff origin/main...HEAD`, because `--base` and a prompt cannot be combined; two rounds max.
+- D17 resolved bot threads are required by the main ruleset, so the lead replies and resolves them (evidence: #215 sat BLOCKED on 3 threads).
+- D18 `~/.diffle/bin` belongs to the #210 install step; the #208 data migration never moves it.
+- D19 What's New version 0.29.0 matches the release PR (checked on #248).
+- D20 Worker keeps the name `diffle` because Workers Builds is bound to it. Superseded in part by D33.
+- D21 never force-push; a rebased branch goes under a new name (`-v2`). One logged exception: 9d2e2e5 before any PR existed.
+- D22 incident, 2026-10-17 16:43Z to 16:49Z: worker tests on unmerged #208 and #209 ran migrations against Cody's real home. Fixed by #219. Restore is P1.
+- D23 upgrade smoke in two layers: a simulated swap on every PR (3 OSes), and a live `diffle update` after release.
+- D24 web/ deploys on merge to main, so #212 was held until the release was published.
+- D25 parity audit 1: 63 rows, 15 ahead, 24 parity, 24 behind; uncovered axes parked as P2.
+- D26 (Cody) all code changes go to workers; the lead triages, verifies and merges.
+- D27 one keymap grammar for #175 to #178 and LSP (`keymap-spec.md` in the run dir); chords `gd gy gh gr gs gS` reserved.
+- D28 LSP status has a sixth state, `idle`.
+- D29 the Windows UAC prompt is likely the sandbox service of the review tool, not the product; every review prompt carries a no-execution rule. Note: `tests/installPs1.test.ts` runs a fake text `nittle.exe`.
+- D30 (Cody) ship 0.29.0 without regenerated demo media; render later when idle.
+- D31 Esc cancels a pending count first, then closes the topmost layer.
+- D32 (Cody) after the pause, the remaining budget is about 31h of active time from 2026-10-19T20:47Z.
+- D33 nittle.dev attaches through `wrangler.jsonc` routes (the installed `cf` has no Workers custom-domain command); the routes must list both domains because wrangler reconciles (#258 review). The 301 is a zone ruleset.
+- D34 detached LSP worktrees link the user's `node_modules`; accepted risk is a server writing through the link, mitigated by typings acquisition off, no configured write paths, and unlink-only removal (tested byte-identical).
+
+### Cloudflare commands run
+
+Custom domain, D33. `cf` cannot attach a Worker custom domain, so PR #258 added to `wrangler.jsonc`:
+
+```
+routes: both nittle.dev and diffle.dev, each { "pattern": ..., "custom_domain": true }
+```
+
+`wrangler deploy --dry-run` exited 0 (it does not print routes). Workers Build on 41494a5 succeeded. nittle.dev `/`, `/install` and `/install.ps1` returned 200 and diffle.dev stayed 200 until the ruleset.
+
+Redirect, zone diffle.dev (7358a1d616725100067a6ec85de2adf0). Dry run:
+
+```
+cf rulesets account-rulesets create --zone 7358a1d616725100067a6ec85de2adf0 \
+  --kind zone --phase http_request_dynamic_redirect --rules <rules> --dry-run
+```
+
+```
+{
+  "command": "cf rulesets account-rulesets create",
+  "method": "POST",
+  "url": "https://api.cloudflare.com/client/v4/zones/diffle.dev/rulesets",
+  "pathParams": { "account-or-zone": "zones", "account-or-zone-id": "diffle.dev" },
+  "query": {},
+  "bodyKind": "json",
+  "body": {
+    "description": "Permanent redirect of every diffle.dev URL to the same path and query on nittle.dev (product rename, issue 212)",
+    "name": "diffle.dev to nittle.dev",
+    "kind": "zone",
+    "phase": "http_request_dynamic_redirect",
+    "rules": [
+      {
+        "description": "diffle.dev/* 301 to nittle.dev/*, path and query preserved",
+        "expression": "(http.host in {\"diffle.dev\" \"www.diffle.dev\"})",
+        "action": "redirect",
+        "action_parameters": {
+          "from_value": {
+            "status_code": 301,
+            "target_url": {
+              "expression": "concat(\"https://nittle.dev\", http.request.uri.path)"
+            },
+            "preserve_query_string": true
+          }
+        },
+        "enabled": true
+      }
+    ]
+  }
+}
+```
+
+Validate-only against the zone id: exit 0, nothing created (the list showed 0 dynamic_redirect rulesets). Real create: ruleset id a217cae4c9e14483b49896842b467ee9, rule id 3bfd1bba3a924d81be0d09800f823423, version 1.
+
+Proof: `curl -sSI` on diffle.dev `/`, `/install`, `/install.ps1` and `/getting-started/installation/?x=1` returned 301 with `Location: https://nittle.dev/<same path>?x=1`. nittle.dev `/`, `/install` and `/install.ps1` returned 200. `scripts/check-site.sh` printed "site check passed". `curl -fsSL https://diffle.dev/install | sh` fetched the nittle installer through the redirect (it stopped on unsupported OS MINGW, expected on Windows). `irm https://diffle.dev/install.ps1 | iex` into an isolated temp home installed nittle v0.29.0 with sha-256 verified, and `nittle --version` printed v0.29.0 plus the lineage line.
+
+### Cody's manual list
+
+- P1 (D22), optional: restore the local diffle install the run's tests changed. Data was moved, not lost. `mv ~/.nittle ~/.diffle`, then `claude plugin marketplace add codywilliamson/diffle` and `claude plugin install diffle-review@diffle-local --scope user`, then re-add the diffle-review plugin in your other agent if used. Optionally set `seenVersion` back in `~/.diffle/state.json`. Nothing depends on this.
+- P2 (D25), say which to add: (a) ranges `a...b`, worktree on either side, commit stepping; (c) remote and reverse-proxy use (`--host`, allowed-origin guard, relative asset paths); (d) a `nittle config` command; (e) arm64 runners (ubuntu-24.04-arm, windows-11-arm) in the CI matrix. (b) was dropped, `linguistGenerated()` already exists.
+- P3 (#195, #196): turn on distribution, steps below.
+- #214: rename the GitHub repo to `nittle`, then flip `PRODUCT.repository` (and the `REPO` slug in `install.sh` and `install.ps1`) in a one-line PR; claim the nittle names on npm and crates.io; handles and trademark search; repo description, topics and website; comment the new name on #126.
+- Make `e2e visual` a required check on main (ruleset change). #268 merged with it red.
+
+Distribution enable steps. Nothing publishes until these are done. Three release jobs are gated: `npm-publish` (+ `npm-smoke`), `tap-publish` (+ `brew-scoop-smoke`). Each is skipped unless its repo variable is `true`.
+
+0. Do the repo rename and flip `PRODUCT.repository` first. npm provenance checks `repository.url` against the repo that ran the workflow, so the first npm publish fails otherwise. Brew and Scoop work either way.
+1. npm (#195):
+   - Log in on npmjs.com with the owning account.
+   - Check `npm view nittle` is free. If taken, use a scope such as `@codywilliamson/nittle` and tell the lead; the name lives in `src/core/npmPackage.ts` and the updater hint.
+   - Trusted publishing needs an existing package. From a scratch dir, publish a `0.0.0` placeholder (`npm init -y`, `npm publish --access public`) for `nittle`, `nittle-linux-x64`, `nittle-linux-arm64`, `nittle-darwin-x64`, `nittle-darwin-arm64`, `nittle-win32-x64`, `nittle-win32-arm64`.
+   - For each package: Settings, Trusted Publisher, GitHub Actions. User `codywilliamson`, repository `nittle` (or `diffle` until renamed), workflow `release.yml`, environment blank.
+   - Set repo variable `NPM_PUBLISH` to `true`. No npm token is needed.
+2. Homebrew and Scoop (#196):
+   - Create public repos `codywilliamson/homebrew-tap` and `codywilliamson/scoop-bucket`, each with a README and an initial commit on `main`. If you pick other names, set repo variables `TAP_REPO` and `BUCKET_REPO` to `owner/name`.
+   - Create a fine-grained token: resource owner `codywilliamson`, only those two repos, Contents read and write, with an expiry.
+   - Add it as repo secret `DIST_REPO_TOKEN`, and set repo variable `TAP_PUBLISH` to `true`.
+3. After the next release PR merges, `npm-publish`, `npm-smoke`, `tap-publish` and `brew-scoop-smoke` should pass. Then try `npx nittle --version`, `brew install codywilliamson/tap/nittle` and `scoop bucket add nittle https://github.com/codywilliamson/scoop-bucket; scoop install nittle/nittle` once by hand. Drop the "coming soon" label in the README and installation page after the first publish (snippets in `docs-195-196.md` in the run's tmp). To turn a channel off, set its variable to anything but `true`. The release never depends on these jobs.
+
+### Open risks
+
+- The 0.28.1 updater reads any API failure (rate limit, network) as "already on the latest release". A user behind a blocked API never sees the upgrade, and the live smoke needed a rerun once. Tracked in #256 (retry in the smoke plus a clearer message; the old binary itself cannot change).
+- A conflicting legacy record is kept in `~/.diffle` instead of moving under `~/.nittle`, so `~/.diffle` cannot be fully removed. Tracked in #266, fix in #269.
+- Detached worktrees for #186 link the user's `node_modules` (D34). A language server could in theory write through the link. Mitigated, not eliminated.
+- Flaky tests under load: split-panes 390px drag e2e, bash completion tests on Git Bash, lspNavigation, an MCP stdio timeout. Cap concurrent workers at about 4 until the hunt lands.
+- `diffle-*` transition assets must keep shipping for 3 releases or 0.28.x updaters strand.
+- Published demo media still shows the diffle wordmark until the render (D30).
+- The repo slug is still `codywilliamson/diffle`; the old name clash on #126 stays until the rename.
 
 > Branch: `evolve`. The Svelte rewrite is complete, the binary is **self-contained**, the product is **rebranded loupe→diffle** (with loupe/`LOUPE_*`/`~/.loupe` compatibility for one release), the **release + installer channel** is wired (update check, `diffle update`, cross-target build, installers, Release Please), an **Astro Starlight docs site** (`web/`, live at diffle.dev via Cloudflare) is built + polished with real demo media, and **Phase 8 product demos** ship a Playwright-capture + Remotion pipeline under `demos/`. The domain **diffle.dev is registered** and the **GitHub repo is `codywilliamson/diffle`**. Phases 0–9 are committed and verified. **All that remains are the user's gated external actions: cut the first GitHub release, and — only once that ships — remove the loupe/`LOUPE_*`/`~/.loupe` compatibility layer.** This doc lets a fresh session confirm state without re-deriving it.
 
