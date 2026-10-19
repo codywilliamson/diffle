@@ -16,10 +16,12 @@ const COMMENT_ID = "c1";
 const REVIEWER_NOTE = "please rename this";
 const AGENT_REPLY = "renamed it";
 const SUGGESTION_ID = "c2";
+const DELETE_ID = "c3";
+const BLANK_ID = "c4";
 const SUGGESTED_TEXT = "three";
 const SUGGESTION_BODY = ["swap it", "```suggestion", SUGGESTED_TEXT, "```"].join("\n");
 
-interface Result { review: ReviewRecord; url?: string; suggestions?: ReviewSuggestion[]; }
+interface Result { review: ReviewRecord; url?: string; suggestions?: ReviewSuggestion[]; suggestionsError?: string; }
 
 function tempGitRepo(): string {
   const repo = mkdtempSync(join(tmpdir(), "nittle-loop-repo-"));
@@ -57,7 +59,9 @@ describe("agent loop over mcp stdio", () => {
       const posted = await fetch(`${baseUrl}/api/comments`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comments: [{ id: COMMENT_ID, file: "a.ts", line: 1, lineContent: "+two", text: REVIEWER_NOTE, createdAt: new Date().toISOString() },
-          { id: SUGGESTION_ID, file: "a.ts", line: 1, lineContent: "+two", text: SUGGESTION_BODY, createdAt: new Date().toISOString() }] }),
+          { id: SUGGESTION_ID, file: "a.ts", line: 1, lineContent: "+two", text: SUGGESTION_BODY, createdAt: new Date().toISOString() },
+          { id: DELETE_ID, file: "a.ts", line: 1, lineContent: "+two", text: "```suggestion\n```", createdAt: new Date().toISOString() },
+          { id: BLANK_ID, file: "a.ts", line: 1, lineContent: "+two", text: "```suggestion\n\n```", createdAt: new Date().toISOString() }] }),
       });
       expect(posted.ok).toBe(true);
       const outcome = await fetch(`${baseUrl}/api/review/outcome`, {
@@ -71,8 +75,11 @@ describe("agent loop over mcp stdio", () => {
       expect(comment?.text).toBe(REVIEWER_NOTE);
       expect(fetched.review.summary).toBe("needs changes");
       expect(fetched.suggestions).toEqual([
-        { commentId: SUGGESTION_ID, path: "a.ts", side: "new", startLine: 1, endLine: 1, original: "two", suggested: SUGGESTED_TEXT },
+        { commentId: SUGGESTION_ID, path: "a.ts", side: "new", startLine: 1, endLine: 1, original: ["two"], suggested: [SUGGESTED_TEXT] },
+        { commentId: DELETE_ID, path: "a.ts", side: "new", startLine: 1, endLine: 1, original: ["two"], suggested: [] }, // delete
+        { commentId: BLANK_ID, path: "a.ts", side: "new", startLine: 1, endLine: 1, original: ["two"], suggested: [""] }, // one blank line
       ]);
+      expect(fetched.suggestionsError).toBeUndefined();
 
       const replied = await call("reply_to_comment", { reviewId, commentId: COMMENT_ID, text: AGENT_REPLY });
       const reply = replied.review.comments.find((item) => item.id === COMMENT_ID)?.replies?.at(-1);

@@ -3,7 +3,7 @@
 // answer "is this line pending/in-range?" and build the comment to save.
 
 import type { Comment, DiffFile, DiffLine } from "$types";
-import { anchoredLines } from "$lib/anchor";
+import { SPAN_GAP_MESSAGE, contiguousLines } from "$lib/anchor";
 
 export type Side = "old" | "new";
 
@@ -73,12 +73,20 @@ export function isAddingAt(adding: AddTarget | null, file: string, side: Side, l
   );
 }
 
-// the new-side lines under the open editor, for "Suggest change"; undefined where a suggestion
-// makes no sense (file-level comments, old-side lines).
-export function suggestLinesFor(file: DiffFile, adding: AddTarget | null): string[] | undefined {
-  if (!adding || adding.file !== file.path || adding.line == null || (adding.side ?? "new") !== "new") return undefined;
-  const lines = anchoredLines(file, "new", adding.line, adding.endLine ?? adding.line);
-  return lines.length > 0 ? lines : undefined;
+// what "Suggest change" can do for a range: prefill with its lines, or explain why it cannot.
+export type SuggestSource = { lines: string[]; blocked?: undefined } | { blocked: string; lines?: undefined };
+
+// new side only; a range that crosses lines between hunks has no complete text to prefill
+export function suggestionForRange(file: DiffFile | undefined, side: Side, start: number, end: number): SuggestSource | undefined {
+  if (side !== "new") return undefined;
+  const lines = contiguousLines(file, "new", start, end);
+  return lines ? { lines } : { blocked: SPAN_GAP_MESSAGE };
+}
+
+// the source under the open editor; undefined for file-level comments and old-side lines.
+export function suggestionFor(file: DiffFile, adding: AddTarget | null): SuggestSource | undefined {
+  if (!adding || adding.file !== file.path || adding.line == null) return undefined;
+  return suggestionForRange(file, adding.side ?? "new", adding.line, adding.endLine ?? adding.line);
 }
 
 // normalize the pending selection before it becomes a durable comment anchor.

@@ -49,8 +49,25 @@ describe("CommentEditor", () => {
     expect(screen.queryByRole("button", { name: "Suggest change" })).toBeNull();
   });
 
+  it("selects the prefilled replacement inside the fence", async () => {
+    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn(), suggest: { lines: ["a = 1", "b = 2"] } });
+    const editor = screen.getByRole("textbox", { name: "Comment text" }) as HTMLTextAreaElement;
+    await fireEvent.input(editor, { target: { value: "note" } });
+    await fireEvent.click(screen.getByRole("button", { name: "Suggest change" }));
+    await vi.waitFor(() => expect(editor.value.slice(editor.selectionStart, editor.selectionEnd)).toBe("a = 1\nb = 2"));
+  });
+
+  it("explains why a range cannot carry a suggestion and ignores Ctrl+G", async () => {
+    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn(), suggest: { blocked: "spans lines outside the diff" } });
+    expect(screen.getByRole("button", { name: "Suggest change" })).toBeDisabled();
+    expect(screen.getByText("spans lines outside the diff")).toBeInTheDocument();
+    const editor = screen.getByRole("textbox", { name: "Comment text" });
+    await fireEvent.keyDown(editor, { key: "g", ctrlKey: true });
+    expect(editor).toHaveValue("");
+  });
+
   it("inserts a suggestion fence prefilled with the anchored lines, by button and by Ctrl+G", async () => {
-    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn(), suggestLines: ["a = 1", "b = 2"] });
+    render(CommentEditor, { onSave: vi.fn(), onCancel: vi.fn(), suggest: { lines: ["a = 1", "b = 2"] } });
     const editor = screen.getByRole("textbox", { name: "Comment text" });
 
     await fireEvent.input(editor, { target: { value: "rename these" } });

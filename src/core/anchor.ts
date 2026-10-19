@@ -49,6 +49,15 @@ export function anchoredLines(file: DiffFile | undefined, side: Side, start: num
     .map((l) => l.content);
 }
 
+export const SPAN_GAP_MESSAGE = "this range spans unchanged lines that are not in the diff, so it cannot carry a suggestion; comment on lines inside one hunk";
+
+// the anchored lines when every number in [start, end] is present in the diff on `side`;
+// null when the range crosses lines between hunks (their text is not in the diff).
+export function contiguousLines(file: DiffFile | undefined, side: Side, start: number, end: number): string[] | null {
+  const lines = anchoredLines(file, side, start, end);
+  return lines.length === end - start + 1 ? lines : null;
+}
+
 // resolved comments stay in the file for the record; status is the source of truth, falling
 // back to the legacy `resolved` flag for records that predate it.
 export function isOpenComment(c: Comment): boolean {
