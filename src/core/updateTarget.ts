@@ -1,6 +1,7 @@
 // pure helpers for the self-updater and installer: which release asset this machine needs,
 // how to read the checksum manifest, and whether a package manager owns this install.
 
+import { isNpmInstalledPath, NPM_MAIN_PACKAGE } from "./npmPackage";
 import { PRODUCT } from "./product";
 
 // the release target slug for a platform/arch, e.g. "windows-x64", "darwin-arm64".
@@ -31,6 +32,7 @@ export function detectPackageManager(execPath: string): string | null {
   const p = execPath.replace(/\\/g, "/").toLowerCase();
   if (p.includes("/homebrew/") || p.includes("/cellar/")) return "homebrew";
   if (p.includes("/scoop/")) return "scoop";
+  if (isNpmInstalledPath(p)) return "npm";
   if (p.includes("/winget") || p.includes("/windowsapps/")) return "winget";
   if (p.startsWith("/usr/") || p.startsWith("/nix/store/")) return "system package manager";
   return null;
@@ -40,6 +42,7 @@ export function detectPackageManager(execPath: string): string | null {
 export function managerCommand(manager: string): string {
   if (manager === "homebrew") return `brew upgrade ${PRODUCT.name}`;
   if (manager === "scoop") return `scoop update ${PRODUCT.name}`;
+  if (manager === "npm") return `npm i -g ${NPM_MAIN_PACKAGE}@latest`;
   if (manager === "winget") return `winget upgrade ${PRODUCT.name}`;
   return `use your package manager to upgrade ${PRODUCT.name}`;
 }
