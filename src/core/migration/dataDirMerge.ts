@@ -4,9 +4,10 @@
 // winning. nothing is removed from the source until its copy is read back and byte-identical.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, rmdirSync, lstatSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { isPidAlive } from "../sessions";
 import { treesOverlap } from "./dataDirGuards";
+import { conflictsDirFor } from "./dataDirConflicts";
 
 export const REVIEWS_DIR = "reviews";
 export const STATE_FILE = "state.json";
@@ -22,6 +23,7 @@ export interface MergeOps {
 
 export interface MergeReport {
   leftover: string[]; // "<path>: why", for everything still in the source
+  parked: string[]; // conflicting review records moved to the conflicts dir
 }
 
 const sameBytes = (a: string, b: string) => readFileSync(a).equals(readFileSync(b));
@@ -75,7 +77,16 @@ function mergeStateFile(from: string, to: string): void {
 }
 
 // one carry unit: a whole review record dir, or a single file. returns why it stayed, if it did.
-function carryUnit(from: string, to: string, isState: boolean, ops: MergeOps): string | null {
+// a review record that clashes with a different one in nittle is parked at `parkAt` (copied, verified,
+// renamed into place) instead of staying behind, so the old dir can be removed. nittle's copy wins.
+function parkConflict(from: string, parkAt: string, ops: MergeOps, parked: string[]): string | null {
+  if (existsSync(parkAt) && !sameTree(from, parkAt)) return `a different parked copy already sits at ${parkAt}; left in place`;
+  if (!existsSync(parkAt)) copyVerified(from, parkAt, ops);
+  parked.push(parkAt);
+  return null;
+}
+
+function carryUnit(from: string, to: string, isState: boolean, ops: MergeOps, park?: { at: string; parked: string[] }): string | null {
   if (isLink(from)) return "is a symlink; left in place";
   const aliased = (existsSync(to) && treesOverlap(from, to)) || treesOverlap(dirname(from), dirname(to));
   if (aliased) return "shares storage with its nittle destination (symlink/junction); left in place";
@@ -84,7 +95,9 @@ function carryUnit(from: string, to: string, isState: boolean, ops: MergeOps): s
   } else if (isState && !isDir(from)) {
     mergeStateFile(from, to);
   } else if (isDir(from) ? !sameTree(from, to) : !sameBytes(from, to)) {
-    return "already exists in nittle with different content (nittle wins; this copy kept here)";
+    if (!park) return "already exists in nittle with different content (nittle wins; this copy kept here)";
+    const why = parkConflict(from, park.at, ops, park.parked);
+    if (why) return why;
   }
   rmSync(from, { recursive: true });
   return null;
@@ -128,10 +141,13 @@ function cleanStaleStaging(dir: string, depth = 0): void {
 
 export function mergeLegacyDir(src: string, dest: string, ops: MergeOps, only?: readonly string[]): MergeReport {
   const leftover: string[] = [];
+  const parked: string[] = [];
   try { cleanStaleStaging(dest); } catch { /* best-effort */ }
   for (const { rel, isState } of unitsOf(src, only)) {
     try {
-      const why = carryUnit(join(src, rel), join(dest, rel), isState, ops);
+      const isRecord = dirname(rel) === REVIEWS_DIR && isDir(join(src, rel));
+      const park = isRecord ? { at: join(conflictsDirFor(dest), basename(rel)), parked } : undefined;
+      const why = carryUnit(join(src, rel), join(dest, rel), isState, ops, park);
       if (why) leftover.push(`${join(src, rel)}: ${why}`);
     } catch (err) {
       leftover.push(`${join(src, rel)}: ${err instanceof Error ? err.message : String(err)}`);
@@ -140,5 +156,5 @@ export function mergeLegacyDir(src: string, dest: string, ops: MergeOps, only?: 
   try {
     if (existsSync(src)) pruneEmptyDirs(src);
   } catch { /* a dir that will not prune stays; the next run retries */ }
-  return { leftover };
+  return { leftover, parked };
 }

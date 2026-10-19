@@ -5,6 +5,7 @@ import { basename } from "node:path";
 import { PRODUCT } from "../core/product";
 import { homeDataDir } from "../core/dataDir";
 import { pendingLegacyDataDirs } from "../core/migration/dataDir";
+import { listMigrationConflicts } from "../core/migration/dataDirConflicts";
 import { agentTargets } from "../core/agentTargets";
 import { marketplaceAlreadyOurs } from "../core/migration/agentPluginsSwap";
 import { confirmProceed } from "./confirm";
@@ -74,6 +75,10 @@ export async function runDoctorCommand(opts: DoctorOptions, productRoot: string,
   const pending = pendingLegacyDataDirs();
   if (pending.length > 0) {
     checks.push({ level: "warn", label: "data migration", detail: `${pending.join(", ")} not yet moved to ~/${PRODUCT.dataDir} (deferred or failed); relaunch ${PRODUCT.name} once old ${PRODUCT.legacyName} processes have exited` });
+  }
+  const parked = listMigrationConflicts();
+  if (parked.length > 0) {
+    checks.push({ level: "info", label: "migration conflicts", detail: `${parked.length} old review record(s) clashed with different ones and were set aside, nothing lost: ${parked.join(", ")}` });
   }
   const issues = findAgentIssues();
   const agentRepairs = agentPlanLines(issues);

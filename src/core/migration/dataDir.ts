@@ -21,6 +21,7 @@ import { LEGACY_HOME_DATA_DIRS } from "../dataDir";
 import { PRODUCT } from "../product";
 import { mergeLegacyDir, SKIPPED_TOP_LEVEL, STATE_FILE, type MergeOps } from "./dataDirMerge";
 import { acquireLock, findLiveLegacyWriters, LOCK_NAME, treesOverlap, type WriterCheck } from "./dataDirGuards";
+import { conflictsDirFor } from "./dataDirConflicts";
 import type { MigrationStep } from "./runner";
 
 export interface DataDirOptions {
@@ -97,6 +98,7 @@ function migrate(sources: string[], dest: string, customRecords: boolean, opts: 
   const only = customRecords ? [STATE_FILE] : undefined;
   const problems: string[] = [];
   const moved: string[] = [];
+  const parked: string[] = [];
   for (const src of sources) {
     if (!existsSync(src)) continue;
     if (treesOverlap(src, dest)) {
@@ -110,9 +112,13 @@ function migrate(sources: string[], dest: string, customRecords: boolean, opts: 
         continue;
       } catch { /* rename refused (locked, cross-device): fall through to the copy merge */ }
     }
-    const { leftover } = mergeLegacyDir(src, dest, ops, only);
+    const { leftover, parked: parkedHere } = mergeLegacyDir(src, dest, ops, only);
+    parked.push(...parkedHere);
     if (leftover.length === 0) moved.push(src);
     else problems.push(...leftover);
+  }
+  if (parked.length > 0) {
+    warn(`${parked.length} old review record(s) clashed with different ones in ${dest}; the old copies were moved to ${conflictsDirFor(dest)} (${PRODUCT.name} doctor lists them)`);
   }
   if (problems.length > 0) {
     warn(`could not finish moving old data into ${dest}; nothing was deleted. left behind:\n  ${problems.join("\n  ")}\nit will retry on the next run.`);

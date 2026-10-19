@@ -114,6 +114,15 @@ describe("nittle doctor agent configs", () => {
     expect(out).not.toContain("done —");
   });
 
+  it("lists review records the migration set aside as conflicts", async () => {
+    const home = tempDir();
+    writeFile(join(home, ".nittle", "migration-conflicts", "shared", "review.json"), "{}");
+    const { code, out } = await doctor(healthyConfigDir(), [], tempDir(), { HOME: home, USERPROFILE: home });
+    expect(code).toBe(0);
+    expect(out).toContain("migration conflicts");
+    expect(out).toContain(join(home, ".nittle", "migration-conflicts", "shared"));
+  });
+
   it("flags a config it can't edit as a failure with no automatic repair", async () => {
     const home = tempDir();
     writeFile(join(home, ".cursor", "mcp.json"), `{ // c
