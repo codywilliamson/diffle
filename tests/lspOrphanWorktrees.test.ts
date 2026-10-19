@@ -1,7 +1,7 @@
 // `nittle cleanup` removes detached worktrees a killed run left behind, and nothing else.
 
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findOrphanWorktrees, removeOrphanWorktrees } from "../src/core/lsp/orphanWorktrees";
@@ -27,7 +27,8 @@ describe("leftover worktrees", () => {
     const stranger = addWorktree(strangerRepo, mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${deadPid()}-`)));
 
     const found = findOrphanWorktrees(repo);
-    expect(found.map((path) => path.replaceAll("\\", "/").toLowerCase())).toEqual([dead.replaceAll("\\", "/").toLowerCase()]);
+    const norm = (path: string) => realpathSync.native(path).replaceAll("\\", "/").toLowerCase();
+    expect(found.map(norm)).toEqual([norm(dead)]);
 
     removeOrphanWorktrees(repo, found);
     expect(existsSync(dead)).toBe(false);

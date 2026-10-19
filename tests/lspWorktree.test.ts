@@ -102,7 +102,7 @@ describe("detached worktrees", () => {
     const [newPath] = Object.keys(docs).filter((path) => docs[path] === "export const v = 2;\n");
     const [oldPath] = Object.keys(docs).filter((path) => docs[path] === "export const v = 1;\n");
     expect(newPath && oldPath && newPath !== oldPath).toBe(true);
-    expect(git(root, "worktree", "list", "--porcelain")).toContain(dirname(newPath!).replaceAll("\\", "/"));
+    expect(git(root, "worktree", "list", "--porcelain").replaceAll("\\", "/").toLowerCase()).toContain(dirname(newPath!).replaceAll("\\", "/").toLowerCase());
     const warm = await s.pool.view(dirname(newPath!)).ensure("typescript");
 
     // the review moves to c3: the clean worktree follows, at the same path
