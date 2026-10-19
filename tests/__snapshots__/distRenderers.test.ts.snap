@@ -1,0 +1,277 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`homebrew formula matches the snapshot 1`] = `
+"class Nittle < Formula
+  desc "Local git diff viewer with inline comments and structured agent feedback"
+  homepage "https://nittle.dev"
+  version "1.2.3"
+  license "MIT"
+
+  on_macos do
+    on_arm do
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-arm64"
+      sha256 "4444444444444444444444444444444444444444444444444444444444444444"
+    end
+    on_intel do
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-x64"
+      sha256 "3333333333333333333333333333333333333333333333333333333333333333"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-arm64"
+      sha256 "2222222222222222222222222222222222222222222222222222222222222222"
+    end
+    on_intel do
+      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-x64"
+      sha256 "1111111111111111111111111111111111111111111111111111111111111111"
+    end
+  end
+
+  def install
+    bin.install Dir["nittle-*"].first => "nittle"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/nittle --version")
+  end
+end
+"
+`;
+
+exports[`scoop manifest matches the snapshot 1`] = `
+"{
+  "version": "1.2.3",
+  "description": "Local git diff viewer with inline comments and structured agent feedback",
+  "homepage": "https://nittle.dev",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-windows-x64.exe#/nittle.exe",
+      "hash": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "arm64": {
+      "url": "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-windows-arm64.exe#/nittle.exe",
+      "hash": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  },
+  "bin": "nittle.exe",
+  "checkver": {
+    "github": "https://github.com/codywilliamson/diffle"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/nittle-windows-x64.exe#/nittle.exe",
+        "hash": {
+          "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/checksums.txt",
+          "regex": "$sha256\\\\s+nittle-windows-x64\\\\.exe"
+        }
+      },
+      "arm64": {
+        "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/nittle-windows-arm64.exe#/nittle.exe",
+        "hash": {
+          "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/checksums.txt",
+          "regex": "$sha256\\\\s+nittle-windows-arm64\\\\.exe"
+        }
+      }
+    }
+  }
+}
+"
+`;
+
+exports[`npm packages renders the main package.json 1`] = `
+"{
+  "name": "nittle",
+  "version": "1.2.3",
+  "license": "MIT",
+  "homepage": "https://nittle.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codywilliamson/diffle.git"
+  },
+  "author": "Cody Williamson",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "description": "Local git diff viewer with inline comments and structured agent feedback",
+  "bin": {
+    "nittle": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "nittle-linux-x64": "1.2.3",
+    "nittle-linux-arm64": "1.2.3",
+    "nittle-darwin-x64": "1.2.3",
+    "nittle-darwin-arm64": "1.2.3",
+    "nittle-win32-x64": "1.2.3",
+    "nittle-win32-arm64": "1.2.3"
+  }
+}
+"
+`;
+
+exports[`npm packages renders one package.json per platform with os and cpu 1`] = `
+"[
+  {
+    "name": "nittle-linux-x64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for linux x64",
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "x64"
+    ],
+    "files": [
+      "bin"
+    ]
+  },
+  {
+    "name": "nittle-linux-arm64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for linux arm64",
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "arm64"
+    ],
+    "files": [
+      "bin"
+    ]
+  },
+  {
+    "name": "nittle-darwin-x64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for darwin x64",
+    "os": [
+      "darwin"
+    ],
+    "cpu": [
+      "x64"
+    ],
+    "files": [
+      "bin"
+    ]
+  },
+  {
+    "name": "nittle-darwin-arm64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for darwin arm64",
+    "os": [
+      "darwin"
+    ],
+    "cpu": [
+      "arm64"
+    ],
+    "files": [
+      "bin"
+    ]
+  },
+  {
+    "name": "nittle-win32-x64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for win32 x64",
+    "os": [
+      "win32"
+    ],
+    "cpu": [
+      "x64"
+    ],
+    "files": [
+      "bin"
+    ]
+  },
+  {
+    "name": "nittle-win32-arm64",
+    "version": "1.2.3",
+    "license": "MIT",
+    "homepage": "https://nittle.dev",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/codywilliamson/diffle.git"
+    },
+    "author": "Cody Williamson",
+    "publishConfig": {
+      "access": "public",
+      "provenance": true
+    },
+    "description": "nittle binary for win32 arm64",
+    "os": [
+      "win32"
+    ],
+    "cpu": [
+      "arm64"
+    ],
+    "files": [
+      "bin"
+    ]
+  }
+]
+"
+`;
