@@ -8,9 +8,12 @@ import { join } from "node:path";
 import type { CompletionShell } from "../src/utils/cliVocabulary";
 import { renderCompletion } from "../src/utils/completion";
 import { findBash } from "./helpers/findBash";
+import { runUntilIdle } from "./helpers/runUntilIdle";
 
 const SPAWN_TIMEOUT_MS = 40_000; // powershell cold start is the slow one
 const TEST_TIMEOUT_MS = 50_000; // always above the spawn timeout so a hang fails on the spawn, not the runner
+const POWERSHELL_IDLE_MS = 40_000; // longest powershell may go without printing a result line
+const POWERSHELL_TEST_TIMEOUT_MS = 240_000; // generous cap: the idle window is what catches a hang
 
 interface LiveCase { words: string[]; offers: string[]; powershell?: string[]; why: string }
 
@@ -53,6 +56,12 @@ const run = (cmd: string[], cwd: string, env: Record<string, string> = {}) =>
 const skip = (tool: string) => { console.log(`skipping live ${tool} completion check: ${tool} is not installed`); };
 // pwsh is a store alias bun cannot resolve on some windows installs, so fall back to windows powershell
 const findPowerShell = () => Bun.which("pwsh") ?? Bun.which("powershell");
+async function runPowerShell(pwsh: string, driver: string, repo: string, completionFile: string): Promise<string[]> {
+  const env = { ...process.env, COMPLETION_FILE: completionFile } as Record<string, string>;
+  const result = await runUntilIdle([pwsh, "-NoProfile", "-Command", driver], { cwd: repo, env, idleMs: POWERSHELL_IDLE_MS });
+  if (result.timedOut) throw new Error(`powershell printed nothing for ${POWERSHELL_IDLE_MS}ms`);
+  return lines(result.stdout);
+}
 
 function repoWithBranches(): string {
   const repo = temp("nittle-live-repo-");
@@ -71,7 +80,7 @@ function write(shell: CompletionShell, file: string, text: string): string {
 }
 
 const shQuote = (text: string) => `'${text.replace(/'/g, "'\\''")}'`;
-const lines = (stdout: Uint8Array | Buffer) => stdout.toString().replace(/\r/g, "").trimEnd().split("\n");
+const lines = (stdout: string | Uint8Array | Buffer) => stdout.toString().replace(/\r/g, "").trimEnd().split("\n");
 const normalize = (line: string) => line.split(/\s+/).filter(Boolean).sort();
 
 function check(output: string[], repo: string, shell: CompletionShell) {
@@ -149,7 +158,7 @@ describe("live completion", () => {
     expect(out(sourcedDriver)).toEqual(["registered: _nittle"]);
   }, TEST_TIMEOUT_MS);
 
-  test("powershell", () => {
+  test("powershell", async () => {
     const pwsh = findPowerShell();
     if (!pwsh) return skip("powershell");
     const driver = [
@@ -159,10 +168,10 @@ describe("live completion", () => {
     ].join("\n");
     const script = write("powershell", "nittle.ps1", renderCompletion("powershell"));
     const repo = repoWithBranches();
-    check(lines(run([pwsh, "-NoProfile", "-Command", driver], repo, { COMPLETION_FILE: script }).stdout), repo, "powershell");
-  }, TEST_TIMEOUT_MS);
+    check(await runPowerShell(pwsh, driver, repo, script), repo, "powershell");
+  }, POWERSHELL_TEST_TIMEOUT_MS);
 
-  test("powershell completes with the cursor in the middle of the line", () => {
+  test("powershell completes with the cursor in the middle of the line", async () => {
     const pwsh = findPowerShell();
     if (!pwsh) return skip("powershell");
     // [text before the cursor][text after it]: words after the cursor must not count
@@ -178,7 +187,7 @@ describe("live completion", () => {
       "function t($before, $after) { (TabExpansion2 ($before + $after) $before.Length).CompletionMatches | ForEach-Object { $_.CompletionText } }",
       ...MID_LINE.map(([before, after]) => `(t '${before}' '${after}') -join ' '`),
     ].join("\n");
-    const out = lines(run([pwsh, "-NoProfile", "-Command", driver], repoWithBranches(), { COMPLETION_FILE: write("powershell", "nittle.ps1", renderCompletion("powershell")) }).stdout);
+    const out = await runPowerShell(pwsh, driver, repoWithBranches(), write("powershell", "nittle.ps1", renderCompletion("powershell")));
     expect(out.map(normalize)).toEqual(MID_LINE.map(([, , offers]) => [...offers].sort()));
-  }, TEST_TIMEOUT_MS);
+  }, POWERSHELL_TEST_TIMEOUT_MS);
 });
