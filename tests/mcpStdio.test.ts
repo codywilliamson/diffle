@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, setDefaultTimeout } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { join } from "node:path";
@@ -6,6 +6,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const root = join(import.meta.dir, "..");
+
+// the test cold-starts the cli and an mcp child
+setDefaultTimeout(45_000);
 
 describe("MCP stdio entry", () => {
   test("serves the Nittle tools through the CLI command", async () => {
