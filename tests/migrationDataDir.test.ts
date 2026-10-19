@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDataDirStep, pendingLegacyDataDirs, removeEmptyLegacyDirs } from "../src/core/migration/dataDir";
+import { listMigrationConflicts } from "../src/core/migration/dataDirConflicts";
 import { acquireLock } from "../src/core/migration/dataDirGuards";
 import { homeDataDir } from "../src/core/dataDir";
 import { createReviewRecord, markCommentAddressed, readReviewRecord, replyToComment, requestRereview, returnFeedback } from "../src/core/reviewRecords";
@@ -88,15 +89,46 @@ describe("data dir migration", () => {
     const nittleShared = readFileSync(join(dd(".nittle"), "reviews", "shared", "review.json"), "utf8");
     const warnings: string[] = [];
 
-    expect(() => step({ warn: (m: string) => warnings.push(m) }).run()).toThrow();
-    // conflicting diffle record kept in place and reported; the rest moved
+    const diffleShared = readFileSync(join(dd(".diffle"), "reviews", "shared", "review.json"), "utf8");
+
+    step({ warn: (m: string) => warnings.push(m) }).run();
+    // the clashing diffle record is parked under migration-conflicts, verified; nothing stays in ~/.diffle
     expect(readFileSync(join(dd(".nittle"), "reviews", "shared", "review.json"), "utf8")).toBe(nittleShared);
-    expect(existsSync(join(dd(".diffle"), "reviews", "shared", "review.json"))).toBe(true);
-    expect(warnings.join("\n")).toContain(join(dd(".diffle"), "reviews", "shared"));
+    expect(readFileSync(join(dd(".nittle"), "migration-conflicts", "shared", "review.json"), "utf8")).toBe(diffleShared);
+    expect(existsSync(dd(".diffle"))).toBe(false);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(join(dd(".nittle"), "migration-conflicts"));
+    expect(listMigrationConflicts(home)).toEqual([join(dd(".nittle"), "migration-conflicts", "shared")]);
     expect(readAll(dd(".nittle"), "theirs").rec?.comments).toHaveLength(2);
     expect(existsSync(join(dd(".diffle"), "reviews", "theirs"))).toBe(false);
     expect(readAll(dd(".nittle"), "mine").sessions.map((s) => s.sessionId).sort()).toEqual(["s-mine", "s-theirs"]);
     expect(readUserState(home)).toEqual({ seenVersion: "new", updateCheckedAt: "t" });
+  });
+
+  it("a conflict with the installer bin dir present leaves only bin, which then goes with the empty dir", () => {
+    seed(dd(".nittle"), ["shared"]);
+    seed(dd(".diffle"), ["shared"]);
+    writeFileSync(join(dd(".diffle"), "reviews", "shared", "review.json"), '{"id":"shared","marker":"diffle"}');
+    mkdirSync(join(dd(".diffle"), "bin"), { recursive: true });
+    writeFileSync(join(dd(".diffle"), "bin", "diffle"), "x");
+    step().run();
+    expect(readdirSync(dd(".diffle"))).toEqual(["bin"]);
+    expect(existsSync(join(dd(".nittle"), "migration-conflicts", "shared", "review.json"))).toBe(true);
+    rmSync(join(dd(".diffle"), "bin"), { recursive: true });
+    removeEmptyLegacyDirs(home);
+    expect(existsSync(dd(".diffle"))).toBe(false);
+    expect(step().run()).toBeUndefined();
+  });
+
+  it("keeps a clashing record in place when a different parked copy already exists", () => {
+    seed(dd(".nittle"), ["shared"]);
+    seed(dd(".diffle"), ["shared"]);
+    writeFileSync(join(dd(".diffle"), "reviews", "shared", "review.json"), '{"id":"shared","marker":"diffle"}');
+    mkdirSync(join(dd(".nittle"), "migration-conflicts", "shared"), { recursive: true });
+    writeFileSync(join(dd(".nittle"), "migration-conflicts", "shared", "review.json"), '{"older":true}');
+    expect(() => step().run()).toThrow();
+    expect(existsSync(join(dd(".diffle"), "reviews", "shared", "review.json"))).toBe(true);
+    expect(readFileSync(join(dd(".nittle"), "migration-conflicts", "shared", "review.json"), "utf8")).toBe('{"older":true}');
   });
 
   it("deletes ~/.diffle entirely once everything is confirmed in ~/.nittle", () => {
