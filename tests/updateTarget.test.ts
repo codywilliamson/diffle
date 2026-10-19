@@ -48,6 +48,19 @@ describe("detectPackageManager", () => {
     expect(managerCommand("homebrew")).toBe("brew upgrade nittle");
   });
 
+  it("recognizes binaries installed from the npm platform packages", () => {
+    expect(detectPackageManager("/usr/local/lib/node_modules/nittle-linux-x64/bin/nittle")).toBe("npm");
+    expect(detectPackageManager("/home/x/.nvm/versions/node/v22/lib/node_modules/nittle-darwin-arm64/bin/nittle")).toBe("npm");
+    expect(detectPackageManager(String.raw`C:\Users\x\AppData\Roaming\npm\node_modules\nittle-win32-x64\bin\nittle.exe`)).toBe("npm");
+    expect(detectPackageManager("/p/node_modules/.pnpm/nittle-linux-arm64@1.0.0/node_modules/nittle-linux-arm64/bin/nittle")).toBe("npm");
+    expect(managerCommand("npm")).toBe("npm i -g nittle@latest");
+  });
+
+  it("does not mistake an unrelated node_modules path for npm", () => {
+    expect(detectPackageManager("/proj/node_modules/nittle/bin/cli.js")).toBeNull();
+    expect(detectPackageManager("/home/x/.nittle/bin/nittle")).toBeNull();
+  });
+
   it("returns null for a standalone user install we may replace", () => {
     expect(detectPackageManager("C:/Users/x/.nittle/bin/nittle.exe")).toBeNull();
     expect(detectPackageManager("/home/x/.nittle/bin/nittle")).toBeNull();
