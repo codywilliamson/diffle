@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to diffle are documented here. This project follows [semantic versioning](https://semver.org).
+All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
 ## [0.29.0](https://github.com/codywilliamson/diffle/compare/v0.28.1...v0.29.0) (2026-10-19)
 

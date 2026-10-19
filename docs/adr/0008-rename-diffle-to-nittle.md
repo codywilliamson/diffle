@@ -1,6 +1,6 @@
 # Rename diffle to nittle
 
-moritzwilksch/diffle had the name first and launched it on Show HN, so the two tools now collide in search, in package names, and in every "which diffle?" thread (#126). We rename the product to **nittle**, nit + le, a tool for nitpicking diffs. The decision is made and the rename is under way as epic #206. The previous rename (ADR 0004, loupe to diffle) stands as written, backronym included.
+moritzwilksch/diffle had the name first and launched it on Show HN, so the two tools now collide in search, in package names, and in every "which diffle?" thread ([#126](https://github.com/codywilliamson/diffle/issues/126)). We rename the product to **nittle**, nit + le, a tool for nitpicking diffs. The decision is made and the rename is under way as epic #206. The previous rename (ADR 0004, loupe to diffle) stands as written, backronym included.
 
 Availability was checked on 2026-10-16: `nittle` is free on npm, crates.io, and GitHub, and `nittle.dev` is registered on Cloudflare. These checks are time-sensitive. Claim the package names before the first nittle release.
 
