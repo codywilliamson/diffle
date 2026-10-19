@@ -5,7 +5,7 @@
   import { createFileHighlight } from "$lib/diff/fileHighlight.svelte";
   import { hunkMarks, markRange, type CharRange } from "$lib/diff/wordDiff";
   import { markHits } from "$lib/diff/search";
-  import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, suggestLinesFor, type Side } from "$lib/diff/threads";
+  import { commentsForLine, inSavedRange, isPending, isAddingAt, rawLine, newComment, selectedRange, suggestionFor, type Side } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import { cursorOnLine } from "$lib/state/cursorSteps";
   import { PLAIN_ANNOTATIONS, type DiffAnnotations } from "$lib/diff/annotations";
@@ -96,7 +96,7 @@
                 <div class="comment-box">
                   {#if list.length > 0}<CommentThread comments={list} />{/if}
                   {#if adding}
-                    <CommentEditor suggestLines={suggestLinesFor(file, ui.adding)} onSave={(text, tag) => saveAdd(a.side, line, text, tag)} onCancel={() => ui.cancelAdd()} />
+                    <CommentEditor suggest={suggestionFor(file, ui.adding)} onSave={(text, tag) => saveAdd(a.side, line, text, tag)} onCancel={() => ui.cancelAdd()} />
                   {/if}
                 </div>
               </td>

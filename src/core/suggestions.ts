@@ -1,20 +1,37 @@
 // splits a comment body into ordered prose and suggestion segments. pure, shared by the
 // server (prompt, get_review) and the client (editor insert, card diff).
-// a suggestion is a fenced block whose info string starts with `suggestion`; an unterminated
-// fence is plain prose. suggestion lines are kept as an array so an empty fence (delete) is
+// fences follow CommonMark: an opener is 3+ backticks or tildes with at most 3 spaces of
+// indentation, and only a fence of the same character, at least as long, closes it. only a
+// top-level backtick fence whose info string starts with `suggestion` is a suggestion, so one
+// quoted inside a longer example fence stays prose. an unterminated fence leaves the rest of
+// the body as prose. suggestion lines are kept as an array so an empty fence (delete) is
 // distinguishable from a fence holding one blank line.
 
 export type BodySegment =
   | { kind: "prose"; text: string }
   | { kind: "suggestion"; lines: string[] };
 
-const OPEN_FENCE = /^ {0,3}(`{3,})[ \t]*suggestion(?:[ \t:].*)?$/;
+const OPEN_FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+const SUGGESTION_INFO = /^[ \t]*suggestion(?:[ \t:].*)?$/;
 const BACKTICK_RUN = /`+/g;
 const MIN_FENCE = 3;
 
-function closesFence(line: string, ticks: number): boolean {
-  const trimmed = line.trim();
-  return trimmed.length >= ticks && /^`+$/.test(trimmed);
+interface Fence { char: string; length: number; suggestion: boolean }
+
+function openerOf(line: string): Fence | null {
+  const match = OPEN_FENCE.exec(line);
+  if (!match) return null;
+  const marker = match[1] as string;
+  const info = match[2] as string;
+  const char = marker[0] as string;
+  if (char === "`" && info.includes("`")) return null; // a backtick info string cannot hold backticks
+  return { char, length: marker.length, suggestion: char === "`" && SUGGESTION_INFO.test(info) };
+}
+
+function closes(line: string, fence: Fence): boolean {
+  const match = /^ {0,3}(`+|~+)[ \t]*$/.exec(line);
+  const marker = match?.[1];
+  return !!marker && marker[0] === fence.char && marker.length >= fence.length;
 }
 
 export function parseSuggestions(body: string): BodySegment[] {
@@ -29,15 +46,22 @@ export function parseSuggestions(body: string): BodySegment[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] as string;
-    const open = OPEN_FENCE.exec(line);
-    const ticks = open?.[1]?.length ?? 0;
-    const end = open ? lines.findIndex((next, j) => j > i && closesFence(next, ticks)) : -1;
-    if (end === -1) {
+    const fence = openerOf(line);
+    if (!fence) {
       prose.push(line);
       continue;
     }
-    flushProse();
-    segments.push({ kind: "suggestion", lines: lines.slice(i + 1, end) });
+    const end = lines.findIndex((next, j) => j > i && closes(next, fence));
+    if (end === -1) {
+      prose.push(...lines.slice(i)); // unterminated: the rest is prose
+      break;
+    }
+    if (fence.suggestion) {
+      flushProse();
+      segments.push({ kind: "suggestion", lines: lines.slice(i + 1, end) });
+    } else {
+      prose.push(...lines.slice(i, end + 1)); // an ordinary fence, kept whole
+    }
     i = end;
   }
   flushProse();

@@ -45,7 +45,7 @@ export function createMcpServer(operations: ReviewOperations, roots: McpRootProv
   }, async (input) => { try { await guarded(input.cwd); return result(await operations.startReview(input)); } catch (e) { return failure(e); } });
 
   server.registerTool("get_review", {
-    title: "Get review", description: "Inspect the durable status and feedback for a review. `suggestions` lists the reviewer's suggested changes (path, side, startLine, endLine, original, suggested) so you can apply them without parsing comment text.",
+    title: "Get review", description: "Inspect the durable status and feedback for a review. `suggestions` lists the reviewer's suggested changes (path, side, startLine, endLine, original and suggested as arrays of lines; empty suggested means delete) so you can apply them without parsing comment text. `suggestionsError` says when the list is incomplete.",
     inputSchema: { reviewId: id }, annotations: { title: "Get review", readOnlyHint: true, destructiveHint: false, idempotentHint: true },
   }, async ({ reviewId }) => { try { return result(await operations.getReview(reviewId)); } catch (e) { return failure(e); } });
 

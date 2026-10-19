@@ -5,13 +5,16 @@ import type { DiffResult, ReviewOrigin, ReviewPolicy, ReviewRecord } from "../ty
 import { openBrowser } from "../utils/browser";
 import { createServer, type ServerContext } from "../server/router";
 import { resolveClientAssets } from "./standalone";
-import { createReviewRecord, readReviewRecord } from "./reviewRecords";
+import { createReviewRecord, readReviewRecord, updateReviewRecord } from "./reviewRecords";
 import { loadReviewTarget } from "./reviewTarget";
 import { createPresence } from "../server/presence";
 import { createLspPool } from "./lsp/launchPool";
 import type { LspPool } from "./lsp/pool";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
 import { LOOPBACK_BIND_HOST } from "../utils/origin";
+
+// a review that was opened without a spec is the working tree; stored so later readers never guess from the display label
+const WORKING_SPEC = "working";
 
 export interface ReviewLaunchInput {
   cwd: string;
@@ -47,11 +50,14 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   if (!existing && input.requireChanges && loaded.diff.files.length === 0) {
     throw new Error(`No changes found for "${loaded.diff.ref}". Use ref "working" for current tracked and untracked changes, or verify the requested comparison.`);
   }
-  const storedSpec = loaded.pinnedSpec ?? spec;
+  const storedSpec = loaded.pinnedSpec ?? spec ?? WORKING_SPEC;
   const review = existing ?? createReviewRecord({
     target: { cwd, ref: loaded.diff.ref, ...(storedSpec ? { spec: storedSpec } : {}), ...(loaded.meta ? { meta: loaded.meta } : {}) },
     policy: input.policy ?? "handoff", ...(input.origin ? { origin: input.origin } : {}),
   });
+  if (existing && !existing.target.spec) {
+    try { updateReviewRecord(existing.id, { target: { ...existing.target, spec: storedSpec } }); } catch { /* finished records stay as they are */ }
+  }
   const assets = resolveClientAssets(input.productRoot);
   const sessionId = randomUUID();
   const lsp = input.lspPool ?? createLspPool(cwd, input.lsp !== false);
