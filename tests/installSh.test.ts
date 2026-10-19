@@ -55,6 +55,17 @@ describe.skipIf(!sh)("install.sh", () => {
     expect(existsSync(join(box.home, ".zshrc"))).toBe(false);
   });
 
+  test("each DIFFLE_* fallback in use prints one notice naming its NITTLE_* replacement", async () => {
+    const box = open();
+    const b = join(box.home, "b");
+    const used = await box.run([], { DIFFLE_INSTALL_DIR: b, DIFFLE_NO_MODIFY_PATH: "1" });
+    expect(used.out.match(/DIFFLE_INSTALL_DIR is deprecated.*set NITTLE_INSTALL_DIR instead/g)?.length).toBe(1);
+    expect(used.out.match(/DIFFLE_NO_MODIFY_PATH is deprecated.*set NITTLE_NO_MODIFY_PATH instead/g)?.length).toBe(1);
+    expect(used.out).not.toContain("DIFFLE_DRY_RUN");
+    const shadowed = await box.run([], { NITTLE_INSTALL_DIR: b, DIFFLE_INSTALL_DIR: b, NITTLE_NO_MODIFY_PATH: "1" });
+    expect(shadowed.out).not.toContain("is deprecated");
+  });
+
   test("a dry run writes nothing", async () => {
     const box = open();
     const result = await box.run([], { NITTLE_DRY_RUN: "1" });
