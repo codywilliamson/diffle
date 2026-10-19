@@ -136,6 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
+      product: ${{ steps.product.outputs.name }}
     permissions:
       contents: read
       id-token: write
@@ -154,15 +155,21 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - run: bun install --frozen-lockfile
+      # the product name comes from src/core/product.ts, never hardcoded in the workflow
+      - name: Read the product name
+        id: product
+        run: echo "name=$(bun -e 'import { PRODUCT } from "./src/core/product"; console.log(PRODUCT.name)')" >> "$GITHUB_OUTPUT"
       - name: Download the release binaries
-        run: gh release download "$TAG" --dir dist/release --pattern 'nittle-*' --pattern checksums.txt
+        run: gh release download "$TAG" --dir dist/release --pattern '${{ steps.product.outputs.name }}-*' --pattern checksums.txt
       - name: Stage the npm packages
         run: bun scripts/stage-npm.ts --version "${TAG#v}" --assets dist/release --out dist/npm
       - name: Publish platform packages, then the main package
         id: publish
+        env:
+          PRODUCT_NAME: ${{ steps.product.outputs.name }}
         run: |
           version="${TAG#v}"
-          for dir in dist/npm/nittle-*/ dist/npm/nittle/; do
+          for dir in "dist/npm/$PRODUCT_NAME-"*/ "dist/npm/$PRODUCT_NAME/"; do
             name=$(node -p "require('./${dir}package.json').name")
             if npm view "$name@$version" version >/dev/null 2>&1; then
               echo "$name@$version already published, skipping"
@@ -184,20 +191,21 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       TAG: ${{ needs.release-please.outputs.tag_name }}
+      PRODUCT_NAME: ${{ needs.npm-publish.outputs.product }}
       NITTLE_NO_UPDATE_CHECK: "1"
     steps:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
-      - name: npx nittle --version
+      - name: npx --version
         shell: bash
         run: |
           version="${TAG#v}"
           for _ in 1 2 3 4 5 6; do
-            if out=$(npx --yes "nittle@$version" --version) && echo "$out" | head -n1 | grep -Fx "nittle v$version"; then exit 0; fi
+            if out=$(npx --yes "$PRODUCT_NAME@$version" --version) && echo "$out" | head -n1 | grep -Fx "$PRODUCT_NAME v$version"; then exit 0; fi
             sleep 20
           done
-          echo "npx nittle@$version never printed the expected version"; exit 1
+          echo "npx $PRODUCT_NAME@$version never printed the expected version"; exit 1
 
   # homebrew tap + scoop bucket (#196). off until the repo variable TAP_PUBLISH is 'true' and the
   # DIST_REPO_TOKEN secret (fine-grained, contents:write on the tap and bucket repos only) exists.
@@ -209,6 +217,7 @@ jobs:
     # true only when both repos were pushed (or already current); a missing token leaves it empty
     outputs:
       published: ${{ steps.push.outputs.published }}
+      product: ${{ steps.product.outputs.name }}
     permissions:
       contents: read
     env:
@@ -232,13 +241,20 @@ jobs:
           bun-version: 1.3.14
       - if: ${{ steps.token.outputs.present == 'true' }}
         run: bun install --frozen-lockfile
+      # the product name comes from src/core/product.ts, never hardcoded in the workflow
+      - name: Read the product name
+        id: product
+        if: ${{ steps.token.outputs.present == 'true' }}
+        run: echo "name=$(bun -e 'import { PRODUCT } from "./src/core/product"; console.log(PRODUCT.name)')" >> "$GITHUB_OUTPUT"
       - name: Render the formula and the manifest from the published checksums
         if: ${{ steps.token.outputs.present == 'true' }}
+        env:
+          PRODUCT_NAME: ${{ steps.product.outputs.name }}
         run: |
           gh release download "$TAG" --dir dist/release --pattern checksums.txt
           mkdir -p dist/pkg
-          bun scripts/render-formula.ts "${TAG#v}" dist/release/checksums.txt dist/pkg/nittle.rb
-          bun scripts/render-scoop.ts "${TAG#v}" dist/release/checksums.txt dist/pkg/nittle.json
+          bun scripts/render-formula.ts "${TAG#v}" dist/release/checksums.txt "dist/pkg/$PRODUCT_NAME.rb"
+          bun scripts/render-scoop.ts "${TAG#v}" dist/release/checksums.txt "dist/pkg/$PRODUCT_NAME.json"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: ${{ steps.token.outputs.present == 'true' }}
         with:
@@ -254,17 +270,19 @@ jobs:
       - name: Commit and push both (plain pushes, never forced)
         id: push
         if: ${{ steps.token.outputs.present == 'true' }}
+        env:
+          PRODUCT_NAME: ${{ steps.product.outputs.name }}
         run: |
           version="${TAG#v}"
           mkdir -p tap/Formula bucket/bucket
-          cp dist/pkg/nittle.rb tap/Formula/nittle.rb
-          cp dist/pkg/nittle.json bucket/bucket/nittle.json
+          cp "dist/pkg/$PRODUCT_NAME.rb" "tap/Formula/$PRODUCT_NAME.rb"
+          cp "dist/pkg/$PRODUCT_NAME.json" "bucket/bucket/$PRODUCT_NAME.json"
           for repo in tap bucket; do
             git -C "$repo" config user.name "github-actions[bot]"
             git -C "$repo" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git -C "$repo" add -A
             if git -C "$repo" diff --cached --quiet; then echo "$repo already up to date"; continue; fi
-            git -C "$repo" commit -m "chore: nittle $version"
+            git -C "$repo" commit -m "chore: $PRODUCT_NAME $version"
             git -C "$repo" pull --rebase
             git -C "$repo" push
           done
@@ -288,6 +306,7 @@ jobs:
       TAG: ${{ needs.release-please.outputs.tag_name }}
       TAP_REPO: ${{ vars.TAP_REPO || 'codywilliamson/homebrew-tap' }}
       BUCKET_REPO: ${{ vars.BUCKET_REPO || 'codywilliamson/scoop-bucket' }}
+      PRODUCT_NAME: ${{ needs.tap-publish.outputs.product }}
       NITTLE_NO_UPDATE_CHECK: "1"
     steps:
       - name: brew install
@@ -295,8 +314,8 @@ jobs:
         run: |
           version="${TAG#v}"
           tap_name="${TAP_REPO/homebrew-/}"
-          brew install "$tap_name/nittle"
-          nittle --version | head -n1 | grep -Fx "nittle v$version"
+          brew install "$tap_name/$PRODUCT_NAME"
+          "$PRODUCT_NAME" --version | head -n1 | grep -Fx "$PRODUCT_NAME v$version"
       - name: scoop install
         if: ${{ matrix.manager == 'scoop' }}
         shell: pwsh
@@ -306,10 +325,10 @@ jobs:
             Invoke-Expression "& {$(Invoke-RestMethod get.scoop.sh)} -RunAsAdmin"
             $env:PATH = "$HOME\scoop\shims;$env:PATH"
           }
-          scoop bucket add nittle "https://github.com/$env:BUCKET_REPO"
-          scoop install nittle/nittle
-          $first = (nittle --version | Select-Object -First 1)
-          if ($first -ne "nittle v$version") { throw "unexpected version output: $first" }
+          scoop bucket add $env:PRODUCT_NAME "https://github.com/$env:BUCKET_REPO"
+          scoop install "$env:PRODUCT_NAME/$env:PRODUCT_NAME"
+          $first = (& $env:PRODUCT_NAME --version | Select-Object -First 1)
+          if ($first -ne "$env:PRODUCT_NAME v$version") { throw "unexpected version output: $first" }
 
   release-pr:
     needs: [release-please, assets]
