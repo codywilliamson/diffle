@@ -88,6 +88,21 @@
     if (cursorHere) mounted = true;
   });
 
+  // search results (and anything else) can ask for this file to be opened up: expanded, loaded,
+  // out of preview and out of the since-review view, so its lines exist to land on.
+  $effect(() => {
+    const request = ui.openRequest;
+    if (!request || request.path !== untrack(() => file.path)) return;
+    untrack(() => {
+      touched = true;
+      collapsed = false;
+      loaded = true;
+      mounted = true;
+      preview = false;
+      sinceReview = false;
+    });
+  });
+
   // noise files start collapsed once the scorecard knows about them, unless the reader already chose.
   $effect(() => {
     if (noise && !untrack(() => touched)) collapsed = true;
