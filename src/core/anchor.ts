@@ -2,7 +2,7 @@
 // orphaned comments (anchor gone) are excluded from the compiled prompt and surfaced
 // for cleanup in the ui. the svelte client imports this module directly (via $lib/anchor).
 
-import type { Comment, DiffResult, DiffLine } from "../types";
+import type { Comment, DiffResult, DiffLine, DiffFile } from "../types";
 
 export type Side = "old" | "new";
 
@@ -34,6 +34,25 @@ export function isAnchored(comment: Comment, diff: DiffResult): boolean {
       return n != null && n >= start && n <= end;
     })
   );
+}
+
+// the text of the diff lines numbered within [start, end] on `side`, in file order.
+// new side = additions + context (what the file will contain), old side = deletions + context.
+export function anchoredLines(file: DiffFile | undefined, side: Side, start: number, end: number): string[] {
+  if (!file) return [];
+  return file.hunks
+    .flatMap((h) => h.lines)
+    .filter((l) => {
+      const n = numOn(l, side);
+      return n != null && n >= start && n <= end;
+    })
+    .map((l) => l.content);
+}
+
+// resolved comments stay in the file for the record; status is the source of truth, falling
+// back to the legacy `resolved` flag for records that predate it.
+export function isOpenComment(c: Comment): boolean {
+  return (c.status ?? (c.resolved ? "resolved" : "open")) !== "resolved";
 }
 
 export interface PartitionedComments {

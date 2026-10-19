@@ -1,5 +1,6 @@
 import type { DiffResult, ReviewFile, Comment, DiffFile, DiffLine } from "../types";
-import { type Side, sideOf, numOn, rangeEnd, isAnchored } from "./anchor";
+import { type Side, sideOf, numOn, rangeEnd, isAnchored, isOpenComment } from "./anchor";
+import { expandSuggestions, type LineRange } from "./suggestionPrompt";
 
 // assembles inline review comments + their diff context into a markdown prompt.
 // pure: all header values derive from inputs, no clock access.
@@ -55,8 +56,8 @@ function replyThread(comment: Comment): string {
 
 // joins multiple comment texts on one target with a blank line between them;
 // tagged comments get a bold [tag] prefix so the llm sees the reviewer's intent.
-function joinTexts(comments: Comment[]): string {
-  return comments.map((c) => `${c.tag ? `**[${c.tag}]** ${c.text}` : c.text}${replyThread(c)}`).join("\n\n");
+function joinTexts(comments: Comment[], expand: (text: string) => string = (text) => text): string {
+  return comments.map((c) => `${c.tag ? `**[${c.tag}]** ${expand(c.text)}` : expand(c.text)}${replyThread(c)}`).join("\n\n");
 }
 
 function fileLevelSection(file: string, comments: Comment[]): string {
@@ -71,7 +72,8 @@ function lineSection(file: string, diffFile: DiffFile | undefined, side: Side, s
   const header = start === end ? `### ${file} — ${one} ${start}` : `### ${file} — ${many} ${start}–${end}`;
   const block = diffFile ? buildContextBlock(diffFile, side, start, end) : "";
   // comments sharing the exact side+range share one block; different ranges are separate sections.
-  return `${header}\n\n${block}\n\n${joinTexts(comments)}`;
+  const range: LineRange = { path: file, side, start, end };
+  return `${header}\n\n${block}\n\n${joinTexts(comments, (text) => expandSuggestions(text, range, diffFile))}`;
 }
 
 // groups a file's comments into ordered sections: file-level first, then by range
@@ -110,11 +112,8 @@ export function compileReviewPrompt(diff: DiffResult, review: ReviewFile, summar
   const title = `## Code Review — ${ref} — ${date}`;
 
   // resolved comments stay in the file for the record; orphaned comments (anchor no longer
-  // in the diff) are managed in the ui. both are left out of the prompt. status is the source
-  // of truth, falling back to the legacy `resolved` flag for records that predate it.
-  const open = review.comments.filter(
-    (c) => (c.status ?? (c.resolved ? "resolved" : "open")) !== "resolved" && isAnchored(c, diff)
-  );
+  // in the diff) are managed in the ui. both are left out of the prompt.
+  const open = review.comments.filter((c) => isOpenComment(c) && isAnchored(c, diff));
 
   const byFile = new Map<string, Comment[]>();
   for (const c of open) {
