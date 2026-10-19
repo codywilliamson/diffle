@@ -107,6 +107,19 @@ describe("document symbols", () => {
   });
 });
 
+describe("document symbol range ends are exclusive", () => {
+  test("a symbol ending at column 0 of the next line is not changed by that next line", async () => {
+    const root = tempDir("sym");
+    writeFiles(root, { "a.ts": numbered(6) });
+    const inclusive = [{ name: "f", kind: 12, range: range(0, 0, 0), selectionRange: range(0, 0, 1) }];
+    const symbols = [{ ...inclusive[0], range: { start: { line: 0, character: 0 }, end: { line: 3, character: 0 } } }, { name: "g", kind: 12, range: { start: { line: 3, character: 0 }, end: { line: 4, character: 5 } }, selectionRange: range(3, 0, 1) }];
+    // client lines: f spans 1..3 (end is line 4 col 0), g spans 4..5; only line 4 changed
+    const { harness } = setup(root, { responses: { "textDocument/documentSymbol": symbols } }, [diffFile("a.ts", [4])]);
+    const body = await (await harness.get("/api/lsp/symbols?path=a.ts")).json() as any;
+    expect(body.symbols.map((s: any) => [s.name, s.changed])).toEqual([["f", false], ["g", true]]);
+  });
+});
+
 describe("workspace symbols", () => {
   test("fans out to every running server, merges, de-duplicates and ranks the diff first", async () => {
     const root = tempDir("ws");
@@ -122,6 +135,28 @@ describe("workspace symbols", () => {
     const body = await (await harness.get("/api/lsp/symbols?query=o")).json() as any;
     expect(body.symbols.map((s: any) => [s.name, s.path, s.inDiff])).toEqual([["Both", "a.ts", true], ["Near", "b.cs", true], ["Far", "other.ts", false]]);
     expect(body).toMatchObject({ total: 3, truncated: false });
+  });
+
+  test("every server rejecting the request is a 502, not an empty list", async () => {
+    const root = tempDir("ws");
+    writeFiles(root, { "a.ts": numbered(2) });
+    const { harness } = setup(root, {}); // the fake answers -32601 for methods it does not know
+    const res = await harness.get("/api/lsp/symbols?query=S");
+    expect([res.status, (await res.json() as any).code]).toEqual([502, "request-failed"]);
+  });
+
+  test("one server failing still returns the other's symbols", async () => {
+    const root = tempDir("ws");
+    writeFiles(root, { "a.ts": numbered(3), "b.cs": numbered(3) });
+    const ok = { responses: { "workspace/symbol": [{ name: "Fine", kind: 5, location: at(fileUri(root, "a.ts"), 1) }] } };
+    const entry = (cfg: object) => ({ ...fakeEntry(), candidates: [{ command: process.execPath, args: () => [FAKE_LSP_PATH, JSON.stringify(cfg)] }] });
+    const pool = new LspPool({ root, registry: { typescript: entry(ok), csharp: entry({}) }, shutdownTimeoutMs: 500 });
+    pools.push(pool);
+    const harness = startHarness(root, pool, [diffFile("a.ts"), diffFile("b.cs")]);
+    harnesses.push(harness);
+    const res = await harness.get("/api/lsp/symbols?query=F");
+    expect(res.status).toBe(200);
+    expect((await res.json() as any).symbols.map((s: any) => s.name)).toEqual(["Fine"]);
   });
 
   test("is capped", async () => {
