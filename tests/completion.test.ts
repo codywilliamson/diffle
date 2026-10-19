@@ -8,6 +8,7 @@ import { AGENT_IDS, COMPLETION_SHELLS, type CompletionShell } from "../src/utils
 import { parseCliArgs } from "../src/utils/cli";
 import { renderCompletion } from "../src/utils/completion";
 import { completionModel } from "../src/utils/completion/model";
+import { findBash } from "./helpers/findBash";
 import { describeEntry } from "../src/utils/completion/zsh";
 
 const dirs: string[] = [];
@@ -139,7 +140,7 @@ const skip = (tool: string) => { console.log(`skipping ${tool} completion check:
 
 describe("completion syntax checks", () => {
   test("bash -n", () => {
-    const bash = Bun.which("bash");
+    const bash = findBash();
     if (!bash) return skip("bash");
     const result = run([bash, "-n", writeScript("bash", "bash")]);
     expect(result.stderr.toString()).toBe("");
