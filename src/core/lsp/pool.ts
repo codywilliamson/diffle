@@ -1,19 +1,17 @@
 // per-language server routing. a server starts lazily on the first ensure() for its language,
 // is keyed by (language, root) so it stays warm, restarts once after a crash, then is marked failed.
+// the root is the repository or one of the workspace's detached worktrees (see workspace.ts).
 
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { LspLanguageStatus, LspState } from "../../types";
-import { PRODUCT } from "../product";
 import { LspBridge } from "./bridge";
-import { LSP_REGISTRY, type LanguageEntry, type LspLanguage } from "./registry";
-import { findExecutable } from "./which";
+import type { LanguageEntry, LspLanguage } from "./registry";
+import { ServerResolver, type ServerSpec } from "./serverResolver";
+import { LspWorkspace } from "./workspace";
 
 export const MAX_RESTARTS = 1;
 
 export interface PoolOptions {
-  root: string; // repository root; becomes the server's workspace root
+  root: string; // repository root; the default workspace root of every server
   enabled?: boolean; // false (--no-lsp) starts nothing, ever
   registry?: Partial<Record<LspLanguage, LanguageEntry>>; // test override
   searchPath?: string; // test override for PATH
@@ -21,9 +19,21 @@ export interface PoolOptions {
   shutdownTimeoutMs?: number; // per server, before it is killed
 }
 
-interface ServerSpec { command: string; args: string[] }
+// what request handlers see: the pool, or the pool narrowed to one workspace root.
+export interface LspHandle {
+  readonly enabled: boolean;
+  readonly root: string;
+  readonly workspace?: LspWorkspace; // only the pool decides roots; a narrowed view does not
+  readonly blocker?: string;
+  view?(root: string): LspHandle;
+  ensure(language: LspLanguage): Promise<LspBridge | undefined>;
+  status(languages: readonly LspLanguage[]): LspLanguageStatus[];
+  running(): LspBridge[];
+}
+
 interface Slot {
   language: LspLanguage;
+  root: string;
   state: LspState;
   restarts: number;
   started?: boolean; // initialize handshake finished for the current bridge
@@ -33,43 +43,61 @@ interface Slot {
   ready?: Promise<LspBridge>;
 }
 
-export class LspPool {
+export class LspPool implements LspHandle {
   private readonly slots = new Map<string, Slot>();
   private readonly retired = new WeakSet<LspBridge>();
-  private readonly resolved = new Map<LspLanguage, ServerSpec | null>();
-  private readonly rejected = new Set<LspLanguage>(); // a candidate existed but sat inside the repository
-  private logDir: string | undefined;
+  private readonly resolver: ServerResolver;
+  private repoWorkspace: LspWorkspace | undefined;
+  private activeRoot: string; // the root of the latest ensure(): what status() reports
   private disposed = false;
 
-  constructor(private readonly options: PoolOptions) {}
+  constructor(private readonly options: PoolOptions) {
+    this.resolver = new ServerResolver(options);
+    this.activeRoot = options.root;
+  }
 
   get enabled(): boolean { return this.options.enabled !== false; }
   get root(): string { return this.options.root; }
+  get workspace(): LspWorkspace { return (this.repoWorkspace ??= new LspWorkspace(this.options.root)); }
+  get blocker(): string | undefined { return this.repoWorkspace?.blocker; }
 
-  // bridges that finished the handshake; workspace queries fan out to these.
-  running(): LspBridge[] {
-    return [...this.slots.values()].filter((slot) => slot.bridge && (slot.state === "ready" || slot.state === "indexing")).map((slot) => slot.bridge!);
+  // the same pool seen from one workspace root: its servers, its status.
+  view(root: string): LspHandle {
+    return {
+      enabled: this.enabled, root,
+      ensure: (language) => this.ensure(language, root),
+      status: (languages) => this.status(languages, root),
+      running: () => this.running(root),
+    };
   }
 
-  status(languages: readonly LspLanguage[]): LspLanguageStatus[] {
+  // bridges that finished the handshake; workspace queries fan out to these.
+  running(root?: string): LspBridge[] {
+    return [...this.slots.values()]
+      .filter((slot) => slot.bridge && (slot.state === "ready" || slot.state === "indexing") && (root === undefined || slot.root === root))
+      .map((slot) => slot.bridge!);
+  }
+
+  status(languages: readonly LspLanguage[], root: string = this.activeRoot): LspLanguageStatus[] {
     return languages.map((language) => {
-      const slot = this.slots.get(this.keyFor(language));
+      const slot = this.slots.get(this.keyFor(language, root));
       if (slot) return { language, state: slot.state, restarts: slot.restarts, ...(slot.server ? { server: slot.server } : {}), ...(slot.stderr ? { stderr: slot.stderr } : {}) };
-      const found = this.resolve(language);
+      const found = this.resolver.resolve(language);
       return found
         ? { language, state: "idle", restarts: 0, server: found.command }
-        : { language, state: "missing", restarts: 0, hint: this.hintFor(language) };
+        : { language, state: "missing", restarts: 0, hint: this.resolver.hintFor(language) };
     });
   }
 
   // resolves to the running bridge, or undefined when the server is missing, failed or the pool is off.
-  async ensure(language: LspLanguage): Promise<LspBridge | undefined> {
+  async ensure(language: LspLanguage, root: string = this.options.root): Promise<LspBridge | undefined> {
     if (!this.enabled || this.disposed) return undefined;
-    const key = this.keyFor(language);
+    this.activeRoot = root;
+    const key = this.keyFor(language, root);
     if (!this.slots.has(key)) {
-      const spec = this.resolve(language);
+      const spec = this.resolver.resolve(language);
       if (!spec) return undefined;
-      this.slots.set(key, { language, state: "starting", restarts: 0, server: spec.command });
+      this.slots.set(key, { language, root, state: "starting", restarts: 0, server: spec.command });
       this.launch(this.slots.get(key)!, spec);
     }
     const slot = this.slots.get(key)!;
@@ -99,39 +127,13 @@ export class LspPool {
     for (const slot of this.slots.values()) if (slot.state !== "failed") slot.state = "idle";
   }
 
-  private keyFor(language: LspLanguage): string { return `${language}\0${this.options.root}`; }
-
-  private entry(language: LspLanguage): LanguageEntry { return this.options.registry?.[language] ?? LSP_REGISTRY[language]; }
-
-  private resolve(language: LspLanguage): ServerSpec | undefined {
-    if (!this.resolved.has(language)) {
-      const logDir = this.logDirectory();
-      let spec: ServerSpec | null = null;
-      for (const candidate of this.entry(language).candidates) {
-        const { path: command, rejected } = findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
-        if (rejected) this.rejected.add(language);
-        if (command) { spec = { command, args: candidate.args(logDir) }; break; }
-      }
-      this.resolved.set(language, spec);
-    }
-    return this.resolved.get(language) ?? undefined;
-  }
-
-  private hintFor(language: LspLanguage): string {
-    const install = this.entry(language).installHint;
-    return this.rejected.has(language) ? `ignored a server inside the repository; ${install}` : install;
-  }
-
-  private logDirectory(): string {
-    this.logDir ??= mkdtempSync(join(tmpdir(), `${PRODUCT.name}-lsp-`));
-    return this.logDir;
-  }
+  private keyFor(language: LspLanguage, root: string): string { return `${language}\0${root}`; }
 
   private launch(slot: Slot, spec: ServerSpec): void {
     slot.state = "starting";
     const bridge = new LspBridge({
-      command: spec.command, args: spec.args, root: this.options.root, cwd: this.logDirectory(),
-      initializationOptions: this.entry(slot.language).initializationOptions?.(this.logDirectory()),
+      command: spec.command, args: spec.args, root: slot.root, cwd: this.resolver.logDirectory(),
+      initializationOptions: this.resolver.entry(slot.language).initializationOptions?.(this.resolver.logDirectory()),
     });
     slot.bridge = bridge;
     bridge.onProgress = () => this.settle(slot, bridge);
@@ -169,8 +171,7 @@ export class LspPool {
   }
 
   private cleanup(): void {
-    // best effort: on windows a server that is still dying keeps its cwd (this dir) locked
-    if (this.logDir) { try { rmSync(this.logDir, { recursive: true, force: true }); } catch { /* temp dir; the os cleans it */ } }
-    this.logDir = undefined;
+    this.repoWorkspace?.dispose(); // after the servers stopped: they hold files inside the worktrees
+    this.resolver.cleanup();
   }
 }

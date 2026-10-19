@@ -7,6 +7,7 @@ import { languageForPath, languagesInPaths } from "../core/lsp/registry";
 import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol, type WireWorkspaceSymbol } from "../core/lsp/symbols";
 import type { ServerContext } from "./handlers";
 import { json } from "./respond";
+import { sideContext } from "./lspSide";
 import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, unavailable } from "./lspSession";
 import { prepareBridge } from "./lspSync";
 import { fileUriOf, pathKey, TargetResolver } from "./lspTargets";
@@ -57,7 +58,10 @@ export function handleLspDocumentSymbols(ctx: ServerContext, path: string, signa
 
 const rank = (symbol: { inDiff: boolean; inRepo: boolean }): number => (symbol.inDiff ? 0 : symbol.inRepo ? 1 : 2);
 
-export async function handleLspWorkspaceSymbols(ctx: ServerContext, query: string, signal: AbortSignal): Promise<Response> {
+export async function handleLspWorkspaceSymbols(base: ServerContext, query: string, signal: AbortSignal): Promise<Response> {
+  const sided = sideContext(base, "new");
+  if ("unavailable" in sided) return lspError("server-unavailable", sided.unavailable, 409, { hint: sided.unavailable });
+  const ctx = sided;
   const pool = ctx.lsp;
   const diffPaths = ctx.diff.files.map((file) => file.path);
   const languages = languagesInPaths(diffPaths);

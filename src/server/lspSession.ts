@@ -14,10 +14,10 @@ import { json } from "./respond";
 import { fileUriOf, readRepoText, repoRootOf, splitLines, TargetResolver } from "./lspTargets";
 import { fileURLToPath } from "node:url";
 import { syncDocument } from "./lspSync";
+import { sideContext } from "./lspSide";
 
 const STALE_RETRIES = 1;
 export const CANCELLED_STATUS = 499; // nginx's "client closed request"; no standard code fits
-const OLD_SIDE_HINT = "navigating the old side needs a detached worktree (#186)";
 
 export function lspError(code: LspErrorCode, message: string, status: number, extra: Partial<LspErrorResponse> = {}): Response {
   return json({ error: message, code, ...extra } satisfies LspErrorResponse, status);
@@ -80,18 +80,20 @@ export interface LspDoc {
 const isRepoRelative = (ctx: ServerContext, path: string): boolean =>
   path !== "" && !path.includes("..") && !posix.isAbsolute(path) && !win32.isAbsolute(path) && insideDir(repoRootOf(ctx), path);
 
-// opens (or resyncs) `path` on its language server. the old side is refused until the detached worktree exists.
-export async function openDocument(ctx: ServerContext, path: unknown, side: unknown): Promise<LspDoc | Response> {
-  if (typeof path !== "string" || !isRepoRelative(ctx, path)) return invalid("path must be a repo-relative file");
+// opens (or resyncs) `path` on its language server, rooted where `side` lives (see lspSide.ts).
+// the old side is served from a detached worktree at its base commit; a review with no base commit refuses it.
+export async function openDocument(base: ServerContext, path: unknown, side: unknown): Promise<LspDoc | Response> {
+  if (typeof path !== "string" || !isRepoRelative(base, path)) return invalid("path must be a repo-relative file");
   if (side !== "new" && side !== "old") return invalid("side must be old or new");
-  if (side === "old") return lspError("old-side-unsupported", OLD_SIDE_HINT, 409, { hint: OLD_SIDE_HINT });
   const match = languageForPath(path);
-  if (!match || !ctx.lsp?.enabled) return unavailable(ctx, match?.language);
+  if (!match || !base.lsp?.enabled) return unavailable(base, match?.language);
+  const ctx = sideContext(base, side);
+  if ("unavailable" in ctx) return side === "old" ? lspError("old-side-unsupported", ctx.unavailable, 409, { hint: ctx.unavailable }) : lspError("server-unavailable", ctx.unavailable, 409, { hint: ctx.unavailable });
   try { readRepoText(ctx, path); } catch { return lspError("file-not-found", "file not found", 404); }
-  const bridge = await ctx.lsp.ensure(match.language);
+  const bridge = await ctx.lsp!.ensure(match.language);
   if (!bridge) return unavailable(ctx, match.language);
   const uri = fileUriOf(ctx, path);
-  const generation = ctx.diffGeneration ?? 0; // before reading, so a refresh during the read still reads as stale
+  const generation = base.diffGeneration ?? 0; // before reading, so a refresh during the read still reads as stale
   let synced: { text: string; version: number };
   try { synced = await syncDocument(ctx, bridge, { uri, languageId: match.languageId, path }); } catch { return lspError("file-not-found", "file not found", 404); }
   const { text, version } = synced;

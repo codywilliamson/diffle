@@ -10,6 +10,7 @@ import { fromLspCharacter, type PositionEncoding } from "../core/lsp/positions";
 import { containsPath } from "../utils/pathWithin";
 import { readOutsideRepo, readRepoText, repoRootOf } from "./lspText";
 import type { ServerContext } from "./handlers";
+import { baseContextOf, sideOfContext } from "./lspSide";
 
 export { readRepoText, repoRootOf };
 const DEPENDENCY_DIR = "node_modules";
@@ -17,11 +18,12 @@ const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "d
 const fold = (path: string): string => (CASE_INSENSITIVE ? path.toLowerCase() : path);
 export const splitLines = (text: string): string[] => text.split(/\r\n|\r|\n/);
 
-const allowlists = new WeakMap<ServerContext, Set<string>>();
+// handed-out targets per review, each with the context (new side or a worktree view) it was found in
+const allowlists = new WeakMap<ServerContext, Map<string, ServerContext>>();
 // identity for dedupe and caches: servers spell the same drive differently (C: vs c:)
 export const pathKey = (path: string): string => fold(resolve(path));
 // authorization is by exact spelling, never case folding: "Foo.ts" being allowed must not allow "foo.ts"
-export function isAllowedTarget(ctx: ServerContext, absolutePath: string): boolean { return allowlists.get(ctx)?.has(resolve(absolutePath)) ?? false; }
+export function allowedTargetOwner(ctx: ServerContext, absolutePath: string): ServerContext | undefined { return allowlists.get(baseContextOf(ctx))?.get(resolve(absolutePath)); }
 
 export const fileUriOf = (ctx: ServerContext, path: string): string => pathToFileURL(resolve(repoRootOf(ctx), path)).href;
 export const sameFile = (a: string, b: string): boolean => {
@@ -48,10 +50,12 @@ export class TargetResolver {
     const root = repoRootOf(this.ctx);
     const rel = containsPath(fold(root), fold(absolutePath)) ? relative(root, absolutePath).split(sep).join("/") : null;
     const inRepo = rel !== null && rel !== "" && !rel.split("/").includes(DEPENDENCY_DIR);
-    let allowed = allowlists.get(this.ctx);
-    if (!allowed) allowlists.set(this.ctx, (allowed = new Set()));
-    allowed.add(resolve(absolutePath));
-    return { uri, path: inRepo ? rel : null, absolutePath, inRepo, inDiff: inRepo && this.inDiffPaths.has(rel) };
+    const base = baseContextOf(this.ctx);
+    let allowed = allowlists.get(base);
+    if (!allowed) allowlists.set(base, (allowed = new Map()));
+    allowed.set(resolve(absolutePath), this.ctx);
+    const side = sideOfContext(this.ctx);
+    return { uri, path: inRepo ? rel : null, absolutePath, inRepo, inDiff: inRepo && this.inDiffPaths.has(rel), ...(side === "old" ? { side } : {}) };
   }
 
   text(location: LspLocation): string | undefined {

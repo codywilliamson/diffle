@@ -80,7 +80,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/lsp-server" --no-audit --no-fund --save-exact typescript-language-server@5.3.0 typescript@5.9.3
           echo "$RUNNER_TEMP/lsp-server/node_modules/.bin" >> "$GITHUB_PATH"
       - run: typescript-language-server --version
-      - run: bun test --timeout 60000 tests/lspEndpointsReal.test.ts tests/lspRealServer.test.ts
+      - run: bun test --timeout 60000 tests/lspEndpointsReal.test.ts tests/lspRealServer.test.ts tests/lspWorktreeReal.test.ts
       - run: bun scripts/lsp-bench.ts
 
   client:
