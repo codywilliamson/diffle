@@ -209,6 +209,7 @@ export interface UserState {
   updateCheckedAt?: string; // iso time of the last launch-time release check (throttles the notice)
   latestKnownVersion?: string; // newest release seen by that check
   legacyEnvNoticed?: string; // the DIFFLE_* rename notice already shown, keyed by the sorted var set
+  legacyPathChecked?: boolean; // the one-time look for a stale diffle PATH entry after its bin dir was gone is done
   migration?: MigrationRecord; // an install migration that still has work left; cleared once it completes
 }
 

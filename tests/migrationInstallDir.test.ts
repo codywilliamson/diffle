@@ -27,8 +27,13 @@ function memoryStore(initial: string): UserPathStore & { value: string } {
 function setup(overrides: Partial<InstallDirDeps> = {}) {
   const logs: string[] = [];
   const stops: number[] = [];
-  // the nittle bin dir is on PATH unless a test says otherwise
+  // the nittle bin dir is reachable unless a test says otherwise. only persistent sources count, so each
+  // PATH entry a test names is written as a hand-written ~/.profile line; the inherited PATH itself is
+  // set too, to prove it is ignored
   const env = { PATH: join(home, ".nittle", "bin"), ...overrides.env };
+  const entries = (env.PATH ?? "").split(delimiter).filter((entry) => entry && entry !== "/usr/bin");
+  const profile = join(overrides.home ?? home, ".profile");
+  if (entries.length > 0) write(profile, `${existsSync(profile) ? read(profile) : ""}${entries.map((entry) => `export PATH="${entry}:$PATH"`).join("\n")}\n`);
   const deps: Partial<InstallDirDeps> = {
     home, platform: "linux", execPath: legacyBin(), pathStore: memoryStore(""),
     stopServers: () => stops.push(1), log: (line) => logs.push(line), ...overrides, env,
@@ -296,6 +301,50 @@ describe("install dir migration from the diffle binary", () => {
     expect(readUserState(home).migration).toBeUndefined();
   });
 
+  test("an inherited PATH is not persistent: PATH=<nittle bin> NITTLE_NO_MODIFY_PATH=1 diffle keeps diffle", () => {
+    installLegacy();
+    write(join(home, ".zshrc"), OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    const logs: string[] = [];
+    migrateInstallDir({
+      home, platform: "linux", execPath: legacyBin(), stopServers: () => {}, log: (line) => logs.push(line),
+      env: { PATH: join(home, ".nittle", "bin"), NITTLE_NO_MODIFY_PATH: "1" },
+    });
+    expect(existsSync(legacyBin())).toBe(true);
+    expect(logs.join("\n")).toContain("NITTLE_NO_MODIFY_PATH is set");
+  });
+
+  test("a hand-written rc line that already names the destination counts as reachable", () => {
+    installLegacy();
+    write(join(home, ".zshrc"), `export PATH="$HOME/.nittle/bin:$PATH"\n`);
+    migrateInstallDir({
+      home, platform: "linux", execPath: legacyBin(), stopServers: () => {}, log: () => {},
+      env: { NITTLE_NO_MODIFY_PATH: "1" },
+    });
+    expect(existsSync(join(home, ".diffle"))).toBe(false);
+  });
+
+  test("a stale managed PATH block is rewritten even though the diffle bin dir is gone", () => {
+    const nittle = join(home, ".nittle", "bin", "nittle");
+    write(nittle, "n");
+    const rc = join(home, ".zshrc");
+    write(rc, OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    setup({ execPath: nittle, env: { PATH: "/usr/bin" } }).run();
+    expect(read(rc)).toBe(["# >>> nittle >>>", `export PATH="${join(home, ".nittle", "bin")}:$PATH"`, "# <<< nittle <<<"].join("\n"));
+    expect(readUserState(home).legacyPathChecked).toBe(true);
+    // checked once: a later stale block is left for the user, no scan on every launch
+    write(rc, OLD_BLOCK(join(home, ".diffle", "bin")).join("\n"));
+    setup({ execPath: nittle, env: { PATH: "/usr/bin" } }).run();
+    expect(read(rc)).toContain("# >>> diffle >>>");
+  });
+
+  test("a stale user PATH entry is swapped on windows when the diffle bin dir is gone", () => {
+    const nittle = join(home, ".nittle", "bin", "nittle.exe");
+    write(nittle, "n");
+    const store = memoryStore(`C:\\Windows;${join(home, ".diffle", "bin")}`);
+    setup({ platform: "win32", execPath: nittle, pathStore: store }).run();
+    expect(store.value).toBe(`C:\\Windows;${join(home, ".nittle", "bin")}`);
+  });
+
   test("a failed copy keeps the diffle install and reports", () => {
     installLegacy();
     write(join(home, ".nittle"), "a file where the bin dir should go");
@@ -395,14 +444,14 @@ describe("windows layout", () => {
     const holder = Bun.spawn([locked, "-e", "setTimeout(() => {}, 60000)"], { stdout: "ignore", stderr: "ignore" });
     try {
       await Bun.sleep(300);
-      const first = setup({ platform: "win32", execPath: locked, pathStore: memoryStore("") });
+      const first = setup({ platform: "win32", execPath: locked, pathStore: memoryStore([join(home, ".nittle", "bin")].join(";")) });
       first.run();
       expect(existsSync(locked)).toBe(false);
       expect(readdirSync(dirname(locked))).toEqual([".diffle.exe.old"]);
       expect(first.logs.some((line) => line.includes("still in use"))).toBe(true);
       holder.kill();
       await holder.exited;
-      const later = setup({ platform: "win32", execPath: join(home, ".nittle", "bin", "nittle.exe"), pathStore: memoryStore("") });
+      const later = setup({ platform: "win32", execPath: join(home, ".nittle", "bin", "nittle.exe"), pathStore: memoryStore([join(home, ".nittle", "bin")].join(";")) });
       later.run();
       expect(existsSync(join(home, ".diffle"))).toBe(false);
     } finally {
@@ -473,7 +522,7 @@ describe("per-shell rc files", () => {
       const dir = join(home, ".diffle", "bin");
       write(rc, `before\n\n# >>> diffle >>>\nexport PATH="${dir}:$PATH"\n# <<< diffle <<<\nafter\n`);
       const resolved = Object.fromEntries(Object.entries(env).map(([k, v]) => [k, v.replace("<home>", home)]));
-      setup({ env: resolved }).run();
+      setup({ env: { ...resolved, PATH: "/usr/bin" } }).run();
       expect(readFileSync(rc, "utf8")).toBe(`before\n\n# >>> nittle >>>\nexport PATH="${join(home, ".nittle", "bin")}:$PATH"\n# <<< nittle <<<\nafter\n`);
     });
   }
