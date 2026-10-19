@@ -33,7 +33,6 @@ export function renderFormula(version: string, checksums: string): string {
     `class ${className()} < Formula`,
     `  desc "${PRODUCT.description}"`,
     `  homepage "${PRODUCT.site}"`,
-    `  version "${v}"`,
     `  license "${LICENSE}"`,
     "",
     ...osBlock("macos", v, checksums),

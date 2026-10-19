@@ -4,7 +4,6 @@ exports[`homebrew formula matches the snapshot 1`] = `
 "class Nittle < Formula
   desc "Local git diff viewer with inline comments and structured agent feedback"
   homepage "https://nittle.dev"
-  version "1.2.3"
   license "MIT"
 
   on_macos do

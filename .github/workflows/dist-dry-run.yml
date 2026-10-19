@@ -117,16 +117,32 @@ jobs:
           name: dist-dry-run
           path: artifact
       - name: Install the local tarballs globally and run the binary
+        if: ${{ runner.os != 'Windows' }}
         shell: bash
         run: |
           version=$(node -p "require('./package.json').version")
           home="$RUNNER_TEMP/home"; prefix="$RUNNER_TEMP/prefix"; mkdir -p "$home"
           export HOME="$home" XDG_CONFIG_HOME="$home/.config" CLAUDE_CONFIG_DIR="$home/.claude" CODEX_HOME="$home/.codex" NITTLE_NO_UPDATE_CHECK=1
           npm i -g --prefix "$prefix" "./artifact/tgz/nittle-$version.tgz" "./artifact/tgz/nittle-${{ matrix.platform }}-$version.tgz"
-          if [ "$RUNNER_OS" = "Windows" ]; then export PATH="$prefix:$PATH"; else export PATH="$prefix/bin:$PATH"; fi
+          export PATH="$prefix/bin:$PATH"
           out=$(nittle --version)
           echo "$out"
           echo "$out" | head -n1 | grep -Fx "nittle v$version"
+      # windows uses the npm .cmd shim from pwsh, the way a user would; git bash cannot run it with a mixed-style path
+      - name: Install the local tarballs globally and run the binary (windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $home_dir = Join-Path $env:RUNNER_TEMP 'home'; $prefix = Join-Path $env:RUNNER_TEMP 'prefix'
+          New-Item -ItemType Directory $home_dir | Out-Null
+          $env:HOME = $home_dir; $env:XDG_CONFIG_HOME = "$home_dir\.config"; $env:CLAUDE_CONFIG_DIR = "$home_dir\.claude"; $env:CODEX_HOME = "$home_dir\.codex"; $env:NITTLE_NO_UPDATE_CHECK = '1'
+          npm i -g --prefix $prefix "./artifact/tgz/nittle-$version.tgz" "./artifact/tgz/nittle-${{ matrix.platform }}-$version.tgz"
+          if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
+          $env:PATH = "$prefix;$env:PATH"
+          $first = (nittle --version | Select-Object -First 1)
+          Write-Host $first
+          if ($first -ne "nittle v$version") { throw "unexpected version output: $first" }
 
   brew-audit:
     runs-on: macos-latest
