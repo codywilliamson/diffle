@@ -82,6 +82,21 @@ jobs:
       - run: typescript-language-server --version
       - run: bun test --timeout 60000 tests/lspEndpointsReal.test.ts tests/lspRealServer.test.ts tests/lspWorktreeReal.test.ts
       - run: bun scripts/lsp-bench.ts
+      # the client half against the same server: Ctrl+click and gd, hover, references, symbols
+      - run: bunx playwright install --with-deps chromium
+      - name: navigation e2e
+        run: bunx playwright test --project=behavior e2e/lsp-navigation.pw.ts
+        env:
+          CI: "1"
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: lsp-e2e-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 7
 
   client:
     runs-on: ubuntu-latest

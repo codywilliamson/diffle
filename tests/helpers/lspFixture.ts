@@ -6,7 +6,8 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSyn
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-export const LSP_FIXTURE_DIR = join(import.meta.dir, "..", "fixtures", "lsp-ts");
+// dirname works under bun and node, so the playwright navigation spec can share this helper
+export const LSP_FIXTURE_DIR = join(import.meta.dirname, "..", "fixtures", "lsp-ts");
 const DEPS_DIR = join(LSP_FIXTURE_DIR, "deps");
 
 function typescriptBesideServer(server: string): string | undefined {
