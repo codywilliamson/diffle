@@ -10,6 +10,11 @@ const ln = (newLine: number, content: string, type: DiffLine["type"] = "context"
 const lines = [ln(1, "one"), ln(2, "two", "addition"), ln(3, "three", "addition"), ln(4, "four")];
 const file: DiffFile = { path: "a.ts", oldPath: null, changeType: "modified", additions: 2, deletions: 0, hunks: [{ header: "@@", lines }] };
 const diff: DiffResult = { ref: "x", files: [file] };
+// lines 1-4 and 10-12 are in the diff; 5-9 are unchanged lines between the hunks
+const twoHunks: DiffResult = {
+  ref: "x",
+  files: [{ ...file, hunks: [{ header: "@@ one", lines }, { header: "@@ two", lines: [ln(10, "ten"), ln(11, "eleven", "addition"), ln(12, "twelve")] }] }],
+};
 const comment = (over: Partial<Comment>): Comment =>
   ({ id: "c1", file: "a.ts", line: 2, endLine: 3, lineContent: null, text: "", createdAt: "2026-06-01T00:00:00Z", ...over });
 const review = (comments: Comment[]): ReviewFile =>
@@ -53,6 +58,23 @@ describe("parseSuggestions", () => {
     expect(parseSuggestions("hi\n```suggestion\nnever closed")).toEqual([{ kind: "prose", text: "hi\n```suggestion\nnever closed" }]);
   });
 
+  it("does not treat a suggestion quoted inside a longer example fence as actionable", () => {
+    const body = "example:\n````markdown\n```suggestion\nx\n```\n````\ndone";
+    expect(parseSuggestions(body)).toEqual([{ kind: "prose", text: body }]);
+    const tilde = "~~~\n```suggestion\nx\n```\n~~~";
+    expect(parseSuggestions(tilde)).toEqual([{ kind: "prose", text: tilde }]);
+  });
+
+  it("closes only on a matching fence with at most 3 spaces of indentation", () => {
+    // a shorter fence, a tilde fence and a 4-space-indented fence do not close a 4-tick suggestion
+    expect(parseSuggestions("````suggestion\na\n```\n~~~~\n    ````\nb\n````")).toEqual([
+      { kind: "suggestion", lines: ["a", "```", "~~~~", "    ````", "b"] },
+    ]);
+    expect(parseSuggestions("```suggestion\na\n   ```")).toEqual([{ kind: "suggestion", lines: ["a"] }]);
+    // four spaces of indentation is not a fence opener or closer at all
+    expect(parseSuggestions("    ```suggestion\na\n```")).toEqual([{ kind: "prose", text: "    ```suggestion\na\n```" }]);
+  });
+
   it("round-trips through suggestionFence, widening the fence around backticks", () => {
     expect(parseSuggestions(suggestionFence(["a", "```"]))).toEqual([{ kind: "suggestion", lines: ["a", "```"] }]);
   });
@@ -89,9 +111,34 @@ describe("collectSuggestions", () => {
       comment({ id: "c", line: null, text: "```suggestion\nz\n```" }),
       comment({ id: "d", line: 90, endLine: 90, text: "```suggestion\nz\n```" }),
     ];
-    expect(collectSuggestions(diff, comments)).toEqual([
-      { commentId: "a", path: "a.ts", side: "new", startLine: 2, endLine: 3, original: "two\nthree", suggested: "TWO\nTHREE" },
+    expect(collectSuggestions(diff, comments)).toEqual({
+      suggestions: [{ commentId: "a", path: "a.ts", side: "new", startLine: 2, endLine: 3, original: ["two", "three"], suggested: ["TWO", "THREE"] }],
+      errors: [],
+    });
+  });
+
+  it("keeps deleting the lines distinct from replacing them with one blank line", () => {
+    const { suggestions } = collectSuggestions(diff, [
+      comment({ id: "del", text: "```suggestion\n```" }),
+      comment({ id: "blank", text: "```suggestion\n\n```" }),
     ]);
+    expect(suggestions.map((s) => [s.commentId, s.suggested])).toEqual([["del", []], ["blank", [""]]]);
+  });
+
+  it("rejects a range that spans two hunks instead of listing partial text", () => {
+    const result = collectSuggestions(twoHunks, [comment({ id: "span", line: 2, endLine: 11, text: "```suggestion\nx\n```" })]);
+    expect(result.suggestions).toEqual([]);
+    expect(result.errors[0]).toContain("span");
+    expect(result.errors[0]).toContain("not in the diff");
+    // a range inside one hunk of the same file still works
+    expect(collectSuggestions(twoHunks, [comment({ id: "ok", line: 10, endLine: 11, text: "```suggestion\nx\n```" })]).suggestions).toHaveLength(1);
+  });
+
+  it("leaves the fence as written in the prompt for a range spanning two hunks", () => {
+    const out = compileReviewPrompt(twoHunks, review([comment({ line: 2, endLine: 11, text: "```suggestion\nx\n```" })]));
+    expect(out).toContain("```suggestion\nx\n```");
+    expect(out).toContain("Suggestion not expanded");
+    expect(out).not.toContain("ORIGINAL");
   });
 
   it("reads the anchored lines per side", () => {

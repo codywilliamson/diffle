@@ -2,11 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ReviewRecord } from "../src/types";
+import type { ReviewRecord, ReviewSuggestion } from "../src/types";
 import { readReviewRecord } from "../src/core/reviewRecords";
 import { EXIT_CANCELLED, EXIT_RETURNED, EXIT_STOPPED, EXIT_TAB_CLOSED } from "../src/core/waitExit";
 import { listSessions, stopSession } from "../src/core/sessions";
-import { makeFixtureRepo, startWait } from "./helpers/waitRun";
+import { fixtureComment, makeFixtureRepo, startWait } from "./helpers/waitRun";
 
 let repo: string;
 let data: string;
@@ -48,6 +48,20 @@ describe("nittle --wait", () => {
     expect(parsed.review.id).toBe(run.reviewId);
     expect(parsed.review.status).toBe("feedback_ready");
     expect(parsed.review.comments).toHaveLength(1);
+  });
+
+  it("lists suggestions with --json for a default working-tree review", async () => {
+    const run = await startWait(repo, ["--json"], env());
+    const text = "bump it\n```suggestion\nconst a = 3;\n```";
+    await run.post("/api/comments", { comments: [{ ...fixtureComment, text }] });
+    await run.outcome("feedback");
+    expect(await run.exited).toBe(EXIT_RETURNED);
+    const parsed = JSON.parse(await run.stdout) as { review: ReviewRecord; suggestions: ReviewSuggestion[]; suggestionsError?: string };
+    expect(parsed.review.target.spec).toBe("working");
+    expect(parsed.suggestionsError).toBeUndefined();
+    expect(parsed.suggestions).toEqual([
+      { commentId: "c1", path: "a.ts", side: "new", startLine: 1, endLine: 1, original: ["const a = 2;"], suggested: ["const a = 3;"] },
+    ]);
   });
 
   it("exits 0 with empty stdout when approved", async () => {

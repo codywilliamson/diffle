@@ -10,7 +10,8 @@
   import Markdown from "../Markdown.svelte";
   import SuggestionDiff from "./SuggestionDiff.svelte";
   import { parseSuggestions, type BodySegment } from "$lib/suggestions";
-  import { anchoredLines, rangeEnd, sideOf } from "$lib/anchor";
+  import { contiguousLines, rangeEnd, sideOf } from "$lib/anchor";
+  import { suggestionForRange } from "$lib/diff/threads";
 
   let { comment }: { comment: Comment } = $props();
   const { comments, review, diff } = getAppState();
@@ -23,11 +24,17 @@
 
   // line and range comments show their suggestion fences as a diff against the anchored lines;
   // file-level comments render the body as written.
-  const segments = $derived<BodySegment[]>(comment.line === null ? [{ kind: "prose", text: comment.text }] : parseSuggestions(comment.text));
+  // a range that crosses lines outside the diff has no complete original, so it renders as written too.
   const original = $derived(
     comment.line === null
-      ? []
-      : anchoredLines(diff.files.find((file) => file.path === comment.file), sideOf(comment), comment.line, rangeEnd(comment)),
+      ? null
+      : contiguousLines(diff.files.find((file) => file.path === comment.file), sideOf(comment), comment.line, rangeEnd(comment)),
+  );
+  const segments = $derived<BodySegment[]>(original ? parseSuggestions(comment.text) : [{ kind: "prose", text: comment.text }]);
+  const suggestSource = $derived(
+    comment.line === null
+      ? undefined
+      : suggestionForRange(diff.files.find((file) => file.path === comment.file), sideOf(comment), comment.line, rangeEnd(comment)),
   );
 </script>
 
@@ -35,7 +42,7 @@
   <CommentEditor
     initial={comment.text}
     initialTag={comment.tag}
-    suggestLines={sideOf(comment) === "new" && original.length > 0 ? original : undefined}
+    suggest={suggestSource}
     onSave={async (text, tag) => {
       const error = await comments.edit(comment.id, { text, tag });
       if (!error) editing = false;
@@ -60,7 +67,7 @@
     </div>
     {#each segments as segment, i (i)}
       {#if segment.kind === "suggestion"}
-        <SuggestionDiff {original} suggested={segment.lines} />
+        <SuggestionDiff original={original ?? []} suggested={segment.lines} />
       {:else}
         <Markdown text={segment.text} from={comment.file} class="comment-body mt-1" />
       {/if}

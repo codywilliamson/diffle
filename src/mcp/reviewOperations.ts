@@ -14,7 +14,7 @@ import { suggestionsFor } from "./reviewSuggestions";
 export function found(reviewId: string): ReviewOperationResult {
   const review = readReviewRecord(reviewId);
   if (!review) throw new Error("review record not found");
-  return { review, suggestions: suggestionsFor(review) };
+  return { review, ...suggestionsFor(review) };
 }
 
 export function createReviewOperations(productRoot: string): ReviewOperations {

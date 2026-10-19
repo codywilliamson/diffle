@@ -167,8 +167,8 @@ export interface ReviewSuggestion {
   side: "old" | "new";
   startLine: number;
   endLine: number;
-  original: string; // the anchored lines as currently in the diff, "" when not available
-  suggested: string; // the replacement text, "" means delete the original lines
+  original: string[]; // the anchored lines as currently in the diff
+  suggested: string[]; // the replacement lines; an empty array means delete the original lines
 }
 
 export interface FeedbackBundle {

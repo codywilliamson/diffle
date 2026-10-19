@@ -5,17 +5,18 @@
   import ComposerHint from "./ComposerHint.svelte";
   import { focusDiff, revealInDiff } from "$lib/diff/focusDiff";
   import { suggestionFence } from "$lib/suggestions";
+  import type { SuggestSource } from "$lib/diff/threads";
 
   let {
     initial = "",
     initialTag,
-    suggestLines,
+    suggest,
     onSave,
     onCancel,
   }: {
     initial?: string;
     initialTag?: CommentTag;
-    suggestLines?: string[]; // new-side lines under a line or range comment; enables Suggest change
+    suggest?: SuggestSource; // new-side lines under a line or range comment; enables Suggest change
     onSave: (text: string, tag?: CommentTag) => Promise<string | null>;
     onCancel: () => void;
   } = $props();
@@ -66,22 +67,26 @@
       saving = false;
     }
   }
-  // drops a suggestion fence prefilled with the anchored lines at the caret, caret ends inside it
+  // drops a suggestion fence prefilled with the anchored lines at the caret and selects the
+  // prefilled replacement inside it, so typing replaces it
   async function suggestChange(): Promise<void> {
-    if (!suggestLines || !ta) return;
+    const lines = suggest?.lines;
+    if (!lines || !ta) return;
     const at = ta.selectionStart ?? text.length;
     const before = text.slice(0, at);
     const after = text.slice(at);
-    const fence = suggestionFence(suggestLines);
-    const inserted = `${before && !before.endsWith("\n") ? "\n" : ""}${fence}${after && !after.startsWith("\n") ? "\n" : ""}`;
-    text = before + inserted + after;
+    const fence = suggestionFence(lines);
+    const lead = before && !before.endsWith("\n") ? "\n" : "";
+    const tail = after && !after.startsWith("\n") ? "\n" : "";
+    text = before + lead + fence + tail + after;
+    const contentStart = before.length + lead.length + fence.indexOf("\n") + 1;
+    const contentEnd = contentStart + lines.join("\n").length;
     await tick();
-    const caret = before.length + inserted.length - (after && !after.startsWith("\n") ? 1 : 0);
     ta.focus({ preventScroll: true });
-    ta.setSelectionRange(caret, caret);
+    ta.setSelectionRange(contentStart, contentEnd);
   }
   function onKeydown(e: KeyboardEvent): void {
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === SUGGEST_KEY && suggestLines) {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === SUGGEST_KEY && suggest?.lines) {
       e.preventDefault();
       void suggestChange();
     } else if (e.key === "Escape") {
@@ -109,8 +114,13 @@
   <div class="mt-2 flex flex-wrap items-center gap-2">
     <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
     <button class="comment-btn" onclick={cancel}>Cancel</button>
-    {#if suggestLines}<button type="button" class="comment-btn" onclick={() => void suggestChange()} aria-keyshortcuts="Control+G">Suggest change</button>{/if}
-    <ComposerHint id={hintId} action="save" suggest={!!suggestLines} class="@max-2xl:hidden" />
+    {#if suggest?.lines}
+      <button type="button" class="comment-btn" onclick={() => void suggestChange()} aria-keyshortcuts="Control+G">Suggest change</button>
+    {:else if suggest?.blocked}
+      <button type="button" class="comment-btn" disabled aria-describedby="{hintId}-blocked">Suggest change</button>
+      <span id="{hintId}-blocked" class="text-xs text-muted">{suggest.blocked}</span>
+    {/if}
+    <ComposerHint id={hintId} action="save" suggest={!!suggest?.lines} class="@max-2xl:hidden" />
     <div role="group" aria-label="Tag" class="ml-auto flex flex-wrap gap-1.5 @max-md:ml-0 @max-md:basis-full">
       {#each TAGS as t (t)}
         <button type="button" class="comment-tag" aria-pressed={tag === t} onclick={() => (tag = tag === t ? undefined : t)}>

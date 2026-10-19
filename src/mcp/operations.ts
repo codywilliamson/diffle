@@ -12,6 +12,7 @@ export interface ReviewOperationResult {
   review: ReviewRecord;
   url?: string;
   suggestions?: ReviewSuggestion[]; // open suggestion blocks in line comments, ready to apply
+  suggestionsError?: string; // why `suggestions` is incomplete, when it is
   staleSessions?: number; // count of stale/orphaned nittle sessions found at start_review time
 }
 
