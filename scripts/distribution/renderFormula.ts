@@ -10,7 +10,8 @@ function className(): string {
 }
 
 function urlAndSha(version: string, checksums: string, target: string): string[] {
-  return [`      url "${assetUrl(version, target)}"`, `      sha256 "${sha256For(checksums, target)}"`];
+  // the asset is a raw executable, so tell brew not to try to unpack it
+  return [`      url "${assetUrl(version, target)}", using: :nounzip`, `      sha256 "${sha256For(checksums, target)}"`];
 }
 
 function osBlock(os: "macos" | "linux", version: string, checksums: string): string[] {
