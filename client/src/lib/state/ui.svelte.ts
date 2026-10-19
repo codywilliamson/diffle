@@ -12,6 +12,8 @@ export function createUiStore() {
   // bumps on every explicit selection (sidebar, links) so the diff pane scrolls to it; the
   // keyboard cursor follows files without a request, since it scrolls itself.
   let scrollRequest = $state<{ path: string } | null>(null);
+  // bumps when something outside the file (search results) needs it expanded and loaded.
+  let openRequest = $state<{ path: string } | null>(null);
   let drawerOpen = $state(false);
   let adding = $state<AddTarget | null>(null);
   let selecting = $state<SelectTarget | null>(null);
@@ -25,6 +27,12 @@ export function createUiStore() {
     },
     get scrollRequest(): { path: string } | null {
       return scrollRequest;
+    },
+    get openRequest(): { path: string } | null {
+      return openRequest;
+    },
+    requestOpen(path: string): void {
+      openRequest = { path };
     },
     get feedbackSummary(): string | null {
       return feedbackSummary;

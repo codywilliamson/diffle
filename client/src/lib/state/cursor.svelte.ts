@@ -4,13 +4,14 @@
 
 import { untrack } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
-import type { DiffFile } from "$types";
+import type { DiffFile, SearchHit } from "$types";
 import type { Side } from "$lib/diff/threads";
 import { GIANT_FILE_LINES, lineCountOf } from "$lib/diff/metrics";
 import {
   FILE_LEVEL, buildIndex, contentAt, firstLine, goToLineNumber, lastLine, moveFiles, moveHunks, moveLines,
   reanchor, samePos, switchSide, type CursorPos, type FileView, type StopIndex,
 } from "./cursorSteps";
+import { findHitStop, resolveHitFile } from "./cursorHit";
 import { EMPTY_HISTORY, jumpBack, jumpForward, recordJump, type JumpHistory } from "./jumpHistory";
 
 export interface CursorDeps {
@@ -18,6 +19,7 @@ export interface CursorDeps {
   defaultSplit: (file: DiffFile) => boolean; // before the file body reports what it shows
   activePath: () => string | null;
   follow: (path: string) => void;
+  open?: (path: string) => void; // expand, load or un-preview a file so its lines can be rested on
 }
 
 // what a mounted file body tells the cursor about itself.
@@ -51,6 +53,7 @@ export function createCursorStore(deps: CursorDeps) {
   let followed: string | null = null;
   let cache: Snapshot | null = null;
   const bodies = new SvelteMap<string, BodyReport>();
+  let pendingHit: SearchHit | null = null; // a search hit waiting for its file to become navigable
 
   // views and the flattened stops, rebuilt only when the files, a body's mode or the side change.
   function snapshot(): Snapshot {
@@ -76,6 +79,7 @@ export function createCursorStore(deps: CursorDeps) {
 
   function commit(next: CursorPos | null, from: CursorPos | null, opts: { jump?: boolean; reveal: RevealKind }): void {
     if (!next) return;
+    pendingHit = null;
     if (opts.jump) history = recordJump(history, from);
     pos = next;
     const { views, index } = snapshot();
@@ -105,6 +109,18 @@ export function createCursorStore(deps: CursorDeps) {
     if (snapshot().views.find((v) => v.file.path === target.path)?.split) pref = target.side;
     const { views, index } = snapshot();
     commit(reanchor(views, pref, target, null, index), from, { reveal: "line" });
+  }
+
+  // land on a search hit. false when its file has no lines to rest on yet (collapsed, gated).
+  function landOnHit(hit: SearchHit): boolean {
+    const file = resolveHitFile(deps.files(), hit);
+    if (!file) return true;
+    const view = snapshot().views.find((v) => v.file.path === file.path);
+    if (!view?.navigable) return false;
+    if (view.split) pref = hit.side;
+    const stop = findHitStop(snapshot().index, file.path, hit.side, hit.line, view.split);
+    if (stop) commit({ path: file.path, side: stop.side, line: stop.line }, base(file.path), { jump: true, reveal: "line" });
+    return true;
   }
 
   return {
@@ -160,6 +176,14 @@ export function createCursorStore(deps: CursorDeps) {
       }
       commit(target, from, { jump: true, reveal: "line" });
     },
+    // a result from the cross-file search: opens the file first when it is collapsed or gated
+    goToHit(hit: SearchHit): void {
+      pendingHit = null;
+      if (landOnHit(hit)) return;
+      pendingHit = hit;
+      const file = resolveHitFile(deps.files(), hit);
+      if (file) deps.open?.(file.path);
+    },
     back: (seed: string | undefined) => walk(jumpBack, seed),
     forward: (seed: string | undefined) => walk(jumpForward, seed),
 
@@ -183,6 +207,7 @@ export function createCursorStore(deps: CursorDeps) {
     reportBody(path: string, report: BodyReport): void {
       const known = untrack(() => bodies.get(path));
       if (!known || known.split !== report.split || known.navigable !== report.navigable) bodies.set(path, report);
+      if (pendingHit && untrack(() => landOnHit(pendingHit as SearchHit))) pendingHit = null;
     },
     forgetBody(path: string): void {
       untrack(() => bodies.delete(path));
