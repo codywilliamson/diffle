@@ -86,4 +86,32 @@ describe("goToHit", () => {
     cursor.goToHit(hit("old.ts", "old", 2));
     expect(cursor.pos).toEqual({ path: "new.ts", side: "old", line: 2 });
   });
+
+  it("parks on the file header for a file with no drawable lines", () => {
+    const P = file("p.ts", []);
+    const A = file("a.ts", [hunk(ctx(1), ctx(2))]);
+    const cursor = store(() => [A, P], false);
+    cursor.lines("a.ts", 1);
+    cursor.goToHit(hit("p.ts", "new", 1));
+    expect(cursor.pos).toEqual({ path: "p.ts", side: "new", line: 0 });
+    cursor.back("p.ts");
+    expect(cursor.pos).toMatchObject({ path: "a.ts", line: 1 });
+  });
+
+  it("selects the target file first and records the jump from where it was", () => {
+    const A = file("a.ts", [hunk(ctx(1), ctx(2))]);
+    const B = file("b.ts", [hunk(ctx(1), add(2))]);
+    let active: string | null = null;
+    const opened: string[] = [];
+    const cursor = createCursorStore({ files: () => [A, B], defaultSplit: () => false, activePath: () => active, follow: (p) => (active = p), open: (p) => opened.push(p) });
+    cursor.lines("a.ts", 1);
+    cursor.reportBody("b.ts", { split: false, navigable: false });
+    cursor.goToHit(hit("b.ts", "new", 2));
+    expect(active).toBe("b.ts");
+    expect(opened).toEqual(["b.ts"]);
+    cursor.reportBody("b.ts", { split: false, navigable: true });
+    expect(cursor.pos).toEqual({ path: "b.ts", side: "new", line: 2 });
+    cursor.back("b.ts");
+    expect(cursor.pos).toMatchObject({ path: "a.ts", line: 1 });
+  });
 });

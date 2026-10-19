@@ -67,6 +67,28 @@ test("g/ lists hits grouped by file and Enter jumps into a collapsed file", asyn
   }
 });
 
+test("in single-file view a hit in another, collapsed file opens it and Ctrl+o comes back", async ({ page }) => {
+  const { fixture, server, url } = setup();
+  try {
+    await gotoApp(page, await url);
+    await expect(page.locator("tr.diff-row, .split-line").first()).toBeVisible();
+    await page.keyboard.press("o");
+    await expect(page.locator("[data-file-path='gone.ts']")).toHaveCount(0);
+    await page.keyboard.press("g");
+    await page.keyboard.press("/");
+    await page.keyboard.type("needleGone");
+    await expect(options(page)).toHaveCount(1);
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-file-path='gone.ts'] [data-cursor]")).toHaveAttribute("data-oldline", "1");
+    await page.keyboard.press("Control+o");
+    await expect(page.locator("[data-file-path='a.ts']")).toBeVisible();
+    await expect(page.locator("[data-file-path='gone.ts']")).toHaveCount(0);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
 test("an old-side hit in a renamed file lands on the old line", async ({ page }) => {
   const { fixture, server, url } = setup();
   try {
