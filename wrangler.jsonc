@@ -3,9 +3,14 @@
   // Build command (in the CF project): cd web && bun install && bun run build  → web/dist
   // Deploy command: npx wrangler deploy  → uploads web/dist as static assets (no Worker script).
   // keep the worker name "diffle": Workers Builds is bound to it, and renaming creates a new, unbuilt worker.
-  // the docs site is served at nittle.dev as this worker's custom domain, and diffle.dev 301s to it via a zone redirect rule.
+  // the docs site is served at nittle.dev as this worker's custom domain. diffle.dev stays attached too: wrangler
+  // reconciles custom domains against this list, and its zone 301 redirect rule (which runs before the worker)
+  // needs a proxied hostname to act on, so dropping it here would detach the domain and its dns record.
   "name": "diffle",
   "compatibility_date": "2026-09-01",
   "assets": { "directory": "./web/dist" },
-  "routes": [{ "pattern": "nittle.dev", "custom_domain": true }]
+  "routes": [
+    { "pattern": "nittle.dev", "custom_domain": true },
+    { "pattern": "diffle.dev", "custom_domain": true }
+  ]
 }
