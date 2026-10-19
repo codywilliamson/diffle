@@ -357,6 +357,13 @@ function Invoke-LegacyMigration {
   else { Write-Log WARN "'$Name --version' failed; the $LegacyName leftovers go on the next successful $Name run" }
 }
 
+# one line per deprecated DIFFLE_* variable that is standing in for an unset NITTLE_* one
+foreach ($LegacyOption in 'INSTALL_DIR', 'NO_MODIFY_PATH', 'NO_SETUP', 'DRY_RUN', 'UNINSTALL', 'PATH_SCOPE_FILE') {
+  if (-not [Environment]::GetEnvironmentVariable("NITTLE_$LegacyOption") -and [Environment]::GetEnvironmentVariable("DIFFLE_$LegacyOption")) {
+    Write-Log INFO "DIFFLE_$LegacyOption is deprecated; used as a fallback. set NITTLE_$LegacyOption instead"
+  }
+}
+
 $FoundLegacyDir = Find-LegacyBinDir
 if ($FoundLegacyDir) {
   $LegacyBinDir = $FoundLegacyDir

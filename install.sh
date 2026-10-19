@@ -353,6 +353,18 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 
+# one line per deprecated DIFFLE_* variable that is standing in for an unset NITTLE_* one
+LEGACY_OPTIONS="INSTALL_DIR NO_MODIFY_PATH NO_SETUP DRY_RUN UNINSTALL"
+notice_legacy_options() {
+  for legacy_option in $LEGACY_OPTIONS; do
+    if [ -n "$(eval "printf '%s' \"\${NITTLE_$legacy_option:-}\"")" ]; then continue; fi
+    if [ -n "$(eval "printf '%s' \"\${DIFFLE_$legacy_option:-}\"")" ]; then
+      log INFO "DIFFLE_$legacy_option is deprecated; used as a fallback. set NITTLE_$legacy_option instead"
+    fi
+  done
+}
+notice_legacy_options
+
 discover_legacy_dir
 
 if [ "${1:-}" = "--uninstall" ] || [ -n "$UNINSTALL" ]; then

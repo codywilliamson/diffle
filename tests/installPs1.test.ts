@@ -140,6 +140,15 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     expect(result.out).toContain("missing required asset(s): nittle-windows-x64.exe");
   });
 
+  test("each DIFFLE_* fallback in use prints one notice naming its NITTLE_* replacement", async () => {
+    const used = await run({ env: { NITTLE_INSTALL_DIR: "", DIFFLE_INSTALL_DIR: "<dir>\\b", DIFFLE_NO_MODIFY_PATH: "1" }, userPath: "C:\\Windows" });
+    expect(used.out.match(/DIFFLE_INSTALL_DIR is deprecated.*set NITTLE_INSTALL_DIR instead/g)?.length).toBe(1);
+    expect(used.out.match(/DIFFLE_NO_MODIFY_PATH is deprecated.*set NITTLE_NO_MODIFY_PATH instead/g)?.length).toBe(1);
+    expect(used.out).not.toContain("DIFFLE_DRY_RUN");
+    const shadowed = await run({ env: { NITTLE_INSTALL_DIR: "<dir>\\a", DIFFLE_INSTALL_DIR: "<dir>\\b", NITTLE_NO_MODIFY_PATH: "1" } });
+    expect(shadowed.out).not.toContain("is deprecated");
+  });
+
   test("a user PATH stored with a trailing newline is read and compared normalized", async () => {
     const again = await run({ userPath: "C:\\Windows;<bin>\n" });
     expect(again.out).toContain("already on the user PATH");
