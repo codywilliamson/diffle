@@ -6,7 +6,7 @@
   import { markRange, type CharRange } from "$lib/diff/wordDiff";
   import { markHits } from "$lib/diff/search";
   import {
-    inSavedRange, isPending, rawLine, newComment, selectedRange, type Side,
+    inSavedRange, isPending, rawLine, newComment, selectedRange, suggestLinesFor, type Side,
   } from "$lib/diff/threads";
   import { startSelect } from "$lib/diff/selectDrag";
   import { cursorOnLine } from "$lib/state/cursorSteps";
@@ -148,6 +148,7 @@
             {/if}
             {#if adding && line}
               <CommentEditor
+                suggestLines={suggestLinesFor(file, ui.adding)}
                 onSave={(text, tag) => saveComment(line, text, tag)}
                 onCancel={() => ui.cancelAdd()}
               />

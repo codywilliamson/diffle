@@ -20,5 +20,6 @@ export const WHATS_NEW = {
     "Keyboard review: j and k now move a line cursor (10j works), J and K move between files, ] and [ jump hunks, gg and G go to the top and bottom, Ctrl+o jumps back. Moved keys: scorecard is now gc, feedback preview is now P, What's new is now gw.",
     "Comment from the keyboard: c on the cursor line, V then j or k then c for a range, C for the whole file.",
     "Search the current file with /: matches are highlighted on both sides, n and N step through them, Esc clears.",
+    "Suggest a change: in a line or range comment, Suggest change inserts the lines to edit. Agents get the original and suggested text as structured data.",
   ],
 };

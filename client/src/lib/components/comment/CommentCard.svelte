@@ -8,21 +8,34 @@
   import CommentReplies from "./CommentReplies.svelte";
   import ReplyComposer from "./ReplyComposer.svelte";
   import Markdown from "../Markdown.svelte";
+  import SuggestionDiff from "./SuggestionDiff.svelte";
+  import { parseSuggestions, type BodySegment } from "$lib/suggestions";
+  import { anchoredLines, rangeEnd, sideOf } from "$lib/anchor";
 
   let { comment }: { comment: Comment } = $props();
-  const { comments, review } = getAppState();
+  const { comments, review, diff } = getAppState();
 
   let editing = $state(false);
   let replying = $state(false);
 
   const status = $derived(comment.status ?? (comment.resolved ? "resolved" : "open"));
   const resolved = $derived(status === "resolved");
+
+  // line and range comments show their suggestion fences as a diff against the anchored lines;
+  // file-level comments render the body as written.
+  const segments = $derived<BodySegment[]>(comment.line === null ? [{ kind: "prose", text: comment.text }] : parseSuggestions(comment.text));
+  const original = $derived(
+    comment.line === null
+      ? []
+      : anchoredLines(diff.files.find((file) => file.path === comment.file), sideOf(comment), comment.line, rangeEnd(comment)),
+  );
 </script>
 
 {#if editing}
   <CommentEditor
     initial={comment.text}
     initialTag={comment.tag}
+    suggestLines={sideOf(comment) === "new" && original.length > 0 ? original : undefined}
     onSave={async (text, tag) => {
       const error = await comments.edit(comment.id, { text, tag });
       if (!error) editing = false;
@@ -45,7 +58,13 @@
         <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
       </span>
     </div>
-    <Markdown text={comment.text} from={comment.file} class="comment-body mt-1" />
+    {#each segments as segment, i (i)}
+      {#if segment.kind === "suggestion"}
+        <SuggestionDiff {original} suggested={segment.lines} />
+      {:else}
+        <Markdown text={segment.text} from={comment.file} class="comment-body mt-1" />
+      {/if}
+    {/each}
     {#if comment.replies?.length}<CommentReplies replies={comment.replies} from={comment.file} />{/if}
     {#if replying && !resolved}
       <ReplyComposer onSend={(text) => comments.reply(comment.id, text)} onDone={() => (replying = false)} />
