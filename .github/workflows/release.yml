@@ -126,6 +126,181 @@ jobs:
     with:
       mode: live
 
+  # npm publish (#195). off until the repo variable NPM_PUBLISH is 'true'. uses npm trusted publishing
+  # (OIDC): no token anywhere. the package names must be reserved and the trusted publisher configured
+  # on npmjs.com first. platform packages go first so the main package never points at a missing
+  # optional dependency.
+  npm-publish:
+    needs: [release-please, assets]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.NPM_PUBLISH == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - name: Download the release binaries
+        run: gh release download "$TAG" --dir dist/release --pattern 'nittle-*' --pattern checksums.txt
+      - name: Stage the npm packages
+        run: bun scripts/stage-npm.ts --version "${TAG#v}" --assets dist/release --out dist/npm
+      - name: Publish platform packages, then the main package
+        run: |
+          version="${TAG#v}"
+          for dir in dist/npm/nittle-*/ dist/npm/nittle/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version already published, skipping"
+              continue
+            fi
+            npm publish "./$dir" --provenance --access public
+          done
+
+  # post-publish: the registry can lag a few seconds behind the publish
+  npm-smoke:
+    name: npm smoke (post-publish) (${{ matrix.os }})
+    needs: [release-please, npm-publish]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      NITTLE_NO_UPDATE_CHECK: "1"
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: npx nittle --version
+        shell: bash
+        run: |
+          version="${TAG#v}"
+          for attempt in 1 2 3 4 5 6; do
+            if out=$(npx --yes "nittle@$version" --version) && echo "$out" | head -n1 | grep -Fx "nittle v$version"; then exit 0; fi
+            sleep 20
+          done
+          echo "npx nittle@$version never printed the expected version"; exit 1
+
+  # homebrew tap + scoop bucket (#196). off until the repo variable TAP_PUBLISH is 'true' and the
+  # DIST_REPO_TOKEN secret (fine-grained, contents:write on the tap and bucket repos only) exists.
+  # secrets cannot gate a job `if`, so a missing token makes the push steps skip, not fail.
+  tap-publish:
+    needs: [release-please, assets]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.TAP_PUBLISH == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      DIST_REPO_TOKEN: ${{ secrets.DIST_REPO_TOKEN }}
+      TAP_REPO: ${{ vars.TAP_REPO || 'codywilliamson/homebrew-tap' }}
+      BUCKET_REPO: ${{ vars.BUCKET_REPO || 'codywilliamson/scoop-bucket' }}
+    steps:
+      - name: Check the token is configured
+        id: token
+        run: |
+          if [ -n "$DIST_REPO_TOKEN" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "::warning::DIST_REPO_TOKEN is not set; skipping the tap and bucket push"; fi
+      - uses: actions/checkout@v7
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          bun-version: 1.3.14
+      - if: ${{ steps.token.outputs.present == 'true' }}
+        run: bun install --frozen-lockfile
+      - name: Render the formula and the manifest from the published checksums
+        if: ${{ steps.token.outputs.present == 'true' }}
+        run: |
+          gh release download "$TAG" --dir dist/release --pattern checksums.txt
+          mkdir -p dist/pkg
+          bun scripts/render-formula.ts "${TAG#v}" dist/release/checksums.txt dist/pkg/nittle.rb
+          bun scripts/render-scoop.ts "${TAG#v}" dist/release/checksums.txt dist/pkg/nittle.json
+      - uses: actions/checkout@v7
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          repository: ${{ env.TAP_REPO }}
+          token: ${{ secrets.DIST_REPO_TOKEN }}
+          path: tap
+      - uses: actions/checkout@v7
+        if: ${{ steps.token.outputs.present == 'true' }}
+        with:
+          repository: ${{ env.BUCKET_REPO }}
+          token: ${{ secrets.DIST_REPO_TOKEN }}
+          path: bucket
+      - name: Commit and push both (plain pushes, never forced)
+        if: ${{ steps.token.outputs.present == 'true' }}
+        run: |
+          version="${TAG#v}"
+          mkdir -p tap/Formula bucket/bucket
+          cp dist/pkg/nittle.rb tap/Formula/nittle.rb
+          cp dist/pkg/nittle.json bucket/bucket/nittle.json
+          for repo in tap bucket; do
+            git -C "$repo" config user.name "github-actions[bot]"
+            git -C "$repo" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$repo" add -A
+            if git -C "$repo" diff --cached --quiet; then echo "$repo already up to date"; continue; fi
+            git -C "$repo" commit -m "chore: nittle $version"
+            git -C "$repo" pull --rebase
+            git -C "$repo" push
+          done
+
+  # post-publish: install through the real managers and assert the version
+  brew-scoop-smoke:
+    name: ${{ matrix.manager }} smoke (post-publish)
+    needs: [release-please, tap-publish]
+    if: ${{ needs.tap-publish.result == 'success' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            manager: brew
+          - os: windows-latest
+            manager: scoop
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      TAP_REPO: ${{ vars.TAP_REPO || 'codywilliamson/homebrew-tap' }}
+      BUCKET_REPO: ${{ vars.BUCKET_REPO || 'codywilliamson/scoop-bucket' }}
+      NITTLE_NO_UPDATE_CHECK: "1"
+    steps:
+      - name: brew install
+        if: ${{ matrix.manager == 'brew' }}
+        run: |
+          version="${TAG#v}"
+          tap_name="${TAP_REPO/homebrew-/}"
+          brew install "$tap_name/nittle"
+          nittle --version | head -n1 | grep -Fx "nittle v$version"
+      - name: scoop install
+        if: ${{ matrix.manager == 'scoop' }}
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+            Invoke-Expression "& {$(Invoke-RestMethod get.scoop.sh)} -RunAsAdmin"
+            $env:PATH = "$HOME\scoop\shims;$env:PATH"
+          }
+          scoop bucket add nittle "https://github.com/$env:BUCKET_REPO"
+          scoop install nittle/nittle
+          $first = (nittle --version | Select-Object -First 1)
+          if ($first -ne "nittle v$version") { throw "unexpected version output: $first" }
+
   release-pr:
     needs: [release-please, assets]
     # Wait for a draft release to publish; still run when no release means assets was skipped.
