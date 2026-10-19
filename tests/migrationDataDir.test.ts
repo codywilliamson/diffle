@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDataDirStep, pendingLegacyDataDirs, removeEmptyLegacyDirs } from "../src/core/migration/dataDir";
@@ -118,6 +118,47 @@ describe("data dir migration", () => {
     removeEmptyLegacyDirs(home);
     expect(existsSync(dd(".diffle"))).toBe(false);
     expect(step().run()).toBeUndefined();
+  });
+
+  it("refuses to park through a junction that points at the legacy record", () => {
+    seed(dd(".nittle"), ["shared"]);
+    seed(dd(".diffle"), ["shared"]);
+    writeFileSync(join(dd(".diffle"), "reviews", "shared", "review.json"), '{"id":"shared","marker":"diffle"}');
+    symlinkSync(join(dd(".diffle"), "reviews"), join(dd(".nittle"), "migration-conflicts"), "junction");
+    expect(() => step().run()).toThrow();
+    expect(readFileSync(join(dd(".diffle"), "reviews", "shared", "review.json"), "utf8")).toBe('{"id":"shared","marker":"diffle"}');
+  });
+
+  describe("retry after a partial delete", () => {
+    const setup = () => {
+      seed(dd(".nittle"), ["shared"]);
+      seed(dd(".diffle"), ["shared"]);
+      const record = join(dd(".diffle"), "reviews", "shared");
+      writeFileSync(join(record, "review.json"), '{"id":"shared","marker":"diffle"}');
+      writeFileSync(join(record, "extra.txt"), "extra");
+      const parkedCopy = join(dd(".nittle"), "migration-conflicts", "shared");
+      cpSync(record, parkedCopy, { recursive: true });
+      rmSync(join(record, "extra.txt"));
+      return { record, parkedCopy };
+    };
+
+    it("cleans up when every remaining source file matches the parked copy", () => {
+      const { parkedCopy } = setup();
+      step().run();
+      expect(existsSync(dd(".diffle"))).toBe(false);
+      expect(readFileSync(join(parkedCopy, "extra.txt"), "utf8")).toBe("extra");
+    });
+
+    it("refuses when a remaining file differs or is extra", () => {
+      const { record } = setup();
+      writeFileSync(join(record, "review.json"), '{"changed":true}');
+      expect(() => step().run()).toThrow();
+      expect(existsSync(join(record, "review.json"))).toBe(true);
+      rmSync(join(record, "review.json"));
+      writeFileSync(join(record, "new.txt"), "n");
+      expect(() => step().run()).toThrow();
+      expect(existsSync(join(record, "new.txt"))).toBe(true);
+    });
   });
 
   it("keeps a clashing record in place when a different parked copy already exists", () => {

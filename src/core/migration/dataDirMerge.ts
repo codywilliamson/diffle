@@ -79,8 +79,26 @@ function mergeStateFile(from: string, to: string): void {
 // one carry unit: a whole review record dir, or a single file. returns why it stayed, if it did.
 // a review record that clashes with a different one in nittle is parked at `parkAt` (copied, verified,
 // renamed into place) instead of staying behind, so the old dir can be removed. nittle's copy wins.
+// every file still under `from` is also in `copy`, byte for byte (a retry after a partial delete).
+function isSubsetOf(from: string, copy: string): boolean {
+  const have = new Set(filesUnder(copy));
+  return filesUnder(from).every((f) => have.has(f) && sameBytes(join(from, f), join(copy, f)));
+}
+
+// a link at the parking spot or above it, or storage shared with the legacy record, means parking could
+// delete the only copy: refuse and touch nothing.
+function parkingUnsafe(from: string, parkAt: string): string | null {
+  const spots = [parkAt, dirname(parkAt), dirname(dirname(parkAt))];
+  const linked = spots.find((spot) => existsSync(spot) && isLink(spot));
+  if (linked) return `${linked} is a symlink or junction; not parking here, left in place`;
+  if (spots.some((spot) => existsSync(spot) && treesOverlap(from, spot))) return `shares storage with the parking spot ${parkAt}; left in place`;
+  return null;
+}
+
 function parkConflict(from: string, parkAt: string, ops: MergeOps, parked: string[]): string | null {
-  if (existsSync(parkAt) && !sameTree(from, parkAt)) return `a different parked copy already sits at ${parkAt}; left in place`;
+  const unsafe = parkingUnsafe(from, parkAt);
+  if (unsafe) return unsafe;
+  if (existsSync(parkAt) && !isSubsetOf(from, parkAt)) return `a different parked copy already sits at ${parkAt}; left in place`;
   if (!existsSync(parkAt)) copyVerified(from, parkAt, ops);
   parked.push(parkAt);
   return null;
