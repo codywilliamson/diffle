@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CompletionShell } from "../src/utils/cliVocabulary";
 import { renderCompletion } from "../src/utils/completion";
+import { findBash } from "./helpers/findBash";
 
 const SPAWN_TIMEOUT_MS = 40_000; // powershell cold start is the slow one
 const TEST_TIMEOUT_MS = 50_000; // always above the spawn timeout so a hang fails on the spawn, not the runner
@@ -84,7 +85,7 @@ function check(output: string[], repo: string, shell: CompletionShell) {
 
 describe("live completion", () => {
   test("bash", () => {
-    const bash = Bun.which("bash");
+    const bash = findBash();
     if (!bash) return skip("bash");
     const driver = [
       `source "$1"`,
