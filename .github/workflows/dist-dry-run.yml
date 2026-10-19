@@ -74,7 +74,8 @@ jobs:
         run: |
           jq -e '.version and .architecture["64bit"].url and .architecture.arm64.url and .checkver and .autoupdate.architecture["64bit"].hash.regex and .bin' dist/pkg/nittle.json
           # the autoupdate hash regex must match a checksums.txt line for each architecture
-          # shellcheck disable=SC2016 -- $sha256 is scoop's placeholder inside the js, not a shell variable
+          # $sha256 below is scoop's placeholder inside the js, not a shell variable
+          # shellcheck disable=SC2016
           node -e '
             const m = JSON.parse(require("fs").readFileSync("dist/pkg/nittle.json", "utf8"));
             const sums = require("fs").readFileSync("tests/fixtures/distribution/checksums.txt", "utf8");
