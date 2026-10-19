@@ -193,7 +193,7 @@ jobs:
         shell: bash
         run: |
           version="${TAG#v}"
-          for attempt in 1 2 3 4 5 6; do
+          for _ in 1 2 3 4 5 6; do
             if out=$(npx --yes "nittle@$version" --version) && echo "$out" | head -n1 | grep -Fx "nittle v$version"; then exit 0; fi
             sleep 20
           done
