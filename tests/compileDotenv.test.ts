@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { COMPILE_FLAGS } from "../scripts/compileFlags";
+import { childCommand } from "../src/core/completionHook";
 import { tempDir } from "./helpers/fakeLspPool";
 
 const ROOT = join(import.meta.dir, "..");
@@ -44,6 +45,11 @@ describe("nittle never loads .env from the repository under review", () => {
       expect(read(file).split(/\r?\n/)[0]).toBe(NO_ENV_SHEBANG);
     });
   }
+
+  it("the source-mode completion hook child starts with --no-env-file right after the runtime", () => {
+    const command = childCommand(join(ROOT), "r1");
+    expect(command).toEqual([process.execPath, "--no-env-file", join(ROOT, "src", "index.ts"), "--review-id", "r1"]);
+  });
 
   it("the dev launcher starts its backend protected too", () => {
     expect(read("scripts/dev.ts")).toContain('spawn("bun", ["--no-env-file", join(ROOT, "src", "index.ts")');
