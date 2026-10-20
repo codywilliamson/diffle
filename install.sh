@@ -559,12 +559,20 @@ wire_rc_completions() {
     awk_keep_cr "$RC_FILE" "$completion_tmp" -v s="$MARKER_START" -v e="$MARKER_END" -v add="$completion_rc_line" -v sh="completion --shell $SHELL_NAME" '
       { line = $0; sub(/\001$/, "", line) }
       state == 0 && line == s { state = 1; print; next }
-      state == 1 && index(line, sh) { dup = 1 }
+      state == 1 && index(line, sh) && line !~ /^[ \t]*#/ { dup = 1 }
       state == 1 && line == e { cr = ($0 ~ /\001$/) ? "\001" : ""; if (!dup) print add cr; state = 2 }
       { print }
       END { exit (state < 2) ? 2 : (dup ? 3 : 0) }
     ' && completion_status=0 || completion_status=$?
-    if [ "$completion_status" -eq 0 ]; then cat "$completion_tmp" > "$RC_FILE"; rm -f "$completion_tmp"; else rm -f "$completion_tmp"; fi
+    if [ "$completion_status" -eq 0 ]; then
+      # awk ends every line with a newline; an rc that had none on its last line keeps it that way
+      if [ -n "$(tail -c 1 "$RC_FILE")" ]; then
+        head -c "$(($(wc -c < "$completion_tmp") - 1))" "$completion_tmp" > "$completion_tmp.trim"
+        mv -f "$completion_tmp.trim" "$completion_tmp"
+      fi
+      cat "$completion_tmp" > "$RC_FILE"
+    fi
+    rm -f "$completion_tmp"
   fi
   if [ "$completion_status" -eq 0 ]; then
     log OK "completions added to the $NAME block in $RC_FILE (open a new shell)"

@@ -332,6 +332,24 @@ describe.skipIf(!sh)("install.sh completions offer", () => {
     expect(read(join(box.home, ".zshrc"))).toBe("# keep\r\n");
   });
 
+  test("an rc whose last line has no newline keeps it that way", async () => {
+    const box = open();
+    const inner = '# >>> nittle >>>\nexport PATH="x:$PATH"\n# <<< nittle <<<\n';
+    write(join(box.home, ".zshrc"), `${inner}alias z=1`);
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(`# >>> nittle >>>\nexport PATH="x:$PATH"\n${ZSH_LINE}\n# <<< nittle <<<\nalias z=1`);
+    write(join(box.home, ".zshrc"), inner.trimEnd());
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(`# >>> nittle >>>\nexport PATH="x:$PATH"\n${ZSH_LINE}\n# <<< nittle <<<`);
+  });
+
+  test("a commented-out completion line inside the block does not count as wired", async () => {
+    const box = open();
+    write(join(box.home, ".zshrc"), '# >>> nittle >>>\n# nittle completion --shell zsh\n# <<< nittle <<<\n');
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(`# >>> nittle >>>\n# nittle completion --shell zsh\n${ZSH_LINE}\n# <<< nittle <<<\n`);
+  });
+
   test("a probe that hangs is killed and completions are skipped", async () => {
     const box = open();
     const started = Date.now();
