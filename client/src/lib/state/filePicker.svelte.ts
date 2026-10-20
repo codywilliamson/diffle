@@ -37,9 +37,9 @@ export function createFilePicker({ files, jump }: FilePickerDeps) {
     get rows(): PickerRow[] {
       return rows;
     },
-    show(): void {
+    show(initialQuery = ""): void {
       open = true;
-      query = "";
+      query = initialQuery;
       selected = 0;
     },
     close(): boolean {
