@@ -30,8 +30,15 @@ nittle does not write into your checkout. Server logs and caches go to a temp di
 | --- | --- | --- | --- |
 | TypeScript / JavaScript | ts, tsx, mts, cts, js, jsx, mjs, cjs | `typescript-language-server --stdio` | `npm install -g typescript-language-server typescript` |
 | C# | cs | `roslyn-language-server`, then `csharp-ls` | `dotnet tool install -g roslyn-language-server --prerelease` or `dotnet tool install -g csharp-ls` |
+| Python | py, pyi | `pyrefly lsp`, then `basedpyright-langserver --stdio` | `pip install pyrefly` or `pip install basedpyright` |
+| Go | go | `gopls` | `go install golang.org/x/tools/gopls@latest` |
+| Rust | rs | `rust-analyzer` | `rustup component add rust-analyzer` |
+| Vue | vue | `vue-language-server --stdio` | `npm install -g @vue/language-server` |
+| Svelte | svelte | `svelteserver --stdio` | `npm install -g svelte-language-server` |
 
 The TypeScript server needs a `typescript` package it can resolve, either in the project's `node_modules` or installed globally next to the server. TypeScript 7 (the native port) has no `tsserver.js`, so use TypeScript 5.x with this server.
+
+`nittle lsp` prints what each language would run and how to install what is missing, and lets you pick a different server. See [Language servers](/reference/configuration/#language-servers).
 
 ## Status
 
