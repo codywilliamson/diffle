@@ -9,6 +9,7 @@ import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
+import { navigationStamp } from "$lib/lsp/stamp";
 import { createLspStore, type LspStore } from "$lib/lsp/lsp.svelte";
 import { reviewOrder } from "$lib/diff/reviewOrder";
 import { canOverrideFileSplit } from "$lib/diff/fileMode";
@@ -64,6 +65,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     files: () => diff.files,
     goToHit: cursor.goToHit,
     markJump: () => cursor.markJump(undefined),
+    stamp: () => navigationStamp(cursor, ui),
     closeSearch: () => {
       search.close();
       searchAll.close();

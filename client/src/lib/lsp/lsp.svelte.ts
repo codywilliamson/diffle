@@ -11,6 +11,7 @@ import {
 import { cursorHit } from "./cursorToken";
 import type { CodeHit } from "./domPosition";
 import { createHoverStore } from "./hover.svelte";
+import { sameStamp } from "./stamp";
 import { jumpTo, targetOf, type JumpTarget } from "./jump";
 import { createReferencesStore } from "./references.svelte";
 import { createSymbolsStore } from "./symbols.svelte";
@@ -24,6 +25,8 @@ export interface LspDeps {
   goToHit: (hit: SearchHit) => void;
   markJump: () => void; // remember the cursor before leaving it for the viewer
   closeSearch: () => void; // the search docks share the strip under the top bar
+  // where the reader is (cursor moves, file selection): a definition answer is stale once it changes
+  stamp?: () => readonly unknown[];
 }
 
 export type Tone = "info" | "error";
@@ -131,6 +134,7 @@ export function createLspStore(deps: LspDeps) {
     navigation?.abort();
     const controller = new AbortController();
     navigation = controller;
+    const stamp = deps.stamp?.() ?? [];
     let response: LspDefinitionResponse;
     try {
       response = await lspDefinition(requestOf(hit), kind, controller.signal);
@@ -139,6 +143,9 @@ export function createLspStore(deps: LspDeps) {
       return;
     }
     if (navigation !== controller) return;
+    navigation = undefined;
+    // the reader moved (cursor, search hit, file pick) while the server was thinking
+    if (!sameStamp(stamp, deps.stamp?.() ?? [])) return;
     // gd on a definition has nowhere to go; what the reader wants are its uses
     if (response.onDefinition && kind === "definition") return openReferences(hit);
     if (response.targets.length === 0) return notify(`No ${kind === "typeDefinition" ? "type definition" : "definition"} found for ${hit.token.text}.`);
@@ -196,11 +203,13 @@ export function createLspStore(deps: LspDeps) {
     },
     openDocumentSymbols(path: string | undefined): void {
       if (!path) return notify(NO_WORD_NOTICE);
+      cancelNavigation();
       hover.close();
       picker = null;
       void symbols.openDocument(path);
     },
     openWorkspaceSymbols(): void {
+      cancelNavigation();
       hover.close();
       picker = null;
       symbols.openWorkspace();
@@ -228,6 +237,9 @@ export function createLspStore(deps: LspDeps) {
 
     // Esc closes one layer, the one on top: hover card, picker, symbols, viewer, references.
     closeTopmost(): boolean {
+      // a definition still in flight counts as a layer: Esc cancels it
+      const pending = navigation !== undefined;
+      cancelNavigation();
       if (hover.close()) return true;
       if (picker) {
         picker = null;
@@ -235,7 +247,7 @@ export function createLspStore(deps: LspDeps) {
       }
       if (symbols.close()) return true;
       if (closeViewer()) return true;
-      return references.close();
+      return references.close() || pending;
     },
   };
 }
