@@ -31,7 +31,7 @@ function harness(list: Comment[], pos: CursorPos | null) {
   const comments = { removeComment: vi.fn(async (id: string) => ({ error: null as string | null, removed: list.find((x) => x.id === id) ?? null })), add: vi.fn().mockResolvedValue(null) };
   const lsp = { notify: vi.fn() };
   const commentFocus = createCommentFocus({ comments: () => list, pos: () => pos });
-  const actions = createCommentActions({ ui, comments, cursor: {}, commentFocus, lsp } as unknown as AppState);
+  const actions = createCommentActions({ ui, comments, drafts: { clearMany: vi.fn() }, cursor: {}, commentFocus, lsp } as unknown as AppState);
   return { ui, comments, lsp, actions };
 }
 

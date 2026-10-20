@@ -109,13 +109,20 @@ export function createDraftsStore(deps: DraftsDeps = realDeps) {
     dirty.add(key);
   }
 
-  function clear(key: string): void {
-    accept(key);
-    if (!texts.has(key) && !dirty.has(key)) return;
-    texts.delete(key);
-    dirty.add(key);
-    void flush();
+  // drops the keys that hold something and sends the removals as one batch
+  function clearMany(keys: string[]): void {
+    let changed = false;
+    for (const key of keys) {
+      accept(key);
+      if (!texts.has(key) && !dirty.has(key)) continue;
+      texts.delete(key);
+      dirty.add(key);
+      changed = true;
+    }
+    if (changed) void flush();
   }
+
+  const clear = (key: string): void => clearMany([key]);
 
   return {
     // true once the server's drafts have been pulled (or the pull failed); editors opened earlier apply them then
@@ -159,6 +166,7 @@ export function createDraftsStore(deps: DraftsDeps = realDeps) {
     },
     // sent or discarded: gone from memory, and from the server right away
     clear,
+    clearMany,
     flush,
     // the server answered: a write waiting out its backoff goes now
     retryNow(): void {
