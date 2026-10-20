@@ -53,9 +53,14 @@
       .catch(() => {});
     const unlink = onServerLink((event) => (event === "reachable" ? app.connection.reachable() : app.connection.unreachable()));
     setMutationBlock(() => app.connection.blockedReason);
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) app.connection.verify();
+    };
+    window.addEventListener("pageshow", onPageShow);
     return () => {
       app.review.stopPolling();
       unlink();
+      window.removeEventListener("pageshow", onPageShow);
       setMutationBlock(() => null);
       app.connection.dispose();
     };
