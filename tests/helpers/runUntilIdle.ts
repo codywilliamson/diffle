@@ -18,11 +18,15 @@ export async function runUntilIdle(
   arm();
   const decoder = new TextDecoder();
   let stdout = "";
-  for await (const chunk of proc.stdout) {
-    stdout += decoder.decode(chunk, { stream: true });
-    arm();
+  // the watchdog stays armed until the process has exited, so a child that closes stdout and hangs still dies
+  try {
+    for await (const chunk of proc.stdout) {
+      stdout += decoder.decode(chunk, { stream: true });
+      arm();
+    }
+    await proc.exited;
+  } finally {
+    clearTimeout(timer!);
   }
-  clearTimeout(timer!);
-  await proc.exited;
   return { stdout, timedOut };
 }
