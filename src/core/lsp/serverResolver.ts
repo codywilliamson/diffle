@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { PRODUCT } from "../product";
 import { LSP_REGISTRY, type LanguageEntry, type LspLanguage, type ServerCandidate } from "./registry";
 import { splitCommandLine, type LspOverrides } from "./overrides";
-import { activeVirtualEnv } from "./virtualEnv";
+import { activeVirtualEnv, findInVirtualEnv } from "./virtualEnv";
 import { findExecutable } from "./which";
 
 export interface ServerSpec { command: string; args: string[]; env?: Record<string, string> }
@@ -45,12 +45,18 @@ export class ServerResolver {
     if (!this.resolved.has(language)) {
       const logDir = this.logDirectory();
       const venv = this.entry(language).virtualEnv ? activeVirtualEnv(this.options.environment) : undefined;
+      const candidates = this.candidates(language);
+      const withEnv = (command: string, candidate: ServerCandidate): ServerSpec => ({ command, args: candidate.args(logDir), ...(venv ? { env: venv.env } : {}) });
       let spec: ServerSpec | null = null;
-      for (const candidate of this.candidates(language)) {
-        const inVenv = venv ? findExecutable(candidate.command, { searchPath: venv.bin }).path : undefined;
-        const { path: command, rejected } = inVenv ? { path: inVenv, rejected: false } : findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
+      // the venv's own servers win over anything on PATH, whatever the candidate order
+      for (const candidate of venv ? candidates : []) {
+        const command = findInVirtualEnv(candidate.command, venv!);
+        if (command) { spec = withEnv(command, candidate); break; }
+      }
+      for (const candidate of spec ? [] : candidates) {
+        const { path: command, rejected } = findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
         if (rejected) this.rejected.add(language);
-        if (command) { spec = { command, args: candidate.args(logDir), ...(venv ? { env: venv.env } : {}) }; break; }
+        if (command) { spec = withEnv(command, candidate); break; }
       }
       this.resolved.set(language, spec);
     }

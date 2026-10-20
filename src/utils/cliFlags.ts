@@ -12,7 +12,7 @@ export interface FlagSpec {
   description: string;
   commands: readonly CliCommand[]; // commands that accept it
   subcommands?: readonly string[]; // for commands with subcommands: only these accept it
-  beforeSubcommand?: boolean; // also valid right after the command, before any subcommand (`mcp --help`)
+  beforeSubcommand?: boolean | readonly CliCommand[]; // also valid right after the command, before any subcommand (`mcp --help`); a list limits that to those commands
 }
 
 const REVIEW_AND_SHOW: readonly CliCommand[] = ["review", "show"];
@@ -26,8 +26,8 @@ export const FLAG_SPECS: readonly FlagSpec[] = [
   { names: ["--no-lsp"], description: "start no language servers", commands: REVIEW_AND_SHOW },
   { names: ["--lsp"], valueName: "lang=command", description: "use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)", commands: REVIEW_AND_SHOW },
   { names: ["--review-id"], valueName: "id", description: "open an existing durable Review Record", commands: ["review"] },
-  { names: ["-v", "--version"], description: "print the installed version", commands: EVERY_COMMAND },
-  { names: ["--license"], description: "print the bundled MIT license notice", commands: EVERY_COMMAND },
+  { names: ["-v", "--version"], description: "print the installed version", commands: EVERY_COMMAND, beforeSubcommand: ["lsp"] },
+  { names: ["--license"], description: "print the bundled MIT license notice", commands: EVERY_COMMAND, beforeSubcommand: ["lsp"] },
   { names: ["--agent"], valueName: "id", values: HOOK_AGENTS, description: "the agent calling the hook: codex or claude-code", commands: ["hook"] },
   { names: ["--agents"], valueName: "ids", values: AGENT_IDS, list: true, description: "comma-separated agent ids, skips the prompt (e.g. claude,cursor)", commands: ["setup"] },
   { names: ["--remove"], description: `unwire ${PRODUCT.name} instead`, commands: ["setup"] },
@@ -45,7 +45,7 @@ export const findFlag = (name: string): FlagSpec | undefined => FLAG_SPECS.find(
 export function flagAccepted(spec: FlagSpec, command: CliCommand, hasSubcommands: boolean, subcommand: string | undefined): boolean {
   if (!spec.commands.includes(command)) return false;
   if (!hasSubcommands) return true;
-  if (subcommand === undefined) return spec.beforeSubcommand === true;
+  if (subcommand === undefined) return spec.beforeSubcommand === true || (Array.isArray(spec.beforeSubcommand) && spec.beforeSubcommand.includes(command));
   return spec.subcommands === undefined || spec.subcommands.includes(subcommand);
 }
 
