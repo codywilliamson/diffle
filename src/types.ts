@@ -225,6 +225,19 @@ export interface UserState {
   migration?: MigrationRecord; // an install migration that still has work left; cleared once it completes
 }
 
+// unsent comment text keyed by its anchor (see client/src/lib/state/draftKeys.ts): add|file|side|from-to,
+// add|file|file, edit|commentId, reply|commentId. empty text means no draft.
+export type CommentDrafts = Record<string, string>;
+
+export interface DraftsResponse {
+  drafts: CommentDrafts;
+}
+
+export interface DraftUpdateRequest {
+  key: string;
+  text: string; // "" removes the draft
+}
+
 export interface StateUpdateRequest {
   seenVersion?: string;
 }
