@@ -11,8 +11,9 @@ export const NO_RANGE_NOTICE = "No earlier visual range to reselect.";
 
 type NavActionId = Extract<ActionId, "file.goto" | "file.pick" | "fold.open" | "fold.close" | "fold.openAll" | "fold.closeAll" | "visual.reselect">;
 
-// a hit that lands on the nearest diff line of `path`, for a path written with a :line suffix
-const lineHit = (path: string, line: number): SearchHit => ({ path, side: "new", line, preview: "", ranges: [] });
+// a hit that lands on the nearest diff line of `path`, for a path written with a :line suffix.
+// a deleted file has no new-side lines, so it targets the old side.
+const lineHit = (path: string, line: number, deleted: boolean): SearchHit => ({ path, side: deleted ? "old" : "new", line, preview: "", ranges: [] });
 
 export function createNavActions(
   { ui, cursor, diff, filePicker, lsp }: AppState,
@@ -34,7 +35,7 @@ export function createNavActions(
         return filePicker.show(hit.query);
       }
       if (hit.line === null) cursor.goToFile(hit.path);
-      else cursor.goToHit(lineHit(hit.path, hit.line));
+      else cursor.goToHit(lineHit(hit.path, hit.line, diff.files.find((f) => f.path === hit.path)?.changeType === "deleted"));
     },
     "file.pick": () => {
       lsp.closeTopmost();
