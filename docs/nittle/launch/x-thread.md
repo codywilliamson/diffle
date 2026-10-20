@@ -35,7 +35,7 @@ Screenshot: 08-setup-terminal.png
 
 The agent replies in the thread, marks the comment addressed, and asks for another pass. You refresh the diff and see what it changed.
 
-It's a loop, not a one-way prompt.
+It's a loop. The agent answers, you check, and it goes around again.
 
 Screenshot: 04-agent-reply-thread.png
 
