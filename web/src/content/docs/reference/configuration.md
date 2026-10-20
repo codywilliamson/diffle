@@ -31,6 +31,32 @@ User-level state — such as the dismissed What's-New version — lives in `<dat
 
 Legacy `.review` files in a repo are treated as legacy data: nittle leaves them untouched and offers to import, remove (with confirmation), or ignore.
 
+## Language servers
+
+`nittle lsp` prints one line per language: the server that would run, or `not on PATH (tried X, Y)` followed by an install hint. Stored overrides are listed after the table.
+
+```sh
+nittle lsp
+```
+
+Override a server for good with `lsp set`. Quote the command when it has arguments, and use an empty string to disable a language. `lsp unset` drops the override.
+
+```sh
+nittle lsp set python "basedpyright-langserver --stdio"
+nittle lsp set rust ""
+nittle lsp unset python
+```
+
+Overrides live in `<data dir>/state.json` under `lspOverrides`. For one run only, pass `--lsp <lang>=<command>` (repeatable) to `nittle` or `nittle show`; it wins over a stored override, and `--lsp rust=` disables rust for that run.
+
+```sh
+nittle --lsp rust=rust-analyzer --lsp go=
+```
+
+The languages are `typescript`, `csharp`, `python`, `go`, `rust`, `vue` and `svelte`. A command is split into arguments and run directly, with no shell, so pipes and `&&` are passed to the server as plain arguments. Like any server, it is refused if it resolves inside the repository under review.
+
+Python looks in an active virtualenv first: when `VIRTUAL_ENV` is set, its `bin` (`Scripts` on Windows) directory is searched before `PATH`, and the server is started with that environment so it resolves the venv's site-packages.
+
 ## Update behavior
 
 `nittle update` checks the GitHub Releases channel against the installed version, downloads the matching asset, verifies its SHA-256 against the published `checksums.txt`, and swaps the binary. On Windows the running exe is renamed aside (`.nittle.exe.old`, removed by the next update) so the swap works even while MCP servers are running. Afterwards it stops MCP servers still on the old binary, unless a review session is live; agents relaunch them on reconnect.

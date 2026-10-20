@@ -124,6 +124,16 @@ nittle hook stop --agent codex
 nittle hook stop --agent claude-code
 ```
 
+### `nittle lsp [set <lang> <command> | unset <lang>]`
+
+Show which language server each language gets and what is missing, or store an override. `set` takes a quoted command (`""` disables the language); `unset` removes it. See [Language servers](/reference/configuration/#language-servers).
+
+```sh
+nittle lsp
+nittle lsp set python "pyrefly lsp"
+nittle lsp unset python
+```
+
 ### `nittle sessions`
 
 List running nittle sessions with their host, port, age, and live/stale status.
@@ -171,6 +181,7 @@ nittle doctor --fix
 | `--wait` | block until you send feedback, approve or cancel, then print the prompt on stdout (see [Agent feedback](/guides/agent-feedback/#without-mcp-nittle---wait)) |
 | `--json` | with `--wait`, print the review as JSON instead of the prompt |
 | `--no-lsp` | start no language servers (see [Code navigation](/guides/code-navigation/)) |
+| `--lsp <lang>=<command>` | use this server for one language this run; an empty command disables it (repeatable) |
 | `--review-id <id>` | open an existing durable Review Record |
 | `-v, --version` | print the installed version |
 | `--license` | print the bundled MIT license notice |
@@ -178,7 +189,7 @@ nittle doctor --fix
 
 ## Shell completion
 
-`nittle completion --shell <bash|zsh|fish|powershell>` prints a tab-completion script to stdout. It completes commands (`show`, `mcp`, `setup`, `doctor`, `sessions`, `cleanup`, `update`, `completion`), subcommands (`mcp serve|list|restart`), each command's flags, enumerable flag values (`--shell`, `--agent`, `--agents`), and refs for the review and `show` commands: branches, remote branches and tags.
+`nittle completion --shell <bash|zsh|fish|powershell>` prints a tab-completion script to stdout. It completes commands (`show`, `mcp`, `setup`, `doctor`, `sessions`, `cleanup`, `update`, `lsp`, `completion`), subcommands (`mcp serve|list|restart`, `lsp set|unset`), each command's flags, enumerable flag values (`--shell`, `--agent`, `--agents`), and refs for the review and `show` commands: branches, remote branches and tags.
 
 Refs are read from git when you press tab, so a branch you created a minute ago shows up without regenerating anything. The script comes from the same table that drives `--help`, so a new flag shows up in all four shells in the next release.
 
