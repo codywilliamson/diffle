@@ -11,6 +11,13 @@ export interface UndoOffer {
   seq: number;
 }
 
+// zo zc zO zC: ask one file (path) or every file (null) to expand or collapse
+export interface FoldRequest {
+  seq: number;
+  path: string | null;
+  collapsed: boolean;
+}
+
 export type OverlayName = "help" | "whatsNew" | "compile" | "scorecard";
 
 export function createUiStore() {
@@ -29,6 +36,8 @@ export function createUiStore() {
   let undo = $state<UndoOffer | null>(null);
   let undoSeq = 0;
   let undoTimer: ReturnType<typeof setTimeout> | undefined;
+  let foldRequest = $state<FoldRequest | null>(null);
+  let foldSeq = 0;
 
   return {
     get activeOverlay(): OverlayName | null {
@@ -42,6 +51,12 @@ export function createUiStore() {
     },
     get openRequest(): { path: string } | null {
       return openRequest;
+    },
+    get foldRequest(): FoldRequest | null {
+      return foldRequest;
+    },
+    requestFold(path: string | null, collapsed: boolean): void {
+      foldRequest = { seq: ++foldSeq, path, collapsed };
     },
     requestOpen(path: string): void {
       openRequest = { path };

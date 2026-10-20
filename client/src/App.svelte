@@ -13,6 +13,7 @@
   import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
   import SearchResults from "$lib/components/SearchResults.svelte";
   import SearchBar from "$lib/components/SearchBar.svelte";
+  import FilePicker from "$lib/components/FilePicker.svelte";
   import HelpOverlay from "$lib/components/HelpOverlay.svelte";
   import WhatsNewModal from "$lib/components/WhatsNewModal.svelte";
   import FeedbackPreview from "$lib/components/review/FeedbackPreview.svelte";
@@ -105,6 +106,7 @@
   <HoverCard />
   <DefinitionPicker />
   <SymbolPicker />
+  <FilePicker />
   <LspToast />
   <UndoToast />
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
