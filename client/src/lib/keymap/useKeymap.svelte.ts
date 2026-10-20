@@ -72,7 +72,7 @@ export function useKeymap(): Keymap {
     // a pending count or chord goes first; otherwise Esc closes the topmost layer: an open dialog
     // sits above visual mode, so visual mode only ends once no dialog is open
     const endsVisual = escEndsVisual({
-      pending, visual: cursor.visual, dialogOpen: !!ui.activeOverlay, codeLayerOpen: app.lsp.hasLayer, inField: isEditable(event.target),
+      pending, visual: cursor.visual, dialogOpen: !!ui.activeOverlay, codeLayerOpen: app.lsp.hasLayer || app.filePicker.open, inField: isEditable(event.target),
     });
     if (!pending && !endsVisual) return;
     state = EMPTY_STATE;
@@ -123,7 +123,8 @@ export function useKeymap(): Keymap {
         // itself on this same Esc (Modal), so its own dismiss logic (what's new) still runs.
         if (ui.activeOverlay) return;
         // code-navigation layers sit above the search docks: one layer per press
-        if (app.lsp.closeTopmost()) closeLspFocus();
+        if (app.filePicker.close()) closeLspFocus();
+        else if (app.lsp.closeTopmost()) closeLspFocus();
         else if (app.searchAll.open) closeSearchAll();
         else if (app.search.open) app.search.close();
         else return;

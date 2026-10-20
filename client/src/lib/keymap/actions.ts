@@ -4,6 +4,7 @@ import type { AppState } from "$lib/state/context";
 import { commitRange } from "$lib/diff/selectDrag";
 import { FILE_LEVEL } from "$lib/state/cursorSteps";
 import { createCommentActions } from "./commentActions";
+import { createNavActions } from "./navActions";
 import { pagePosition } from "./pageMove";
 import { selectedSearchText } from "./selectionText";
 import type { ActionId } from "./types";
@@ -21,6 +22,7 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
   const n = (count: number | null): number => count ?? 1;
   return {
     ...createCommentActions(app),
+    ...createNavActions(app, currentPath),
     "line.next": (c) => cursor.lines(currentPath(), n(c)),
     "line.prev": (c) => cursor.lines(currentPath(), -n(c)),
     "file.next": (c) => cursor.files(currentPath(), n(c)),

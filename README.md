@@ -89,6 +89,11 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `[` | Previous hunk (takes a count) |
 | `gg` | First line of the file |
 | `G` | Last line of the file, or line N with a count (takes a count) |
+| `gf` | Go to the file path on the cursor line |
+| `zo` | Expand the current file |
+| `zc` | Collapse the current file |
+| `zO` | Expand every file |
+| `zC` | Collapse every file |
 | `Ctrl+d` | Half a page down (takes a count) |
 | `Ctrl+u` | Half a page up (takes a count) |
 | `h` | Side-by-side: old side |
@@ -104,6 +109,7 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `V` | Start a visual range (j k ] [ extend it, Esc cancels) |
 | `c` | Visual range: comment on the range |
 | `C` | Comment on the cursor's file |
+| `gv` | Reselect the last visual range |
 | `e` | Edit the comment on the cursor line |
 | `dd` | Delete the comment on the cursor line |
 | `u` | Undo the last comment delete (offered for 8 seconds) |
@@ -116,6 +122,7 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 
 | key | action |
 | --- | --- |
+| `Ctrl+p` | Go to a changed file (fuzzy) |
 | `/` | Search the file |
 | `n` | Next match (takes a count) |
 | `N` | Previous match (takes a count) |
