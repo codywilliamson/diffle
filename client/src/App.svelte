@@ -54,12 +54,17 @@
         if (s.seenVersion !== WHATS_NEW.version) ui.openOverlay("whatsNew");
       })
       .catch(() => {});
-    const unlink = onServerLink((event) => (event === "reachable" ? app.connection.reachable() : app.connection.unreachable()));
+    const unlink = onServerLink((event) => {
+      if (event === "reachable") {
+        app.connection.reachable();
+        app.drafts.retryNow();
+      } else app.connection.unreachable();
+    });
     setMutationBlock(() => app.connection.blockedReason);
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) app.connection.verify();
     };
-    const onPageHide = () => void app.drafts.flush();
+    const onPageHide = () => void app.drafts.flush(true);
     window.addEventListener("pageshow", onPageShow);
     window.addEventListener("pagehide", onPageHide);
     return () => {

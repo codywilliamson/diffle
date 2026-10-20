@@ -6,6 +6,7 @@ import { createDiffStore, type DiffStore } from "./diff.svelte";
 import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createDraftsStore, type DraftsStore } from "./drafts.svelte";
+import { addDraftKey } from "./draftKeys";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createCommentFocus, type CommentFocus } from "./commentFocus.svelte";
@@ -57,6 +58,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
   };
   const comments = createCommentsStore(review, currentDiff);
   const drafts = createDraftsStore();
+  ui.setAddExtendedHandler((from, to) => drafts.move(addDraftKey(from), addDraftKey(to)));
   const analysis = createAnalysisStore();
   const cursor = createCursorStore({
     files: () => (prefs.fileOrder === "review" ? reviewOrder(diff.files, analysis.scorecard) : diff.files),

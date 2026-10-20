@@ -1,19 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createDraftsStore } from "$lib/state/drafts.svelte";
+import { createDraftsStore, type DraftsDeps } from "$lib/state/drafts.svelte";
 import CommentEditor from "./CommentEditor.svelte";
 import ReplyComposer from "./ReplyComposer.svelte";
 
-const drafts = createDraftsStore({ load: async () => ({}), save: async () => ({}) });
-vi.mock("$lib/state/context", () => ({ tryGetAppState: () => ({ drafts, connection: { blockedReason: null } }) }));
+const makeStore = (over: Partial<DraftsDeps> = {}) => createDraftsStore({ load: async () => ({}), save: async () => ({ drafts: {} }), ...over });
+const holder = vi.hoisted(() => ({ drafts: null as unknown }));
+let drafts = makeStore();
+vi.mock("$lib/state/context", () => ({ tryGetAppState: () => ({ drafts: holder.drafts, connection: { blockedReason: null } }) }));
+holder.drafts = drafts;
 
 const KEY = "add|a.ts|new|3-3";
 const box = () => screen.getByRole("textbox", { name: "Comment text" });
 
 beforeEach(() => {
-  drafts.clear(KEY);
-  drafts.clear("reply|c1");
-  drafts.clear("edit|c1");
+  drafts = makeStore();
+  holder.drafts = drafts;
 });
 
 describe("comment drafts in the editor", () => {
@@ -69,6 +71,71 @@ describe("comment drafts in the editor", () => {
     await fireEvent.input(box(), { target: { value: "changed" } });
     await fireEvent.input(box(), { target: { value: "same" } });
     expect(drafts.get("edit|c1")).toBeUndefined();
+  });
+});
+
+describe("drafts that load after the editor opened", () => {
+  it("an untouched editor picks the saved draft up when it lands", async () => {
+    let arrive: (d: Record<string, string>) => void = () => {};
+    drafts = makeStore({ load: () => new Promise((resolve) => (arrive = resolve)) });
+    holder.drafts = drafts;
+    const loading = drafts.load();
+    render(CommentEditor, { draftKey: KEY, onSave: vi.fn(), onCancel: vi.fn() });
+    expect(box()).toHaveValue("");
+    arrive({ [KEY]: "saved earlier" });
+    await loading;
+    await vi.waitFor(() => expect(box()).toHaveValue("saved earlier"));
+  });
+
+  it("never overwrites what was typed, nor the saved draft with an untouched empty box", async () => {
+    let arrive: (d: Record<string, string>) => void = () => {};
+    drafts = makeStore({ load: () => new Promise((resolve) => (arrive = resolve)) });
+    holder.drafts = drafts;
+    const loading = drafts.load();
+    render(CommentEditor, { draftKey: KEY, onSave: vi.fn(), onCancel: vi.fn() });
+    await fireEvent.input(box(), { target: { value: "typed first" } });
+    arrive({ [KEY]: "saved earlier" });
+    await loading;
+    await Promise.resolve();
+    expect(box()).toHaveValue("typed first");
+    expect(drafts.get(KEY)).toBe("typed first");
+  });
+
+  it("leaves the saved draft alone when an empty editor closes untouched", async () => {
+    drafts = makeStore({ load: async () => ({ [KEY]: "saved earlier" }) });
+    holder.drafts = drafts;
+    const first = render(CommentEditor, { draftKey: KEY, onSave: vi.fn(), onCancel: vi.fn() });
+    await fireEvent.keyDown(box(), { key: "Escape" });
+    first.unmount();
+    await drafts.load();
+    expect(drafts.get(KEY)).toBe("saved earlier");
+  });
+});
+
+describe("a draft the server refused", () => {
+  it("tells the reviewer it was not saved", async () => {
+    drafts = makeStore({ save: async () => ({ drafts: {}, rejected: [{ key: KEY, reason: "draft too long to save" }] }) });
+    holder.drafts = drafts;
+    render(CommentEditor, { draftKey: KEY, onSave: vi.fn(), onCancel: vi.fn() });
+    await fireEvent.input(box(), { target: { value: "huge" } });
+    await drafts.flush();
+    expect(await screen.findByText(/draft too long to save/)).toBeInTheDocument();
+  });
+});
+
+describe("a range that grows", () => {
+  it("keeps the text typed so far when the anchor changes under the editor", async () => {
+    const view = render(CommentEditor, { draftKey: KEY, onSave: vi.fn(), onCancel: vi.fn() });
+    await fireEvent.input(box(), { target: { value: "about these lines" } });
+    drafts.move(KEY, "add|a.ts|new|3-6");
+    await view.rerender({ draftKey: "add|a.ts|new|3-6", onSave: vi.fn(), onCancel: vi.fn() });
+    expect(box()).toHaveValue("about these lines");
+    await fireEvent.input(box(), { target: { value: "about these lines, all six" } });
+    expect(drafts.get("add|a.ts|new|3-6")).toBe("about these lines, all six");
+    expect(drafts.get(KEY)).toBeUndefined();
+    view.unmount();
+    render(CommentEditor, { draftKey: "add|a.ts|new|3-6", onSave: vi.fn(), onCancel: vi.fn() });
+    expect(box()).toHaveValue("about these lines, all six");
   });
 });
 
