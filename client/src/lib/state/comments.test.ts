@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { REVIEW_SCHEMA_VERSION } from "$types";
 import type { Comment, DiffFile, DiffResult, ReviewFile, ReviewRecord } from "$types";
 import { createReviewStore } from "./review.svelte";
@@ -80,6 +80,36 @@ describe("comments store — mutations adopt the server record", () => {
     const store = createCommentsStore(review, () => null, cdeps());
     await store.remove("1");
     expect(store.comments.map((c) => c.id)).toEqual(["2"]);
+  });
+
+  it("serializes writes: two quick deletes never resurrect a comment", async () => {
+    const review = seeded(rec({ comments: [cmt("1"), cmt("2"), cmt("3")] }));
+    const releases: Array<() => void> = [];
+    const store = createCommentsStore(review, () => null, cdeps({
+      saveComments: (c) => new Promise((resolve) => releases.push(() => resolve(rec({ comments: c })))),
+    }));
+    const first = store.remove("1");
+    const second = store.remove("2");
+    await Promise.resolve();
+    expect(releases).toHaveLength(1); // the second waits for the first
+    releases[0]!();
+    await first;
+    await vi.waitFor(() => expect(releases).toHaveLength(2));
+    releases[1]!();
+    await second;
+    expect(store.comments.map((c) => c.id)).toEqual(["3"]);
+  });
+
+  it("keeps the queue moving after a failed write", async () => {
+    const review = seeded(rec({ comments: [cmt("1")] }));
+    let fail = true;
+    const store = createCommentsStore(review, () => null, cdeps({
+      saveComments: async (c) => { if (fail) { fail = false; throw new Error("boom"); } return rec({ comments: c }); },
+    }));
+    const [a, b] = await Promise.all([store.add(cmt("2")), store.add(cmt("3"))]);
+    expect(a).toBe("boom");
+    expect(b).toBeNull();
+    expect(store.comments.map((c) => c.id)).toEqual(["1", "3"]);
   });
 
   it("resolves, reopens, and replies via record-only endpoints", async () => {
