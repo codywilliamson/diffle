@@ -156,6 +156,37 @@ describe("lsp store: definition", () => {
     expect(goToHit).toHaveBeenCalledWith(expect.objectContaining({ line: 4 }));
   });
 
+  it("a slow definition cannot jump after Ctrl+o, a reference jump or a viewer open", async () => {
+    type Lsp = ReturnType<typeof setup>["lsp"];
+    const viewerTarget = { path: null, absolutePath: "/x", uri: "file:///x", inRepo: false, line: 1, character: 0 };
+    for (const supersede of [(lsp: Lsp) => lsp.cancelNavigation(), (lsp: Lsp) => lsp.jump(viewerTarget)]) {
+      const { lsp, goToHit } = setup();
+      api.lspFile.mockResolvedValue({ content: "x" });
+      let slow!: (r: LspDefinitionResponse) => void;
+      api.lspDefinition.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+      lsp.definitionAtHit(hit());
+      await flush();
+      supersede(lsp);
+      slow(answer([target("src/greeter.ts", 3, { inDiff: true })]));
+      await flush();
+      expect(goToHit).not.toHaveBeenCalled();
+    }
+  });
+
+  it("opening references drops a pending definition", async () => {
+    const { lsp, goToHit } = setup();
+    vi.spyOn(lsp.references, "start").mockResolvedValue();
+    let slow!: (r: LspDefinitionResponse) => void;
+    api.lspDefinition.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+    lsp.definitionAtHit(hit());
+    await flush();
+    document.body.innerHTML = `<table data-file-path="src/main.ts"><tr data-cursor><td><span class="code-inner" data-lsp-side="new" data-lsp-line="6">greet(x)</span></td></tr></table>`;
+    lsp.referencesAtCursor();
+    slow(answer([target("src/greeter.ts", 3, { inDiff: true })]));
+    await flush();
+    expect(goToHit).not.toHaveBeenCalled();
+  });
+
   it("Esc closes one layer at a time, picker before viewer", async () => {
     const { lsp } = setup();
     api.lspDefinition.mockResolvedValue(answer([target("src/a.ts", 1), target("src/b.ts", 1)]));

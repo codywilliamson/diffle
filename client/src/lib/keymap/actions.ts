@@ -33,10 +33,12 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "side.new": () => cursor.switchTo(currentPath(), "new"),
     // the viewer is not a cursor position: leaving it is part of going back
     "jump.back": () => {
+      lsp.cancelNavigation();
       lsp.closeViewer();
       cursor.back(currentPath());
     },
     "jump.forward": () => {
+      lsp.cancelNavigation();
       lsp.closeViewer();
       cursor.forward(currentPath());
     },

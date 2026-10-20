@@ -61,7 +61,14 @@ export function createLspStore(deps: LspDeps) {
     notify(lspMessage(error), "error");
   }
 
+  // a pending definition answer must not jump once anything else has navigated
+  function cancelNavigation(): void {
+    navigation?.abort();
+    navigation = undefined;
+  }
+
   async function openViewer(target: JumpTarget): Promise<void> {
+    cancelNavigation();
     deps.markJump();
     viewerLoad?.abort();
     const controller = new AbortController();
@@ -89,6 +96,7 @@ export function createLspStore(deps: LspDeps) {
   }
 
   function jump(target: JumpTarget): void {
+    cancelNavigation();
     viewerLoad?.abort();
     viewer = null;
     jumpTo({ files: deps.files, toDiff: deps.goToHit, toViewer: (t) => void openViewer(t) }, target);
@@ -110,6 +118,7 @@ export function createLspStore(deps: LspDeps) {
   const symbols = createSymbolsStore({ document: lspDocumentSymbols, workspace: lspWorkspaceSymbols, jump, onError: fail });
 
   function openReferences(hit: CodeHit): void {
+    cancelNavigation();
     hover.close();
     picker = null;
     symbols.close();
@@ -210,6 +219,11 @@ export function createLspStore(deps: LspDeps) {
       if (target) jump(targetOf(target, target.range));
     },
     jump,
+    cancelNavigation,
+    // any code-navigation layer is open (Esc closes it before visual mode ends)
+    get hasLayer(): boolean {
+      return hover.card !== null || picker !== null || symbols.open || viewer !== null || references.open;
+    },
     closeViewer,
 
     // Esc closes one layer, the one on top: hover card, picker, symbols, viewer, references.
