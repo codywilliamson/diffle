@@ -26,6 +26,42 @@ async function writeComment(page: Page, text: string): Promise<void> {
   await expect(page.locator("[data-diff-pane]")).toBeFocused();
 }
 
+test("a held d never deletes, and dd offers an undo that brings the comment back", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await gotoApp(page, await url);
+    await expect(page.locator("tr.diff-row").first()).toBeVisible();
+    await page.keyboard.press("j");
+    await page.keyboard.press("c");
+    await writeComment(page, "precious");
+    await expect(page.locator(".comment-card")).toHaveCount(1);
+
+    // keydown without keyup: every d after the first has event.repeat set
+    for (let i = 0; i < 6; i++) await page.keyboard.down("d");
+    await page.keyboard.up("d");
+    await page.waitForTimeout(200);
+    expect((await saved(page)).length).toBe(1);
+
+    await page.keyboard.type("dd");
+    await expect(page.locator(".comment-card")).toHaveCount(0);
+    await expect.poll(async () => (await saved(page)).length).toBe(0);
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.locator(".comment-card")).toHaveCount(1);
+    await expect.poll(async () => (await saved(page)).map((x) => x.text)).toEqual(["precious"]);
+
+    // u undoes from the keyboard too
+    await page.keyboard.press("Escape");
+    await page.keyboard.type("dd");
+    await expect(page.locator(".comment-card")).toHaveCount(0);
+    await page.keyboard.press("u");
+    await expect(page.locator(".comment-card")).toHaveCount(1);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
 test("e, R, yy, dd and { } act on the comment under the cursor", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const fixture = makeFixture(FILES);

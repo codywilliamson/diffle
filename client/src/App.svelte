@@ -24,6 +24,7 @@
   import DefinitionPicker from "$lib/components/lsp/DefinitionPicker.svelte";
   import SymbolPicker from "$lib/components/lsp/SymbolPicker.svelte";
   import HoverCard from "$lib/components/lsp/HoverCard.svelte";
+  import UndoToast from "$lib/components/UndoToast.svelte";
   import LspToast from "$lib/components/lsp/LspToast.svelte";
   import { lspPointer } from "$lib/lsp/pointer";
 
@@ -95,6 +96,7 @@
   <DefinitionPicker />
   <SymbolPicker />
   <LspToast />
+  <UndoToast />
   {#if ui.activeOverlay === "help"}<HelpOverlay />{/if}
   {#if ui.activeOverlay === "whatsNew"}<WhatsNewModal />{/if}
   {#if ui.activeOverlay === "scorecard" && analysis.scorecard}<ScorecardPanel scorecard={analysis.scorecard} />{/if}
