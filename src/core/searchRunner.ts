@@ -3,7 +3,9 @@
 import type { DiffFile, SearchCase, SearchResponse } from "../types";
 import type { SearchWorkerMessage, SearchWorkerRequest } from "./searchWorker";
 
+// the budget covers search work only; spinning up the thread (slow on a loaded machine) has its own limit
 export const SEARCH_TOTAL_BUDGET_MS = 2_000;
+export const WORKER_STARTUP_LIMIT_MS = 15_000;
 
 // a compiled binary embeds the worker under its path relative to the build root, and the source url no longer resolves
 const IN_COMPILED_BINARY = /~BUN|\$bunfs/.test(import.meta.dir);
@@ -60,12 +62,17 @@ export function runSearchInWorker(request: SearchWorkerRequest, budgetMs = SEARC
       worker.terminate();
       settle();
     };
-    const timer = setTimeout(() => {
+    const onBudgetExpired = () => {
       finish(() => {
         if (latest && latest.results.length) resolve({ results: latest.results, truncated: true });
         else reject(new SearchTimeoutError("pattern took too long; try a simpler regex"));
       });
-    }, budgetMs);
+    };
+    let timer = setTimeout(() => finish(() => reject(new Error("search worker failed to start"))), WORKER_STARTUP_LIMIT_MS);
+    worker.addEventListener("open", () => {
+      clearTimeout(timer);
+      timer = setTimeout(onBudgetExpired, budgetMs);
+    }, { once: true });
     worker.onmessage = ({ data }: MessageEvent<SearchWorkerMessage>) => {
       if (data.type === "progress") latest = data.response;
       else if (data.type === "done") finish(() => resolve(data.response));
