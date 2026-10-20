@@ -48,6 +48,7 @@ export function createCursorStore(deps: CursorDeps) {
   let pos = $state<CursorPos | null>(null);
   let pref = $state<Side>("new");
   let visualAnchor = $state<CursorPos | null>(null);
+  let lastVisual: { anchor: CursorPos; head: CursorPos | null } | null = null; // for gv
   let revealSeq = $state(0);
   let revealKind: RevealKind = "line";
   let anchor: string | null = null;
@@ -176,7 +177,32 @@ export function createCursorStore(deps: CursorDeps) {
       if (from && from.line !== FILE_LEVEL) visualAnchor = from;
     },
     endVisual(): void {
+      if (visualAnchor) lastVisual = { anchor: visualAnchor, head: pos };
       visualAnchor = null;
+    },
+    // gv: open the last visual range again, with the cursor back at the end it was left on.
+    // false when there is none or it no longer fits the diff (file gone, collapsed, changed)
+    reselectVisual(): boolean {
+      if (visualAnchor || !lastVisual) return false;
+      const { anchor, head } = lastVisual;
+      const view = snapshot().views.find((v) => v.file.path === anchor.path);
+      if (!view?.navigable) return false;
+      if (view.split) pref = anchor.side;
+      const { index } = snapshot();
+      const target = head ?? anchor;
+      if (!resolveVisual(index, anchor, target)) return false;
+      visualAnchor = anchor;
+      commit(target, base(undefined), { reveal: "line" });
+      return true;
+    },
+    // rest on the file header (a file was just collapsed, so its lines are gone)
+    park: (seed: string | undefined) => run(seed, (_v, from) => ({ path: from.path, side: pref, line: FILE_LEVEL }), { reveal: "file" }),
+    // jump to a file by path (gf, the file picker), opening it first if it is collapsed
+    goToFile(path: string): void {
+      if (!deps.files().some((f) => f.path === path)) return;
+      const from = base(undefined);
+      deps.open?.(path);
+      commit({ path, side: pref, line: FILE_LEVEL }, from, { jump: true, reveal: "file" });
     },
     // the text of the line under the cursor (no diff marker), null on a file header or off the diff
     lineText(): string | null {
