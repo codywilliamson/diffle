@@ -46,6 +46,18 @@ The TypeScript server needs a `typescript` package it can resolve, either in the
 
 Under `--no-lsp` the response is `{ "enabled": false, "languages": [] }`.
 
+## Keys and the mouse
+
+Code navigation works from the keyboard and the pointer. The keys act on the word under the cursor.
+
+- `gd` goes to the definition. On a definition it lists the references instead. `gy` goes to the type definition.
+- `gh` shows the hover docs for the cursor word in a card.
+- `gA` lists the references, in a panel grouped by file with the changed files first.
+- `gs` opens the symbols in this file in a picker, and `gS` the symbols in the repository.
+- Ctrl/Cmd+click goes to the definition of the word under the pointer. Resting the pointer on a word shows its hover docs.
+
+When a lookup returns several definitions, a picker lets you choose one. A target outside the diff, such as a file in the standard library or `node_modules`, opens in a read-only viewer. Esc closes the topmost layer first: the hover card, the picker, the symbols, the viewer, then the references panel.
+
 ## Navigation endpoints
 
 These routes sit behind the same loopback Origin and Host checks as the status route. Each request body is `{ path, side, line, character }`. `line` is 1-based and `character` is a 0-based JavaScript string offset. nittle converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Every range in a response uses the same client coordinates.
@@ -99,6 +111,3 @@ Closing the review removes its worktrees on every exit path: approve, cancel, `-
 
 A hard kill (SIGKILL, power loss) leaves the worktrees behind. `nittle cleanup` lists them and removes them after confirmation. It only touches a worktree that is registered in the current repository, sits in a `new` or `old` directory under `<temp dir>/nittle-lsp-wt-<pid>-*/`, and has an `owner.json` that names this repository, this worktree and a process that is no longer running. Run it from inside the repository. A leftover without a readable `owner.json` is left alone.
 
-## Coming next
-
-The server side for go-to-definition, hover and references is in. The review UI doesn't use it yet, so there are no keys to press. They land in a later release, and this page will list them when they do.
