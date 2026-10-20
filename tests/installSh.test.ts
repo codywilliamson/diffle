@@ -190,3 +190,93 @@ describe.skipIf(!sh)("install.sh --uninstall", () => {
     expect(existsSync(join(box.home, ".nittle", "bin", "nittle"))).toBe(true);
   });
 });
+
+describe.skipIf(!sh)("install.sh completions offer", () => {
+  const ZSH_LINE = "command -v nittle >/dev/null 2>&1 && source <(nittle completion --shell zsh)";
+  const answer = (box: InstallSandbox, text: string) => { const file = join(box.home, "answer"); write(file, text); return { NITTLE_TEST_TTY: file }; };
+
+  test("yes adds the line inside the nittle marker block, before the end marker", async () => {
+    const box = open();
+    const result = await box.run([], answer(box, "y\n"));
+    expect(result.code).toBe(0);
+    const rc = read(join(box.home, ".zshrc"));
+    expect(rc).toContain(`${ZSH_LINE}\n# <<< nittle <<<`);
+    expect(rc.indexOf("# >>> nittle >>>")).toBeLessThan(rc.indexOf(ZSH_LINE));
+    expect(rc.split("completion --shell").length).toBe(2);
+  });
+
+  test("the default answer adds nothing", async () => {
+    const box = open();
+    const result = await box.run([], answer(box, "\n"));
+    expect(result.code).toBe(0);
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+  });
+
+  test("an explicit no adds nothing", async () => {
+    const box = open();
+    await box.run([], answer(box, "n\n"));
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+  });
+
+  test("NITTLE_NO_COMPLETIONS skips the prompt", async () => {
+    const box = open();
+    const result = await box.run([], { ...answer(box, "y\n"), NITTLE_NO_COMPLETIONS: "1" });
+    expect(result.out).not.toContain("completions for");
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+  });
+
+  test("a non-interactive run skips the prompt and never runs the binary for it", async () => {
+    const box = open();
+    const result = await box.run();
+    expect(result.out).not.toContain("completions for");
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+    expect(read(box.log)).toBe("");
+  });
+
+  test("a dry run skips the prompt", async () => {
+    const box = open();
+    const result = await box.run([], { ...answer(box, "y\n"), NITTLE_DRY_RUN: "1" });
+    expect(result.out).not.toContain("completions for");
+  });
+
+  test("rerunning does not duplicate the line", async () => {
+    const box = open();
+    await box.run([], answer(box, "y\n"));
+    await box.run([], answer(box, "y\n"));
+    const rc = read(join(box.home, ".zshrc"));
+    expect(rc.split("completion --shell").length).toBe(2);
+    expect(rc.split("# >>> nittle >>>").length).toBe(2);
+  });
+
+  test("bash gets the eval line in .bashrc", async () => {
+    const box = open();
+    await box.run([], { ...answer(box, "yes\n"), SHELL: "/bin/bash" });
+    expect(read(join(box.home, ".bashrc"))).toContain('eval "$(nittle completion --shell bash)"\n# <<< nittle <<<');
+  });
+
+  test("fish writes the completions file and uninstall removes it", async () => {
+    const box = open();
+    await box.run([], { ...answer(box, "y\n"), SHELL: "/usr/bin/fish" });
+    const file = join(box.home, ".config", "fish", "completions", "nittle.fish");
+    expect(read(file)).toBe("# fake fish completions\n");
+    expect(read(join(box.home, ".config", "fish", "config.fish"))).not.toContain("completion");
+    const gone = await box.run(["--uninstall"], { SHELL: "/usr/bin/fish" });
+    expect(gone.code).toBe(0);
+    expect(existsSync(file)).toBe(false);
+  });
+
+  test("without a nittle block in the rc the line is printed, never written", async () => {
+    const box = open();
+    const result = await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(result.out).toContain(ZSH_LINE);
+    expect(existsSync(join(box.home, ".zshrc"))).toBe(false);
+  });
+
+  test("uninstall removes the block together with its completion line", async () => {
+    const box = open();
+    write(join(box.home, ".zshrc"), "alias a=b\n");
+    await box.run([], answer(box, "y\n"));
+    await box.run(["--uninstall"]);
+    expect(read(join(box.home, ".zshrc"))).toBe("alias a=b\n");
+  });
+});

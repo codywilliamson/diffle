@@ -239,6 +239,64 @@ describe.skipIf(!pwsh)("install.ps1", () => {
   });
 });
 
+const COMPLETION_LINE = "if (Get-Command nittle -ErrorAction SilentlyContinue) { nittle completion --shell powershell | Out-String | Invoke-Expression }";
+const BLOCK = "# >>> nittle >>>\n# <<< nittle <<<\n";
+
+describe.skipIf(!pwsh)("install.ps1 completions offer", () => {
+  const profileOf = (dir: string) => join(dir, "profile.ps1");
+  const offer = (answer: string | undefined, extra: Record<string, string> = {}) => ({
+    NITTLE_PROFILE_FILE: "<dir>/profile.ps1", NITTLE_NO_SETUP: "1", ...(answer === undefined ? {} : { NITTLE_TEST_COMPLETIONS_ANSWER: answer }), ...extra,
+  });
+  const seedBlock = (dir: string) => seed(profileOf(dir), `# mine\n${BLOCK}`);
+
+  test("yes adds the line inside an existing nittle block, before the end marker", async () => {
+    const result = await run({ env: offer("y"), before: seedBlock });
+    expect(result.code).toBe(0);
+    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n# >>> nittle >>>\n${COMPLETION_LINE}\n# <<< nittle <<<\n`);
+  });
+
+  test("yes without a nittle block prints the line and never writes the profile", async () => {
+    const result = await run({ env: offer("y"), before: (dir) => seed(profileOf(dir), "# mine\n") });
+    expect(result.code).toBe(0);
+    expect(result.out).toContain(COMPLETION_LINE);
+    expect(readFileSync(profileOf(result.dir), "utf8")).toBe("# mine\n");
+    const none = await run({ env: offer("y") });
+    expect(existsSync(profileOf(none.dir))).toBe(false);
+  });
+
+  test("rerunning does not duplicate the line", async () => {
+    const first = await run({ env: offer("y"), before: seedBlock });
+    await run({ env: offer("y"), reuse: first.dir });
+    const text = readFileSync(profileOf(first.dir), "utf8");
+    expect(text.split("completion --shell powershell").length).toBe(2);
+  });
+
+  test("no and the default answer add nothing", async () => {
+    const no = await run({ env: offer("n"), before: seedBlock });
+    expect(readFileSync(profileOf(no.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+    const blank = await run({ env: offer(" "), before: seedBlock });
+    expect(readFileSync(profileOf(blank.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+  });
+
+  test("NITTLE_NO_COMPLETIONS skips the offer", async () => {
+    const result = await run({ env: offer("y", { NITTLE_NO_COMPLETIONS: "1" }), before: seedBlock });
+    expect(result.out).not.toContain("Completions");
+    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+  });
+
+  test("a non-interactive run skips the offer", async () => {
+    const result = await run({ env: offer(undefined), before: seedBlock });
+    expect(result.code).toBe(0);
+    expect(result.out).not.toContain("Completions");
+    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+  });
+
+  test("a dry run skips the offer", async () => {
+    const result = await run({ env: offer("y", { NITTLE_DRY_RUN: "1" }), before: seedBlock });
+    expect(result.out).not.toContain("Completions");
+  });
+});
+
 // windows powershell 5.1 gets the requirement message and installs nothing
 const winPowerShell = process.platform === "win32" ? Bun.which("powershell") : null;
 
