@@ -215,10 +215,13 @@ describe("document sync: the server sees what the reviewer sees", () => {
   test("the first request waits for the server's project load to finish; later ones do not", async () => {
     const root = tempDir("sync");
     writeFiles(root, { "a.ts": "x\n" });
-    const { harness } = setup(root, { progress: { delayMs: 0, durationMs: 600 }, responses: { "textDocument/hover": null } });
+    // a request that waited on a fresh load would take the whole window again, so the bounds sit
+    // either side of it with room for a loaded machine to slow the quick call down
+    const loadMs = 3_000;
+    const { harness } = setup(root, { progress: { delayMs: 0, durationMs: loadMs }, responses: { "textDocument/hover": null } });
     const timed = async () => { const t = performance.now(); await harness.post("/api/lsp/hover", { path: "a.ts", side: "new", line: 1, character: 0 }); return performance.now() - t; };
-    expect(await timed()).toBeGreaterThan(300);
-    expect(await timed()).toBeLessThan(300);
+    expect(await timed()).toBeGreaterThan(loadMs * 0.66);
+    expect(await timed()).toBeLessThan(loadMs);
   });
 
   test("nothing is written into the checkout", async () => {
