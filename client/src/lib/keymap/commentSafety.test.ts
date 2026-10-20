@@ -28,7 +28,7 @@ function outcomeOf(keys: string[]): Outcome {
 
 function harness(list: Comment[], pos: CursorPos | null) {
   const ui = createUiStore();
-  const comments = { remove: vi.fn().mockResolvedValue(null), add: vi.fn().mockResolvedValue(null) };
+  const comments = { removeComment: vi.fn(async (id: string) => ({ error: null as string | null, removed: list.find((x) => x.id === id) ?? null })), add: vi.fn().mockResolvedValue(null) };
   const lsp = { notify: vi.fn() };
   const commentFocus = createCommentFocus({ comments: () => list, pos: () => pos });
   const actions = createCommentActions({ ui, comments, cursor: {}, commentFocus, lsp } as unknown as AppState);
@@ -57,7 +57,7 @@ describe("delete and undo", () => {
     const h = harness([original], at(5));
     h.actions["comment.delete"](null);
     await vi.waitFor(() => expect(h.ui.undo).not.toBeNull());
-    expect(h.comments.remove).toHaveBeenCalledWith("one");
+    expect(h.comments.removeComment).toHaveBeenCalledWith("one");
     h.actions["comment.undo"](null);
     expect(h.comments.add).toHaveBeenCalledWith(original);
     expect(h.ui.undo).toBeNull();
@@ -79,7 +79,7 @@ describe("delete and undo", () => {
 
   it("a failed delete offers nothing, and u with nothing to undo says so", async () => {
     const h = harness([c("one")], at(5));
-    h.comments.remove.mockResolvedValue("offline");
+    h.comments.removeComment.mockResolvedValue({ error: "offline", removed: null });
     h.actions["comment.delete"](null);
     await vi.waitFor(() => expect(h.lsp.notify).toHaveBeenCalledWith("offline", "error"));
     expect(h.ui.undo).toBeNull();

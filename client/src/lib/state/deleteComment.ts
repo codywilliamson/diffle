@@ -5,12 +5,13 @@ import type { AppState } from "./context";
 
 export const DELETED_NOTICE = "Comment deleted.";
 
-// the whole comment (replies, status) goes back under its own id: the server keeps what the
-// client sends for an id it no longer stores
+// the comment is the one the delete itself removed (replies, status and all), restored under its
+// own id: the server keeps what the client sends for an id it no longer stores
 export async function deleteCommentWithUndo({ ui, comments, lsp }: AppState, target: Comment): Promise<void> {
-  const error = await comments.remove(target.id);
+  const { error, removed } = await comments.removeComment(target.id);
   if (error) return lsp.notify(error, "error");
+  if (!removed) return;
   ui.offerUndo(DELETED_NOTICE, () => {
-    void comments.add(target).then((failed) => failed && lsp.notify(failed, "error"));
+    void comments.add(removed).then((failed) => failed && lsp.notify(failed, "error"));
   });
 }

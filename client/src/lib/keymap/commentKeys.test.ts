@@ -110,7 +110,7 @@ describe("commentFocus", () => {
 
 function harness(list: Comment[], pos: CursorPos | null, lineText: string | null = "const x = 1;") {
   const ui = createUiStore();
-  const comments = { remove: vi.fn().mockResolvedValue(null), add: vi.fn().mockResolvedValue(null), resolve: vi.fn(), reopen: vi.fn() };
+  const comments = { removeComment: vi.fn(async (id: string) => ({ error: null, removed: list.find((x) => x.id === id) ?? null })), add: vi.fn().mockResolvedValue(null), resolve: vi.fn(), reopen: vi.fn() };
   const lsp = { notify: vi.fn() };
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { clipboard: { writeText } });
@@ -136,7 +136,7 @@ describe("comment actions", () => {
   it("delete removes the focused comment", () => {
     const h = harness([c("one", {})], at(5));
     h.actions["comment.delete"](null);
-    expect(h.comments.remove).toHaveBeenCalledWith("one");
+    expect(h.comments.removeComment).toHaveBeenCalledWith("one");
   });
 
   it("delete offers the undo toast, which puts the comment back", async () => {
@@ -192,7 +192,7 @@ describe("comment actions", () => {
       const h = harness([], at(5));
       h.actions[id](null);
       expect(h.lsp.notify).toHaveBeenCalledWith(NO_COMMENT_NOTICE);
-      expect(h.comments.remove).not.toHaveBeenCalled();
+      expect(h.comments.removeComment).not.toHaveBeenCalled();
     }
   });
 });
