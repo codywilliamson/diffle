@@ -6,6 +6,10 @@
 
 Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008-rename-diffle-to-nittle.md)). This section is the resume ledger, current as of 2026-10-19 late evening. Everything below it is the diffle-era history and stays as written.
 
+### Authority for a resumed session
+
+The run's authority came from the run brief (`.orchestra/runs/nittle-vnext-20261017/brief.md`, local and gitignored). A fresh session must re-read that brief and confirm it is still in force before it merges release PRs, publishes anything, merges web/ changes (they deploy live), touches Cloudflare, or touches Cody's real home. Nothing in this file grants authority by itself.
+
 ### State
 
 v0.29.0 is released (the rename). nittle.dev is live, diffle.dev answers every URL with a 301 to the same path and query on nittle.dev, and a real `diffle update` from 0.28.1 to 0.29.0 passed on ubuntu, macos and windows (14, 14 and 13 checks, live smoke run 39336050970). In flight: the language server client halves (#181 to #184), the detached worktree server (#186, PR #261), the fixes from the rename verify pass (PR #269), and Release Please PR #259 (0.30.0).
@@ -44,7 +48,7 @@ Closed and replaced by a rebuilt PR (linear history, no force-push): #216, #221,
 | --- | --- | --- |
 | #269 | fixes for #262 to #266 from the verify pass, one commit per issue | final CI and merge; review round 2 had no blocking findings, auto-merge armed |
 | #261 | #186 detached worktrees for non-checked-out revisions | round 2 fixes (fsmonitor during probes, ownership record written before creation), then lead verification |
-| #259 | Release Please 0.30.0 | merge after #269 and #261 land; check the version matches the What's New entry (D19) and the changelog range is not whole-history |
+| #259 | Release Please 0.30.0 | merge after #269 and #261 land; the What's New version must equal the release version (0.30.0) before merging (D19) and the changelog range is not whole-history |
 | dependabot | #253, #173, #168, #166, #163 | triage; #163 is the high alert on source-map-js in `demos/` |
 
 Client work for #181 to #184 (keys `gd gy gh gA gs gS`, hover card, pickers, read-only view, e2e in the ubuntu lsp job) has a worker running and no PR yet.
@@ -92,7 +96,7 @@ Client work for #181 to #184 (keys `gd gy gh gA gs gS`, hover card, pickers, rea
 - D24 web/ deploys on merge to main, so #212 was held until the release was published.
 - D25 parity audit 1: 63 rows, 15 ahead, 24 parity, 24 behind; uncovered axes parked as P2.
 - D26 (Cody) all code changes go to workers; the lead triages, verifies and merges.
-- D27 one keymap grammar for #175 to #178 and LSP (`keymap-spec.md` in the run dir); chords `gd gy gh gr gs gS` reserved.
+- D27 one keymap grammar for #175 to #178 and LSP (`keymap-spec.md` in the run dir); chords `gd gy gh gr gs gS` were reserved. `gA` is the references key: issue #183 replaced the reserved `gr` with `gA`.
 - D28 LSP status has a sixth state, `idle`.
 - D29 the Windows UAC prompt is likely the sandbox service of the review tool, not the product; every review prompt carries a no-execution rule. Note: `tests/installPs1.test.ts` runs a fake text `nittle.exe`.
 - D30 (Cody) ship 0.29.0 without regenerated demo media; render later when idle.
@@ -111,7 +115,7 @@ routes: both nittle.dev and diffle.dev, each { "pattern": ..., "custom_domain": 
 
 `wrangler deploy --dry-run` exited 0 (it does not print routes). Workers Build on 41494a5 succeeded. nittle.dev `/`, `/install` and `/install.ps1` returned 200 and diffle.dev stayed 200 until the ruleset.
 
-Redirect, zone diffle.dev (7358a1d616725100067a6ec85de2adf0). Dry run:
+Redirect, zone diffle.dev (7358a1d616725100067a6ec85de2adf0). Step 1, dry run (the command was given the zone by name, which is why the output URL shows `zones/diffle.dev`):
 
 ```
 cf rulesets account-rulesets create --zone 7358a1d616725100067a6ec85de2adf0 \
@@ -152,25 +156,25 @@ cf rulesets account-rulesets create --zone 7358a1d616725100067a6ec85de2adf0 \
 }
 ```
 
-Validate-only against the zone id: exit 0, nothing created (the list showed 0 dynamic_redirect rulesets). Real create: ruleset id a217cae4c9e14483b49896842b467ee9, rule id 3bfd1bba3a924d81be0d09800f823423, version 1.
+Step 2, a separate validate-only run against the zone id: exit 0, nothing created (the list showed 0 dynamic_redirect rulesets). Step 3, real create: ruleset id a217cae4c9e14483b49896842b467ee9, rule id 3bfd1bba3a924d81be0d09800f823423, version 1.
 
 Proof: `curl -sSI` on diffle.dev `/`, `/install`, `/install.ps1` and `/getting-started/installation/?x=1` returned 301 with `Location: https://nittle.dev/<same path>?x=1`. nittle.dev `/`, `/install` and `/install.ps1` returned 200. `scripts/check-site.sh` printed "site check passed". `curl -fsSL https://diffle.dev/install | sh` fetched the nittle installer through the redirect (it stopped on unsupported OS MINGW, expected on Windows). `irm https://diffle.dev/install.ps1 | iex` into an isolated temp home installed nittle v0.29.0 with sha-256 verified, and `nittle --version` printed v0.29.0 plus the lineage line.
 
 ### Cody's manual list
 
-- P1 (D22), optional: restore the local diffle install the run's tests changed. Data was moved, not lost. `mv ~/.nittle ~/.diffle`, then `claude plugin marketplace add codywilliamson/diffle` and `claude plugin install diffle-review@diffle-local --scope user`, then re-add the diffle-review plugin in your other agent if used. Optionally set `seenVersion` back in `~/.diffle/state.json`. Nothing depends on this.
+- P1 (D22), optional: restore the local diffle install the run's tests changed. Data was moved, not lost. Cody does this himself, never an agent. First check which dirs exist (`ls -d ~/.diffle ~/.nittle`). Rename only when `~/.diffle` is absent and `~/.nittle` is present (`mv ~/.nittle ~/.diffle`). If both exist, move nothing and let nittle's own migration merge them (it parks conflicts). Then `claude plugin marketplace add codywilliamson/diffle` and `claude plugin install diffle-review@diffle-local --scope user`, then re-add the diffle-review plugin in your other agent if used. Optionally set `seenVersion` back in `~/.diffle/state.json`. Nothing depends on this.
 - P2 (D25), say which to add: (a) ranges `a...b`, worktree on either side, commit stepping; (c) remote and reverse-proxy use (`--host`, allowed-origin guard, relative asset paths); (d) a `nittle config` command; (e) arm64 runners (ubuntu-24.04-arm, windows-11-arm) in the CI matrix. (b) was dropped, `linguistGenerated()` already exists.
 - P3 (#195, #196): turn on distribution, steps below.
 - #214: rename the GitHub repo to `nittle`, then flip `PRODUCT.repository` (and the `REPO` slug in `install.sh` and `install.ps1`) in a one-line PR; claim the nittle names on npm and crates.io; handles and trademark search; repo description, topics and website; comment the new name on #126.
 - Make `e2e visual` a required check on main (ruleset change). #268 merged with it red.
 
-Distribution enable steps. Nothing publishes until these are done. Three release jobs are gated: `npm-publish` (+ `npm-smoke`), `tap-publish` (+ `brew-scoop-smoke`). Each is skipped unless its repo variable is `true`.
+Distribution enable steps. Nothing publishes until these are done. Four release jobs are gated: `npm-publish`, `npm-smoke`, `tap-publish` and `brew-scoop-smoke`. Each is skipped unless its repo variable is `true`.
 
 0. Do the repo rename and flip `PRODUCT.repository` first. npm provenance checks `repository.url` against the repo that ran the workflow, so the first npm publish fails otherwise. Brew and Scoop work either way.
 1. npm (#195):
    - Log in on npmjs.com with the owning account.
    - Check `npm view nittle` is free. If taken, use a scope such as `@codywilliamson/nittle` and tell the lead; the name lives in `src/core/npmPackage.ts` and the updater hint.
-   - Trusted publishing needs an existing package. From a scratch dir, publish a `0.0.0` placeholder (`npm init -y`, `npm publish --access public`) for `nittle`, `nittle-linux-x64`, `nittle-linux-arm64`, `nittle-darwin-x64`, `nittle-darwin-arm64`, `nittle-win32-x64`, `nittle-win32-arm64`.
+   - Trusted publishing needs an existing package. Cody runs these himself, one package at a time, after reading each manifest. In a new empty scratch dir per package (never inside this repo), write a `package.json` containing exactly `{"name": "<package>", "version": "0.0.0"}`, then inspect with `npm publish --access public --dry-run`, then publish with `npm publish --access public`. The seven names: `nittle`, `nittle-linux-x64`, `nittle-linux-arm64`, `nittle-darwin-x64`, `nittle-darwin-arm64`, `nittle-win32-x64`, `nittle-win32-arm64`.
    - For each package: Settings, Trusted Publisher, GitHub Actions. User `codywilliamson`, repository `nittle` (or `diffle` until renamed), workflow `release.yml`, environment blank.
    - Set repo variable `NPM_PUBLISH` to `true`. No npm token is needed.
 2. Homebrew and Scoop (#196):
