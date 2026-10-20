@@ -3,10 +3,12 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { findPwsh } from "./helpers/findPwsh";
 
 // install.ps1 needs PowerShell 7. every wrapper mocks the release lookup and downloads and routes the
 // "user PATH" through a scope file, so no test touches the network, the registry or the real home.
-const pwsh = Bun.which("pwsh");
+const pwsh = findPwsh();
+if (!pwsh) console.warn("install.ps1 tests skipped: pwsh (PowerShell 7+) is not on PATH");
 const root = join(import.meta.dir, "..");
 const dirs: string[] = [];
 setDefaultTimeout(60_000);
@@ -234,5 +236,31 @@ describe.skipIf(!pwsh)("install.ps1", () => {
     });
     expect(existsSync(join(result.bin, "nittle.exe"))).toBe(true);
     expect(result.userPath).toBe(result.bin);
+  });
+});
+
+// windows powershell 5.1 gets the requirement message and installs nothing
+const winPowerShell = process.platform === "win32" ? Bun.which("powershell") : null;
+
+describe.skipIf(!winPowerShell)("install.ps1 under windows powershell 5.1", () => {
+  test("prints the pwsh 7 requirement and installs nothing", async () => {
+    const dir = tempDir();
+    const home = join(dir, "home");
+    const bin = join(home, ".nittle", "bin");
+    const scope = join(dir, "userpath.txt");
+    mkdirSync(home, { recursive: true });
+    const script = join(dir, "run.ps1");
+    writeFileSync(script, `Invoke-Expression (Get-Content -Raw -LiteralPath '${q(join(root, "install.ps1"))}')\n`);
+    const env = { ...process.env, HOME: home, USERPROFILE: home, NITTLE_INSTALL_DIR: bin, NITTLE_PATH_SCOPE_FILE: scope };
+    const proc = Bun.spawn([winPowerShell!, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script], { stdout: "pipe", stderr: "pipe", cwd: dir, env });
+    const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
+    await proc.exited;
+    const out = stdout + stderr;
+    expect(out).toContain("PowerShell 7 or newer is required");
+    expect(out).toContain("winget install --id Microsoft.PowerShell --source winget");
+    expect(out).toContain('pwsh -NoProfile -c "irm https://nittle.dev/install.ps1 | iex"');
+    expect(existsSync(bin)).toBe(false);
+    expect(existsSync(scope)).toBe(false);
+    expect(existsSync(join(home, '.nittle'))).toBe(false);
   });
 });

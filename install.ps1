@@ -1,24 +1,28 @@
-# nittle installer (Windows) — downloads the matching release binary, verifies its sha-256,
+# nittle installer (Windows) - downloads the matching release binary, verifies its sha-256,
 # installs it to ~\.nittle\bin, and puts that directory on the user PATH.
 # An existing diffle install is migrated: after installing, `nittle --version` runs once and the
 # binary's own startup migration moves data and plugins and removes every diffle leftover.
-# Usage: irm https://<host>/install.ps1 | iex
+# Requires PowerShell 7+ (pwsh); Windows PowerShell 5.1 gets a message and nothing is installed.
+# Usage: pwsh -c "irm https://<host>/install.ps1 | iex"
 # Env knobs: NITTLE_INSTALL_DIR, NITTLE_DRY_RUN, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_UNINSTALL,
 #   NITTLE_PATH_SCOPE_FILE (test seam), GITHUB_TOKEN (optional; authenticates the release lookup)
 #   each NITTLE_* falls back to its deprecated DIFFLE_* twin
-#Requires -Version 7.0
+# the check runs before anything else and uses return, never exit: exit would close the user's window
+$Name = 'nittle'
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+  Write-Host "[ERROR] $Name install: PowerShell 7 or newer is required (found $($PSVersionTable.PSVersion))." -ForegroundColor Red
+  Write-Host '  install it:  winget install --id Microsoft.PowerShell --source winget'
+  Write-Host "  then rerun:  pwsh -NoProfile -c `"irm https://$Name.dev/install.ps1 | iex`""
+  $global:LASTEXITCODE = 1
+  return
+}
+
 & {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 
-# #Requires is not enforced under `irm | iex`, so check at runtime too
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-  throw "nittle install: PowerShell 7.0 or newer is required (found $($PSVersionTable.PSVersion))"
-}
-
 $Repo = 'codywilliamson/diffle' # the github repo keeps its old slug until it is renamed
-$Name = 'nittle'
 $LegacyName = 'diffle'
 
 # NITTLE_<name>, else the deprecated DIFFLE_<name>
@@ -91,7 +95,7 @@ function Invoke-Step {
 
 # NITTLE_PATH_SCOPE_FILE is a test seam: read/write the "user PATH" from a file, never the registry.
 # The registry is read raw (DoNotExpandEnvironmentNames) so %VAR% tokens in entries we did not add
-# survive verbatim — [Environment]::GetEnvironmentVariable would expand them into the stored value.
+# survive verbatim - [Environment]::GetEnvironmentVariable would expand them into the stored value.
 function Get-UserPath {
   if ($PathScopeFile) {
     if (Test-Path -LiteralPath $PathScopeFile) { return [IO.File]::ReadAllText($PathScopeFile) }
@@ -232,12 +236,12 @@ function Move-ExistingAside {
   # an older retired copy still held by a running process can't be removed; retire to a fresh name
   if (Test-Path -LiteralPath $Retired) { $Retired = "$Retired-$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())" }
   try { Move-Item -LiteralPath $Path -Destination $Retired -ErrorAction Stop }
-  catch { throw "nittle install: could not move the existing $Path aside ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
+  catch { throw "nittle install: could not move the existing $Path aside ($($_.Exception.Message)) - $StopHint, then rerun the installer" }
 }
 
 function Save-ReleaseAsset($ReleaseAsset, $Destination) {
   try {
-    Invoke-WebRequest -Uri $ReleaseAsset.browser_download_url -OutFile $Destination -UseBasicParsing -ErrorAction Stop
+    Invoke-WebRequest -Uri $ReleaseAsset.browser_download_url -OutFile $Destination -ErrorAction Stop
   }
   catch {
     throw "nittle install: failed to download $($ReleaseAsset.name) for $Tag"
@@ -310,7 +314,7 @@ function Remove-EmptyDataDir {
   $Data = Split-Path -Parent $BinDirectory
   if ((Split-Path -Leaf $Data) -ine $DataDirName -or -not (Test-Path -LiteralPath $Data)) { return }
   if (Get-ChildItem -LiteralPath $Data -Force -ErrorAction SilentlyContinue) {
-    Write-Log INFO "review records and settings remain in $Data — delete that folder to remove them"
+    Write-Log INFO "review records and settings remain in $Data - delete that folder to remove them"
     return
   }
   Remove-Item -LiteralPath $Data -Force -ErrorAction SilentlyContinue
@@ -455,7 +459,7 @@ try {
     Copy-Item -LiteralPath $BinaryPath -Destination $Staged
     Move-ExistingAside $Target
     try { Move-Item -LiteralPath $Staged -Destination $Target -Force -ErrorAction Stop }
-    catch { throw "nittle install: could not replace $Target ($($_.Exception.Message)) — $StopHint, then rerun the installer" }
+    catch { throw "nittle install: could not replace $Target ($($_.Exception.Message)) - $StopHint, then rerun the installer" }
     $Staged = $null
     Write-Log OK "installed $Name $Tag to $Target"
   }
