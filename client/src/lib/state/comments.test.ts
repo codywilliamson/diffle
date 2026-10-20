@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { REVIEW_SCHEMA_VERSION } from "$types";
 import type { Comment, DiffFile, DiffResult, ReviewFile, ReviewRecord } from "$types";
 import { createReviewStore } from "./review.svelte";
-import { createCommentsStore, type CommentsDeps } from "./comments.svelte";
+import { createCommentsStore, WRITE_TIMEOUT_MS, type CommentsDeps } from "./comments.svelte";
 
 const rec = (over: Partial<ReviewRecord> = {}): ReviewRecord => ({
   schemaVersion: REVIEW_SCHEMA_VERSION,
@@ -101,7 +101,7 @@ describe("comments store — mutations adopt the server record", () => {
   });
 
   it("keeps the queue moving after a failed write", async () => {
-    const review = seeded(rec({ comments: [cmt("1")] }));
+    const review = withServer({ comments: [cmt("1")] });
     let fail = true;
     const store = createCommentsStore(review, () => null, cdeps({
       saveComments: async (c) => { if (fail) { fail = false; throw new Error("boom"); } return rec({ comments: c }); },
@@ -184,5 +184,105 @@ describe("comments store — anchoring", () => {
     const store = createCommentsStore(review, () => null, cdeps());
     expect(store.anchored).toEqual([]);
     expect(store.stale.map((c) => c.id)).toEqual(["1"]);
+  });
+});
+
+// a review store whose re-read returns whatever `server.comments` holds
+const withServer = (server: { comments: Comment[] }, fail = () => false) => {
+  const review = createReviewStore({
+    getComments: async () => { if (fail()) throw new Error("offline"); return rec({ comments: server.comments }); },
+    getReview: async () => rec(),
+    submitReviewOutcome: async () => rec(),
+    importLegacyReview: async () => rec(),
+    ignoreLegacyReview: async () => ({ legacy: true, ignored: true }),
+    removeLegacyReview: async () => ({ removed: true }),
+  });
+  review.adopt(rec({ comments: server.comments }));
+  return review;
+};
+
+describe("comments store — delete safety", () => {
+  it("shares one delete between two clicks and hands back the removed comment once", async () => {
+    const review = seeded(rec({ comments: [cmt("1"), cmt("2")] }));
+    let writes = 0;
+    const store = createCommentsStore(review, () => null, cdeps({ saveComments: async (c) => { writes++; return rec({ comments: c }); } }));
+    const [a, b] = await Promise.all([store.removeComment("1"), store.removeComment("1")]);
+    expect(writes).toBe(1);
+    expect(a).toBe(b);
+    expect(a.removed?.id).toBe("1");
+  });
+
+  it("adding an id that already exists is a no-op, so a repeated undo cannot duplicate", async () => {
+    const review = seeded(rec({ comments: [cmt("1")] }));
+    const store = createCommentsStore(review, () => null, cdeps());
+    await store.add(cmt("1"));
+    await store.add(cmt("1"));
+    expect(store.comments.map((c) => c.id)).toEqual(["1"]);
+  });
+
+  it("hands back the comment as the queued delete saw it: after a resolve and a reply", async () => {
+    const review = seeded(rec({ comments: [cmt("1")] }));
+    const store = createCommentsStore(review, () => null, cdeps({
+      resolveReviewComment: async () => rec({ comments: [cmt("1", { status: "resolved" })] }),
+      replyToReviewComment: async () => rec({ comments: [cmt("1", { status: "resolved", replies: [{ id: "r", author: "reviewer", text: "hi", createdAt: "x" }] })] }),
+    }));
+    void store.resolve("1");
+    void store.reply("1", "hi");
+    const { removed } = await store.removeComment("1");
+    expect(removed?.status).toBe("resolved");
+    expect(removed?.replies).toHaveLength(1);
+  });
+
+  it("rebases on the server after a write whose response was lost", async () => {
+    const server = { comments: [cmt("A"), cmt("B")] };
+    const review = withServer(server);
+    let calls = 0;
+    const sent: string[][] = [];
+    const store = createCommentsStore(review, () => null, cdeps({
+      saveComments: async (c) => {
+        sent.push(c.map((x) => x.id));
+        server.comments = c;
+        if (calls++ === 0) throw new Error("response lost"); // applied, but we never heard
+        return rec({ comments: c });
+      },
+    }));
+    expect(await store.remove("A")).toBe("response lost");
+    expect(await store.remove("B")).toBeNull();
+    expect(sent).toEqual([["B"], []]); // B's delete did not resurrect A
+    expect(store.comments).toEqual([]);
+  });
+
+  it("refuses the next write when the re-read fails too", async () => {
+    const server = { comments: [cmt("A"), cmt("B")] };
+    let down = false;
+    const review = withServer(server, () => down);
+    let saves = 0;
+    const store = createCommentsStore(review, () => null, cdeps({ saveComments: async () => { saves++; down = true; throw new Error("offline"); } }));
+    await store.remove("A");
+    expect(await store.remove("B")).toMatch(/Could not confirm/);
+    expect(saves).toBe(1);
+  });
+
+  it("times out a write that never settles and moves on", async () => {
+    vi.useFakeTimers();
+    try {
+      const server = { comments: [cmt("A")] };
+      const review = withServer(server);
+      let first = true;
+      const store = createCommentsStore(review, () => null, cdeps({
+        saveComments: (c, signal) => {
+          if (first) { first = false; return new Promise((_, reject) => signal?.addEventListener("abort", () => reject(new Error("aborted")))); }
+          return Promise.resolve(rec({ comments: c }));
+        },
+      }));
+      const hung = store.add(cmt("B"));
+      const next = store.add(cmt("C"));
+      await vi.advanceTimersByTimeAsync(WRITE_TIMEOUT_MS);
+      expect(await hung).toBe("The server did not answer in time.");
+      expect(await next).toBeNull();
+      expect(store.comments.map((c) => c.id)).toEqual(["A", "C"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

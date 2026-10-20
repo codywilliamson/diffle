@@ -59,6 +59,21 @@ export function createReviewStore(deps: ReviewDeps = realDeps, initialReviewId?:
     }
   }
 
+  // re-read the record and adopt it unconditionally; true when the server answered for this review.
+  // the comments store uses it to rebase on the truth after a write whose outcome is unknown.
+  async function resync(): Promise<boolean> {
+    const gen = generation;
+    try {
+      const next = await fetchLatest(reviewId);
+      if (gen !== generation) return false;
+      if (next) adopt(next, false);
+      else record = null;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // fetch the latest and adopt only when it is at least as new as the current record, so an
   // overlapping poll can't clobber a newer local write. a reviewId change discards the result.
   async function poll(): Promise<void> {
@@ -120,6 +135,7 @@ export function createReviewStore(deps: ReviewDeps = realDeps, initialReviewId?:
   }
 
   return {
+    resync,
     get record(): ReviewData | null {
       return record;
     },
