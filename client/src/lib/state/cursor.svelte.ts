@@ -48,7 +48,9 @@ export function createCursorStore(deps: CursorDeps) {
   let pos = $state<CursorPos | null>(null);
   let pref = $state<Side>("new");
   let visualAnchor = $state<CursorPos | null>(null);
-  let lastVisual: { anchor: CursorPos; head: CursorPos | null } | null = null; // for gv
+  let visualAnchorText: string | null = null;
+  // for gv: both ends and the text under them, so a refreshed diff can be told from the same one
+  let lastVisual: { anchor: CursorPos; head: CursorPos | null; anchorText: string | null; headText: string | null } | null = null;
   let revealSeq = $state(0);
   let revealKind: RevealKind = "line";
   let anchor: string | null = null;
@@ -174,24 +176,34 @@ export function createCursorStore(deps: CursorDeps) {
     commentPos,
     startVisual(seed: string | undefined): void {
       const from = commentPos(seed);
-      if (from && from.line !== FILE_LEVEL) visualAnchor = from;
+      if (!from || from.line === FILE_LEVEL) return;
+      visualAnchor = from;
+      const { views, index } = snapshot();
+      visualAnchorText = contentAt(views, pref, from, index);
     },
     endVisual(): void {
-      if (visualAnchor) lastVisual = { anchor: visualAnchor, head: pos };
+      if (visualAnchor) lastVisual = { anchor: visualAnchor, head: pos, anchorText: visualAnchorText, headText: anchor };
       visualAnchor = null;
     },
     // gv: open the last visual range again, with the cursor back at the end it was left on.
-    // false when there is none or it no longer fits the diff (file gone, collapsed, changed)
+    // false when there is none, or either end is no longer the same line (file gone, collapsed,
+    // or the diff changed since): a stale range is never restored
     reselectVisual(): boolean {
       if (visualAnchor || !lastVisual) return false;
-      const { anchor, head } = lastVisual;
+      const { anchor, head, anchorText, headText } = lastVisual;
       const view = snapshot().views.find((v) => v.file.path === anchor.path);
       if (!view?.navigable) return false;
       if (view.split) pref = anchor.side;
       const { index } = snapshot();
-      const target = head ?? anchor;
+      const stillThere = (p: CursorPos, text: string | null): boolean =>
+        ownStops(index, p.path).some((s) => s.side === p.side && s.line === p.line && s.content === text);
+      if (anchorText === null || !stillThere(anchor, anchorText)) return false;
+      const lineEnd = head !== null && head.line !== FILE_LEVEL && head.path === anchor.path;
+      if (lineEnd && !stillThere(head, headText)) return false;
+      const target = lineEnd ? head : anchor;
       if (!resolveVisual(index, anchor, target)) return false;
       visualAnchor = anchor;
+      visualAnchorText = anchorText;
       commit(target, base(undefined), { reveal: "line" });
       return true;
     },

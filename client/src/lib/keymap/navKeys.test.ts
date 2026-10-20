@@ -57,6 +57,11 @@ describe("nav key dispatch", () => {
   });
 });
 
+const found = (...args: Parameters<typeof pathInLine>): string | null => {
+  const result = pathInLine(...args);
+  return result && "path" in result ? result.path : null;
+};
+
 describe("pathInLine", () => {
   const files = ["src/app.ts", "src/lib/store.ts", "src/lib/util/index.ts", "docs/readme.md", "a/x.ts", "b/x.ts"];
 
@@ -65,9 +70,9 @@ describe("pathInLine", () => {
   });
 
   it("resolves relative imports, with and without an extension", () => {
-    expect(pathInLine('import { s } from "./lib/store";', "src/app.ts", files)?.path).toBe("src/lib/store.ts");
-    expect(pathInLine('import u from "./util";', "src/lib/store.ts", files)?.path).toBe("src/lib/util/index.ts");
-    expect(pathInLine('import a from "../app.ts";', "src/lib/store.ts", files)?.path).toBe("src/app.ts");
+    expect(found('import { s } from "./lib/store";', "src/app.ts", files)).toBe("src/lib/store.ts");
+    expect(found('import u from "./util";', "src/lib/store.ts", files)).toBe("src/lib/util/index.ts");
+    expect(found('import a from "../app.ts";', "src/lib/store.ts", files)).toBe("src/app.ts");
   });
 
   it("reads a :line suffix", () => {
@@ -75,8 +80,29 @@ describe("pathInLine", () => {
   });
 
   it("matches a path suffix only when it is unambiguous", () => {
-    expect(pathInLine("lib/store.ts", "x.ts", files)?.path).toBe("src/lib/store.ts");
-    expect(pathInLine("x.ts", "q.ts", files)).toBeNull();
+    expect(found("lib/store.ts", "x.ts", files)).toBe("src/lib/store.ts");
+    expect(pathInLine("x.ts", "q.ts", files)).toEqual({ ambiguous: ["a/x.ts", "b/x.ts"], query: "x" });
+  });
+
+  it("does not take separators or dot runs for a path", () => {
+    const withIndex = [...files, "src/index.ts"];
+    for (const line of ["// a comment", "x = a // b", "see ..", "./", "../..", "...", "a / b"]) {
+      expect(pathInLine(line, "src/app.ts", withIndex)).toBeNull();
+    }
+  });
+
+  it("rejects a path that climbs above the root, and gives ./ and ../ no root fallback", () => {
+    expect(pathInLine('"../../../src/app.ts"', "src/lib/store.ts", files)).toBeNull();
+    expect(pathInLine('"../src/app.ts"', "src/lib/store.ts", files)).toBeNull(); // src/src/app.ts does not exist
+    expect(pathInLine('"./lib/store.ts"', "x.ts", files)).toBeNull(); // not under the root's own lib/
+    expect(found('"./lib/store.ts"', "src/app.ts", files)).toBe("src/lib/store.ts");
+  });
+
+  it("reports an extensionless name that fits several files instead of picking one", () => {
+    const fits = ["src/util.ts", "src/util.js", "src/other.ts"];
+    expect(pathInLine('from "./util"', "src/app.ts", fits)).toEqual({ ambiguous: ["src/util.ts", "src/util.js"], query: "util" });
+    expect(pathInLine('from "./util"', "src/app.ts", [...fits].reverse())).toMatchObject({ ambiguous: expect.arrayContaining(fits.slice(0, 2)) });
+    expect(pathInLine('from "./util.ts"', "src/app.ts", fits)).toEqual({ path: "src/util.ts", line: null });
   });
 
   it("returns null when nothing in the line is a diff file", () => {
@@ -174,7 +200,7 @@ describe("cursor additions", () => {
 });
 
 describe("nav actions", () => {
-  function setup(text: string | null) {
+  function setup(text: string | null, paths = ["src/a.ts", "src/b.ts"]) {
     const ui = createUiStore();
     const cursor = {
       lineText: () => text,
@@ -185,7 +211,7 @@ describe("nav actions", () => {
     };
     const lsp = { notify: vi.fn(), closeTopmost: vi.fn() };
     const filePicker = { show: vi.fn() };
-    const diff = { files: [{ path: "src/a.ts" }, { path: "src/b.ts" }] };
+    const diff = { files: paths.map((path) => ({ path })) };
     const actions = createNavActions({ ui, cursor, lsp, filePicker, diff } as unknown as AppState, () => "src/a.ts");
     return { ui, cursor, lsp, filePicker, actions };
   }
@@ -204,6 +230,14 @@ describe("nav actions", () => {
     h.actions["file.goto"](null);
     expect(h.lsp.notify).toHaveBeenCalledWith(NO_PATH_NOTICE);
     expect(h.cursor.goToFile).not.toHaveBeenCalled();
+  });
+
+  it("gf on an ambiguous name toasts and opens the picker pre-filled", () => {
+    const h = setup('from "./b"', ["src/a.ts", "src/b.ts", "src/b.js"]);
+    h.actions["file.goto"](null);
+    expect(h.cursor.goToFile).not.toHaveBeenCalled();
+    expect(h.lsp.notify).toHaveBeenCalledWith(expect.stringContaining("2 changed files match"));
+    expect(h.filePicker.show).toHaveBeenCalledWith("b");
   });
 
   it("zc and zo fold the current file, zC and zO all of them", () => {
