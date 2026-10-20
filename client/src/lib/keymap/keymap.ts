@@ -44,6 +44,12 @@ export const BINDINGS: Binding[] = [
   bind("V", "Comment", "Start a visual range (j k ] [ extend it, Esc cancels)", "visual.start"),
   bind("c", "Comment", "Visual range: comment on the range", "comment.range", { mode: "visual" }),
   bind("C", "Comment", "Comment on the cursor's file", "comment.file"),
+  bind("e", "Comment", "Edit the comment on the cursor line", "comment.edit"),
+  bind("dd", "Comment", "Delete the comment on the cursor line", "comment.delete"),
+  bind("R", "Comment", "Resolve or reopen that comment", "comment.resolve"),
+  bind("yy", "Comment", "Copy that comment, or the cursor line when it has none", "comment.copy"),
+  bind("}", "Comment", "Next comment on the cursor line", "comment.next"),
+  bind("{", "Comment", "Previous comment on the cursor line", "comment.prev"),
 
   bind("/", "Search", "Search the file", "search.file"),
   bind("n", "Search", "Next match", "search.next", { count: true }),

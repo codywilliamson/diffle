@@ -14,9 +14,10 @@
   import { suggestionForRange } from "$lib/diff/threads";
 
   let { comment }: { comment: Comment } = $props();
-  const { comments, review, diff } = getAppState();
+  const { comments, review, diff, ui, commentFocus } = getAppState();
 
-  let editing = $state(false);
+  const editing = $derived(ui.editingComment === comment.id);
+  const focused = $derived(commentFocus.current?.id === comment.id);
   let replying = $state(false);
 
   const status = $derived(comment.status ?? (comment.resolved ? "resolved" : "open"));
@@ -45,13 +46,13 @@
     suggest={suggestSource}
     onSave={async (text, tag) => {
       const error = await comments.edit(comment.id, { text, tag });
-      if (!error) editing = false;
+      if (!error) ui.stopEdit();
       return error;
     }}
-    onCancel={() => (editing = false)}
+    onCancel={() => ui.stopEdit()}
   />
 {:else}
-  <div class="comment-card" class:resolved>
+  <div class="comment-card" class:resolved class:key-focus={focused} data-comment-id={comment.id} data-key-focus={focused ? "" : undefined}>
     <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
       {#if resolved}<span class="comment-chip bg-surface-2"><Check size={12} strokeWidth={2.5} aria-hidden="true" />Resolved</span>{/if}
       {#if status === "addressed"}<span class="comment-chip bg-mod-badge-bg text-mod-badge-text">Addressed</span>{/if}
@@ -59,7 +60,7 @@
       <time datetime={comment.createdAt}>{relativeTime(comment.createdAt)}</time>
       <span class="-mr-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
         <button class="comment-btn" onclick={() => (resolved ? comments.reopen(comment.id) : comments.resolve(comment.id))}>{resolved ? "Reopen" : "Resolve"}</button>
-        {#if !resolved}<button class="comment-btn" onclick={() => (editing = true)}>Edit</button>{/if}
+        {#if !resolved}<button class="comment-btn" onclick={() => ui.startEdit(comment.id)}>Edit</button>{/if}
         {#if !review.isLegacy && !resolved}<button class="comment-btn" onclick={() => (replying = true)}>Reply</button>{/if}
         <span class="mx-1 h-4 w-px bg-border" aria-hidden="true"></span>
         <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
