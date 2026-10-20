@@ -46,10 +46,10 @@
     suggest={suggestSource}
     onSave={async (text, tag) => {
       const error = await comments.edit(comment.id, { text, tag });
-      if (!error) ui.stopEdit();
+      if (!error) ui.stopEdit(comment.id);
       return error;
     }}
-    onCancel={() => ui.stopEdit()}
+    onCancel={() => ui.stopEdit(comment.id)}
   />
 {:else}
   <div class="comment-card" class:resolved class:key-focus={focused} data-comment-id={comment.id} data-key-focus={focused ? "" : undefined}>
