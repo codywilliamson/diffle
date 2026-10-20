@@ -4,19 +4,19 @@ Draft for Cody. Nothing here has been published. Quotes come from the Show HN th
 
 ---
 
-Earlier this month a Show HN went up for a keyboard-driven diff viewer called diffle. It isn't mine. I have a different project that, until recently, had the same name. The thread under it is the clearest short argument I've read about how people review agent code today, so I'm going to use it.
+Earlier this month a Show HN went up for a keyboard-driven diff viewer called diffle. It isn't mine. I have a different project that, until recently, had the same name. The thread under it is the clearest short argument I've read about how people review agent code today, so I'll quote it.
 
 A commenter, igor47, put the common position in two sentences. "I feel like I would have loved this a year ago when I still reviewed PRs by reading diffs. Alas these days I do my reviews inside a harness using my code review skill." And then: "I don't see how I could keep up with the volume of code my team now produces without this. How do other people do it?" (comment 50039895)
 
 The volume problem is real. Agents write more code than you can read at the old pace. So you hand the reading to another agent run, or the same one, and ask it to review. Two replies in the thread push back from opposite sides. zelphirkalt: "By having policies in place of at least doing reviews by reading and understanding what is going on." And kqr suggests a middle path: "picking a random sample of commits to review more thoroughly by hand in parallel with the harness review." The point of the sample, kqr says, is to "measure how many and what kind of issues your harness method misses." (comment 50040887)
 
-I think kqr has the shape of it, and I want to say why the self-review half of that setup is weaker than it feels.
+I think kqr has the shape of it. The self-review half is weaker than it feels.
 
 ## The reviewer shares the author's blind spots
 
 When an agent writes a change and then reviews it, the reviewer starts from the same context the author had. It read the same files, formed the same idea of what the task was, and made the same assumptions about what the code around it does. If the author misread the requirement, the reviewer has the same misreading to compare against. It will look at the diff and find it consistent with the task as understood, because it is.
 
-A fresh run with a different prompt helps some. It cannot supply the thing the author lacked, which is knowledge that isn't in the repo. Why the retry limit is three. Which endpoint a customer is quietly depending on. That the thing named "temp" is going to be there for five years. You have that knowledge. The agent doesn't, and no second pass invents it.
+A fresh run with a different prompt helps some. It still can't know what the author didn't, which is the stuff that isn't in the repo. Why the retry limit is three. Which endpoint a customer quietly depends on. That the thing named "temp" will be there for five years. You know those. The agent doesn't, and no second pass invents them.
 
 ## A vague review gets a vague fix
 
@@ -30,11 +30,11 @@ The difference is cost and precision. A human comment on one line takes ten seco
 
 The review that matters is checking intent. Does this change do what I meant, in the place I meant, without touching what I didn't mean? Code can pass every test and still be the wrong change. An agent is bad at telling you that, because it has no stake in your intent beyond the prompt you gave it.
 
-This is the argument for keeping a human in the loop, but it only holds if the human review is cheap. If reading the diff takes an hour, people stop. The tool has to make a careful read take minutes. That means a few specific things. Show the diff the way you'd read it. Let you move by keyboard so your hands don't leave the code. Flag the places most likely to hurt (removed public API, missing tests, changed dependencies) so your attention goes there first. And make the comment the unit of work, so that what you notice becomes an instruction without any retyping.
+This is the argument for keeping a human in the loop, but it only holds if the human review is cheap. If reading the diff takes an hour, people stop. The tool has to make a careful read take minutes. Four things get it there. Show the diff the way you'd read it. Let you move by keyboard so your hands don't leave the code. Flag the places most likely to hurt (removed public API, missing tests, changed dependencies) so your attention goes there first. And make the comment the unit of work, so that what you notice becomes an instruction without any retyping.
 
 ## The sampling idea, with the loop closed
 
-I take kqr's suggestion seriously, and I'd make it concrete. Keep the agent review, because it's cheap and it does catch things. Then review a sample by hand, line by line, and write down what the agent review missed. After a few weeks you'll know the miss rate for your codebase and your agents. kqr's framing is that you can then decide whether the speedup pays for the missed issues. That decision is yours to make with data, rather than something to assume.
+I take kqr's suggestion seriously, and I'd make it concrete. Keep the agent review, because it's cheap and it does catch things. Then review a sample by hand, line by line, and write down what the agent review missed. After a few weeks you'll know the miss rate for your codebase and your agents. kqr's framing is that you can then decide whether the speedup pays for the missed issues. You make that call with data, not by assumption.
 
 If your hand reviews are comments on lines, the data is a byproduct. Each comment is a record: file, line, what was wrong. Count the ones the agent review also flagged. The rest are your miss rate.
 
@@ -47,12 +47,12 @@ I built nittle to make the hand review fast enough to keep doing. The loop is sh
 
 You comment on lines, ranges or files. You press Return Feedback. The agent gets the comments over a local MCP server (or as a prompt on stdout if you run `nittle --wait`). It replies in each thread, marks them addressed, and asks for another pass. The scorecard flags removed public API, missing tests and dependency changes from fixed rules, with no model involved, so you know where to read first.
 
-Comments are plain JSON under `~/.nittle/reviews`, so the miss-rate count in the previous section is a script, not a project.
+Comments are plain JSON under `~/.nittle/reviews`, so the miss-rate count in the previous section is a short script.
 
 It isn't a replacement for tests, or for an automated reviewer. Run both. The claim is smaller: the person who knows what the change is for should read it, and should be able to point at the exact line when something is wrong. An agent asked to review itself can't do that part, however good it is at the rest.
 
 ## The part I'd test
 
-If you want to find out whether this is true for your setup, the experiment is cheap. For two weeks, let your normal harness review every change. On a random one in five, also review by hand and comment on the lines. Tally what you found that the harness didn't. If the answer is nothing, keep the harness and skip the hand review. I'd be surprised, but the whole point of measuring is that I could be wrong.
+If you want to find out whether this is true for your setup, the experiment is cheap. For two weeks, let your normal harness review every change. On a random one in five, also review by hand and comment on the lines. Tally what you found that the harness didn't. If the answer is nothing, keep the harness and skip the hand review. I'd be surprised, but I could be wrong, which is why you measure.
 
 Install: `curl -fsSL https://nittle.dev/install | sh` on macOS and Linux, `irm https://nittle.dev/install.ps1 | iex` on Windows. Docs at https://nittle.dev.
