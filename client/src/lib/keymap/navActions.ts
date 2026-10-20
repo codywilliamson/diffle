@@ -29,6 +29,10 @@ export function createNavActions(
       const text = cursor.lineText();
       const hit = from && text ? pathInLine(text, from, diff.files.map((f) => f.path)) : null;
       if (!hit) return lsp.notify(NO_PATH_NOTICE);
+      if ("ambiguous" in hit) {
+        lsp.notify(`${hit.ambiguous.length} changed files match "${hit.query}". Pick one.`);
+        return filePicker.show(hit.query);
+      }
       if (hit.line === null) cursor.goToFile(hit.path);
       else cursor.goToHit(lineHit(hit.path, hit.line));
     },

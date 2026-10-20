@@ -34,11 +34,13 @@
   const { ui, comments, prefs, diff, analysis, cursor, search } = getAppState();
   const NOISE_LABEL = { generated: "Generated file", lockfile: "Lockfile" } as const;
   // deleted files collapse by default (github-style) — the removal is rarely re-read line by line.
-  let collapsed = $state(untrack(() => file.changeType === "deleted"));
+  // a zO / zC (or this file's own earlier choice) made before this file mounted still applies.
+  const startFold = untrack(() => ui.foldFor(file.path));
+  let collapsed = $state(startFold ?? untrack(() => file.changeType === "deleted"));
   let loaded = $state(false); // giant-file manual gate
   let mounted = $state(false); // near-viewport lazy mount
   let preview = $state(false); // markdown: rendered preview vs diff
-  let touched = $state(false); // the reader has expanded/collapsed this file themselves
+  let touched = $state(startFold !== null); // the reader has expanded/collapsed this file themselves
   let sinceReview = $state(false); // interdiff toggle (per-session ui state)
   let splitState = $state(untrack(() => createFileSplitState(prefs.split)));
 
@@ -96,6 +98,7 @@
     untrack(() => {
       touched = true;
       collapsed = false;
+      ui.noteFold(request.path, false);
       loaded = true;
       mounted = true;
       preview = false;
@@ -103,7 +106,7 @@
     });
   });
 
-  // zo / zc / zO / zC. a request made before this file mounted is not replayed onto it.
+  // zo / zc / zO / zC while this file is mounted (earlier ones are in startFold).
   let foldSeen = untrack(() => ui.foldRequest?.seq ?? 0);
   $effect(() => {
     const request = ui.foldRequest;
@@ -124,6 +127,7 @@
   function setCollapsed(value: boolean): void {
     touched = true;
     collapsed = value;
+    ui.noteFold(file.path, value);
   }
 
   // a global choice replaces every local override; other updates leave it intact.

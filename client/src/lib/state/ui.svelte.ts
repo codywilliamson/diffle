@@ -38,6 +38,8 @@ export function createUiStore() {
   let undoTimer: ReturnType<typeof setTimeout> | undefined;
   let foldRequest = $state<FoldRequest | null>(null);
   let foldSeq = 0;
+  let foldAll: boolean | null = null; // the last zO / zC, applied to files that mount later
+  const foldOverrides = new Map<string, boolean>(); // per-file choices made after it
 
   return {
     get activeOverlay(): OverlayName | null {
@@ -57,6 +59,18 @@ export function createUiStore() {
     },
     requestFold(path: string | null, collapsed: boolean): void {
       foldRequest = { seq: ++foldSeq, path, collapsed };
+      if (path === null) {
+        foldAll = collapsed;
+        foldOverrides.clear();
+      } else foldOverrides.set(path, collapsed);
+    },
+    // a fold the reader made by hand (the chevron), so a file that remounts keeps it
+    noteFold(path: string, collapsed: boolean): void {
+      foldOverrides.set(path, collapsed);
+    },
+    // how a file that mounts now should start: its own last choice, else the last zO / zC, else null
+    foldFor(path: string): boolean | null {
+      return foldOverrides.get(path) ?? foldAll;
     },
     requestOpen(path: string): void {
       openRequest = { path };

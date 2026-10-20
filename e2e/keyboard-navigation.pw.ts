@@ -45,8 +45,18 @@ test("gf, Ctrl+p, folds and gv from the keyboard", async ({ page }) => {
     await page.keyboard.press("Enter");
     await expect(input).toHaveCount(0);
     await expect(page.locator("[data-cursor-file]")).toContainText("src/keymap.ts");
+    await page.evaluate(() => {
+      const w = window as unknown as { __ctrlP: boolean[] };
+      w.__ctrlP = [];
+      window.addEventListener("keydown", (e) => e.ctrlKey && e.key === "p" && w.__ctrlP.push(e.defaultPrevented));
+    });
     await page.keyboard.press("Control+p");
     await expect(input).toBeFocused();
+    // Ctrl+p inside the open picker is not the browser's print: the page takes it and closes the picker
+    await page.keyboard.press("Control+p");
+    await expect(input).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as { __ctrlP: boolean[] }).__ctrlP)).toEqual([true, true]);
+    await page.keyboard.press("Control+p");
     await page.keyboard.press("Escape");
     await expect(input).toHaveCount(0);
 
@@ -57,6 +67,15 @@ test("gf, Ctrl+p, folds and gv from the keyboard", async ({ page }) => {
     await expect(toggle(page, "src/keymap.ts", true)).toBeVisible();
     await page.keyboard.type("zC");
     for (const path of ["src/a.ts", "src/b.ts", "src/keymap.ts"]) await expect(toggle(page, path, false)).toBeVisible();
+    await page.keyboard.type("zO");
+    for (const path of ["src/a.ts", "src/b.ts", "src/keymap.ts"]) await expect(toggle(page, path, true)).toBeVisible();
+
+    // a zC outlives the files on screen: switching to single-file view shows the next file collapsed
+    await page.keyboard.type("zC");
+    await page.keyboard.press("o");
+    await page.keyboard.press("J");
+    await expect(page.getByRole("button", { name: /^Expand / })).toBeVisible();
+    await page.keyboard.press("o");
     await page.keyboard.type("zO");
     for (const path of ["src/a.ts", "src/b.ts", "src/keymap.ts"]) await expect(toggle(page, path, true)).toBeVisible();
 

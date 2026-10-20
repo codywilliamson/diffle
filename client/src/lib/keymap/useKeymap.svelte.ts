@@ -95,7 +95,20 @@ export function useKeymap(): Keymap {
     if (active instanceof HTMLElement && active.closest("[data-lsp-panel]")) active.blur();
   }
 
+  // Ctrl+p and Cmd+p are the browser's print. while the picker is open the key belongs to it (a
+  // second press closes it) even inside its own input; Cmd+p (macOS) opens it like Ctrl+p does.
+  function pickerKey(event: KeyboardEvent): boolean {
+    const chord = (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "p";
+    if (!chord) return false;
+    if (app.filePicker.open) app.filePicker.close();
+    else if (event.metaKey && !ui.activeOverlay && !isEditable(event.target) && !event.repeat) actions["file.pick"]?.(null);
+    else return false;
+    event.preventDefault();
+    return true;
+  }
+
   const onKeydown = (event: KeyboardEvent): void => {
+    if (pickerKey(event)) return;
     // the results lists and code-navigation panels own their plain keys (j, k, arrows, Enter);
     // Esc and Ctrl+o stay the keymap's
     if (event.key !== "Escape" && !event.ctrlKey && (event.target as HTMLElement | null)?.closest?.(OWN_KEYS_PANELS)) return;
