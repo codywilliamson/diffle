@@ -2,6 +2,45 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.31.0](https://github.com/codywilliamson/diffle/compare/v0.30.0...v0.31.0) (2026-10-20)
+
+
+### Features
+
+* **build:** require powershell 7 in the windows installer ([1338547](https://github.com/codywilliamson/diffle/commit/13385473fe121ab76d3327a276d1895bc4130ada))
+* **client:** comment keys e, dd, R, yy and { } on the focused comment ([8db3a6a](https://github.com/codywilliamson/diffle/commit/8db3a6a5809a1f03d1e3aef62f4dc8cff73f251a))
+* **client:** gf, ctrl+p file picker, z folds and gv ([e5ac78d](https://github.com/codywilliamson/diffle/commit/e5ac78d0a611859d5d2f2381141f9021d64fe84e))
+* **server:** store unsent comment drafts per review ([383b39f](https://github.com/codywilliamson/diffle/commit/383b39fe07a675c987d360ac3ad99a33ce68f016))
+* **ui:** clear a comment's drafts when the comment is deleted ([4fd03a9](https://github.com/codywilliamson/diffle/commit/4fd03a96a1d4f3aa5bfbd629855c995734651e7b))
+* **ui:** keep unsent comment drafts across close and reload ([a2ffdd4](https://github.com/codywilliamson/diffle/commit/a2ffdd499add94b1aa994b0c3315bc0c2d4697a2))
+* **ui:** warn when the server is gone and recover on return ([87ac87b](https://github.com/codywilliamson/diffle/commit/87ac87bfdf3e43933eb271570fdcc31e1fca988d))
+
+
+### Bug Fixes
+
+* **build:** fail the installer with an error on powershell 5.1 ([4182141](https://github.com/codywilliamson/diffle/commit/4182141a4f41e7be11f4fd0e830b8813d17274ef))
+* **build:** keep the installer from clobbering caller variables ([dec1d86](https://github.com/codywilliamson/diffle/commit/dec1d860e70241cc9a48ef8a004a09a99e3b6089))
+* **client:** ctrl+click moves the cursor to the clicked row first ([5deb064](https://github.com/codywilliamson/diffle/commit/5deb064c2066f9d9f106bb7df528f07feaac5751))
+* **client:** ctrl+click places the cursor on the clicked split pane ([78b7045](https://github.com/codywilliamson/diffle/commit/78b7045f04c380c66e253471ad043350932d72f7))
+* **client:** drop held ctrl+p repeats, gf to deleted files uses old ([b59c6e2](https://github.com/codywilliamson/diffle/commit/b59c6e2b79f8c70eb16c234cec1549cffac05fc8))
+* **client:** harden comment keys: repeat, undo, focus scope, edit race ([b489432](https://github.com/codywilliamson/diffle/commit/b48943277c75ac4b28c4c2e985a59e0b23059400))
+* **client:** harden nav keys: print key, paths, folds, gv ([8a6991c](https://github.com/codywilliamson/diffle/commit/8a6991c5f8f9055044b3a2cda00044d6a4a13179))
+* **client:** old-side definitions land on the old diff line ([5dedef6](https://github.com/codywilliamson/diffle/commit/5dedef6570b8db362c92884ecec56a63b0f2a91f))
+* **client:** return focus to the diff after Enter in the search box ([d9c9101](https://github.com/codywilliamson/diffle/commit/d9c910114a86fc73a212b45f0072283fee14eaf5))
+* **client:** scroll the active search match sideways into view ([e78d66f](https://github.com/codywilliamson/diffle/commit/e78d66f9ee55e28fabe631185caf2b0d310dda6a))
+* **client:** sideways reveal only on search steps, clear of split gutter ([a4f0165](https://github.com/codywilliamson/diffle/commit/a4f01658e72870fce5797f74f9030d3d4d7a69e5))
+* **cli:** show the --wait exit codes in the overview help ([0f70164](https://github.com/codywilliamson/diffle/commit/0f701649be04ad68d5f4841042f880701685ebf9))
+* **deps:** bump source-map-js in demos to 1.2.2 ([54d05bd](https://github.com/codywilliamson/diffle/commit/54d05bd92ed336f63371537b059677e5da38d3aa))
+* **server:** per-review draft files, atomic writes, batch endpoint ([9a5bbdd](https://github.com/codywilliamson/diffle/commit/9a5bbdd79caecac11e20d2f0474a47ca7ec14de4))
+* **server:** raise bun idleTimeout above the lsp wait budget ([14939d5](https://github.com/codywilliamson/diffle/commit/14939d5f640138f1be1b9a1c5285f65f8de76427))
+* **store:** abort timed-out requests and bound the resync ([5bf7111](https://github.com/codywilliamson/diffle/commit/5bf7111044a33945a9ca5acc5d5279e8f71f1c31))
+* **store:** resync after failed writes, dedupe deletes, add timeouts ([9fb8205](https://github.com/codywilliamson/diffle/commit/9fb8205116dd75935455de924af32d15ece26877))
+* **store:** serialize comment writes so quick deletes cannot race ([5b62138](https://github.com/codywilliamson/diffle/commit/5b621385285c18880b3f57a22bbb8795b350a27f))
+* **ui:** re-check the server after a back/forward cache restore ([a89c47a](https://github.com/codywilliamson/diffle/commit/a89c47afe4e0278acd18229e670ef25f13e64a9a))
+* **ui:** resilient drafts: retry, late load, range moves, unload flush ([b58f81f](https://github.com/codywilliamson/diffle/commit/b58f81fe03a5a018f2c9300602a753241189877e))
+* **ui:** undo on the delete button, expand on e, scope yy to the file ([f34139c](https://github.com/codywilliamson/diffle/commit/f34139c8429acdeaa9a68a1f28680ed42fa76400))
+* **ui:** verify review identity on recovery and guard all writes ([1853fff](https://github.com/codywilliamson/diffle/commit/1853fffc654b3554a6bb18c37de318377c4c4d68))
+
 ## [0.30.0](https://github.com/codywilliamson/diffle/compare/v0.29.0...v0.30.0) (2026-10-20)
 
 

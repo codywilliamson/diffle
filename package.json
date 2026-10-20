@@ -1,6 +1,6 @@
 {
   "name": "nittle",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "Local git diff viewer with inline comments and structured agent feedback",
   "module": "src/index.ts",
   "type": "module",
