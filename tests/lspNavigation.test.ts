@@ -215,13 +215,17 @@ describe("document sync: the server sees what the reviewer sees", () => {
   test("the first request waits for the server's project load to finish; later ones do not", async () => {
     const root = tempDir("sync");
     writeFiles(root, { "a.ts": "x\n" });
-    // a request that waited on a fresh load would take the whole window again, so the bounds sit
-    // either side of it with room for a loaded machine to slow the quick call down
+    // the load outlasts the start grace, so answering before it ends means the request did not wait for it
     const loadMs = 3_000;
-    const { harness } = setup(root, { progress: { delayMs: 0, durationMs: loadMs }, responses: { "textDocument/hover": null } });
+    const WARM_CALL_MAX_MS = 1_000; // well under the 2s start grace a repeat wait would cost
+    const { harness, state } = setup(root, { progress: { delayMs: 0, durationMs: loadMs }, responses: { "textDocument/hover": null } });
     const timed = async () => { const t = performance.now(); await harness.post("/api/lsp/hover", { path: "a.ts", side: "new", line: 1, character: 0 }); return performance.now() - t; };
-    expect(await timed()).toBeGreaterThan(loadMs * 0.66);
-    expect(await timed()).toBeLessThan(loadMs);
+    await timed();
+    const answeredAt = Date.now();
+    const { progressEndedAt } = await state();
+    expect(progressEndedAt).not.toBeNull();
+    expect(answeredAt).toBeGreaterThanOrEqual(progressEndedAt);
+    expect(await timed()).toBeLessThan(WARM_CALL_MAX_MS);
   });
 
   test("nothing is written into the checkout", async () => {
