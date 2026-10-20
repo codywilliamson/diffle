@@ -3,7 +3,7 @@ import Landing from "../layouts/Landing.astro";
 
 const repo = "https://github.com/codywilliamson/diffle";
 const installUnix = "curl -fsSL https://nittle.dev/install | sh";
-const installWin = "irm https://nittle.dev/install.ps1 | iex";
+const installWin = 'pwsh -c "irm https://nittle.dev/install.ps1 | iex"';
 
 const loop = [
   ["inspect", "Render a live git comparison in the browser."],
@@ -68,7 +68,7 @@ const scorecard = [
             </button>
           </div>
           <p class="install-alt">
-            Windows:
+            Windows (PowerShell 7+):
             <code>{installWin}</code>
             <button class="copy-inline" type="button" data-copy={installWin} aria-label="Copy Windows install command">copy</button>
           </p>
@@ -339,7 +339,7 @@ const scorecard = [
           </div>
         </div>
         <div class="close-cmd">
-          <span class="close-os">Windows</span>
+          <span class="close-os">Windows (PowerShell 7+)</span>
           <div class="cmd">
             <span class="cmd-prompt" aria-hidden="true">&gt;</span>
             <code>{installWin}</code>
