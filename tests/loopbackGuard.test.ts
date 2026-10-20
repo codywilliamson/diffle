@@ -39,8 +39,8 @@ function raw(method: string, path: string, host: string | null, extra = ""): Pro
   });
 }
 
-const GET_ROUTES = ["/api/diff", "/api/state", "/api/review", "/api/comments", "/api/search?q=x", "/api/lsp/status", "/api/scorecard", "/api/presence", "/", "/app.js"];
-const POST_ROUTES = ["/api/comments", "/api/viewed", "/api/state", "/api/session/stop"];
+const GET_ROUTES = ["/api/diff", "/api/state", "/api/drafts", "/api/review", "/api/comments", "/api/search?q=x", "/api/lsp/status", "/api/scorecard", "/api/presence", "/", "/app.js"];
+const POST_ROUTES = ["/api/comments", "/api/viewed", "/api/state", "/api/drafts", "/api/session/stop"];
 
 describe("loopback host guard (dns rebinding)", () => {
   for (const path of GET_ROUTES) {
