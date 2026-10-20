@@ -7,7 +7,9 @@
 # Env knobs: NITTLE_INSTALL_DIR, NITTLE_DRY_RUN, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_UNINSTALL,
 #   NITTLE_PATH_SCOPE_FILE (test seam), GITHUB_TOKEN (optional; authenticates the release lookup)
 #   each NITTLE_* falls back to its deprecated DIFFLE_* twin
-# the check runs before anything else and uses return, never exit: exit would close the user's window
+# everything lives inside this block so `irm | iex` never overwrites the caller's variables.
+# the version check comes first and throws (never exit, which would close the user's window)
+& {
 $Name = 'nittle'
 if ($PSVersionTable.PSVersion.Major -lt 7) {
   Write-Host "[ERROR] $Name install: PowerShell 7 or newer is required (found $($PSVersionTable.PSVersion))." -ForegroundColor Red
@@ -16,7 +18,6 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
   throw "$Name needs PowerShell 7 or later"
 }
 
-& {
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
