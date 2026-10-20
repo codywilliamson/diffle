@@ -1,6 +1,7 @@
 // help text for the nittle cli: the overview plus per-command help.
 
 import { PRODUCT } from "../../core/product";
+import { WAIT_EXIT_HELP } from "../../core/waitExit";
 import { COMMAND_HELP, renderCommandHelp, type HelpTopic } from "./commandHelp";
 
 const TASKS: [string, string][] = [
@@ -33,6 +34,8 @@ Examples
   ${PRODUCT.name} staged --no-open   review staged changes without opening a browser
   ${PRODUCT.name} main               review this branch against main
   ${PRODUCT.name} browse src/        review the whole codebase under src/
+
+${WAIT_EXIT_HELP.join("\n")}
 
 Run \`${PRODUCT.name} <command> --help\` for a command's options and examples.
 Docs: ${PRODUCT.site}/reference/cli/`;

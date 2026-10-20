@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { helpFor, parseCliArgs, USAGE } from "../src/utils/cli";
+import { EXIT_CANCELLED, EXIT_INTERRUPTED, EXIT_RETURNED, EXIT_STOPPED, EXIT_TAB_CLOSED } from "../src/core/waitExit";
 
 describe("parseCliArgs", () => {
   test("defaults: working tree, random port, open browser", () => {
@@ -236,5 +237,13 @@ describe("--wait flags", () => {
     const help = helpFor("review", "review");
     for (const text of ["--wait", "--json", "Exit codes with --wait", "  0   ", "  2   ", "  3   "]) expect(help).toContain(text);
     expect(USAGE).toContain("nittle --wait");
+  });
+
+  test("overview and --wait --help list every exit code with its value", () => {
+    const codes = { EXIT_RETURNED, EXIT_CANCELLED, EXIT_TAB_CLOSED, EXIT_INTERRUPTED, EXIT_STOPPED };
+    for (const help of [USAGE, helpFor("review"), helpFor("review", "review")]) {
+      expect(help).toContain("Exit codes with --wait");
+      for (const code of Object.values(codes)) expect(help).toMatch(new RegExp(`^  ${code} +\\S`, "m"));
+    }
   });
 });
