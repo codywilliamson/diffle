@@ -2,6 +2,8 @@
 // instantly (a smooth scroll per keystroke lags behind held keys and fights the sidebar's
 // smooth scroll, the #128 regression), and waits for lazily mounted rows to exist.
 
+import { revealActiveMatchX } from "./revealMatchX";
+
 export const REVEAL_MARGIN_PX = 72;
 export const REVEAL_MAX_FRAMES = 20;
 
@@ -42,6 +44,7 @@ function attempt(target: RevealTarget): boolean {
   const header = section.querySelector<HTMLElement>("[data-file-header]");
   const delta = scrollDelta(row.getBoundingClientRect(), paneRect, header?.offsetHeight ?? 0);
   if (delta !== 0) pane.scrollTo({ top: pane.scrollTop + delta, behavior: "instant" });
+  revealActiveMatchX(row);
   return true;
 }
 
