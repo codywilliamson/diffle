@@ -200,7 +200,7 @@ describe("cursor additions", () => {
 });
 
 describe("nav actions", () => {
-  function setup(text: string | null, paths = ["src/a.ts", "src/b.ts"]) {
+  function setup(text: string | null, paths = ["src/a.ts", "src/b.ts"], deleted: string[] = []) {
     const ui = createUiStore();
     const cursor = {
       lineText: () => text,
@@ -211,7 +211,7 @@ describe("nav actions", () => {
     };
     const lsp = { notify: vi.fn(), closeTopmost: vi.fn() };
     const filePicker = { show: vi.fn() };
-    const diff = { files: paths.map((path) => ({ path })) };
+    const diff = { files: paths.map((path) => ({ path, changeType: deleted.includes(path) ? "deleted" : "modified" })) };
     const actions = createNavActions({ ui, cursor, lsp, filePicker, diff } as unknown as AppState, () => "src/a.ts");
     return { ui, cursor, lsp, filePicker, actions };
   }
@@ -223,6 +223,12 @@ describe("nav actions", () => {
     const withLine = setup("see src/b.ts:12");
     withLine.actions["file.goto"](null);
     expect(withLine.cursor.goToHit).toHaveBeenCalledWith(expect.objectContaining({ path: "src/b.ts", line: 12, side: "new" }));
+  });
+
+  it("gf with a line number into a deleted file targets the old side", () => {
+    const h = setup("see src/b.ts:12", ["src/a.ts", "src/b.ts"], ["src/b.ts"]);
+    h.actions["file.goto"](null);
+    expect(h.cursor.goToHit).toHaveBeenCalledWith(expect.objectContaining({ path: "src/b.ts", line: 12, side: "old" }));
   });
 
   it("gf says so when the line names no changed file", () => {
