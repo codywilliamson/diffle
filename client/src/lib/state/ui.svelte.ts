@@ -31,6 +31,7 @@ export function createUiStore() {
   let openRequest = $state<{ path: string } | null>(null);
   let drawerOpen = $state(false);
   let adding = $state<AddTarget | null>(null);
+  let onAddExtended: ((from: AddTarget, to: AddTarget) => void) | undefined;
   let selecting = $state<SelectTarget | null>(null);
   let editingComment = $state<string | null>(null);
   let undo = $state<UndoOffer | null>(null);
@@ -177,7 +178,13 @@ export function createUiStore() {
         adding = { file, side, line, endLine: line };
         return;
       }
+      const from = adding;
       adding = { file, side, line: Math.min(adding.line, line), endLine: Math.max(adding.endLine ?? adding.line, line) };
+      onAddExtended?.(from, adding);
+    },
+    // told when shift-click grows the open editor's range, so what was typed follows to the new anchor
+    setAddExtendedHandler(handler: (from: AddTarget, to: AddTarget) => void): void {
+      onAddExtended = handler;
     },
   };
 }

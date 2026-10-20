@@ -38,3 +38,16 @@ describe("ui store", () => {
     expect(ui.drawerOpen).toBe(false);
   });
 });
+
+describe("extending an open comment range", () => {
+  it("tells the handler where the range moved from and to, but not for a fresh add", () => {
+    const ui = createUiStore();
+    const moves: string[] = [];
+    ui.setAddExtendedHandler((from, to) => moves.push(`${from.line}-${from.endLine}:${to.line}-${to.endLine}`));
+    ui.extendAdd("a.ts", "new", 5); // nothing open: starts one
+    expect(moves).toEqual([]);
+    ui.extendAdd("a.ts", "new", 8);
+    ui.extendAdd("a.ts", "new", 2);
+    expect(moves).toEqual(["5-5:5-8", "5-8:2-8"]);
+  });
+});

@@ -29,7 +29,7 @@
   const SUGGEST_KEY = "g";
   const hintId = $props.id();
   const drafts = tryGetAppState()?.drafts;
-  const key = untrack(() => draftKey); // the anchor at mount: extending the range later must not move the draft
+  const key = $derived(draftKey); // follows the anchor when shift-click grows the range; the store moves the text
   // seed once from the props (or the saved draft); the editor is mounted fresh per add/edit.
   let text = $state(untrack(() => (key && drafts?.get(key)) || initial));
   let remembered = untrack(() => text);
@@ -38,6 +38,16 @@
   let saving = $state(false);
   let saveError = $state<string | null>(null);
 
+  // drafts load on their own clock: an editor opened first picks the saved text up once it lands,
+  // unless the reviewer has already typed (an untouched box never overwrites a saved draft)
+  $effect(() => {
+    if (!drafts?.loaded || !key || text !== remembered) return;
+    const saved = drafts.get(key);
+    if (saved !== undefined && saved !== text) {
+      text = saved;
+      remembered = saved;
+    }
+  });
   // every change goes to the draft store (it debounces the server write); the original text is no draft
   $effect(() => {
     if (!key || text === remembered) return;
@@ -151,5 +161,6 @@
     </div>
   </div>
   {#if blocked}<p id="{hintId}-gone" class="mt-2 text-xs text-destructive">{blocked}</p>{/if}
+  {#if key && drafts?.rejection(key)}<p role="status" class="mt-2 text-xs text-destructive">Not saved as a draft: {drafts.rejection(key)}</p>{/if}
   {#if saveError}<p role="alert" class="mt-2 text-xs text-destructive">{saveError}</p>{/if}
 </div>

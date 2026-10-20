@@ -15,6 +15,15 @@
   const blocked = $derived(tryGetAppState()?.connection.blockedReason ?? null);
 
   $effect(() => input?.focus());
+  // an untouched box picks the saved draft up if it loads after this opened
+  $effect(() => {
+    if (!drafts?.loaded || !draftKey || text !== remembered) return;
+    const saved = drafts.get(draftKey);
+    if (saved !== undefined && saved !== text) {
+      text = saved;
+      remembered = saved;
+    }
+  });
   // every change goes to the draft store; Escape closes and keeps it, Cancel and a send drop it
   $effect(() => {
     if (!draftKey || text === remembered) return;
@@ -68,5 +77,6 @@
     <button class="comment-btn" onclick={discard} disabled={pending}>Cancel</button>
     <ComposerHint id={hintId} action="send" class="@max-md:hidden" />
   </div>
+  {#if draftKey && drafts?.rejection(draftKey)}<p role="status" class="mt-2 text-xs text-destructive">Not saved as a draft: {drafts.rejection(draftKey)}</p>{/if}
   {#if sendError}<p role="alert" class="mt-2 text-xs text-destructive">{sendError}</p>{/if}
 </div>
