@@ -2,7 +2,7 @@
 // a detached worktree at HEAD, with the base commit's path, line numbers and the side marked "old".
 // real typescript-language-server on the lsp-ts fixture; skipped when it is not on PATH.
 
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { LspPool } from "../src/core/lsp/pool";
@@ -19,19 +19,24 @@ const git = (cwd: string, ...args: string[]): void => {
 };
 
 describe.skipIf(!server)("old-side definition in a working-tree review (real typescript-language-server)", () => {
-  const root = prepareLspFixture(server!);
-  writeFileSync(join(root, ".gitignore"), "node_modules\n");
-  git(root, "init", "-q", "-b", "main");
-  git(root, "add", ".");
-  git(root, "commit", "-qm", "base");
-  const baseGreeter = readFileSync(join(root, "src", "greeter.ts"), "utf8");
-  writeFileSync(join(root, "src", "greeter.ts"), "// added above everything\n" + baseGreeter.replace("${name}`", "${name}!`"));
-  const pool = new LspPool({ root, shutdownTimeoutMs: 5000 });
+  let root = "";
+  let baseGreeter = "";
+  let pool: LspPool;
   let harness: Harness | undefined;
+  beforeAll(() => {
+    root = prepareLspFixture(server!);
+    writeFileSync(join(root, ".gitignore"), "node_modules\n");
+    git(root, "init", "-q", "-b", "main");
+    git(root, "add", ".");
+    git(root, "commit", "-qm", "base");
+    baseGreeter = readFileSync(join(root, "src", "greeter.ts"), "utf8");
+    writeFileSync(join(root, "src", "greeter.ts"), "// added above everything\n" +baseGreeter.replace("${name}`", "${name}!`"));
+    pool = new LspPool({ root, shutdownTimeoutMs: 5000 });
+  });
   afterAll(async () => {
     harness?.stop();
-    await pool.shutdown();
-    rmSync(root, { recursive: true, force: true });
+    await pool?.shutdown();
+    if (root) rmSync(root, { recursive: true, force: true });
   });
 
   test("a removed-line token resolves to the base file's own line, not the working copy's", async () => {
