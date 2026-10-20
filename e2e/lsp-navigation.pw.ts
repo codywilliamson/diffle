@@ -46,8 +46,8 @@ test.describe("code navigation (real typescript-language-server)", () => {
   });
 
   // viewport center of a word in a rendered row, after scrolling its file into view
-  async function wordPoint(page: Page, file: string, line: number, word: string): Promise<{ x: number; y: number }> {
-    const row = page.locator(`[data-file-path="${file}"] .code-inner[data-lsp-side="new"][data-lsp-line="${line}"]`);
+  async function wordPoint(page: Page, file: string, line: number, word: string, side: "old" | "new" = "new"): Promise<{ x: number; y: number }> {
+    const row = page.locator(`[data-file-path="${file}"] .code-inner[data-lsp-side="${side}"][data-lsp-line="${line}"]`);
     await row.scrollIntoViewIfNeeded();
     return row.evaluate((root, needle) => {
       const text = root.textContent ?? "";
@@ -96,8 +96,8 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await cursorIs(page, file, newLine);
   }
 
-  async function ctrlClick(page: Page, file: string, line: number, word: string): Promise<void> {
-    const at = await wordPoint(page, file, line, word);
+  async function ctrlClick(page: Page, file: string, line: number, word: string, side: "old" | "new" = "new"): Promise<void> {
+    const at = await wordPoint(page, file, line, word, side);
     await page.keyboard.down("Control");
     await page.mouse.click(at.x, at.y);
     await page.keyboard.up("Control");
@@ -234,6 +234,58 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await expect(rows.first()).toHaveAttribute("data-changed", "");
     await page.keyboard.press("Enter");
     await cursorIs(page, "src/greeter.ts", "4");
+  });
+
+  // split view: a removed line's tokens are answered from the base commit, and the jump lands on the old pane
+  async function oldCursorIs(page: Page, file: string, oldLine: string): Promise<void> {
+    const row = page.locator(`[data-file-path="${file}"] [data-cursor]`);
+    await expect(row).toHaveCount(1);
+    await expect(row).toHaveAttribute("data-oldline", oldLine);
+    await expect(row).toHaveAttribute("data-newline", "");
+  }
+
+  test("split view: Ctrl+click on a removed-line symbol lands on the old definition, and Ctrl+o returns", async ({ page }) => {
+    await page.keyboard.press("s");
+    await expect(page.locator(".split-diff").first()).toBeVisible();
+    // greeter.ts old line 5 is the removed `return ${this.greeting}, ${name}`; `name` is the parameter on old line 4
+    await page.keyboard.press("j");
+    const start = page.locator('[data-file-path="src/greeter.ts"] [data-cursor]');
+    await expect(start).toHaveCount(1);
+    const startRow = { old: await start.getAttribute("data-oldline"), fresh: await start.getAttribute("data-newline") };
+    await ctrlClick(page, "src/greeter.ts", 5, "name", "old");
+    await oldCursorIs(page, "src/greeter.ts", "4");
+    await page.keyboard.press("Control+o");
+    await expect(start).toHaveAttribute("data-oldline", startRow.old ?? "");
+    await expect(start).toHaveAttribute("data-newline", startRow.fresh ?? "");
+  });
+
+  test("split view: gd on a removed-line symbol lands on the old definition", async ({ page }) => {
+    await page.keyboard.press("s");
+    await page.keyboard.press("j");
+    await page.keyboard.press("h");
+    const row = page.locator('[data-file-path="src/greeter.ts"] [data-cursor]');
+    for (let i = 0; i < 12 && (await row.getAttribute("data-oldline")) !== "5"; i++) await page.keyboard.press("j");
+    await oldCursorIs(page, "src/greeter.ts", "5");
+    const at = await wordPoint(page, "src/greeter.ts", 5, "name", "old");
+    await page.mouse.move(at.x, at.y);
+    await page.keyboard.press("g");
+    await page.keyboard.press("d");
+    await oldCursorIs(page, "src/greeter.ts", "4");
+  });
+
+  test("split view: an old-side definition outside every hunk opens the base file, and Ctrl+o returns", async ({ page }) => {
+    await page.keyboard.press("s");
+    const start = await startInMain(page);
+    await ctrlClick(page, "src/main.ts", 5, "Greeter", "old");
+    // a class and its constructor both answer; the first is the class declaration on greeter.ts line 1
+    await expect(page.locator("[data-definition-picker]")).toBeVisible();
+    await page.keyboard.press("Enter");
+    const viewer = page.locator("[data-lsp-viewer]");
+    await expect(viewer.locator("[data-viewer-path]")).toHaveText("src/greeter.ts");
+    await expect(viewer.locator("[data-target-line]")).toContainText("export class Greeter");
+    await page.keyboard.press("Control+o");
+    await expect(viewer).toHaveCount(0);
+    await cursorIs(page, "src/main.ts", start);
   });
 
   test("gS searches the repository's symbols", async ({ page }) => {
