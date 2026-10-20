@@ -4,16 +4,20 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PRODUCT } from "../product";
-import { LSP_REGISTRY, type LanguageEntry, type LspLanguage } from "./registry";
+import { LSP_REGISTRY, type LanguageEntry, type LspLanguage, type ServerCandidate } from "./registry";
+import { splitCommandLine, type LspOverrides } from "./overrides";
+import { activeVirtualEnv } from "./virtualEnv";
 import { findExecutable } from "./which";
 
-export interface ServerSpec { command: string; args: string[] }
+export interface ServerSpec { command: string; args: string[]; env?: Record<string, string> }
 
 export interface ResolverOptions {
   root: string;
   registry?: Partial<Record<LspLanguage, LanguageEntry>>; // test override
   searchPath?: string; // test override for PATH
   excludeRoots?: readonly string[]; // servers resolving inside these are refused; defaults to [root]
+  overrides?: LspOverrides; // user-chosen commands; "" disables a language
+  environment?: NodeJS.ProcessEnv; // test override for VIRTUAL_ENV lookups
 }
 
 export class ServerResolver {
@@ -25,14 +29,28 @@ export class ServerResolver {
 
   entry(language: LspLanguage): LanguageEntry { return this.options.registry?.[language] ?? LSP_REGISTRY[language]; }
 
+  // what gets tried, in order: the user's override alone, or the registry's candidates.
+  candidates(language: LspLanguage): ServerCandidate[] {
+    const override = this.options.overrides?.[language];
+    if (override === undefined) return this.entry(language).candidates;
+    try {
+      const [command, ...rest] = splitCommandLine(override);
+      return command ? [{ command, args: () => rest }] : [];
+    } catch { return []; }
+  }
+
+  isDisabled(language: LspLanguage): boolean { return this.options.overrides?.[language] !== undefined && this.candidates(language).length === 0; }
+
   resolve(language: LspLanguage): ServerSpec | undefined {
     if (!this.resolved.has(language)) {
       const logDir = this.logDirectory();
+      const venv = this.entry(language).virtualEnv ? activeVirtualEnv(this.options.environment) : undefined;
       let spec: ServerSpec | null = null;
-      for (const candidate of this.entry(language).candidates) {
-        const { path: command, rejected } = findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
+      for (const candidate of this.candidates(language)) {
+        const inVenv = venv ? findExecutable(candidate.command, { searchPath: venv.bin }).path : undefined;
+        const { path: command, rejected } = inVenv ? { path: inVenv, rejected: false } : findExecutable(candidate.command, { searchPath: this.options.searchPath, excludeRoots: this.options.excludeRoots ?? [this.options.root] });
         if (rejected) this.rejected.add(language);
-        if (command) { spec = { command, args: candidate.args(logDir) }; break; }
+        if (command) { spec = { command, args: candidate.args(logDir), ...(venv ? { env: venv.env } : {}) }; break; }
       }
       this.resolved.set(language, spec);
     }
@@ -40,6 +58,7 @@ export class ServerResolver {
   }
 
   hintFor(language: LspLanguage): string {
+    if (this.isDisabled(language)) return `disabled by an override (${PRODUCT.name} lsp unset ${language} to re-enable)`;
     const install = this.entry(language).installHint;
     return this.rejected.has(language) ? `ignored a server inside the repository; ${install}` : install;
   }

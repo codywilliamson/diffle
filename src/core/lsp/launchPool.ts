@@ -3,6 +3,8 @@
 
 import { resolve } from "node:path";
 import { runGit } from "../../utils/git";
+import { readUserState } from "../userState";
+import { mergeOverrides, type LspOverrides } from "./overrides";
 import { LspPool } from "./pool";
 
 function repositoryRoot(cwd: string): string {
@@ -17,8 +19,18 @@ function worktreeRoots(cwd: string): string[] {
   } catch { return []; }
 }
 
-export function createLspPool(cwd: string, enabled: boolean): LspPool {
-  if (!enabled) return new LspPool({ root: resolve(cwd), enabled });
+// the repository root plus the checkouts whose binaries are never run.
+export function lspRoots(cwd: string): { root: string; excludeRoots: string[] } {
   const root = repositoryRoot(cwd);
-  return new LspPool({ root, enabled, excludeRoots: [root, ...worktreeRoots(cwd)] });
+  return { root, excludeRoots: [root, ...worktreeRoots(cwd)] };
+}
+
+// stored overrides from the user state file, with this run's `--lsp` overrides on top.
+export function effectiveOverrides(runOverrides?: LspOverrides): LspOverrides {
+  return mergeOverrides(readUserState().lspOverrides, runOverrides);
+}
+
+export function createLspPool(cwd: string, enabled: boolean, runOverrides?: LspOverrides): LspPool {
+  if (!enabled) return new LspPool({ root: resolve(cwd), enabled });
+  return new LspPool({ ...lspRoots(cwd), enabled, overrides: effectiveOverrides(runOverrides) });
 }
