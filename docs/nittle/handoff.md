@@ -6,6 +6,10 @@
 
 Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008-rename-diffle-to-nittle.md)). This section is the resume ledger, current as of 2026-10-19 late evening. Everything below it is the diffle-era history and stays as written.
 
+### Running from source (.env)
+
+Bun loads `.env` from the cwd before any user code runs, and the cwd is the repository under review. The compiled binary is built with `--no-compile-autoload-dotenv`. From source, use the `bun start`, `bun run dev`, `bun run preview` and `bun run mcp:serve` scripts, or the shebang on `src/index.ts`, `src/mcp/index.ts` and `scripts/dev.ts`; all pass `--no-env-file`. A plain `bun src/index.ts` cannot protect itself from inside the script, so add `--no-env-file` yourself when running it in a repository you do not trust.
+
 ### Authority for a resumed session
 
 The run's authority came from the run brief (`.orchestra/runs/nittle-vnext-20261017/brief.md`, local and gitignored). A fresh session must re-read that brief and confirm it is still in force before it merges release PRs, publishes anything, merges web/ changes (they deploy live), touches Cloudflare, or touches Cody's real home. Nothing in this file grants authority by itself.

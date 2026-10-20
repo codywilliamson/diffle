@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // dev launcher: runs the real bun review backend and vite together, proxies /api to that
 // exact backend, preserves the generated ?review= id, opens the vite url, and tears both
 // processes down cleanly. any extra args (e.g. `bun run dev staged`) pass through to the backend.
