@@ -14,7 +14,7 @@ import {
 } from "./handlers";
 import { handleGetFile, handleGetRaw, serveStatic, notFound } from "./fileHandlers";
 import { handleGetState, handlePostState } from "./stateHandlers";
-import { handleGetDrafts, handlePostDraft } from "./draftHandlers";
+import { handleGetDrafts, handlePostDrafts } from "./draftHandlers";
 import { handleGetLegacyReview, handleGetReview, handleLegacyReview, handleReviewOutcome, handleReviewReply, handleReviewStatus } from "./reviewHandlers";
 import { handleGetInterdiff } from "./interdiffHandlers";
 import { handleGetScorecard } from "./analysisHandlers";
@@ -67,7 +67,7 @@ function route(ctx: ServerContext, req: Request): Response | Promise<Response> {
     if (pathname === "/api/comments") return handlePostComments(ctx, req);
     if (pathname === "/api/viewed") return handlePostViewed(ctx, req);
     if (pathname === "/api/state") return handlePostState(req);
-    if (pathname === "/api/drafts") return handlePostDraft(ctx, req);
+    if (pathname === "/api/drafts") return handlePostDrafts(ctx, req);
     if (pathname === "/api/review/outcome") return handleReviewOutcome(req, ctx);
     if (pathname === "/api/review/reply") return handleReviewReply(req);
     if (pathname === "/api/review/status") return handleReviewStatus(req);

@@ -229,13 +229,24 @@ export interface UserState {
 // add|file|file, edit|commentId, reply|commentId. empty text means no draft.
 export type CommentDrafts = Record<string, string>;
 
-export interface DraftsResponse {
-  drafts: CommentDrafts;
-}
-
-export interface DraftUpdateRequest {
+export interface DraftUpdate {
   key: string;
   text: string; // "" removes the draft
+}
+
+// POST /api/drafts: every update is applied on its own, so one refused draft never blocks the rest
+export interface DraftBatchRequest {
+  updates: DraftUpdate[];
+}
+
+export interface RejectedDraft {
+  key: string;
+  reason: string; // shown to the reviewer, e.g. "draft too long to save"
+}
+
+export interface DraftsResponse {
+  drafts: CommentDrafts;
+  rejected?: RejectedDraft[];
 }
 
 export interface StateUpdateRequest {
