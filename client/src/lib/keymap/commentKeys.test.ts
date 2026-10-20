@@ -115,7 +115,7 @@ function harness(list: Comment[], pos: CursorPos | null, lineText: string | null
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { clipboard: { writeText } });
   const commentFocus = createCommentFocus({ comments: () => list, pos: () => pos });
-  const actions = createCommentActions({ ui, comments, cursor: { pos, lineText: () => lineText }, commentFocus, lsp } as unknown as AppState);
+  const actions = createCommentActions({ ui, comments, drafts: { clearMany: vi.fn() }, cursor: { pos, lineText: () => lineText }, commentFocus, lsp } as unknown as AppState);
   return { ui, comments, lsp, writeText, actions };
 }
 
