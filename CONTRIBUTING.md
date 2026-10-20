@@ -9,6 +9,10 @@ bun run dev
 
 Open the local URL printed by the server. If the client is blank, check the Vite and backend output in the terminal before opening a bug report.
 
+## Running from source
+
+Bun loads `.env` from the current directory before any code runs, and nittle's cwd is the repository being reviewed. Use `bun start`, `bun run dev` or `bun run mcp:serve`, which pass `--no-env-file`. If you run `bun src/index.ts` by hand in a repository you do not trust, pass `--no-env-file` yourself; the script cannot do it for you.
+
 ## Check your change
 
 Run the checks that cover your work before opening a pull request:

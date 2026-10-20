@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // nittle cli entry point: launch a browser review or run the local MCP server.
 
 import { join } from "node:path";
