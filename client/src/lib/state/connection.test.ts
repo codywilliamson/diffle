@@ -102,6 +102,31 @@ describe("connection store", () => {
     expect(onRecover).not.toHaveBeenCalled();
   });
 
+  it("verify blocks writes until the probe confirms the same review", async () => {
+    const { store, onRecover } = setup([up("A")]);
+    store.verify();
+    expect(store.blockedReason).toMatch(/checking/i);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.state).toBe("online");
+    expect(store.blockedReason).toBeNull();
+    expect(onRecover).toHaveBeenCalledTimes(1);
+  });
+
+  it("verify against a different review ends blocked as a mismatch", async () => {
+    const { store, onRecover } = setup([up("B")]);
+    store.verify();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.mismatch).toBe(true);
+    expect(onRecover).not.toHaveBeenCalled();
+  });
+
+  it("verify with the server down ends as gone", async () => {
+    const { store } = setup([DOWN]);
+    store.verify();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.gone).toBe(true);
+  });
+
   it("a probe superseded by a newer one is ignored", async () => {
     let release: (r: ProbeResult) => void = () => {};
     const slow = new Promise<ProbeResult>((resolve) => (release = resolve));

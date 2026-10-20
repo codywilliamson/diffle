@@ -11,9 +11,10 @@ const STATUS_NO_REVIEW = 400;
 export const UNREADABLE_REVIEW = "unreadable";
 
 const GONE_REASON = "The server is gone. Restart it to continue.";
+const VERIFYING_REASON = "Checking that the server is still running this review…";
 const MISMATCH_REASON = "A different review is running on this port. Reload to open it.";
 
-export type LinkState = "online" | "suspect" | "gone" | "mismatch";
+export type LinkState = "online" | "suspect" | "gone" | "mismatch" | "verifying";
 
 // null reviewId = the server has no durable review (legacy manual mode)
 export type ProbeResult = { up: false } | { up: true; reviewId: string | null };
@@ -71,7 +72,7 @@ export function createConnectionStore(deps: ConnectionDeps) {
   }
 
   function recover(): void {
-    const reload = state === "gone" || state === "mismatch";
+    const reload = state !== "online" && state !== "suspect";
     state = "online";
     epoch++;
     clearTimer();
@@ -91,7 +92,14 @@ export function createConnectionStore(deps: ConnectionDeps) {
     // why writes are off, or null while the server is there and serving this review.
     get blockedReason(): string | null {
       if (state === "gone") return GONE_REASON;
+      if (state === "verifying") return VERIFYING_REASON;
       return state === "mismatch" ? MISMATCH_REASON : null;
+    },
+    // a page restored from the back/forward cache never saw the server change: block writes
+    // until a probe confirms it is still this review.
+    verify(): void {
+      state = "verifying";
+      void check();
     },
     // where to go to open the review the server on this port is actually running.
     get reloadUrl(): string {
