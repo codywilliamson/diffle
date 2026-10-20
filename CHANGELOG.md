@@ -2,6 +2,20 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.32.0](https://github.com/codywilliamson/diffle/compare/v0.31.0...v0.32.0) (2026-10-20)
+
+
+### Features
+
+* **cli:** offer shell completions from the installers ([d77841f](https://github.com/codywilliamson/diffle/commit/d77841f4edc2a71b5e70f3b62946bf7fe339d4a4))
+
+
+### Bug Fixes
+
+* **cli:** harden the installer completions offer ([50a494a](https://github.com/codywilliamson/diffle/commit/50a494a77dcc0fb38e8bd1662f4c220ae4e60ff6))
+* **cli:** keep rc modes and spare user-made fish completions ([25cd967](https://github.com/codywilliamson/diffle/commit/25cd967e2582e6b3af139ffa0c669258c1d2d46e))
+* **cli:** probe via Process, keep rc tail bytes, skip commented lines ([2a5cd3c](https://github.com/codywilliamson/diffle/commit/2a5cd3cced346c8dab3cd166142e3b0a4fb84f81))
+
 ## [0.31.0](https://github.com/codywilliamson/diffle/compare/v0.30.0...v0.31.0) (2026-10-20)
 
 
