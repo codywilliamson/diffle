@@ -9,7 +9,7 @@ import { delimiter, join } from "node:path";
 export const REPO_ROOT = join(import.meta.dir, "..", "..");
 export const TAG = "v9.9.9";
 export const ASSET = "nittle-linux-x64";
-const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "\${NITTLE_LEGACY_INSTALL_DIR:-}" >> "$FAKE_LOG.legacy"\necho "nittle ${TAG}"\n`;
+const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "\${NITTLE_LEGACY_INSTALL_DIR:-}" >> "$FAKE_LOG.legacy"\n[ "$1" = completion ] && { echo "# fake $3 completions"; exit 0; }\necho "nittle ${TAG}"\n`;
 
 const UNAME_SHIM = `#!/bin/sh\ncase "$1" in -m) echo x86_64 ;; *) echo Linux ;; esac\n`;
 const CURL_SHIM = `#!/bin/sh

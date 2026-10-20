@@ -4,8 +4,8 @@
 # binary's own startup migration moves data and plugins and removes every diffle leftover.
 # Requires PowerShell 7+ (pwsh); Windows PowerShell 5.1 gets a message and nothing is installed.
 # Usage: pwsh -c "irm https://<host>/install.ps1 | iex"
-# Env knobs: NITTLE_INSTALL_DIR, NITTLE_DRY_RUN, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_UNINSTALL,
-#   NITTLE_PATH_SCOPE_FILE (test seam), GITHUB_TOKEN (optional; authenticates the release lookup)
+# Env knobs: NITTLE_INSTALL_DIR, NITTLE_DRY_RUN, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_NO_COMPLETIONS, NITTLE_UNINSTALL,
+#   NITTLE_PATH_SCOPE_FILE, NITTLE_PROFILE_FILE, NITTLE_TEST_COMPLETIONS_ANSWER (test seams), GITHUB_TOKEN (optional; authenticates the release lookup)
 #   each NITTLE_* falls back to its deprecated DIFFLE_* twin
 # everything lives inside this block so `irm | iex` never overwrites the caller's variables.
 # the version check comes first and throws (never exit, which would close the user's window)
@@ -41,6 +41,11 @@ $DryRun = [bool](Get-InstallerOption 'DRY_RUN')
 $NoModifyPath = [bool](Get-InstallerOption 'NO_MODIFY_PATH')
 $Uninstall = [bool](Get-InstallerOption 'UNINSTALL')
 $NoSetup = [bool](Get-InstallerOption 'NO_SETUP')
+$NoCompletions = [bool][Environment]::GetEnvironmentVariable('NITTLE_NO_COMPLETIONS')
+# test seams: a canned answer stands in for the console, a file stands in for $PROFILE
+$TestCompletionsAnswer = [Environment]::GetEnvironmentVariable('NITTLE_TEST_COMPLETIONS_ANSWER')
+$ProfileOverride = [Environment]::GetEnvironmentVariable('NITTLE_PROFILE_FILE')
+$ProfileMarkerEnd = "# <<< $Name <<<"
 $PathScopeFile = Get-InstallerOption 'PATH_SCOPE_FILE'
 $SpinnerFrames = '|', '/', '-', '\'
 $Rule = '=' * 72
@@ -286,6 +291,51 @@ function Invoke-AgentSetupOffer {
   else { Write-Log WARN "agent setup did not finish; run '$Name setup' to retry" }
 }
 
+# completions are opt-in. the profile is never edited except inside this installer's own marker
+# block; the installer sets PATH through the registry and normally has no such block, so the usual
+# outcome is printing the one line to add yourself
+function Get-CompletionLine {
+  "if (Get-Command $Name -ErrorAction SilentlyContinue) { $Name completion --shell powershell | Out-String | Invoke-Expression }"
+}
+
+function Add-CompletionLineToProfile {
+  param([Parameter(Mandatory)][string] $ProfilePath, [Parameter(Mandatory)][string] $Line)
+  $text = if (Test-Path -LiteralPath $ProfilePath) { [IO.File]::ReadAllText($ProfilePath) } else { '' }
+  if ($text -notmatch "(?m)^$([regex]::Escape($ProfileMarkerEnd))\s*$") { return $false }
+  if ($text.Contains("completion --shell powershell")) {
+    Write-Log INFO "completions already wired in $ProfilePath; no change"
+    return $true
+  }
+  $eol = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $updated = $text -replace "(?m)^$([regex]::Escape($ProfileMarkerEnd))", { "$Line$eol$($_.Value)" }
+  [IO.File]::WriteAllText($ProfilePath, $updated, [Text.UTF8Encoding]::new($false))
+  Write-Log OK "completions added to the $Name block in $ProfilePath (open a new shell)"
+  return $true
+}
+
+function Invoke-CompletionOffer {
+  if ($DryRun -or $NoCompletions) { return }
+  if (-not $TestCompletionsAnswer -and -not (Test-Terminal)) { return }
+  # a release from before `completion` existed would read it as a git ref, so probe first (the
+  # test seam skips this: the harness binary is a stand-in that knows no subcommands)
+  if (-not $TestCompletionsAnswer) {
+    $global:LASTEXITCODE = 0
+    try { $null = & $Target completion --shell powershell 2>$null } catch { return }
+    if ($LASTEXITCODE -ne 0) { return }
+  }
+  Write-Section 'Completions'
+  $answer = if ($TestCompletionsAnswer) { $TestCompletionsAnswer } else { Read-Host "Install $Name shell completions for PowerShell? [y/N]" }
+  if ($answer -notmatch '^\s*y') {
+    Write-Log INFO "skipped; run '$Name completion --shell powershell' any time to print the script"
+    return
+  }
+  $line = Get-CompletionLine
+  $profilePath = if ($ProfileOverride) { $ProfileOverride } else { $PROFILE.CurrentUserAllHosts }
+  if (Add-CompletionLineToProfile -ProfilePath $profilePath -Line $line) { return }
+  Write-Log INFO "no $Name block in $profilePath, and the profile is never edited outside it. add this line yourself to enable completions:"
+  Write-Host "  $line"
+}
+
 # removes the binary and its retired/staged leftovers, then the bin dir if that leaves it empty. a
 # binary a running process still holds is renamed aside instead; the next nittle run removes it
 function Remove-Installed {
@@ -471,6 +521,7 @@ try {
   Update-UserPath -Action Add
   if ($LegacyFound) { Invoke-LegacyMigration }
   Write-Log INFO "run '$Name --version' in a new shell to confirm the install"
+  Invoke-CompletionOffer
   Invoke-AgentSetupOffer
 }
 catch {

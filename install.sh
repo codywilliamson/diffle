@@ -4,7 +4,8 @@
 # An existing diffle install is migrated: after installing, `nittle --version` runs once and the
 # binary's own startup migration moves data and plugins and removes every diffle leftover.
 # Usage: curl -fsSL https://<host>/install | sh   (uninstall: sh install.sh --uninstall)
-# Env: NITTLE_INSTALL_DIR, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_DRY_RUN, NITTLE_UNINSTALL, NO_COLOR,
+# Env: NITTLE_INSTALL_DIR, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_NO_COMPLETIONS, NITTLE_DRY_RUN,
+#      NITTLE_UNINSTALL, NO_COLOR,
 #      GITHUB_TOKEN (optional; authenticates the release lookup)
 #      each NITTLE_* falls back to its deprecated DIFFLE_* twin
 set -eu
@@ -184,6 +185,8 @@ has_terminal() {
   [ -t 1 ] && [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null
 }
 
+fish_completions_file() { printf '%s' "${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions/$NAME.fish"; }
+
 # agent configs point at the binary, so unregister them while it still exists. releases before
 # `setup` existed would treat it as a git ref, so check the help text first
 offer_agent_teardown() {
@@ -271,6 +274,7 @@ uninstall_nittle() {
     strip_block "$rc_candidate" "$LEGACY_MARKER_START" "$LEGACY_MARKER_END"
   done
   remove_file "$BIN_DIR/$NAME"
+  remove_file "$(fish_completions_file)"
   remove_file "$LEGACY_BIN_DIR/$LEGACY_NAME"
   rm -f "$BIN_DIR"/."$NAME".new-* "$LEGACY_BIN_DIR"/."$LEGACY_NAME".new-* 2>/dev/null || true
   remove_empty_dir "$BIN_DIR"
@@ -460,6 +464,78 @@ migrate_legacy_install() {
 }
 
 migrate_legacy_install
+
+# --- shell completions --------------------------------------------------------------------------
+
+# the line lives inside the installer's own PATH marker block; the rc is never edited anywhere else
+completion_line() {
+  case "$SHELL_NAME" in
+    zsh) printf 'command -v %s >/dev/null 2>&1 && source <(%s completion --shell zsh)' "$NAME" "$NAME" ;;
+    bash) printf 'command -v %s >/dev/null 2>&1 && eval "$(%s completion --shell bash)"' "$NAME" "$NAME" ;;
+    *) return 1 ;;
+  esac
+}
+
+# NITTLE_TEST_TTY is a test seam: the answer comes from that file instead of /dev/tty
+read_completion_answer() {
+  if [ -n "${NITTLE_TEST_TTY:-}" ]; then
+    printf 'Install %s shell completions for %s? [y/N] ' "$NAME" "$SHELL_NAME"
+    read -r completion_answer <"$NITTLE_TEST_TTY" || completion_answer=n
+    return 0
+  fi
+  printf 'Install %s shell completions for %s? [y/N] ' "$NAME" "$SHELL_NAME" >/dev/tty
+  read -r completion_answer </dev/tty || completion_answer=n
+}
+
+wire_fish_completions() {
+  fish_file="$(fish_completions_file)"
+  mkdir -p "${fish_file%/*}"
+  if "$BIN_DIR/$NAME" completion --shell fish > "$fish_file.tmp.$$"; then
+    mv -f "$fish_file.tmp.$$" "$fish_file"
+    log OK "fish completions written to $fish_file"
+  else
+    rm -f "$fish_file.tmp.$$"
+    log WARN "could not generate fish completions; run '$NAME completion --shell fish' yourself"
+  fi
+}
+
+wire_rc_completions() {
+  completion_rc_line="$(completion_line)"
+  if [ -f "$RC_FILE" ] && grep -qxF "$MARKER_END" "$RC_FILE"; then
+    if grep -qF "completion --shell $SHELL_NAME" "$RC_FILE"; then
+      log INFO "completions already wired in $RC_FILE; no change"
+      return 0
+    fi
+    completion_tmp="$RC_FILE.nittle.tmp.$$"
+    awk -v end="$MARKER_END" -v add="$completion_rc_line" '$0 == end && !done { print add; done = 1 } { print }' "$RC_FILE" > "$completion_tmp"
+    mv -f "$completion_tmp" "$RC_FILE"
+    log OK "completions added to the $NAME block in $RC_FILE (open a new shell)"
+  else
+    # no PATH block of ours to put it in, and the rc is never edited outside that block
+    log INFO "to enable completions add this line to $RC_FILE:"
+    printf '  %s\n' "$completion_rc_line"
+  fi
+}
+
+# asks once, defaults to no. skipped silently on dry runs, NITTLE_NO_COMPLETIONS, no terminal, an
+# unsupported shell, or a release too old to have `completion`
+offer_completions() {
+  if [ -n "$DRY_RUN" ] || [ -n "${NITTLE_NO_COMPLETIONS:-}" ]; then return 0; fi
+  resolve_rc
+  case "$SHELL_NAME" in zsh|bash|fish) ;; *) return 0 ;; esac
+  if [ -z "${NITTLE_TEST_TTY:-}" ]; then has_terminal || return 0; fi
+  "$BIN_DIR/$NAME" completion --shell "$SHELL_NAME" >/dev/null 2>&1 || return 0
+  section "Completions"
+  completion_answer=n
+  read_completion_answer
+  case "$completion_answer" in
+    y|Y|yes|Yes|YES) ;;
+    *) log INFO "skipped; run '$NAME completion --shell $SHELL_NAME' any time to print the script"; return 0 ;;
+  esac
+  if [ "$SHELL_NAME" = fish ]; then wire_fish_completions; else wire_rc_completions; fi
+}
+
+offer_completions
 
 # --- agent setup --------------------------------------------------------------------------------
 
