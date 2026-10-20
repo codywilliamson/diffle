@@ -46,6 +46,20 @@ The TypeScript server needs a `typescript` package it can resolve, either in the
 
 Under `--no-lsp` the response is `{ "enabled": false, "languages": [] }`.
 
+## Navigation endpoints
+
+These routes sit behind the same loopback Origin and Host checks as the status route. Each request body is `{ path, side, line, character }`. `line` is 1-based and `character` is a 0-based JavaScript string offset. nittle converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Every range in a response uses the same client coordinates.
+
+- `POST /api/lsp/definition` returns `targets` (`uri`, `path`, `absolutePath`, `range`, `inRepo`, `inDiff`) from a Location, Location[] or LocationLink[] answer. `kind: "typeDefinition"` asks for the type instead. `onDefinition: true` means the cursor already sits on the declaration, so the client shows references instead. Targets outside the repository (the standard library, `node_modules`, site-packages) come back with `inRepo: false` and `path: null`.
+- `POST /api/lsp/hover` returns markdown in `contents`, empty when the server has nothing to say. A newer hover from the same client (the `x-client-id` header) cancels the one still waiting on the server, and so does closing the connection.
+- `POST /api/lsp/references` returns references grouped by file, with the files in the diff first and marked `changed: true`. Each reference carries a few lines of context. The list is capped at 200 and reports `total` and `truncated`.
+- `GET /api/lsp/symbols?path=` returns the document outline as a tree. Symbols that overlap a changed line carry `changed: true`. `GET /api/lsp/symbols?query=` asks every server for the languages in the diff, merges the answers and caps them at 100.
+- `GET /api/lsp/file?uri=` returns read-only text for a target outside the diff. It only serves paths that a navigation answer already returned in this run, so it can't be pointed at arbitrary files.
+
+A review with no base commit (browse mode) has no old side. Requests for that side answer `409` with `code: "old-side-unsupported"`.
+
+When no server is usable, every route answers `409` with `{ code: "server-unavailable", state, hint }`. It is never a 500, and nothing is logged as an error. The first request after a server starts also waits for the server to finish loading the project, because answers before that are unreliable.
+
 ## Limits today
 
 Language servers read your checkout from disk. For a branch, range or commit review, answers that point into other files can reflect the checked-out files instead of the reviewed revision. The old side of a diff can't be navigated at all. Both limits stay until nittle can serve those revisions from a detached worktree (tracked in issue 186), and it will never switch your checkout to do it.
