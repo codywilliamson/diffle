@@ -9,6 +9,7 @@ export type ActionId =
   | "goto.top" | "goto.bottom" | "page.down" | "page.up"
   | "side.old" | "side.new" | "jump.back" | "jump.forward"
   | "comment.line" | "visual.start" | "comment.range" | "comment.file"
+  | "comment.edit" | "comment.delete" | "comment.resolve" | "comment.copy" | "comment.next" | "comment.prev"
   | "search.file" | "search.next" | "search.prev" | "search.all"
   | "review.viewed" | "review.preview" | "review.scorecard"
   | "view.order" | "view.theme" | "view.split" | "view.wrap" | "view.files" | "view.refresh"

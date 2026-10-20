@@ -22,3 +22,8 @@
   background-image: linear-gradient(var(--cursor-tint), var(--cursor-tint));
   box-shadow: inset 3px 0 0 var(--cursor);
 }
+
+/* the comment the keyboard comment keys (e dd R yy) act on */
+.comment-card.key-focus {
+  box-shadow: inset 3px 0 0 var(--cursor);
+}

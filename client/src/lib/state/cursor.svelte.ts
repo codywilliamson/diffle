@@ -178,6 +178,11 @@ export function createCursorStore(deps: CursorDeps) {
     endVisual(): void {
       visualAnchor = null;
     },
+    // the text of the line under the cursor (no diff marker), null on a file header or off the diff
+    lineText(): string | null {
+      const { views, index } = snapshot();
+      return contentAt(views, pref, pos, index);
+    },
     posFor(path: string): CursorPos | null {
       return pos && pos.path === path ? pos : null;
     },
