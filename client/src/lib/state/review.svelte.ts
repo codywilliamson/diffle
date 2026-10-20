@@ -5,12 +5,14 @@
 import type { ReviewStatus } from "$types";
 import { getComments, type CommentsResponse } from "$lib/api/comments";
 import { getReview, submitReviewOutcome, importLegacyReview, ignoreLegacyReview, removeLegacyReview } from "$lib/api/review";
+import { withTimeout } from "./withTimeout";
 import {
   isRecord, updatedAtOf, countUnresolved, commentsOf, emptyNotice, noticeHasContent,
   foldActivity, errorMessage, type ReviewData, type ActivityNotice,
 } from "./reviewRecord";
 
 const POLL_INTERVAL_MS = 3000;
+export const RESYNC_TIMEOUT_MS = 15_000;
 
 export interface ReviewDeps {
   getComments: (signal?: AbortSignal) => Promise<CommentsResponse | null>;
@@ -44,7 +46,7 @@ export function createReviewStore(deps: ReviewDeps = realDeps, initialReviewId?:
     if (notify) notice = foldActivity(notice, fresh);
   }
 
-  const fetchLatest = (id: string | undefined) => (id ? deps.getReview(id) : deps.getComments());
+  const fetchLatest = (id: string | undefined, signal?: AbortSignal) => (id ? deps.getReview(id, signal) : deps.getComments(signal));
 
   async function load(): Promise<void> {
     error = null;
@@ -59,12 +61,12 @@ export function createReviewStore(deps: ReviewDeps = realDeps, initialReviewId?:
     }
   }
 
-  // re-read the record and adopt it unconditionally; true when the server answered for this review.
+  // re-read the record and adopt it unconditionally; true when the server answered for this review in time.
   // the comments store uses it to rebase on the truth after a write whose outcome is unknown.
   async function resync(): Promise<boolean> {
     const gen = generation;
     try {
-      const next = await fetchLatest(reviewId);
+      const next = await withTimeout(RESYNC_TIMEOUT_MS, (signal) => fetchLatest(reviewId, signal));
       if (gen !== generation) return false;
       if (next) adopt(next, false);
       else record = null;
