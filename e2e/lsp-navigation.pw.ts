@@ -47,8 +47,8 @@ test.describe("code navigation (real typescript-language-server)", () => {
   });
 
   // viewport center of a word in a rendered row, after scrolling its file into view
-  async function wordPoint(page: Page, file: string, line: number, word: string): Promise<{ x: number; y: number }> {
-    const row = page.locator(`[data-file-path="${file}"] .code-inner[data-lsp-side="new"][data-lsp-line="${line}"]`);
+  async function wordPoint(page: Page, file: string, line: number, word: string, side = "new"): Promise<{ x: number; y: number }> {
+    const row = page.locator(`[data-file-path="${file}"] .code-inner[data-lsp-side="${side}"][data-lsp-line="${line}"]`);
     await row.scrollIntoViewIfNeeded();
     return row.evaluate((root, needle) => {
       const text = root.textContent ?? "";
@@ -97,8 +97,8 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await cursorIs(page, file, newLine);
   }
 
-  async function ctrlClick(page: Page, file: string, line: number, word: string): Promise<void> {
-    const at = await wordPoint(page, file, line, word);
+  async function ctrlClick(page: Page, file: string, line: number, word: string, side = "new"): Promise<void> {
+    const at = await wordPoint(page, file, line, word, side);
     await page.keyboard.down("Control");
     await page.mouse.click(at.x, at.y);
     await page.keyboard.up("Control");
@@ -119,6 +119,16 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await cursorIs(page, "src/greeter.ts", "4");
     await page.keyboard.press("Control+o");
     await cursorIs(page, "src/main.ts", CLICKED_LINE);
+  });
+
+  test("in split view, Ctrl+click on an old-side token moves the cursor onto that old row", async ({ page }) => {
+    await page.keyboard.press("s");
+    await expect(page.locator(".split-pane-old").first()).toBeVisible();
+    await startInMain(page);
+    await ctrlClick(page, "src/main.ts", 5, "Greeter", "old");
+    const row = page.locator('[data-file-path="src/main.ts"] .split-pane-old [data-cursor]');
+    await expect(row).toHaveCount(1);
+    await expect(row).toHaveAttribute("data-oldline", "5");
   });
 
   test("Ctrl+click maps to the right word on a wrapped line", async ({ page }) => {
