@@ -285,8 +285,14 @@ export function createCursorStore(deps: CursorDeps) {
     // remembers the clicked row. false when that row is not a stop (collapsed, outside the view).
     placeAt(path: string, side: Side, line: number): boolean {
       if (visualAnchor) return false; // the range head stays where the reader put it
+      const previous = pref;
+      // a split file indexes only the preferred pane, so look on the clicked one
+      if (snapshot().views.find((v) => v.file.path === path)?.split) pref = side;
       const stop = ownStops(snapshot().index, path).find((s) => s.side === side && s.line === line);
-      if (!stop) return false;
+      if (!stop) {
+        pref = previous;
+        return false;
+      }
       commit({ path, side, line }, base(path), { reveal: "line" });
       return true;
     },
