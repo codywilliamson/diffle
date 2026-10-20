@@ -8,7 +8,7 @@ const LICENSE = "MIT";
 const NODE_ENGINE = ">=18";
 const SHIM_BIN = "bin/cli.js";
 
-export const INSTALLER_HINT = `curl -fsSL ${PRODUCT.site}/install | sh (macOS/Linux) or irm ${PRODUCT.site}/install.ps1 | iex (Windows)`;
+export const INSTALLER_HINT = `curl -fsSL ${PRODUCT.site}/install | sh (macOS/Linux) or pwsh -c "irm ${PRODUCT.site}/install.ps1 | iex" (Windows, needs PowerShell 7+)`;
 
 const common = (version: string) => ({
   version: cleanVersion(version),
@@ -44,7 +44,7 @@ export function mainPackageJson(version: string) {
 }
 
 export function renderShim(template: string): string {
-  return template.replaceAll("__PACKAGE__", PRODUCT.name).replaceAll("__INSTALLER_HINT__", INSTALLER_HINT);
+  return template.replaceAll("__PACKAGE__", PRODUCT.name).replaceAll("__INSTALLER_HINT__", JSON.stringify(INSTALLER_HINT));
 }
 
 export function json(value: unknown): string {

@@ -19,8 +19,10 @@ nittle ships as a single self-contained binary. It embeds its own web client and
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
-    irm https://nittle.dev/install.ps1 | iex
+    pwsh -c "irm https://nittle.dev/install.ps1 | iex"
     ```
+
+    This needs PowerShell 7 or newer, not Windows PowerShell 5.1. Install it with `winget install --id Microsoft.PowerShell --source winget`.
   </TabItem>
 </Tabs>
 
@@ -119,7 +121,7 @@ It only removes empty directories. Your review records and settings stay in `~/.
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
-    $env:NITTLE_UNINSTALL = 1                 # the binary, and its user PATH entry
+    $env:NITTLE_UNINSTALL = 1                 # the binary, and its user PATH entry (run in pwsh)
     irm https://nittle.dev/install.ps1 | iex
     Remove-Item -Recurse -Force ~/.nittle     # also removes review records + settings
     ```

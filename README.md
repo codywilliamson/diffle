@@ -36,9 +36,11 @@ curl -fsSL https://nittle.dev/install | sh
 ```
 
 ```powershell
-# Windows
-irm https://nittle.dev/install.ps1 | iex
+# Windows (needs PowerShell 7+)
+pwsh -c "irm https://nittle.dev/install.ps1 | iex"
 ```
+
+Windows PowerShell 5.1 is not supported. If you don't have `pwsh`, install it with `winget install --id Microsoft.PowerShell --source winget`.
 
 The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.nittle/bin`. On macOS and Linux it also adds that directory to your login shell's rc file inside a `# >>> nittle >>>` marker block — run `exec $SHELL -l` to use it in the current shell, opt out with `NITTLE_NO_MODIFY_PATH=1`, or undo it with `curl -fsSL https://nittle.dev/install | NITTLE_UNINSTALL=1 sh`. On a terminal, the installer then offers to run `nittle setup` to wire nittle into your coding agents (skip with `NITTLE_NO_SETUP=1`). Keep it current with `nittle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://nittle.dev/getting-started/installation/).
 

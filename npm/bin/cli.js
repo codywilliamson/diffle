@@ -7,7 +7,7 @@ const { spawnSync } = require("node:child_process");
 const { join, dirname } = require("node:path");
 
 const PACKAGE = "__PACKAGE__";
-const INSTALLER_HINT = "__INSTALLER_HINT__";
+const INSTALLER_HINT = __INSTALLER_HINT__;
 const SUPPORTED = new Set(["linux-x64", "linux-arm64", "darwin-x64", "darwin-arm64", "win32-x64", "win32-arm64"]);
 
 function fail(message) {
