@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { chmodSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import { delimiter, isAbsolute, join } from "node:path";
 import { LSP_LANGUAGES, LSP_REGISTRY, languageForPath, type LspLanguage } from "../src/core/lsp/registry";
 import { mergeOverrides, parseOverrideFlag, splitCommandLine } from "../src/core/lsp/overrides";
 import { ServerResolver } from "../src/core/lsp/serverResolver";
@@ -82,6 +82,21 @@ describe("resolving", () => {
     const make = (command: string) => track(new ServerResolver({ root: repo, searchPath: "", excludeRoots: [repo], environment, overrides: { python: command } }));
     expect(make(planted).resolve("python")).toBeUndefined(); // in the checkout, not in the venv bin
     expect(make(inside).resolve("python")?.command).toBe(inside); // the venv's own binary is fine
+  });
+
+  it("a relative override inside the venv resolves to an absolute path", () => {
+    const base = realpathSync(tempDir("rel"));
+    const venv = join(base, ".venv");
+    const real = shim(join(venv, WIN ? "Scripts" : "bin"), "pyrefly");
+    const before = process.cwd();
+    process.chdir(base);
+    try {
+      const relative = join(".venv", WIN ? "Scripts" : "bin", WIN ? "pyrefly.cmd" : "pyrefly"); // path commands are not PATHEXT-expanded
+      const spec = track(new ServerResolver({ root: base, searchPath: "", environment: { VIRTUAL_ENV: venv }, overrides: { python: `${relative} lsp` } })).resolve("python");
+      expect(isAbsolute(spec?.command ?? "")).toBe(true);
+      expect(spec?.command.toLowerCase()).toBe(realpathSync.native(real).toLowerCase());
+      expect(spec?.args).toEqual(["lsp"]);
+    } finally { process.chdir(before); }
   });
 
   it("every candidate is searched in the venv before PATH", () => {
