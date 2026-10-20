@@ -2,7 +2,7 @@
 
 Draft for Cody. Nothing here has been posted.
 
-Compared: nittle 0.30.0 against moritzwilksch/diffle 0.2.9 (released 2026-10-19), both read from their default branches. Every row links to code, a PR or docs on one or both repos. Where a row says a feature is not in their README, the link goes to the README so you can check. They ship several releases a week, so re-check the "ahead" rows for them on the day this goes out.
+Compared: nittle 0.30.0 against moritzwilksch/diffle 0.2.9 (released 2026-10-19), both read from their default branches. Every row links to code, a PR or docs on one or both repos. Where a row says a feature isn't in their README, the link goes to the README so you can check. They ship several releases a week, so re-check their "ahead" rows the day this goes out.
 
 Repos: [codywilliamson/diffle](https://github.com/codywilliamson/diffle) (becomes codywilliamson/nittle after the rename, old links redirect) and [moritzwilksch/diffle](https://github.com/moritzwilksch/diffle).
 
@@ -26,7 +26,7 @@ Repos: [codywilliamson/diffle](https://github.com/codywilliamson/diffle) (become
 
 ## Where nittle is ahead
 
-For these rows the claim about the other side is "not in their README at 0.2.9". Check the link.
+For these rows, the only claim about the other side is "not in their README at 0.2.9". Check the link.
 
 | Feature | nittle 0.30.0 | moritzwilksch/diffle 0.2.9 | Evidence |
 | --- | --- | --- | --- |
