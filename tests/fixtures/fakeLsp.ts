@@ -52,13 +52,15 @@ function countLaunch(): number {
   return seen;
 }
 
+let progressEndedAt: number | null = null; // fake/state reports it so tests can tell a request waited for the load
+
 function startProgress(): void {
   const { delayMs, durationMs } = config.progress!;
   setTimeout(() => {
     const token = "fake-progress";
     send({ jsonrpc: "2.0", id: nextServerId++, method: "window/workDoneProgress/create", params: { token } });
     send({ jsonrpc: "2.0", method: "$/progress", params: { token, value: { kind: "begin", title: "indexing" } } });
-    setTimeout(() => send({ jsonrpc: "2.0", method: "$/progress", params: { token, value: { kind: "end" } } }), durationMs);
+    setTimeout(() => { progressEndedAt = Date.now(); send({ jsonrpc: "2.0", method: "$/progress", params: { token, value: { kind: "end" } } }); }, durationMs);
   }, delayMs);
 }
 
@@ -86,7 +88,7 @@ function onRequest(msg: Msg): unknown {
     case "shutdown": return config.ignoreShutdown ? undefined : respond(id, null);
     case "fake/echo": return respond(id, msg.params);
     case "fake/slow": return void slow.set(id, setTimeout(() => { slow.delete(id); respond(id, "done"); }, msg.params?.ms ?? 1000));
-    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams, childPid, docs, changes, requests });
+    case "fake/state": return respond(id, { cancelled, opened, closed, replies, initParams, childPid, docs, changes, requests, progressEndedAt });
     case "fake/crash": return die(1, "fake lsp: crash requested");
     case "fake/burst": return void process.stdout.write(Buffer.concat([frame({ jsonrpc: "2.0", id, result: "a" }), frame({ jsonrpc: "2.0", method: "fake/note", params: {} })]));
     case "fake/partial": {
