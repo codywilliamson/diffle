@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { PRODUCT } from "../src/core/product";
 import { carriesTransitionAssets, transitionAssetName } from "../src/core/transitionAssets";
 import { assetName } from "../src/core/updateTarget";
+import { COMPILE_FLAGS } from "./compileFlags";
 import { generateStandaloneEntry, WORKER_ENTRY_FILES } from "./generateStandaloneEntry";
 import { publishedReleaseTags } from "./publishedReleases";
 
@@ -49,7 +50,7 @@ const addChecksum = (name: string) => {
 for (const target of targets) {
   const name = assetName(target); // Bun appends .exe for windows targets, matching this name
   const outfile = join(outDir, `${PRODUCT.name}-${target}`);
-  const r = Bun.spawnSync(["bun", "build", entryFile, ...WORKER_ENTRY_FILES, "--compile", `--target=${BUN_TARGET[target]}`, "--outfile", outfile], { cwd: root, stdout: "inherit", stderr: "inherit" });
+  const r = Bun.spawnSync(["bun", "build", entryFile, ...WORKER_ENTRY_FILES, ...COMPILE_FLAGS, `--target=${BUN_TARGET[target]}`, "--outfile", outfile], { cwd: root, stdout: "inherit", stderr: "inherit" });
   if (r.exitCode !== 0) throw new Error(`compile failed for ${target}`);
   addChecksum(name);
   if (!withTransition) continue;

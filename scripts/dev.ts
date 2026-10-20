@@ -58,7 +58,7 @@ function pipeAndWatch(child: ChildProcess, pattern: RegExp, label: string): Prom
   return promise;
 }
 
-const backend = spawn("bun", [join(ROOT, "src", "index.ts"), "--no-open", ...process.argv.slice(2)], {
+const backend = spawn("bun", ["--no-env-file", join(ROOT, "src", "index.ts"), "--no-open", ...process.argv.slice(2)], {
   cwd: process.cwd(),
   env: { ...process.env, NITTLE_SESSION_HOST: "cli" },
   stdio: ["ignore", "pipe", "pipe"],
