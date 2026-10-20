@@ -10,6 +10,8 @@ import { lspOverrideLines, lspStatusLines, runLspCommand } from "../src/utils/ls
 import { tempDir } from "./helpers/fakeLspPool";
 
 const WIN = process.platform === "win32";
+// the resolver returns real paths (macOS /var -> /private/var, windows 8.3 names), so expectations must too
+const real = (path: string): string => realpathSync.native(path);
 
 // an executable named `name` in `dir` that does nothing; the resolver only needs it to exist.
 function shim(dir: string, name: string): string {
@@ -67,7 +69,7 @@ describe("resolving", () => {
     const venvPyrefly = shim(join(venv, WIN ? "Scripts" : "bin"), "pyrefly");
     const environment = { VIRTUAL_ENV: venv, PATH: bin };
     const spec = track(resolverOn(bin, { environment, excludeRoots: [venv] })).resolve("python");
-    expect(spec?.command).toBe(venvPyrefly);
+    expect(spec?.command).toBe(real(venvPyrefly));
     expect(spec?.env?.VIRTUAL_ENV).toBe(venv);
     expect(spec?.env?.PATH?.split(delimiter)[0]).toBe(join(venv, WIN ? "Scripts" : "bin"));
   });
@@ -81,7 +83,7 @@ describe("resolving", () => {
     const environment = { VIRTUAL_ENV: venv };
     const make = (command: string) => track(new ServerResolver({ root: repo, searchPath: "", excludeRoots: [repo], environment, overrides: { python: command } }));
     expect(make(planted).resolve("python")).toBeUndefined(); // in the checkout, not in the venv bin
-    expect(make(inside).resolve("python")?.command).toBe(inside); // the venv's own binary is fine
+    expect(make(inside).resolve("python")?.command).toBe(real(inside)); // the venv's own binary is fine
   });
 
   it("a relative override inside the venv resolves to an absolute path", () => {
@@ -94,7 +96,7 @@ describe("resolving", () => {
       const relative = join(".venv", WIN ? "Scripts" : "bin", WIN ? "pyrefly.cmd" : "pyrefly"); // path commands are not PATHEXT-expanded
       const spec = track(new ServerResolver({ root: base, searchPath: "", environment: { VIRTUAL_ENV: venv }, overrides: { python: `${relative} lsp` } })).resolve("python");
       expect(isAbsolute(spec?.command ?? "")).toBe(true);
-      expect(spec?.command.toLowerCase()).toBe(realpathSync.native(real).toLowerCase());
+      expect(spec?.command).toBe(realpathSync.native(real));
       expect(spec?.args).toEqual(["lsp"]);
     } finally { process.chdir(before); }
   });
@@ -105,7 +107,7 @@ describe("resolving", () => {
     const venv = tempDir("venv");
     const venvBased = shim(join(venv, WIN ? "Scripts" : "bin"), "basedpyright-langserver");
     const spec = track(resolverOn(bin, { environment: { VIRTUAL_ENV: venv }, excludeRoots: [venv] })).resolve("python");
-    expect(spec?.command).toBe(venvBased);
+    expect(spec?.command).toBe(real(venvBased));
   });
 
   it("ignores VIRTUAL_ENV for languages that do not use one", () => {
