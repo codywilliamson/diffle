@@ -82,3 +82,22 @@ test("sending a comment clears its draft, and editing another comment keeps the 
     cleanup(fixture);
   }
 });
+
+test("text typed a moment before a reload still makes it to the server", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await openOnLine(page, await url);
+    await page.keyboard.press("c");
+    await page.keyboard.type("typed right before leaving");
+    // reload inside the debounce window: only the unload flush can save it
+    await page.reload();
+    await expect(page.locator("tr.diff-row").first()).toBeVisible();
+    await page.keyboard.press("j");
+    await page.keyboard.press("c");
+    await expect(editor(page)).toHaveValue("typed right before leaving");
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});

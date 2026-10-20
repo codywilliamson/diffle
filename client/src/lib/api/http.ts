@@ -44,8 +44,8 @@ export async function apiGet<T>(path: string, signal?: AbortSignal, headers?: He
   return (await res.json()) as T;
 }
 
-// typed JSON POST, same error contract as apiGet.
-export async function apiPost<T>(path: string, body: unknown, signal?: AbortSignal, headers?: HeadersInit): Promise<T> {
+// typed JSON POST, same error contract as apiGet. keepalive lets the request outlive the page (unload flushes; body under 64KB).
+export async function apiPost<T>(path: string, body: unknown, signal?: AbortSignal, headers?: HeadersInit, keepalive = false): Promise<T> {
   const blocked = mutationBlockedReason();
   if (blocked) throw new Error(blocked);
   const res = await send(path, {
@@ -53,6 +53,7 @@ export async function apiPost<T>(path: string, body: unknown, signal?: AbortSign
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
     signal,
+    keepalive,
   });
   if (!res.ok) throw await failure(res);
   return (await res.json()) as T;
