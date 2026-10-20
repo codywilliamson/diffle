@@ -13,4 +13,10 @@ describe("what's new", () => {
   it("is newer than the 0.28.x line so upgraders see it", () => {
     expect(WHATS_NEW.version).not.toMatch(/^0\.28\./);
   });
+
+  it("is 0.30.0 or later so 0.29 users see the new highlights", () => {
+    const [major = 0, minor = 0] = WHATS_NEW.version.split(".").map(Number);
+    expect(major > 0 || minor >= 30).toBe(true);
+    expect(WHATS_NEW.version).not.toMatch(/^0\.29\./);
+  });
 });
