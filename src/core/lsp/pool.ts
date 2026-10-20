@@ -4,6 +4,7 @@
 
 import type { LspLanguageStatus, LspState } from "../../types";
 import { LspBridge } from "./bridge";
+import type { LspOverrides } from "./overrides";
 import type { LanguageEntry, LspLanguage } from "./registry";
 import { ServerResolver, type ServerSpec } from "./serverResolver";
 import { LspWorkspace } from "./workspace";
@@ -16,6 +17,8 @@ export interface PoolOptions {
   registry?: Partial<Record<LspLanguage, LanguageEntry>>; // test override
   searchPath?: string; // test override for PATH
   excludeRoots?: readonly string[]; // servers resolving inside these are refused; defaults to [root]
+  overrides?: LspOverrides; // user-chosen server commands per language; "" disables one
+  environment?: NodeJS.ProcessEnv; // test override for VIRTUAL_ENV lookups
   shutdownTimeoutMs?: number; // per server, before it is killed
 }
 
@@ -134,7 +137,7 @@ export class LspPool implements LspHandle {
   private launch(slot: Slot, spec: ServerSpec): void {
     slot.state = "starting";
     const bridge = new LspBridge({
-      command: spec.command, args: spec.args, root: slot.root, cwd: this.resolver.logDirectory(),
+      command: spec.command, args: spec.args, env: spec.env, root: slot.root, cwd: this.resolver.logDirectory(),
       initializationOptions: this.resolver.entry(slot.language).initializationOptions?.(this.resolver.logDirectory()),
     });
     slot.bridge = bridge;

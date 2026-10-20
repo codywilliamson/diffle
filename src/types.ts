@@ -221,6 +221,7 @@ export interface UserState {
   latestKnownVersion?: string; // newest release seen by that check
   legacyEnvNoticed?: string; // the DIFFLE_* rename notice already shown, keyed by the sorted var set
   legacyPathChecked?: boolean; // the one-time look for a stale diffle PATH entry after its bin dir was gone is done
+  lspOverrides?: Record<string, string>; // persistent per-language server command from `lsp set`; "" disables the language
   migration?: MigrationRecord; // an install migration that still has work left; cleared once it completes
 }
 
@@ -346,7 +347,7 @@ export interface ApiError {
 }
 
 // GET /api/lsp/status — language servers for the languages present in the diff
-export type LspLanguage = "typescript" | "csharp";
+export type LspLanguage = "typescript" | "csharp" | "python" | "go" | "rust" | "vue" | "svelte";
 // idle = installed but not started yet (servers start on the first navigation request)
 export type LspState = "missing" | "idle" | "starting" | "indexing" | "ready" | "failed";
 

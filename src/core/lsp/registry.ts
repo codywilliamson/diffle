@@ -14,6 +14,7 @@ export interface LanguageEntry {
   languageIds: Record<string, string>; // file extension (no dot) -> LSP languageId
   candidates: ServerCandidate[]; // tried in order; the first found on PATH wins
   installHint: string;
+  virtualEnv?: boolean; // an active VIRTUAL_ENV is searched first and passed on, so site-packages resolve
   initializationOptions?: (logDir: string) => unknown;
 }
 
@@ -37,6 +38,35 @@ export const LSP_REGISTRY: Record<LspLanguage, LanguageEntry> = {
       { command: "csharp-ls", args: () => [] },
     ],
     installHint: "dotnet tool install -g roslyn-language-server --prerelease (or: dotnet tool install -g csharp-ls)",
+  },
+  python: {
+    languageIds: { py: "python", pyi: "python" },
+    candidates: [
+      { command: "pyrefly", args: () => ["lsp"] },
+      { command: "basedpyright-langserver", args: () => ["--stdio"] },
+    ],
+    installHint: "pip install pyrefly (or: pip install basedpyright)",
+    virtualEnv: true,
+  },
+  go: {
+    languageIds: { go: "go" },
+    candidates: [{ command: "gopls", args: () => [] }],
+    installHint: "go install golang.org/x/tools/gopls@latest",
+  },
+  rust: {
+    languageIds: { rs: "rust" },
+    candidates: [{ command: "rust-analyzer", args: () => [] }],
+    installHint: "rustup component add rust-analyzer",
+  },
+  vue: {
+    languageIds: { vue: "vue" },
+    candidates: [{ command: "vue-language-server", args: () => ["--stdio"] }],
+    installHint: "npm install -g @vue/language-server",
+  },
+  svelte: {
+    languageIds: { svelte: "svelte" },
+    candidates: [{ command: "svelteserver", args: () => ["--stdio"] }],
+    installHint: "npm install -g svelte-language-server",
   },
 };
 

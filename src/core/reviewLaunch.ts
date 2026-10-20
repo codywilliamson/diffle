@@ -10,6 +10,7 @@ import { loadReviewTarget } from "./reviewTarget";
 import { createPresence } from "../server/presence";
 import { createLspPool } from "./lsp/launchPool";
 import type { LspPool } from "./lsp/pool";
+import type { LspOverrides } from "./lsp/overrides";
 import { registerSession, unregisterSession, type SessionHost } from "./sessions";
 import { LOOPBACK_BIND_HOST } from "../utils/origin";
 
@@ -28,6 +29,7 @@ export interface ReviewLaunchInput {
   open?: boolean;
   requireChanges?: boolean;
   lsp?: boolean; // false (--no-lsp) never starts a language server
+  lspOverrides?: LspOverrides; // --lsp <lang>=<command>: this run only, over the stored overrides
   lspPool?: LspPool; // replaces the default pool; tests inject a fake-backed one
   host: SessionHost;
 }
@@ -60,7 +62,7 @@ export function launchReview(input: ReviewLaunchInput): ReviewLaunch {
   }
   const assets = resolveClientAssets(input.productRoot);
   const sessionId = randomUUID();
-  const lsp = input.lspPool ?? createLspPool(cwd, input.lsp !== false);
+  const lsp = input.lspPool ?? createLspPool(cwd, input.lsp !== false, input.lspOverrides);
   const ctx: ServerContext = { ...loaded, cwd, assets, productRoot: input.productRoot, served: false, reviewId: review.id, host: input.host, sessionId, presence: createPresence(), lsp };
   const server = createServer(ctx, input.port ?? 0);
   const port = server.port ?? 0;
