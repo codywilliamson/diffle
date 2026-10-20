@@ -94,22 +94,36 @@ append_block() {
   } >> "$append_rc"
 }
 
+# awk over a file with each \r swapped for \001, so crlf survives awk builds that read text mode
+# (git bash on windows). usage: awk_keep_cr <in> <out> <awk args...>; returns awk's status
+awk_keep_cr() {
+  akc_in="$1"; akc_out="$2"; shift 2
+  tr '\r' '\001' < "$akc_in" > "$akc_out.a"
+  akc_status=0
+  awk "$@" "$akc_out.a" > "$akc_out.b" || akc_status=$?
+  tr '\001' '\r' < "$akc_out.b" > "$akc_out"
+  rm -f "$akc_out.a" "$akc_out.b"
+  return "$akc_status"
+}
+
 # drops the marker block plus the single blank line we inserted above it, so the rest of the file
 # stays byte-identical to what it was before the install
 strip_block() {
   strip_rc="$1"; strip_start="$2"; strip_end="$3"
   [ -f "$strip_rc" ] || return 0
-  grep -qxF "$strip_start" "$strip_rc" || return 0
+  tr -d '\r' < "$strip_rc" | grep -qxF "$strip_start" || return 0
   strip_tmp="$strip_rc.nittle.tmp.$$"
-  awk -v s="$strip_start" -v e="$strip_end" '
-    function flush_blanks(  i) { for (i = 0; i < held; i++) print ""; held = 0 }
-    BEGIN { held = 0; skip = 0 }
-    skip { if ($0 == e) skip = 0; next }
-    $0 == s { if (held > 0) held--; flush_blanks(); skip = 1; next }
-    $0 == "" { held++; next }
+  # markers match with an optional trailing \r, so crlf files work; kept lines are printed untouched
+  awk_keep_cr "$strip_rc" "$strip_tmp" -v s="$strip_start" -v e="$strip_end" '
+    function flush_blanks(  i) { for (i = 0; i < held; i++) print blank; held = 0 }
+    BEGIN { held = 0; skip = 0; blank = "" }
+    { line = $0; sub(/\001$/, "", line) }
+    skip { if (line == e) skip = 0; next }
+    line == s { if (held > 0) held--; flush_blanks(); skip = 1; next }
+    line == "" { blank = $0; held++; next }
     { flush_blanks(); print }
     END { flush_blanks() }
-  ' "$strip_rc" > "$strip_tmp"
+  '
   mv -f "$strip_tmp" "$strip_rc"
   log OK "removed the PATH block ($strip_start) from $strip_rc"
 }
@@ -476,11 +490,37 @@ completion_line() {
   esac
 }
 
-# NITTLE_TEST_TTY is a test seam: the answer comes from that file instead of /dev/tty
+PROBE_TIMEOUT_SECONDS=5
+
+# test seams, honoured only when NITTLE_INSTALLER_TEST=1 so an inherited variable can't change a
+# real install: NITTLE_TEST_TTY (a file holding the answer, standing in for /dev/tty) and
+# NITTLE_TEST_PROBE_TIMEOUT
+test_seam() {
+  [ "${NITTLE_INSTALLER_TEST:-}" = 1 ] || return 0
+  eval "printf '%s' \"\${NITTLE_TEST_$1:-}\""
+}
+TEST_TTY="$(test_seam TTY)"
+if [ -n "$(test_seam PROBE_TIMEOUT)" ]; then PROBE_TIMEOUT_SECONDS="$(test_seam PROBE_TIMEOUT)"; fi
+
+# does the installed binary know `completion`? bounded, so a hung binary can't stall the installer.
+# background + kill because `timeout` is not on macOS by default
+probe_completions() {
+  "$BIN_DIR/$NAME" completion --shell "$SHELL_NAME" >/dev/null 2>&1 </dev/null &
+  probe_pid=$!
+  ( sleep "$PROBE_TIMEOUT_SECONDS"; kill "$probe_pid" 2>/dev/null ) >/dev/null 2>&1 &
+  probe_killer=$!
+  probe_status=0
+  wait "$probe_pid" || probe_status=$?
+  kill "$probe_killer" 2>/dev/null || true
+  wait "$probe_killer" 2>/dev/null || true
+  if [ "$probe_status" -ge 128 ]; then log INFO "'$NAME completion' did not answer; skipping completions"; fi
+  [ "$probe_status" -eq 0 ]
+}
+
 read_completion_answer() {
-  if [ -n "${NITTLE_TEST_TTY:-}" ]; then
+  if [ -n "$TEST_TTY" ]; then
     printf 'Install %s shell completions for %s? [y/N] ' "$NAME" "$SHELL_NAME"
-    read -r completion_answer <"$NITTLE_TEST_TTY" || completion_answer=n
+    read -r completion_answer <"$TEST_TTY" || completion_answer=n
     return 0
   fi
   printf 'Install %s shell completions for %s? [y/N] ' "$NAME" "$SHELL_NAME" >/dev/tty
@@ -501,15 +541,25 @@ wire_fish_completions() {
 
 wire_rc_completions() {
   completion_rc_line="$(completion_line)"
-  if [ -f "$RC_FILE" ] && grep -qxF "$MARKER_END" "$RC_FILE"; then
-    if grep -qF "completion --shell $SHELL_NAME" "$RC_FILE"; then
-      log INFO "completions already wired in $RC_FILE; no change"
-      return 0
-    fi
+  completion_status=2
+  if [ -f "$RC_FILE" ]; then
     completion_tmp="$RC_FILE.nittle.tmp.$$"
-    awk -v end="$MARKER_END" -v add="$completion_rc_line" '$0 == end && !done { print add; done = 1 } { print }' "$RC_FILE" > "$completion_tmp"
-    mv -f "$completion_tmp" "$RC_FILE"
+    # insert only between a whole-line opening marker and the next whole-line closing one; the
+    # inserted line takes the closing marker's line ending. exit 2 = no block, 3 = already there
+    awk_keep_cr "$RC_FILE" "$completion_tmp" -v s="$MARKER_START" -v e="$MARKER_END" -v add="$completion_rc_line" -v sh="completion --shell $SHELL_NAME" '
+      { line = $0; sub(/\001$/, "", line) }
+      state == 0 && line == s { state = 1; print; next }
+      state == 1 && index(line, sh) { dup = 1 }
+      state == 1 && line == e { cr = ($0 ~ /\001$/) ? "\001" : ""; if (!dup) print add cr; state = 2 }
+      { print }
+      END { exit (state < 2) ? 2 : (dup ? 3 : 0) }
+    ' && completion_status=0 || completion_status=$?
+    if [ "$completion_status" -eq 0 ]; then mv -f "$completion_tmp" "$RC_FILE"; else rm -f "$completion_tmp"; fi
+  fi
+  if [ "$completion_status" -eq 0 ]; then
     log OK "completions added to the $NAME block in $RC_FILE (open a new shell)"
+  elif [ "$completion_status" -eq 3 ]; then
+    log INFO "completions already wired in $RC_FILE; no change"
   else
     # no PATH block of ours to put it in, and the rc is never edited outside that block
     log INFO "to enable completions add this line to $RC_FILE:"
@@ -523,8 +573,8 @@ offer_completions() {
   if [ -n "$DRY_RUN" ] || [ -n "${NITTLE_NO_COMPLETIONS:-}" ]; then return 0; fi
   resolve_rc
   case "$SHELL_NAME" in zsh|bash|fish) ;; *) return 0 ;; esac
-  if [ -z "${NITTLE_TEST_TTY:-}" ]; then has_terminal || return 0; fi
-  "$BIN_DIR/$NAME" completion --shell "$SHELL_NAME" >/dev/null 2>&1 || return 0
+  if [ -z "$TEST_TTY" ]; then has_terminal || return 0; fi
+  probe_completions || return 0
   section "Completions"
   completion_answer=n
   read_completion_answer

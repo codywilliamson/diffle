@@ -5,7 +5,7 @@
 # Requires PowerShell 7+ (pwsh); Windows PowerShell 5.1 gets a message and nothing is installed.
 # Usage: pwsh -c "irm https://<host>/install.ps1 | iex"
 # Env knobs: NITTLE_INSTALL_DIR, NITTLE_DRY_RUN, NITTLE_NO_MODIFY_PATH, NITTLE_NO_SETUP, NITTLE_NO_COMPLETIONS, NITTLE_UNINSTALL,
-#   NITTLE_PATH_SCOPE_FILE, NITTLE_PROFILE_FILE, NITTLE_TEST_COMPLETIONS_ANSWER (test seams), GITHUB_TOKEN (optional; authenticates the release lookup)
+#   NITTLE_PATH_SCOPE_FILE (test seam); NITTLE_TEST_* seams need NITTLE_INSTALLER_TEST=1, GITHUB_TOKEN (optional; authenticates the release lookup)
 #   each NITTLE_* falls back to its deprecated DIFFLE_* twin
 # everything lives inside this block so `irm | iex` never overwrites the caller's variables.
 # the version check comes first and throws (never exit, which would close the user's window)
@@ -42,9 +42,20 @@ $NoModifyPath = [bool](Get-InstallerOption 'NO_MODIFY_PATH')
 $Uninstall = [bool](Get-InstallerOption 'UNINSTALL')
 $NoSetup = [bool](Get-InstallerOption 'NO_SETUP')
 $NoCompletions = [bool][Environment]::GetEnvironmentVariable('NITTLE_NO_COMPLETIONS')
-# test seams: a canned answer stands in for the console, a file stands in for $PROFILE
-$TestCompletionsAnswer = [Environment]::GetEnvironmentVariable('NITTLE_TEST_COMPLETIONS_ANSWER')
-$ProfileOverride = [Environment]::GetEnvironmentVariable('NITTLE_PROFILE_FILE')
+# test seams, honoured only when NITTLE_INSTALLER_TEST=1 so an inherited variable can't change a
+# real install: a canned answer stands in for the console, a file for $PROFILE, a script for the
+# binary the capability probe runs, and a shorter probe timeout
+$InstallerTest = [Environment]::GetEnvironmentVariable('NITTLE_INSTALLER_TEST') -eq '1'
+function Get-TestSeam {
+  param([Parameter(Mandatory)][string] $Seam)
+  if ($InstallerTest) { return [Environment]::GetEnvironmentVariable("NITTLE_TEST_$Seam") }
+}
+$TestCompletionsAnswer = Get-TestSeam 'COMPLETIONS_ANSWER'
+$ProfileOverride = Get-TestSeam 'PROFILE_FILE'
+$ProbeOverride = Get-TestSeam 'PROBE_EXE'
+$ProbeTimeoutSeconds = 5
+if (Get-TestSeam 'PROBE_TIMEOUT') { $ProbeTimeoutSeconds = [int](Get-TestSeam 'PROBE_TIMEOUT') }
+$ProfileMarkerStart = "# >>> $Name >>>"
 $ProfileMarkerEnd = "# <<< $Name <<<"
 $PathScopeFile = Get-InstallerOption 'PATH_SCOPE_FILE'
 $SpinnerFrames = '|', '/', '-', '\'
@@ -298,42 +309,108 @@ function Get-CompletionLine {
   "if (Get-Command $Name -ErrorAction SilentlyContinue) { $Name completion --shell powershell | Out-String | Invoke-Expression }"
 }
 
-function Add-CompletionLineToProfile {
-  param([Parameter(Mandatory)][string] $ProfilePath, [Parameter(Mandatory)][string] $Line)
-  $text = if (Test-Path -LiteralPath $ProfilePath) { [IO.File]::ReadAllText($ProfilePath) } else { '' }
-  if ($text -notmatch "(?m)^$([regex]::Escape($ProfileMarkerEnd))\s*$") { return $false }
-  if ($text.Contains("completion --shell powershell")) {
-    Write-Log INFO "completions already wired in $ProfilePath; no change"
-    return $true
+function Get-ProfilePath {
+  if ($ProfileOverride) { return $ProfileOverride }
+  return $PROFILE.CurrentUserAllHosts
+}
+
+# temp file beside the target, then an atomic replace; the backup lives only until that succeeds
+function Write-FileAtomic {
+  param([Parameter(Mandatory)][string] $Path, [Parameter(Mandatory)][string] $Text, [Parameter(Mandatory)][bool] $Bom)
+  $temp = "$Path.nittle-tmp-$PID"
+  $backup = "$Path.nittle-bak-$PID"
+  try {
+    [IO.File]::WriteAllText($temp, $Text, [Text.UTF8Encoding]::new($Bom))
+    [IO.File]::Replace($temp, $Path, $backup)
+    Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
   }
-  $eol = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
-  $updated = $text -replace "(?m)^$([regex]::Escape($ProfileMarkerEnd))", { "$Line$eol$($_.Value)" }
-  [IO.File]::WriteAllText($ProfilePath, $updated, [Text.UTF8Encoding]::new($false))
-  Write-Log OK "completions added to the $Name block in $ProfilePath (open a new shell)"
-  return $true
+  finally { Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue }
+}
+
+# adds or removes the completion line, only between a whole-line opening marker and the next
+# whole-line closing marker. returns NoBlock, Unchanged or Changed; line endings and BOM are kept
+function Edit-ProfileBlock {
+  param([Parameter(Mandatory)][string] $ProfilePath, [Parameter(Mandatory)][ValidateSet('Add', 'Remove')][string] $Mode)
+  if (-not (Test-Path -LiteralPath $ProfilePath -PathType Leaf)) { return 'NoBlock' }
+  $bytes = [IO.File]::ReadAllBytes($ProfilePath)
+  $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+  $lines = [Collections.Generic.List[string]]::new()
+  foreach ($piece in [regex]::Split([IO.File]::ReadAllText($ProfilePath), '(?<=\n)')) { if ($piece -ne '') { $lines.Add($piece) } }
+  $start = -1; $end = -1
+  for ($i = 0; $i -lt $lines.Count; $i++) {
+    $content = $lines[$i].TrimEnd("`r", "`n")
+    if ($start -lt 0) { if ($content -ceq $ProfileMarkerStart) { $start = $i } }
+    elseif ($content -ceq $ProfileMarkerEnd) { $end = $i; break }
+  }
+  if ($end -lt 0) { return 'NoBlock' }
+  $line = Get-CompletionLine
+  $eol = if ($lines[$start].EndsWith("`r`n")) { "`r`n" } else { "`n" }
+  if ($Mode -eq 'Add') {
+    for ($i = $start + 1; $i -lt $end; $i++) { if ($lines[$i].Contains('completion --shell powershell')) { return 'Unchanged' } }
+    $lines.Insert($end, "$line$eol")
+  }
+  else {
+    $removed = $false
+    for ($i = $end - 1; $i -gt $start; $i--) {
+      if ($lines[$i].TrimEnd("`r", "`n") -ceq $line) { $lines.RemoveAt($i); $removed = $true }
+    }
+    if (-not $removed) { return 'Unchanged' }
+  }
+  Write-FileAtomic -Path $ProfilePath -Text ($lines -join '') -Bom $bom
+  return 'Changed'
+}
+
+# does the installed binary know `completion`? a release from before it existed would read it as a
+# git ref. bounded, so a hung binary can't stall the installer
+function Test-CompletionSupport {
+  $exe = if ($ProbeOverride) { $ProbeOverride } else { $Target }
+  $scratch = [IO.Path]::GetTempFileName()
+  $process = $null
+  try {
+    $process = Start-Process -FilePath $exe -ArgumentList 'completion', '--shell', 'powershell' -NoNewWindow -PassThru `
+      -RedirectStandardInput $scratch -RedirectStandardOutput "$scratch.out" -RedirectStandardError "$scratch.err"
+    if (-not $process.WaitForExit($ProbeTimeoutSeconds * 1000)) {
+      $process.Kill($true)
+      Write-Log INFO "'$Name completion' did not answer within ${ProbeTimeoutSeconds}s; skipping completions"
+      return $false
+    }
+    return $process.ExitCode -eq 0
+  }
+  catch { return $false }
+  finally {
+    if ($process) { $process.Dispose() }
+    Remove-Item -LiteralPath $scratch, "$scratch.out", "$scratch.err" -Force -ErrorAction SilentlyContinue
+  }
 }
 
 function Invoke-CompletionOffer {
   if ($DryRun -or $NoCompletions) { return }
   if (-not $TestCompletionsAnswer -and -not (Test-Terminal)) { return }
-  # a release from before `completion` existed would read it as a git ref, so probe first (the
-  # test seam skips this: the harness binary is a stand-in that knows no subcommands)
-  if (-not $TestCompletionsAnswer) {
-    $global:LASTEXITCODE = 0
-    try { $null = & $Target completion --shell powershell 2>$null } catch { return }
-    if ($LASTEXITCODE -ne 0) { return }
-  }
+  if (-not (Test-CompletionSupport)) { return }
   Write-Section 'Completions'
   $answer = if ($TestCompletionsAnswer) { $TestCompletionsAnswer } else { Read-Host "Install $Name shell completions for PowerShell? [y/N]" }
   if ($answer -notmatch '^\s*y') {
     Write-Log INFO "skipped; run '$Name completion --shell powershell' any time to print the script"
     return
   }
-  $line = Get-CompletionLine
-  $profilePath = if ($ProfileOverride) { $ProfileOverride } else { $PROFILE.CurrentUserAllHosts }
-  if (Add-CompletionLineToProfile -ProfilePath $profilePath -Line $line) { return }
-  Write-Log INFO "no $Name block in $profilePath, and the profile is never edited outside it. add this line yourself to enable completions:"
-  Write-Host "  $line"
+  $profilePath = Get-ProfilePath
+  switch (Edit-ProfileBlock -ProfilePath $profilePath -Mode Add) {
+    'Changed' { Write-Log OK "completions added to the $Name block in $profilePath (open a new shell)" }
+    'Unchanged' { Write-Log INFO "completions already wired in $profilePath; no change" }
+    default {
+      Write-Log INFO "no $Name block in $profilePath, and the profile is never edited outside it. add this line yourself to enable completions:"
+      Write-Host "  $(Get-CompletionLine)"
+    }
+  }
+}
+
+# the line only ever lives inside the owned block, so that is the only place uninstall looks
+function Remove-CompletionLine {
+  $profilePath = Get-ProfilePath
+  if ($DryRun) { Write-Log INFO "dry run: would remove the completion line from the $Name block in $profilePath if present"; return }
+  if ((Edit-ProfileBlock -ProfilePath $profilePath -Mode Remove) -eq 'Changed') {
+    Write-Log OK "removed the completion line from $profilePath"
+  }
 }
 
 # removes the binary and its retired/staged leftovers, then the bin dir if that leaves it empty. a
@@ -434,6 +511,7 @@ try {
       Remove-Installed -Directory $LegacyBinDir -Executable "$LegacyName.exe"
     }
     Update-UserPath -Action Remove
+    Remove-CompletionLine
     if (-not $DryRun) {
       Remove-EmptyDataDir $BinDir '.nittle'
       Remove-EmptyDataDir $LegacyBinDir '.diffle'
