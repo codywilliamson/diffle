@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findPwsh } from "./helpers/findPwsh";
@@ -241,59 +241,129 @@ describe.skipIf(!pwsh)("install.ps1", () => {
 
 const COMPLETION_LINE = "if (Get-Command nittle -ErrorAction SilentlyContinue) { nittle completion --shell powershell | Out-String | Invoke-Expression }";
 const BLOCK = "# >>> nittle >>>\n# <<< nittle <<<\n";
+const WITH_LINE = `# >>> nittle >>>\n${COMPLETION_LINE}\n# <<< nittle <<<\n`;
 
 describe.skipIf(!pwsh)("install.ps1 completions offer", () => {
   const profileOf = (dir: string) => join(dir, "profile.ps1");
+  const win = process.platform === "win32";
+  // stands in for the installed binary in the capability probe; the harness payload knows no subcommands
+  const PROBES = win
+    ? { ok: "@echo off\r\nexit /b 0\r\n", fail: "@echo off\r\nexit /b 1\r\n", hang: "@echo off\r\nping -n 30 127.0.0.1 >nul\r\n" }
+    : { ok: "#!/bin/sh\nexit 0\n", fail: "#!/bin/sh\nexit 1\n", hang: "#!/bin/sh\nsleep 30\n" };
+  const probeFile = (dir: string) => join(dir, win ? "probe.cmd" : "probe.sh");
+  const prepare = (profile: string | null, probe: keyof typeof PROBES = "ok") => (dir: string) => {
+    if (profile !== null) seed(profileOf(dir), profile);
+    seed(probeFile(dir), PROBES[probe]);
+    if (!win) chmodSync(probeFile(dir), 0o755);
+  };
   const offer = (answer: string | undefined, extra: Record<string, string> = {}) => ({
-    NITTLE_PROFILE_FILE: "<dir>/profile.ps1", NITTLE_NO_SETUP: "1", ...(answer === undefined ? {} : { NITTLE_TEST_COMPLETIONS_ANSWER: answer }), ...extra,
+    NITTLE_INSTALLER_TEST: "1", NITTLE_TEST_PROFILE_FILE: "<dir>/profile.ps1", NITTLE_NO_SETUP: "1",
+    NITTLE_TEST_PROBE_EXE: win ? "<dir>\\probe.cmd" : "<dir>/probe.sh",
+    ...(answer === undefined ? {} : { NITTLE_TEST_COMPLETIONS_ANSWER: answer }), ...extra,
   });
-  const seedBlock = (dir: string) => seed(profileOf(dir), `# mine\n${BLOCK}`);
+  const read = (dir: string) => readFileSync(profileOf(dir), "utf8");
+  const seeded = `# mine\n${BLOCK}`;
 
   test("yes adds the line inside an existing nittle block, before the end marker", async () => {
-    const result = await run({ env: offer("y"), before: seedBlock });
+    const result = await run({ env: offer("y"), before: prepare(seeded) });
     expect(result.code).toBe(0);
-    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n# >>> nittle >>>\n${COMPLETION_LINE}\n# <<< nittle <<<\n`);
+    expect(read(result.dir)).toBe(`# mine\n${WITH_LINE}`);
+    expect(readdirSync(result.dir).filter((name) => name.includes(".nittle-"))).toEqual([]);
   });
 
   test("yes without a nittle block prints the line and never writes the profile", async () => {
-    const result = await run({ env: offer("y"), before: (dir) => seed(profileOf(dir), "# mine\n") });
+    const result = await run({ env: offer("y"), before: prepare("# mine\n") });
     expect(result.code).toBe(0);
     expect(result.out).toContain(COMPLETION_LINE);
-    expect(readFileSync(profileOf(result.dir), "utf8")).toBe("# mine\n");
-    const none = await run({ env: offer("y") });
+    expect(read(result.dir)).toBe("# mine\n");
+    const none = await run({ env: offer("y"), before: prepare(null) });
     expect(existsSync(profileOf(none.dir))).toBe(false);
   });
 
+  test("a closing marker alone, out of order, or with trailing text authorizes no insert", async () => {
+    for (const text of ["# mine\n# <<< nittle <<<\n", "# <<< nittle <<<\nx\n# >>> nittle >>>\n", "# >>> nittle >>>\n# <<< nittle <<< extra\n", "# >>> nittle >>> extra\n# <<< nittle <<<\n"]) {
+      const result = await run({ env: offer("y"), before: prepare(text) });
+      expect(read(result.dir)).toBe(text);
+      expect(result.out).toContain(COMPLETION_LINE);
+    }
+  });
+
+  test("a completion line outside the block does not count as already wired", async () => {
+    const text = `${COMPLETION_LINE}\n${BLOCK}`;
+    const result = await run({ env: offer("y"), before: prepare(text) });
+    expect(read(result.dir)).toBe(`${COMPLETION_LINE}\n${WITH_LINE}`);
+  });
+
   test("rerunning does not duplicate the line", async () => {
-    const first = await run({ env: offer("y"), before: seedBlock });
+    const first = await run({ env: offer("y"), before: prepare(seeded) });
     await run({ env: offer("y"), reuse: first.dir });
-    const text = readFileSync(profileOf(first.dir), "utf8");
-    expect(text.split("completion --shell powershell").length).toBe(2);
+    expect(read(first.dir).split("completion --shell powershell").length).toBe(2);
+  });
+
+  test("a crlf profile keeps its line endings through add and uninstall", async () => {
+    const crlf = "# keep\r\n# >>> nittle >>>\r\n# <<< nittle <<<\r\n";
+    const first = await run({ env: offer("y"), before: prepare(crlf) });
+    expect(read(first.dir)).toBe(`# keep\r\n# >>> nittle >>>\r\n${COMPLETION_LINE}\r\n# <<< nittle <<<\r\n`);
+    const gone = await run({ env: offer(undefined, { NITTLE_UNINSTALL: "1" }), reuse: first.dir });
+    expect(gone.code).toBe(0);
+    expect(read(first.dir)).toBe(crlf);
+  });
+
+  test("uninstall removes the line only from inside the owned block", async () => {
+    const text = `${COMPLETION_LINE}\n# mine\n${WITH_LINE}`;
+    const result = await run({ env: offer(undefined, { NITTLE_UNINSTALL: "1" }), before: prepare(text) });
+    expect(result.code).toBe(0);
+    expect(read(result.dir)).toBe(`${COMPLETION_LINE}\n# mine\n${BLOCK}`);
+    expect(readdirSync(result.dir).filter((name) => name.includes(".nittle-"))).toEqual([]);
+  });
+
+  test("uninstall leaves a profile without a block alone", async () => {
+    const result = await run({ env: offer(undefined, { NITTLE_UNINSTALL: "1" }), before: prepare(`${COMPLETION_LINE}\n`) });
+    expect(read(result.dir)).toBe(`${COMPLETION_LINE}\n`);
   });
 
   test("no and the default answer add nothing", async () => {
-    const no = await run({ env: offer("n"), before: seedBlock });
-    expect(readFileSync(profileOf(no.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
-    const blank = await run({ env: offer(" "), before: seedBlock });
-    expect(readFileSync(profileOf(blank.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+    const no = await run({ env: offer("n"), before: prepare(seeded) });
+    expect(read(no.dir)).toBe(seeded);
+    const blank = await run({ env: offer(" "), before: prepare(seeded) });
+    expect(read(blank.dir)).toBe(seeded);
   });
 
   test("NITTLE_NO_COMPLETIONS skips the offer", async () => {
-    const result = await run({ env: offer("y", { NITTLE_NO_COMPLETIONS: "1" }), before: seedBlock });
+    const result = await run({ env: offer("y", { NITTLE_NO_COMPLETIONS: "1" }), before: prepare(seeded) });
     expect(result.out).not.toContain("Completions");
-    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+    expect(read(result.dir)).toBe(seeded);
   });
 
   test("a non-interactive run skips the offer", async () => {
-    const result = await run({ env: offer(undefined), before: seedBlock });
+    const result = await run({ env: offer(undefined), before: prepare(seeded) });
     expect(result.code).toBe(0);
     expect(result.out).not.toContain("Completions");
-    expect(readFileSync(profileOf(result.dir), "utf8")).toBe(`# mine\n${BLOCK}`);
+    expect(read(result.dir)).toBe(seeded);
   });
 
   test("a dry run skips the offer", async () => {
-    const result = await run({ env: offer("y", { NITTLE_DRY_RUN: "1" }), before: seedBlock });
+    const result = await run({ env: offer("y", { NITTLE_DRY_RUN: "1" }), before: prepare(seeded) });
     expect(result.out).not.toContain("Completions");
+  });
+
+  test("a failing or hanging probe skips the offer", async () => {
+    const failed = await run({ env: offer("y"), before: prepare(seeded, "fail") });
+    expect(failed.out).not.toContain("Completions");
+    expect(read(failed.dir)).toBe(seeded);
+    const started = Date.now();
+    const hung = await run({ env: offer("y", { NITTLE_TEST_PROBE_TIMEOUT: "1" }), before: prepare(seeded, "hang") });
+    expect(hung.code).toBe(0);
+    expect(Date.now() - started).toBeLessThan(25_000);
+    expect(hung.out).toContain("did not answer");
+    expect(hung.out).not.toContain("Completions");
+    expect(read(hung.dir)).toBe(seeded);
+  });
+
+  test("the test seams are ignored unless NITTLE_INSTALLER_TEST=1", async () => {
+    const result = await run({ env: offer("y", { NITTLE_INSTALLER_TEST: "" }), before: prepare(seeded) });
+    expect(result.out).not.toContain("Completions");
+    expect(read(result.dir)).toBe(seeded);
   });
 });
 

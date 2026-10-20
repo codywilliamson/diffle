@@ -9,7 +9,7 @@ import { delimiter, join } from "node:path";
 export const REPO_ROOT = join(import.meta.dir, "..", "..");
 export const TAG = "v9.9.9";
 export const ASSET = "nittle-linux-x64";
-const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "\${NITTLE_LEGACY_INSTALL_DIR:-}" >> "$FAKE_LOG.legacy"\n[ "$1" = completion ] && { echo "# fake $3 completions"; exit 0; }\necho "nittle ${TAG}"\n`;
+const FAKE_BINARY = `#!/bin/sh\necho "$*" >> "$FAKE_LOG"\necho "\${NITTLE_LEGACY_INSTALL_DIR:-}" >> "$FAKE_LOG.legacy"\n[ "$1" = completion ] && [ -n "\${FAKE_COMPLETION_HANG:-}" ] && exec sleep 30\n[ "$1" = completion ] && { echo "# fake $3 completions"; exit 0; }\necho "nittle ${TAG}"\n`;
 
 const UNAME_SHIM = `#!/bin/sh\ncase "$1" in -m) echo x86_64 ;; *) echo Linux ;; esac\n`;
 const CURL_SHIM = `#!/bin/sh
@@ -57,9 +57,9 @@ export function createInstallSandbox(options: SandboxOptions = {}): InstallSandb
   return {
     home, fixture, log,
     async run(args = [], env = {}) {
-      const base: Record<string, string | undefined> = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config"), FIXTURE: fixture, FAKE_LOG: log, SHELL: "/bin/zsh", PATH: [env.EXTRA_PATH, shims, process.env.PATH].filter(Boolean).join(delimiter), ...env };
+      const base: Record<string, string | undefined> = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config"), FIXTURE: fixture, FAKE_LOG: log, SHELL: "/bin/zsh", NITTLE_INSTALLER_TEST: "1", PATH: [env.EXTRA_PATH, shims, process.env.PATH].filter(Boolean).join(delimiter), ...env };
       delete base.EXTRA_PATH;
-      for (const key of Object.keys(base)) if (/^(NITTLE|DIFFLE)_/.test(key) && !(key in env)) delete base[key];
+      for (const key of Object.keys(base)) if (/^(NITTLE|DIFFLE)_/.test(key) && !(key in env) && key !== "NITTLE_INSTALLER_TEST") delete base[key];
       delete base.GITHUB_TOKEN;
       delete base.ZDOTDIR;
       const proc = Bun.spawn(["sh", join(REPO_ROOT, "install.sh"), ...args], { env: base as Record<string, string>, stdout: "pipe", stderr: "pipe", cwd: root });

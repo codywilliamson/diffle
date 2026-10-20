@@ -272,6 +272,59 @@ describe.skipIf(!sh)("install.sh completions offer", () => {
     expect(existsSync(join(box.home, ".zshrc"))).toBe(false);
   });
 
+  test("a closing marker alone, or in front of the opening one, authorizes no insert", async () => {
+    const box = open();
+    const only = "alias a=b\n# <<< nittle <<<\n";
+    write(join(box.home, ".zshrc"), only);
+    const result = await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(only);
+    expect(result.out).toContain(ZSH_LINE);
+    const reversed = "# <<< nittle <<<\nx\n# >>> nittle >>>\n";
+    write(join(box.home, ".zshrc"), reversed);
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(reversed);
+    const prefixed = "# >>> nittle >>>\nexport PATH=x\n# <<< nittle <<< extra\n";
+    write(join(box.home, ".zshrc"), prefixed);
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(prefixed);
+  });
+
+  test("a completion line outside the block does not count as already wired", async () => {
+    const box = open();
+    write(join(box.home, ".zshrc"), 'source <(nittle completion --shell zsh)\n# >>> nittle >>>\nexport PATH="x:$PATH"\n# <<< nittle <<<\n');
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toContain(`${ZSH_LINE}\n# <<< nittle <<<\n`);
+  });
+
+  test("a crlf rc keeps its line endings, takes the line, and uninstall still finds the block", async () => {
+    const box = open();
+    const crlf = '# keep\r\n\r\n# >>> nittle >>>\r\nexport PATH="x:$PATH"\r\n# <<< nittle <<<\r\n';
+    write(join(box.home, ".zshrc"), crlf);
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc"))).toBe(`# keep\r\n\r\n# >>> nittle >>>\r\nexport PATH="x:$PATH"\r\n${ZSH_LINE}\r\n# <<< nittle <<<\r\n`);
+    await box.run([], { ...answer(box, "y\n"), NITTLE_NO_MODIFY_PATH: "1" });
+    expect(read(join(box.home, ".zshrc")).split("completion --shell").length).toBe(2);
+    await box.run(["--uninstall"]);
+    expect(read(join(box.home, ".zshrc"))).toBe("# keep\r\n");
+  });
+
+  test("a probe that hangs is killed and completions are skipped", async () => {
+    const box = open();
+    const started = Date.now();
+    const result = await box.run([], { ...answer(box, "y\n"), FAKE_COMPLETION_HANG: "1", NITTLE_TEST_PROBE_TIMEOUT: "1" });
+    expect(result.code).toBe(0);
+    expect(Date.now() - started).toBeLessThan(20_000);
+    expect(result.out).not.toContain("completions for");
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+  });
+
+  test("the test seams are ignored unless NITTLE_INSTALLER_TEST=1", async () => {
+    const box = open();
+    const result = await box.run([], { ...answer(box, "y\n"), NITTLE_INSTALLER_TEST: "" });
+    expect(result.out).not.toContain("completions for");
+    expect(read(join(box.home, ".zshrc"))).not.toContain("completion");
+  });
+
   test("uninstall removes the block together with its completion line", async () => {
     const box = open();
     write(join(box.home, ".zshrc"), "alias a=b\n");
