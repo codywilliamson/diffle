@@ -33,11 +33,24 @@ export function createCommentsStore(
     return r ? r.viewed : [];
   };
 
-  // save the full comments array and adopt whatever record the server returns.
-  async function persist(next: Comment[]): Promise<string | null> {
+  // writes run one at a time, each building its payload from the record the previous one
+  // adopted. two quick deletes or saves can't race, and a late response can't resurrect a comment.
+  let queueTail: Promise<unknown> = Promise.resolve();
+  function inOrder<T>(task: () => Promise<T>): Promise<T> {
+    const run = queueTail.then(task, task);
+    queueTail = run.catch(() => undefined);
+    return run;
+  }
+
+  // save the full comments array (built from the latest record) and adopt what the server returns.
+  function persist(build: (current: Comment[]) => Comment[]): Promise<string | null> {
+    return inOrder(() => persistNow(build));
+  }
+
+  async function persistNow(build: (current: Comment[]) => Comment[]): Promise<string | null> {
     error = null;
     try {
-      review.adopt(await deps.saveComments(next));
+      review.adopt(await deps.saveComments(build(comments())));
       return null;
     } catch (e) {
       error = errorMessage(e);
@@ -46,7 +59,11 @@ export function createCommentsStore(
   }
 
   // toggle a file's viewed mark, saving the full viewed array and adopting the returned record.
-  async function toggleViewed(path: string): Promise<void> {
+  function toggleViewed(path: string): Promise<void> {
+    return inOrder(() => toggleViewedNow(path));
+  }
+
+  async function toggleViewedNow(path: string): Promise<void> {
     const set = new Set(viewed());
     if (set.has(path)) set.delete(path);
     else set.add(path);
@@ -64,7 +81,11 @@ export function createCommentsStore(
     return isRecord(r) ? r.id : null;
   }
 
-  async function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
+  function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
+    return inOrder(() => viaRecordNow(run));
+  }
+
+  async function viaRecordNow(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
     const id = recordId();
     if (id == null) {
       error = "not available on a legacy review";
@@ -101,10 +122,10 @@ export function createCommentsStore(
       return comments().filter((c) => c.file === path && !isResolved(c)).length;
     },
     toggleViewed,
-    add: (comment: Comment) => persist([...comments(), comment]),
+    add: (comment: Comment) => persist((current) => [...current, comment]),
     edit: (id: string, patch: Partial<Comment>) =>
-      persist(comments().map((c) => (c.id === id ? { ...c, ...patch } : c))),
-    remove: (id: string) => persist(comments().filter((c) => c.id !== id)),
+      persist((current) => current.map((c) => (c.id === id ? { ...c, ...patch } : c))),
+    remove: (id: string) => persist((current) => current.filter((c) => c.id !== id)),
     resolve: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "resolved")),
     reopen: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "open")),
     reply: (commentId: string, text: string) => viaRecord((id) => deps.replyToReviewComment(id, commentId, text)),
