@@ -140,6 +140,21 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await cursorIs(page, "src/main.ts", start);
   });
 
+  test("in visual mode the first Esc closes the viewer, the next ends the range", async ({ page }) => {
+    await startInMain(page);
+    await page.keyboard.press("V");
+    const selected = page.locator(".range-selected");
+    await expect(selected.first()).toBeVisible();
+    await ctrlClick(page, "src/main.ts", 6, "label");
+    const viewer = page.locator("[data-lsp-viewer]");
+    await expect(viewer).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toHaveCount(0);
+    await expect(selected.first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(selected).toHaveCount(0);
+  });
+
   test("a definition outside the repo opens read-only with its absolute path", async ({ page }) => {
     await startInMain(page);
     await ctrlClick(page, "src/main.ts", 6, "double");
