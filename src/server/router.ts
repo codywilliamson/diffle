@@ -3,6 +3,7 @@
 import type { Server } from "bun";
 import type { ServerContext } from "./handlers";
 import { maybeCompress } from "./compress";
+import { SERVER_IDLE_TIMEOUT_S } from "./idleTimeout";
 import {
   handleGetDiff,
   handleGetComments,
@@ -81,6 +82,7 @@ export function createServer(ctx: ServerContext, port = 0): Server<undefined> {
   const server: Server<undefined> = Bun.serve({
     port,
     hostname: LOOPBACK_BIND_HOST,
+    idleTimeout: SERVER_IDLE_TIMEOUT_S,
     fetch: async (req) => guardRequest(req, server.port ?? port) ?? maybeCompress(req, await route(ctx, req)),
   });
   return server;
