@@ -47,7 +47,41 @@ describe("jumpTo", () => {
   });
 });
 
+describe("jumpTo on the old side", () => {
+  const oldFile = (path: string, oldPath: string | null, lines: [number | null, number | null][]): DiffFile =>
+    ({
+      path, oldPath, changeType: "modified", binary: false, additions: 0, deletions: 0,
+      hunks: [{ header: "@@", lines: lines.map(([o, n]) => ({ type: n === null ? "deletion" : o === null ? "addition" : "context", oldLine: o, newLine: n, content: "x" })) }],
+    }) as unknown as DiffFile;
+
+  it("lands on the old line, not the new line with the same number", () => {
+    // old 3 is a removed line; new 3 is a different, added line
+    const { deps, toDiff } = setup([oldFile("a.ts", null, [[2, 2], [3, null], [null, 3]])]);
+    expect(jumpTo(deps, target({ side: "old", line: 3 }))).toBe("diff");
+    expect(toDiff).toHaveBeenCalledWith({ path: "a.ts", side: "old", line: 3, preview: "", ranges: [] });
+  });
+
+  it("opens the viewer when the old line is outside every hunk, even if the new side shows that number", () => {
+    const { deps, toDiff, toViewer } = setup([oldFile("a.ts", null, [[null, 3]])]);
+    expect(jumpTo(deps, target({ side: "old", line: 3 }))).toBe("viewer");
+    expect(toDiff).not.toHaveBeenCalled();
+    expect(toViewer.mock.calls[0]![0].side).toBe("old");
+  });
+
+  it("finds a renamed file by its old path and reports that path", () => {
+    const { deps, toDiff } = setup([oldFile("new/a.ts", "old/a.ts", [[3, 5]])]);
+    expect(jumpTo(deps, target({ path: "old/a.ts", side: "old", line: 3 }))).toBe("diff");
+    expect(toDiff.mock.calls[0]![0]).toMatchObject({ path: "old/a.ts", side: "old", line: 3 });
+  });
+});
+
 describe("targetOf", () => {
+  it("carries the old side through", () => {
+    const range = { start: { line: 2, character: 0 }, end: { line: 2, character: 1 } };
+    expect(targetOf({ path: "a.ts", absolutePath: "/w/a.ts", inRepo: true, side: "old" }, range).side).toBe("old");
+    expect(targetOf({ path: "a.ts", absolutePath: "/r/a.ts", inRepo: true }, range)).not.toHaveProperty("side");
+  });
+
   it("takes the range start and keeps the uri when there is one", () => {
     const range = { start: { line: 7, character: 4 }, end: { line: 7, character: 9 } };
     expect(targetOf({ path: "a.ts", absolutePath: "/r/a.ts", inRepo: true, uri: "file:///r/a.ts" }, range)).toEqual({
