@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { COMPILE_FLAGS } from "../scripts/compileFlags";
 import { childCommand } from "../src/core/completionHook";
@@ -12,16 +12,16 @@ const scripts = (JSON.parse(read("package.json")) as { scripts: Record<string, s
 const NO_ENV_SHEBANG = "#!/usr/bin/env -S bun --no-env-file";
 // every package.json script that starts nittle or its dev launcher from source, and the exact command it must run
 const SOURCE_SCRIPTS: Record<string, string> = {
-  start: "bun run client:build && bun --no-env-file src/index.ts",
-  preview: "bun run client:build && bun --no-env-file src/index.ts",
-  dev: "bun --no-env-file scripts/dev.ts",
-  "mcp:serve": "bun --no-env-file src/mcp/index.ts",
+  start: "bun run client:build && bun --no-env-file --config=bunfig.toml src/index.ts",
+  preview: "bun run client:build && bun --no-env-file --config=bunfig.toml src/index.ts",
+  dev: "bun --no-env-file --config=bunfig.toml scripts/dev.ts",
+  "mcp:serve": "bun --no-env-file --config=bunfig.toml src/mcp/index.ts",
 };
 const SHEBANG_ENTRYPOINTS = ["src/index.ts", "src/mcp/index.ts", "scripts/dev.ts"];
 
 describe("nittle never loads .env from the repository under review", () => {
   it("both build scripts compile with the shared no-dotenv flags", () => {
-    expect(COMPILE_FLAGS).toEqual(["--compile", "--no-compile-autoload-dotenv"]);
+    expect(COMPILE_FLAGS).toEqual(["--compile", "--no-compile-autoload-dotenv", "--no-compile-autoload-bunfig", "--no-compile-autoload-tsconfig", "--no-compile-autoload-package-json"]);
     for (const script of ["scripts/build-binary.ts", "scripts/build-release.ts"]) {
       expect(read(script), script).toContain("...COMPILE_FLAGS");
       expect(read(script), script).not.toMatch(/"--compile"/);
@@ -36,7 +36,7 @@ describe("nittle never loads .env from the repository under review", () => {
 
   it("no other package.json script runs a source entrypoint with plain bun", () => {
     const known = new Set(Object.keys(SOURCE_SCRIPTS));
-    const offenders = Object.entries(scripts).filter(([name, cmd]) => !known.has(name) && /bun (?!--no-env-file)(?:run )?(?:\.\/)?(src\/(?:index|mcp\/index)\.ts|scripts\/dev\.ts)/.test(cmd));
+    const offenders = Object.entries(scripts).filter(([name, cmd]) => !known.has(name) && /bun (?!--no-env-file --config=)(?:run )?(?:\.\/)?(src\/(?:index|mcp\/index)\.ts|scripts\/dev\.ts)/.test(cmd));
     expect(offenders).toEqual([]);
   });
 
@@ -48,11 +48,11 @@ describe("nittle never loads .env from the repository under review", () => {
 
   it("the source-mode completion hook child starts with --no-env-file right after the runtime", () => {
     const command = childCommand(join(ROOT), "r1");
-    expect(command).toEqual([process.execPath, "--no-env-file", join(ROOT, "src", "index.ts"), "--review-id", "r1"]);
+    expect(command).toEqual([process.execPath, "--no-env-file", `--config=${join(ROOT, "bunfig.toml")}`, join(ROOT, "src", "index.ts"), "--review-id", "r1"]);
   });
 
   it("the dev launcher starts its backend protected too", () => {
-    expect(read("scripts/dev.ts")).toContain('spawn("bun", ["--no-env-file", join(ROOT, "src", "index.ts")');
+    expect(read("scripts/dev.ts")).toContain('spawn("bun", ["--no-env-file", `--config=${join(ROOT, "bunfig.toml")}`, join(ROOT, "src", "index.ts")');
   });
 
   it("a binary compiled with the flags does not see a .env marker", () => {
@@ -67,5 +67,29 @@ describe("nittle never loads .env from the repository under review", () => {
     writeFileSync(join(cwd, ".env"), "NITTLE_DOTENV_MARKER=leaked\n");
     const run = Bun.spawnSync([out], { cwd, env: { ...process.env, NITTLE_DOTENV_MARKER: undefined } });
     expect(run.stdout.toString().trim()).toBe("marker=unset");
+  });
+
+  // compiles the probe with `flags`, runs it in a repo whose bunfig.toml preloads a script that writes a marker file
+  const bunfigPreloadRan = (flags: readonly string[]): boolean => {
+    const work = tempDir("bunfig");
+    const entry = join(work, "entry.ts");
+    const out = join(work, "probe");
+    writeFileSync(entry, "console.log('ran');\n");
+    expect(Bun.spawnSync(["bun", "build", entry, ...flags, "--outfile", out], { cwd: work }).exitCode).toBe(0);
+    const repo = join(work, "repo");
+    mkdirSync(repo);
+    const marker = join(repo, "MARKER");
+    writeFileSync(join(repo, "payload.ts"), `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(marker)}, "x");\n`);
+    writeFileSync(join(repo, "bunfig.toml"), 'preload = ["./payload.ts"]\n');
+    expect(Bun.spawnSync([out], { cwd: repo }).stdout.toString().trim()).toBe("ran");
+    return existsSync(marker);
+  };
+
+  it("a plain --compile binary runs the repo's bunfig preload (why the flag exists)", () => {
+    expect(bunfigPreloadRan(["--compile", "--no-compile-autoload-dotenv"])).toBe(true);
+  });
+
+  it("a binary compiled with the flags ignores the repo's bunfig.toml preload", () => {
+    expect(bunfigPreloadRan(COMPILE_FLAGS)).toBe(false);
   });
 });

@@ -8,7 +8,7 @@ Epic #206 renames the product from diffle to nittle (why: [ADR 0008](../adr/0008
 
 ### Running from source (.env)
 
-Bun loads `.env` from the cwd before any user code runs, and the cwd is the repository under review. The compiled binary is built with `--no-compile-autoload-dotenv`. From source, use the `bun start`, `bun run dev`, `bun run preview` and `bun run mcp:serve` scripts, or the shebang on `src/index.ts`, `src/mcp/index.ts` and `scripts/dev.ts`; all pass `--no-env-file`. A plain `bun src/index.ts` cannot protect itself from inside the script, so add `--no-env-file` yourself when running it in a repository you do not trust.
+Bun loads `.env` and `bunfig.toml` (whose `preload` runs code) from the cwd before any user code runs, and the cwd is the repository under review. The compiled binary is built with `--no-compile-autoload-dotenv --no-compile-autoload-bunfig` (tsconfig and package.json autoload pinned off too). From source, the `bun start`, `bun run dev`, `bun run preview` and `bun run mcp:serve` scripts pass `--no-env-file --config=bunfig.toml`, so the checkout's own config replaces the cwd one; the hook child does the same with an absolute path. The shebangs on `src/index.ts`, `src/mcp/index.ts` and `scripts/dev.ts` can only carry `--no-env-file`, because a shebang cannot name a path to this checkout's bunfig: a directly executed or `bun link`ed source entrypoint still reads the cwd `bunfig.toml`. A plain `bun src/index.ts` cannot protect itself either; pass `--no-env-file --config=<checkout>/bunfig.toml` when running it in a repository you do not trust.
 
 ### Authority for a resumed session
 

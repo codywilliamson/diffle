@@ -16,7 +16,7 @@ interface HookPayload {
 export function childCommand(productRoot: string, reviewId: string): string[] {
   return isProductBinary(basename(process.execPath))
     ? [process.execPath, "--review-id", reviewId]
-    : [process.execPath, "--no-env-file", join(productRoot, "src", "index.ts"), "--review-id", reviewId]; // the child runs in the reviewed repo: never load its .env
+    : [process.execPath, "--no-env-file", `--config=${join(productRoot, "bunfig.toml")}`, join(productRoot, "src", "index.ts"), "--review-id", reviewId]; // the child runs in the reviewed repo: never load its .env or bunfig.toml
 }
 
 async function performCompletionHook(agent: ReviewOrigin["agent"], productRoot: string): Promise<void> {
