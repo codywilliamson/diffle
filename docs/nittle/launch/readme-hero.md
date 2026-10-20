@@ -10,7 +10,7 @@ The lineage line appears once, exactly as below, and is the same string as `PROD
 
 Review the diff your coding agent wrote. Comment on the exact lines, send the comments back, and look at what it changed.
 
-nittle is a local git diff viewer. You run `nittle` in a repo and it opens the diff in your browser. You comment on a line, a range or a file. The comments go back to your agent as a structured prompt, by copy and paste, over a local MCP server, or on stdout with `nittle --wait`. The agent can reply in the thread and ask for another pass. Everything stays on your machine. No forge, no account, no hosted model.
+nittle is a local git diff viewer. You run `nittle` in a repo and it opens the diff in your browser. You comment on a line, a range or a file. The comments go back to your agent as a structured prompt, by copy and paste, over a local MCP server, or on stdout with `nittle --wait`. The agent can reply in the thread and ask for another pass. It all stays on your machine. You don't need a forge, an account, or a hosted model.
 
 nittle, fka diffle (the Deterministic Inspection & Feedback Framework for Language-model Engineering, per ADR 0004, which we stand by), fka loupe.
 
