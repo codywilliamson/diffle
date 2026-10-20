@@ -268,15 +268,11 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await page.keyboard.press("s");
     await expect(page.locator(".split-diff").first()).toBeVisible();
     // greeter.ts old line 5 is the removed `return ${this.greeting}, ${name}`; `name` is the parameter on old line 4
-    await page.keyboard.press("j");
-    const start = page.locator('[data-file-path="src/greeter.ts"] [data-cursor]');
-    await expect(start).toHaveCount(1);
-    const startRow = { old: await start.getAttribute("data-oldline"), fresh: await start.getAttribute("data-newline") };
     await ctrlClick(page, "src/greeter.ts", 5, "name", "old");
     await oldCursorIs(page, "src/greeter.ts", "4");
+    // the click placed the cursor on the clicked old row, so that row is the Ctrl+o origin
     await page.keyboard.press("Control+o");
-    await expect(start).toHaveAttribute("data-oldline", startRow.old ?? "");
-    await expect(start).toHaveAttribute("data-newline", startRow.fresh ?? "");
+    await oldCursorIs(page, "src/greeter.ts", "5");
   });
 
   test("split view: gd on a removed-line symbol lands on the old definition", async ({ page }) => {
@@ -295,7 +291,6 @@ test.describe("code navigation (real typescript-language-server)", () => {
 
   test("split view: an old-side definition outside every hunk opens the base file, and Ctrl+o returns", async ({ page }) => {
     await page.keyboard.press("s");
-    const start = await startInMain(page);
     await ctrlClick(page, "src/main.ts", 5, "Greeter", "old");
     // a class and its constructor both answer; the first is the class declaration on greeter.ts line 1
     await expect(page.locator("[data-definition-picker]")).toBeVisible();
@@ -305,7 +300,7 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await expect(viewer.locator("[data-target-line]")).toContainText("export class Greeter");
     await page.keyboard.press("Control+o");
     await expect(viewer).toHaveCount(0);
-    await cursorIs(page, "src/main.ts", start);
+    await oldCursorIs(page, "src/main.ts", "5");
   });
 
   test("gS searches the repository's symbols", async ({ page }) => {
