@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tryGetAppState } from "$lib/state/context";
   import ComposerHint from "./ComposerHint.svelte";
 
   let { onSend, onDone }: { onSend: (text: string) => Promise<string | null>; onDone: () => void } = $props();
@@ -8,12 +9,13 @@
   let sendError = $state<string | null>(null);
   let input = $state<HTMLTextAreaElement>();
   const hintId = $props.id();
+  const blocked = $derived(tryGetAppState()?.connection.blockedReason ?? null);
 
   $effect(() => input?.focus());
 
   async function submit(): Promise<void> {
     const trimmed = text.trim();
-    if (!trimmed || pending) return;
+    if (!trimmed || pending || blocked) return;
     pending = true;
     sendError = null;
     try {
@@ -49,7 +51,7 @@
     class="composer-input"
   ></textarea>
   <div class="mt-2 flex flex-wrap items-center gap-2">
-    <button class="comment-btn comment-btn-primary" onclick={submit} disabled={!text.trim() || pending}>{pending ? "Sending…" : "Send"}</button>
+    <button class="comment-btn comment-btn-primary" onclick={submit} disabled={!text.trim() || pending || !!blocked} title={blocked ?? undefined}>{pending ? "Sending…" : "Send"}</button>
     <button class="comment-btn" onclick={onDone} disabled={pending}>Cancel</button>
     <ComposerHint id={hintId} action="send" class="@max-md:hidden" />
   </div>
