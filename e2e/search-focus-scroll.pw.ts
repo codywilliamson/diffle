@@ -41,6 +41,54 @@ for (const layout of ["unified", "split"] as const) {
   });
 }
 
+const scrollLefts = (page: Page) =>
+  page.evaluate(() => [...document.querySelectorAll<HTMLElement>("[data-file-path='long-line.ts'] *")].map((el) => el.scrollLeft).filter((x) => x > 0));
+
+test("plain cursor moves do not snap the pan back to an old match", async ({ page }) => {
+  const fixture = makeFixture(LONG);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await open(page, url);
+    await page.keyboard.press("/");
+    await page.keyboard.type(NEEDLE);
+    await page.keyboard.press("Enter");
+    await expect(counter(page)).toHaveText("1 / 1");
+    await expect.poll(async () => (await scrollLefts(page)).length).toBeGreaterThan(0);
+    await page.evaluate(() => document.querySelectorAll<HTMLElement>("[data-file-path='long-line.ts'] *").forEach((el) => (el.scrollLeft = 0)));
+    await page.keyboard.press("j");
+    await page.keyboard.press("k");
+    await page.waitForTimeout(300);
+    expect(await scrollLefts(page)).toEqual([]);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
+test("split reveal keeps the match clear of the sticky gutter", async ({ page }) => {
+  const fixture = makeFixture(LONG);
+  const { server, url } = startPreview(fixture, { seenWhatsNew: true });
+  try {
+    await open(page, url);
+    await page.keyboard.press("s");
+    await expect(page.locator(".split-pane-new").first()).toBeVisible();
+    await page.keyboard.press("/");
+    await page.keyboard.type(NEEDLE);
+    await page.keyboard.press("Enter");
+    await expect(counter(page)).toHaveText("1 / 1");
+    const mark = page.locator("[data-file-path='long-line.ts'] .split-pane-new mark.sm-active").first();
+    await expect(mark).toBeInViewport();
+    const gap = await mark.evaluate((el) => {
+      const gutter = el.closest(".split-line")?.querySelector(".split-gutter")?.getBoundingClientRect();
+      return el.getBoundingClientRect().left - (gutter?.right ?? 0);
+    });
+    expect(gap).toBeGreaterThanOrEqual(0);
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
 test("Enter hands focus to the diff so n steps with the query untouched, Esc clears", async ({ page }) => {
   const fixture = makeFixture(SHORT);
   const { server, url } = startPreview(fixture, { seenWhatsNew: true });
