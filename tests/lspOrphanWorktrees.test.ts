@@ -28,6 +28,40 @@ function make(repo: string, dirName: string, options: { leaf?: string; note?: Pa
   return { path, dir };
 }
 
+const KILLED = join(import.meta.dir, "fixtures", "killedWorkspace.ts");
+
+// runs a workspace that dies at `stage`; returns the repo and the commit it was opening
+function killedRun(stage: "add" | "link") {
+  const repo = gitRepo({ "a.ts": "one\n", "package.json": "{}\n" });
+  writeFileSync(join(repo, "a.ts"), "two\n");
+  git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-am", "two");
+  const run = Bun.spawnSync([process.execPath, KILLED, repo, "HEAD~1", stage]);
+  expect(run.exitCode).toBe(137);
+  return repo;
+}
+
+describe("a run killed mid-creation", () => {
+  test("killed right before the worktree was added: cleanup removes the planned, empty directory", () => {
+    const repo = killedRun("add");
+    const found = findOrphanWorktrees(repo);
+    expect(found).toHaveLength(1);
+    expect(existsSync(found[0]!.dir)).toBe(true);
+    expect(listWorktreePaths(repo)).toHaveLength(1);
+    expect(removeOrphanWorktrees(repo, found)).toHaveLength(1);
+    expect(existsSync(found[0]!.dir)).toBe(false);
+  }, SLOW_MS);
+
+  test("killed right after git worktree add, before linking: cleanup removes the registered worktree", () => {
+    const repo = killedRun("link");
+    const found = findOrphanWorktrees(repo);
+    expect(found).toHaveLength(1);
+    expect(listWorktreePaths(repo)).toHaveLength(2);
+    expect(removeOrphanWorktrees(repo, found)).toHaveLength(1);
+    expect(listWorktreePaths(repo)).toHaveLength(1);
+    expect(existsSync(found[0]!.dir)).toBe(false);
+  }, SLOW_MS);
+});
+
 describe("leftover worktrees", () => {
   test("only provably owned, dead-pid worktrees under the product prefix in this repo's list are removed", () => {
     const repo = gitRepo({ "a.ts": "x\n" });
@@ -42,7 +76,7 @@ describe("leftover worktrees", () => {
     const stranger = make(strangerRepo, `${WORKTREE_PREFIX}${deadPid()}-`);
 
     const found = findOrphanWorktrees(repo);
-    expect(found.map(norm)).toEqual([norm(dead.path)]);
+    expect(found.map((orphan) => norm(orphan.dir))).toEqual([norm(dead.dir)]);
 
     expect(removeOrphanWorktrees(repo, found)).toHaveLength(1);
     expect(existsSync(dead.path)).toBe(false);
