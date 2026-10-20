@@ -6,6 +6,8 @@
   import CommitHeader from "$lib/components/CommitHeader.svelte";
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
+  import ServerGoneBanner from "$lib/components/ServerGoneBanner.svelte";
+  import { onServerLink } from "$lib/api/serverLink";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
   import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
@@ -49,13 +51,19 @@
         if (s.seenVersion !== WHATS_NEW.version) ui.openOverlay("whatsNew");
       })
       .catch(() => {});
-    return () => app.review.stopPolling();
+    const unlink = onServerLink((event) => (event === "reachable" ? app.connection.reachable() : app.connection.unreachable()));
+    return () => {
+      app.review.stopPolling();
+      unlink();
+      app.connection.dispose();
+    };
   });
 </script>
 
 <svelte:window onkeydown={onKeydown} onkeydowncapture={onKeydownCapture} />
 
 <main class="flex h-dvh flex-col bg-bg font-sans text-text">
+  <ServerGoneBanner />
   {#if diff.state.status === "error"}
     <p role="alert" class="m-6 rounded-md border border-border bg-surface p-4 text-destructive">
       {diff.state.message}
