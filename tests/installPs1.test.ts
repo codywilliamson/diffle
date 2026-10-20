@@ -57,7 +57,7 @@ async function run(scenario: Scenario = {}): Promise<{ code: number; out: string
   };
   const prelude = Object.entries(env).map(([key, value]) => (value === "" ? `Remove-Item Env:${key} -ErrorAction SilentlyContinue` : `$env:${key} = '${q(value.replaceAll("<dir>", dir))}'`)).join("\n");
   const wrapper = join(dir, "wrapper.ps1");
-  writeFileSync(wrapper, `${prelude}\n${scenario.mock ?? releaseMock()}\n$script:Failure = $null\ntry { Invoke-Expression (Get-Content -Raw -LiteralPath '${q(join(root, "install.ps1"))}') } catch { [Console]::Error.WriteLine("FAILED: " + $_.Exception.Message); exit 42 }\n`);
+  writeFileSync(wrapper, `${prelude}\n${scenario.mock ?? releaseMock()}\n$script:Failure = $null\n$Name = 'mine'\ntry { Invoke-Expression (Get-Content -Raw -LiteralPath '${q(join(root, "install.ps1"))}') } catch { [Console]::Error.WriteLine("FAILED: " + $_.Exception.Message); exit 42 }\nif ($Name -ne 'mine') { [Console]::Error.WriteLine("CLOBBERED: Name is " + $Name); exit 43 }\n`);
   const proc = Bun.spawn([pwsh!, "-NoProfile", "-File", wrapper], { stdout: "pipe", stderr: "pipe", cwd: dir, env: { ...process.env, HOME: join(dir, "home"), USERPROFILE: join(dir, "home") } });
   const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
   return { code: await proc.exited, out: stdout + stderr, dir, userPath: existsSync(scope) ? readFileSync(scope, "utf8") : "", bin, legacyBin };
