@@ -23,7 +23,7 @@ export function scrollDelta(row: Span, pane: Span, headerHeight: number, margin 
   return 0;
 }
 
-export type RevealTarget = { kind: "line" | "file"; path: string };
+export type RevealTarget = { kind: "line" | "file" | "match"; path: string };
 
 function sectionFor(pane: Element, path: string): HTMLElement | undefined {
   return [...pane.querySelectorAll<HTMLElement>("[data-file-path]")].find((el) => el.dataset.filePath === path);
@@ -44,7 +44,7 @@ function attempt(target: RevealTarget): boolean {
   const header = section.querySelector<HTMLElement>("[data-file-header]");
   const delta = scrollDelta(row.getBoundingClientRect(), paneRect, header?.offsetHeight ?? 0);
   if (delta !== 0) pane.scrollTo({ top: pane.scrollTop + delta, behavior: "instant" });
-  revealActiveMatchX(row);
+  if (target.kind === "match") revealActiveMatchX(row);
   return true;
 }
 

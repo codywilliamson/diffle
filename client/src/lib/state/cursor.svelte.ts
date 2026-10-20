@@ -29,7 +29,7 @@ export interface BodyReport {
   navigable: boolean;
 }
 
-export type RevealKind = "line" | "file";
+export type RevealKind = "line" | "file" | "match"; // match: a search step, which also scrolls sideways
 
 // a file the body would not render lines for until someone loads or expands it.
 function defaultNavigable(file: DiffFile): boolean {
@@ -260,7 +260,7 @@ export function createCursorStore(deps: CursorDeps) {
         target = find();
         if (!target) pref = previous;
       }
-      commit(target, from, { jump: true, reveal: "line" });
+      commit(target, from, { jump: true, reveal: "match" });
     },
     // a result from the cross-file search: opens the file first when it is collapsed or gated
     goToHit(hit: SearchHit): void {
