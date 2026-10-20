@@ -18,6 +18,13 @@ describe("scrollDeltaX", () => {
     expect(-500 - delta).toBe(box.left + REVEAL_X_MARGIN_PX);
   });
 
+  it("keeps a leftward reveal clear of a sticky gutter", () => {
+    const gutter = 66;
+    const delta = scrollDeltaX({ left: 160, right: 240 }, box, gutter);
+    expect(160 - delta).toBe(box.left + gutter + REVEAL_X_MARGIN_PX);
+    expect(scrollDeltaX({ left: 160, right: 240 }, box)).toBe(0);
+  });
+
   it("shrinks the margin in a narrow box", () => {
     expect(scrollDeltaX({ left: 10, right: 30 }, { left: 0, right: 40 })).toBe(0);
   });

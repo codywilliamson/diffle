@@ -9,9 +9,11 @@ interface Span {
 }
 
 // how far to scroll horizontally so the span sits inside the box; 0 while it already does.
-export function scrollDeltaX(mark: Span, box: Span, margin = REVEAL_X_MARGIN_PX): number {
-  const gap = Math.min(margin, (box.right - box.left) / 4);
-  if (mark.left < box.left + gap) return mark.left - (box.left + gap);
+// `leftInset` is a sticky gutter pinned over the box's left edge, which hides whatever scrolls under it.
+export function scrollDeltaX(mark: Span, box: Span, leftInset = 0, margin = REVEAL_X_MARGIN_PX): number {
+  const left = box.left + leftInset;
+  const gap = Math.min(margin, (box.right - left) / 4);
+  if (mark.left < left + gap) return mark.left - (left + gap);
   if (mark.right > box.right - gap) return mark.right - (box.right - gap);
   return 0;
 }
@@ -29,7 +31,8 @@ export function revealActiveMatchX(row: HTMLElement): boolean {
   const mark = row.querySelector<HTMLElement>("mark.sm-active");
   const scroller = mark && horizontalScroller(mark);
   if (!mark || !scroller) return false;
-  const delta = scrollDeltaX(mark.getBoundingClientRect(), scroller.getBoundingClientRect());
+  const gutter = mark.closest(".split-line")?.querySelector<HTMLElement>(".split-gutter");
+  const delta = scrollDeltaX(mark.getBoundingClientRect(), scroller.getBoundingClientRect(), gutter?.offsetWidth ?? 0);
   if (delta === 0) return false;
   scroller.scrollTo({ left: scroller.scrollLeft + delta, behavior: "instant" });
   return true;
