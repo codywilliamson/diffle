@@ -17,6 +17,7 @@ export function createUiStore() {
   let drawerOpen = $state(false);
   let adding = $state<AddTarget | null>(null);
   let selecting = $state<SelectTarget | null>(null);
+  let editingComment = $state<string | null>(null);
 
   return {
     get activeOverlay(): OverlayName | null {
@@ -79,6 +80,16 @@ export function createUiStore() {
     },
     get selecting(): SelectTarget | null {
       return selecting;
+    },
+    // the comment whose card shows its editor (the e key and the Edit button)
+    get editingComment(): string | null {
+      return editingComment;
+    },
+    startEdit(id: string): void {
+      editingComment = id;
+    },
+    stopEdit(): void {
+      editingComment = null;
     },
     startLineAdd(file: string, side: Side, line: number): void {
       adding = { file, side, line, endLine: line };
