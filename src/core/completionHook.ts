@@ -13,10 +13,10 @@ interface HookPayload {
   last_assistant_message?: string;
 }
 
-function childCommand(productRoot: string, reviewId: string): string[] {
+export function childCommand(productRoot: string, reviewId: string): string[] {
   return isProductBinary(basename(process.execPath))
     ? [process.execPath, "--review-id", reviewId]
-    : [process.execPath, join(productRoot, "src", "index.ts"), "--review-id", reviewId];
+    : [process.execPath, "--no-env-file", join(productRoot, "src", "index.ts"), "--review-id", reviewId]; // the child runs in the reviewed repo: never load its .env
 }
 
 async function performCompletionHook(agent: ReviewOrigin["agent"], productRoot: string): Promise<void> {
