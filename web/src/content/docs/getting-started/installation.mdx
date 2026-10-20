@@ -62,6 +62,14 @@ The installer also finds a diffle that was installed to a custom directory. It r
 
 If the migration can't finish, nittle keeps both copies, prints what is left, and tries again on the next run. Details are in [Migrating from diffle](/guides/migrating-from-diffle/).
 
+## Shell completions
+
+On a terminal, the installer asks once, `Install nittle shell completions for zsh? [y/N]` (default no), for zsh, bash and fish. On yes it adds one line inside the same `# >>> nittle >>>` block it wrote for `PATH`, so uninstalling removes it with the block. fish needs no profile edit: the installer writes `~/.config/fish/completions/nittle.fish` instead, and the uninstaller removes that file. If there is no nittle block in your rc (for example with `NITTLE_NO_MODIFY_PATH=1`), it prints the line and edits nothing.
+
+On Windows, the installer sets `PATH` through the registry and has no profile block, so it only prints the one-line PowerShell instruction (see [Shell completion](/reference/cli/#shell-completion)).
+
+The offer is skipped when there's no terminal, with `NITTLE_DRY_RUN`, or with `NITTLE_NO_COMPLETIONS=1`.
+
 ## Set up your coding agents
 
 On a terminal, the installer finishes by asking `Set up nittle for your coding agents? [Y/n]` and runs `nittle setup`. It detects the agents you have installed, shows exactly what it will change, and asks before applying. You can run it any time, and `nittle setup --remove` undoes it. See [Agent feedback](/guides/agent-feedback/).

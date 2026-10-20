@@ -193,7 +193,7 @@ nittle doctor --fix
 
 Refs are read from git when you press tab, so a branch you created a minute ago shows up without regenerating anything. The script comes from the same table that drives `--help`, so a new flag shows up in all four shells in the next release.
 
-nittle never edits your shell profile. Add the line for your shell yourself.
+nittle never edits your shell profile. The installer can offer to wire completions up for you (zsh, bash and fish; default no): the line goes inside its own `PATH` marker block, and fish gets `~/.config/fish/completions/nittle.fish`. Set `NITTLE_NO_COMPLETIONS=1` to skip that offer. Otherwise add the line for your shell yourself.
 
 ### bash
 
