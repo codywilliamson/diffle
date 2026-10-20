@@ -7,6 +7,7 @@ import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
+import { createCommentFocus, type CommentFocus } from "./commentFocus.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
 import { createConnectionStore, probeServer, type ConnectionStore } from "./connection.svelte";
@@ -29,6 +30,7 @@ export interface AppState {
   searchAll: SearchAllStore;
   lsp: LspStore;
   connection: ConnectionStore;
+  commentFocus: CommentFocus;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -73,6 +75,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
       searchAll.close();
     },
   });
+  const commentFocus = createCommentFocus({ comments: () => comments.anchored, pos: () => cursor.pos });
   // when the same review's server comes back, catch up on the record through the guarded poll.
   // the diff is left alone: refreshing it could unmount an open editor and lose its text.
   const connection = createConnectionStore({
@@ -80,7 +83,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     pageReviewId: () => review.reviewId,
     onRecover: () => void review.poll(),
   });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, connection };
+  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, connection, commentFocus };
 }
 
 // for leaf components that also render without an app root (unit tests).
