@@ -75,7 +75,7 @@ export async function runCleanupCommand(opts: CleanupOptions): Promise<void> {
   console.log("plan:");
   for (const entry of plan.toDelete) console.log(`  delete stale entry ${entry.reviewId} (${entry.host}, pid ${entry.pid})`);
   for (const entry of plan.toStop) console.log(`  stop ${entry.reviewId} (${entry.host}, port ${entry.port}, ${recordStatus(entry.reviewId)})`);
-  for (const path of orphans) console.log(`  remove leftover language server worktree ${path}`);
+  for (const orphan of orphans) console.log(`  remove leftover language server worktrees in ${orphan.dir}`);
 
   if (!(await confirmProceed(opts.yes))) return;
 

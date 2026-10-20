@@ -4,20 +4,22 @@
 // never touched. a worktree moves to a new commit only while its own status is clean; while it
 // cannot, that side answers "blocked" rather than describing the wrong revision.
 
-import { mkdtempSync, realpathSync, rmdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, realpathSync, rmdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { LspSide } from "../../types";
 import { addDetachedWorktree, isCheckoutClean, moveDetachedWorktree, removeWorktree, resolveCommitHash } from "../../utils/gitWorktree";
 import { PRODUCT } from "../product";
 import { LIMITED_NOTE, linkDependencies, unlinkDependencies } from "./dependencyLinks";
-import { OWNER_FILE, writeOwnership } from "./worktreeOwnership";
+import { OWNER_FILE, OWNER_TEMP_PREFIX, writeOwnership } from "./worktreeOwnership";
 
 export const WORKTREE_PREFIX = `${PRODUCT.name}-lsp-wt-`; // <prefix><pid>-<random>/{new,old}
 const SHORT_HASH = 8;
 
 export type SideRoot = { root: string } | { unavailable: string; blocked?: boolean };
 interface Slot { path: string; commit: string; links: string[] }
+// test seams: run just before the worktree is created / its dependencies are linked
+export interface WorkspaceHooks { beforeAdd?: () => void; beforeLink?: () => void }
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 const short = (commit: string): string => commit.slice(0, SHORT_HASH);
@@ -30,7 +32,7 @@ export class LspWorkspace {
   private readonly limits = new Set<LspSide>();
   private readonly decided = new Map<LspSide, { key: string; answer: SideRoot }>();
 
-  constructor(private readonly repoRoot: string) {}
+  constructor(private readonly repoRoot: string, private readonly hooks: WorkspaceHooks = {}) {}
 
   // why a worktree could not follow the review, when it could not
   get blocker(): string | undefined { return [...this.blockers.values()].join("; ") || undefined; }
@@ -85,15 +87,33 @@ export class LspWorkspace {
     this.baseDir ??= realpathSync.native(mkdtempSync(join(tmpdir(), `${WORKTREE_PREFIX}${process.pid}-`)));
     const path = join(this.baseDir, side);
     const slot: Slot = { path, commit, links: [] };
-    addDetachedWorktree(this.repoRoot, path, commit);
     this.slots.set(side, slot);
-    this.link(side, slot);
+    this.writeOwnership(); // the plan is on disk before anything exists, so a kill at any point is cleanable
+    try {
+      this.hooks.beforeAdd?.();
+      addDetachedWorktree(this.repoRoot, path, commit);
+      this.hooks.beforeLink?.();
+      this.link(side, slot);
+    } catch (error) {
+      this.abandon(side, slot);
+      throw error;
+    }
     this.blockers.delete(side);
     return path;
   }
 
+  // a creation that failed: take back what it made. if that cannot be done the note stays for `cleanup`.
+  private abandon(side: LspSide, slot: Slot): void {
+    try {
+      if (!unlinkDependencies(slot.links)) return;
+      removeWorktree(this.repoRoot, slot.path);
+      this.slots.delete(side);
+      this.writeOwnership();
+    } catch { /* the note still names it */ }
+  }
+
   private link(side: LspSide, slot: Slot): void {
-    const { links, limited } = linkDependencies(this.repoRoot, slot.path, slot.links);
+    const { links, limited } = linkDependencies(this.repoRoot, slot.path, slot.links, (link) => { slot.links.push(link); this.writeOwnership(); });
     slot.links = links;
     if (limited) this.limits.add(side); else this.limits.delete(side);
     this.writeOwnership();
@@ -119,7 +139,7 @@ export class LspWorkspace {
     this.blockers.clear();
     this.limits.clear();
     if (this.baseDir && removedAll) {
-      try { rmSync(join(this.baseDir, OWNER_FILE), { force: true }); rmdirSync(this.baseDir); } catch { /* not empty (left for cleanup) or already gone */ }
+      try { for (const name of readdirSync(this.baseDir)) if (name === OWNER_FILE || name.startsWith(OWNER_TEMP_PREFIX)) rmSync(join(this.baseDir, name), { force: true }); rmdirSync(this.baseDir); } catch { /* not empty (left for cleanup) or already gone */ }
     }
     this.baseDir = undefined;
   }

@@ -5,7 +5,7 @@
 
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmdirSync, statSync, symlinkSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { runGit } from "../../utils/git";
+import { runGuardedGit } from "../../utils/gitWorktree";
 
 const DEPENDENCY_DIR = "node_modules";
 const PACKAGE_FILE = "package.json";
@@ -16,13 +16,14 @@ export interface LinkResult { links: string[]; limited: boolean }
 
 function packageDirs(worktree: string): string[] {
   try {
-    const files = runGit(["ls-files", "-z", "--", `:(glob)**/${PACKAGE_FILE}`], worktree).split("\0").filter(Boolean);
+    const files = runGuardedGit(["ls-files", "-z", "--", `:(glob)**/${PACKAGE_FILE}`], worktree).split("\0").filter(Boolean);
     return files.map((file) => file.slice(0, -PACKAGE_FILE.length).replace(/\/$/, "")).slice(0, MAX_PACKAGE_DIRS);
   } catch { return []; }
 }
 
 // links what exists and is not linked yet; `limited` when some package directory ends up without dependencies.
-export function linkDependencies(checkout: string, worktree: string, known: readonly string[] = []): LinkResult {
+// `planned` hears of each link just before it is made, so a kill never leaves a link nobody wrote down.
+export function linkDependencies(checkout: string, worktree: string, known: readonly string[] = [], planned: (link: string) => void = () => {}): LinkResult {
   const links = [...known];
   let limited = false;
   for (const dir of packageDirs(worktree)) {
@@ -33,6 +34,7 @@ export function linkDependencies(checkout: string, worktree: string, known: read
       if (!statSync(source).isDirectory()) throw new Error("not a directory");
       if (existsSync(link) || lstatSync(link, { throwIfNoEntry: false })) throw new Error("already there");
       mkdirSync(dirname(link), { recursive: true });
+      planned(link);
       symlinkSync(source, link, "junction");
       links.push(link);
     } catch { limited = true; }

@@ -150,6 +150,23 @@ describe("detached worktrees", () => {
     expect(snapshot(root)).toEqual(before); // includes node_modules and the unrelated stale registration
   }, 30_000);
 
+  test("a configured fsmonitor never runs during a session", async () => {
+    const { root, c1, c2 } = userCheckout();
+    const marker = join(tmpdir(), `nittle-fsmonitor-${process.pid}-${Date.now()}`);
+    git(root, "config", "core.fsmonitor", `echo ran > "${marker.replaceAll("\\", "/")}" #`);
+    Bun.spawnSync(["git", "status"], { cwd: root });
+    expect(existsSync(marker)).toBe(true); // the trap is live: plain git runs it
+    rmSync(marker);
+
+    const s = session(root, c2, ["diff", `${c1}..${c2}`]);
+    expect(await s.hover("new")).toBe(200);
+    expect(await s.hover("old")).toBe(200);
+    s.refresh(c1);
+    expect(await s.hover("new")).toBe(200);
+    await s.pool.shutdown();
+    expect(existsSync(marker)).toBe(false);
+  }, 30_000);
+
   test("killAll removes the worktrees too (ctrl+c and exit handlers)", async () => {
     const { root, c1, c2 } = userCheckout();
     const before = snapshot(root);
