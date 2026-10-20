@@ -2,6 +2,7 @@
   import MessageSquarePlus from "@lucide/svelte/icons/message-square-plus";
   import type { CommentTag, DiffFile, DiffLine } from "$types";
   import { getAppState } from "$lib/state/context";
+  import { addDraftKey } from "$lib/state/draftKeys";
   import type { SplitDisplayRow } from "$lib/diff/splitRows";
   import { markRange, type CharRange } from "$lib/diff/wordDiff";
   import { markHits } from "$lib/diff/search";
@@ -151,6 +152,7 @@
             {#if adding && line}
               <CommentEditor
                 suggest={suggestionFor(file, ui.adding)}
+                draftKey={ui.adding ? addDraftKey(ui.adding) : undefined}
                 onSave={(text, tag) => saveComment(line, text, tag)}
                 onCancel={() => ui.cancelAdd()}
               />
