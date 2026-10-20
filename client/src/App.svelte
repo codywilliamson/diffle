@@ -7,7 +7,7 @@
   import FileIndex from "$lib/components/FileIndex.svelte";
   import DiffView from "$lib/components/diff/DiffView.svelte";
   import ServerGoneBanner from "$lib/components/ServerGoneBanner.svelte";
-  import { onServerLink } from "$lib/api/serverLink";
+  import { onServerLink, setMutationBlock } from "$lib/api/serverLink";
   import SyncNotice from "$lib/components/review/SyncNotice.svelte";
   import LegacyPrompt from "$lib/components/LegacyPrompt.svelte";
   import CursorAnnouncer from "$lib/components/CursorAnnouncer.svelte";
@@ -52,9 +52,11 @@
       })
       .catch(() => {});
     const unlink = onServerLink((event) => (event === "reachable" ? app.connection.reachable() : app.connection.unreachable()));
+    setMutationBlock(() => app.connection.blockedReason);
     return () => {
       app.review.stopPolling();
       unlink();
+      setMutationBlock(() => null);
       app.connection.dispose();
     };
   });

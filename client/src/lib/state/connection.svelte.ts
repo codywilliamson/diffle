@@ -1,34 +1,48 @@
-// is the nittle server still there? a network-level failure (not an HTTP error) only makes the
-// link "suspect"; a probe after CONFIRM_DELAY_MS decides, so one blip never flashes the banner.
-// once "gone" it keeps probing and recovers on its own when the server answers again.
+// is the nittle server still there, and is it still this page's review? a network-level failure
+// (not an HTTP error) only makes the link "suspect"; a probe after CONFIRM_DELAY_MS decides, so
+// one blip never shows the banner. once "gone" it keeps probing. a server that answers must also
+// be serving this page's review: a different one blocks writes ("mismatch") until the page is reloaded.
 
 export const CONFIRM_DELAY_MS = 1500;
 export const RECOVERY_INTERVAL_MS = 3000;
 export const PROBE_TIMEOUT_MS = 2500;
-const PROBE_PATH = "/api/state";
+const PROBE_PATH = "/api/review"; // no id: answers with the record this server was started for
+const STATUS_NO_REVIEW = 400;
+export const UNREADABLE_REVIEW = "unreadable";
 
 const GONE_REASON = "The server is gone. Restart it to continue.";
+const MISMATCH_REASON = "A different review is running on this port. Reload to open it.";
 
-export type LinkState = "online" | "suspect" | "gone";
+export type LinkState = "online" | "suspect" | "gone" | "mismatch";
+
+// null reviewId = the server has no durable review (legacy manual mode)
+export type ProbeResult = { up: false } | { up: true; reviewId: string | null };
 
 export interface ConnectionDeps {
-  // true when the server answered with anything at all.
-  probe: () => Promise<boolean>;
+  probe: () => Promise<ProbeResult>;
+  pageReviewId: () => string | undefined;
   onRecover: () => void;
 }
 
-export async function probeServer(): Promise<boolean> {
+export async function probeServer(): Promise<ProbeResult> {
   try {
-    await fetch(PROBE_PATH, { cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
-    return true;
+    const res = await fetch(PROBE_PATH, { cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+    if (res.status === STATUS_NO_REVIEW) return { up: true, reviewId: null };
+    if (!res.ok) return { up: true, reviewId: UNREADABLE_REVIEW };
+    const body = (await res.json()) as { id?: unknown };
+    return { up: true, reviewId: typeof body.id === "string" ? body.id : UNREADABLE_REVIEW };
   } catch {
-    return false;
+    return { up: false };
   }
 }
 
 export function createConnectionStore(deps: ConnectionDeps) {
   let state = $state<LinkState>("online");
+  let serverReviewId = $state<string | null>(null);
   let timer: ReturnType<typeof setTimeout> | null = null;
+  // bumps whenever an in-flight probe stops mattering (a newer probe, recovery, dispose)
+  let epoch = 0;
+  let disposed = false;
 
   function clearTimer(): void {
     if (timer) clearTimeout(timer);
@@ -41,26 +55,27 @@ export function createConnectionStore(deps: ConnectionDeps) {
   }
 
   async function check(): Promise<void> {
-    timer = null;
-    const up = await deps.probe();
-    if (state === "online") return;
-    if (up) return reachable();
-    state = "gone";
+    clearTimer();
+    const mine = ++epoch;
+    const result = await deps.probe();
+    if (disposed || mine !== epoch || state === "online") return;
+    if (!result.up) {
+      state = "gone";
+    } else if (result.reviewId === (deps.pageReviewId() ?? null)) {
+      return recover();
+    } else {
+      serverReviewId = result.reviewId;
+      state = "mismatch";
+    }
     schedule(RECOVERY_INTERVAL_MS);
   }
 
-  function reachable(): void {
-    if (state === "online") return;
-    const wasGone = state === "gone";
+  function recover(): void {
+    const reload = state === "gone" || state === "mismatch";
     state = "online";
+    epoch++;
     clearTimer();
-    if (wasGone) deps.onRecover();
-  }
-
-  function unreachable(): void {
-    if (state !== "online") return;
-    state = "suspect";
-    schedule(CONFIRM_DELAY_MS);
+    if (reload) deps.onRecover();
   }
 
   return {
@@ -70,13 +85,33 @@ export function createConnectionStore(deps: ConnectionDeps) {
     get gone(): boolean {
       return state === "gone";
     },
-    // why server-backed actions are off, or null while the server is there.
-    get blockedReason(): string | null {
-      return state === "gone" ? GONE_REASON : null;
+    get mismatch(): boolean {
+      return state === "mismatch";
     },
-    unreachable,
-    reachable,
-    dispose: clearTimer,
+    // why writes are off, or null while the server is there and serving this review.
+    get blockedReason(): string | null {
+      if (state === "gone") return GONE_REASON;
+      return state === "mismatch" ? MISMATCH_REASON : null;
+    },
+    // where to go to open the review the server on this port is actually running.
+    get reloadUrl(): string {
+      const id = serverReviewId;
+      return id && id !== UNREADABLE_REVIEW ? `${location.pathname}?review=${encodeURIComponent(id)}` : location.pathname;
+    },
+    unreachable(): void {
+      if (state !== "online") return;
+      state = "suspect";
+      schedule(CONFIRM_DELAY_MS);
+    },
+    // something answered. that alone never recovers: the probe must confirm it is the same review.
+    reachable(): void {
+      if (state !== "online") void check();
+    },
+    dispose(): void {
+      disposed = true;
+      epoch++;
+      clearTimer();
+    },
   };
 }
 

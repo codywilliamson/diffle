@@ -73,13 +73,12 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
       searchAll.close();
     },
   });
-  // when the server comes back, reload what the page was showing.
+  // when the same review's server comes back, catch up on the record through the guarded poll.
+  // the diff is left alone: refreshing it could unmount an open editor and lose its text.
   const connection = createConnectionStore({
     probe: probeServer,
-    onRecover: () => {
-      void diff.refresh();
-      void review.load();
-    },
+    pageReviewId: () => review.reviewId,
+    onRecover: () => void review.poll(),
   });
   return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, connection };
 }

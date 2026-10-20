@@ -18,3 +18,13 @@ export const reportUnreachable = (): void => emit("unreachable");
 
 // any HTTP answer, even a 4xx or 5xx, proves the server is there.
 export const reportReachable = (): void => emit("reachable");
+
+// one guard for every POST, so buttons and keyboard actions are covered alike. the connection
+// store installs a reason while the server is unusable; apiPost refuses before touching the network.
+let blockedReason: () => string | null = () => null;
+
+export function setMutationBlock(reason: () => string | null): void {
+  blockedReason = reason;
+}
+
+export const mutationBlockedReason = (): string | null => blockedReason();
