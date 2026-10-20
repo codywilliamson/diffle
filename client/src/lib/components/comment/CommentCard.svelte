@@ -3,6 +3,7 @@
   import Trash from "@lucide/svelte/icons/trash-2";
   import type { Comment } from "$types";
   import { getAppState } from "$lib/state/context";
+  import { deleteCommentWithUndo } from "$lib/state/deleteComment";
   import { relativeTime } from "$lib/format";
   import CommentEditor from "./CommentEditor.svelte";
   import CommentReplies from "./CommentReplies.svelte";
@@ -14,7 +15,8 @@
   import { suggestionForRange } from "$lib/diff/threads";
 
   let { comment }: { comment: Comment } = $props();
-  const { comments, review, diff, connection, ui, commentFocus } = getAppState();
+  const app = getAppState();
+  const { comments, review, diff, connection, ui, commentFocus } = app;
   const blocked = $derived(connection.blockedReason);
 
   const editing = $derived(ui.editingComment === comment.id);
@@ -64,7 +66,7 @@
         {#if !resolved}<button class="comment-btn" onclick={() => ui.startEdit(comment.id)}>Edit</button>{/if}
         {#if !review.isLegacy && !resolved}<button class="comment-btn" onclick={() => (replying = true)}>Reply</button>{/if}
         <span class="mx-1 h-4 w-px bg-border" aria-hidden="true"></span>
-        <button class="comment-btn comment-btn-danger" disabled={!!blocked} title={blocked ?? undefined} onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
+        <button class="comment-btn comment-btn-danger" disabled={!!blocked} title={blocked ?? undefined} onclick={() => deleteCommentWithUndo(app, comment)}><Trash size={12} aria-hidden="true" />Delete</button>
       </span>
     </div>
     {#each segments as segment, i (i)}

@@ -1,8 +1,9 @@
 // keys that act on a comment already on the page: edit, delete, resolve, copy, step.
 // they work on app.commentFocus.current, the comment anchored on the cursor line.
 
-import type { Comment } from "$types";
 import type { AppState } from "$lib/state/context";
+import { visibleCursor } from "$lib/state/commentsAtCursor";
+import { deleteCommentWithUndo } from "$lib/state/deleteComment";
 import { isResolved } from "$lib/state/reviewRecord";
 import type { ActionHandler } from "./actions";
 import type { ActionId } from "./types";
@@ -13,12 +14,12 @@ const COPIED_COMMENT_NOTICE = "Copied the comment.";
 const COPIED_LINE_NOTICE = "Copied the line.";
 const NOTHING_TO_COPY_NOTICE = "Nothing to copy here.";
 const COPY_FAILED_NOTICE = "Could not copy to the clipboard.";
-const DELETED_NOTICE = "Comment deleted.";
 const NOTHING_TO_UNDO_NOTICE = "Nothing to undo.";
 
 type CommentActionId = Extract<ActionId, `comment.${"edit" | "delete" | "undo" | "resolve" | "copy" | "next" | "prev"}`>;
 
-export function createCommentActions({ ui, comments, cursor, commentFocus, lsp }: AppState): Record<CommentActionId, ActionHandler> {
+export function createCommentActions(app: AppState): Record<CommentActionId, ActionHandler> {
+  const { ui, comments, cursor, commentFocus, lsp } = app;
   async function copy(text: string, done: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
@@ -26,16 +27,6 @@ export function createCommentActions({ ui, comments, cursor, commentFocus, lsp }
     } catch {
       lsp.notify(COPY_FAILED_NOTICE, "error");
     }
-  }
-
-  // the whole comment (replies, status) goes back under its own id: the server keeps what the
-  // client sends for an id it no longer stores
-  async function deleteWithUndo(target: Comment): Promise<void> {
-    const error = await comments.remove(target.id);
-    if (error) return lsp.notify(error, "error");
-    ui.offerUndo(DELETED_NOTICE, () => {
-      void comments.add(target).then((failed) => failed && lsp.notify(failed, "error"));
-    });
   }
 
   const step = (delta: number): void => {
@@ -47,14 +38,14 @@ export function createCommentActions({ ui, comments, cursor, commentFocus, lsp }
       const target = commentFocus.current;
       if (!target) return lsp.notify(NO_COMMENT_NOTICE);
       if (isResolved(target)) return lsp.notify(RESOLVED_EDIT_NOTICE);
-      // a file-level comment in a collapsed file has no card to show the editor in
-      if (target.line === null) ui.requestOpen(target.file);
+      // a collapsed file has no card to show the editor in
+      ui.requestOpen(target.file);
       ui.startEdit(target.id);
     },
     "comment.delete": () => {
       const target = commentFocus.current;
       if (!target) return lsp.notify(NO_COMMENT_NOTICE);
-      void deleteWithUndo(target);
+      void deleteCommentWithUndo(app, target);
     },
     "comment.undo": () => {
       if (!ui.runUndo()) lsp.notify(NOTHING_TO_UNDO_NOTICE);
@@ -67,7 +58,8 @@ export function createCommentActions({ ui, comments, cursor, commentFocus, lsp }
     "comment.copy": () => {
       const target = commentFocus.current;
       if (target) return void copy(target.text, COPIED_COMMENT_NOTICE);
-      const line = cursor.lineText();
+      // only the file on screen: the cursor can still sit in the one the reader left
+      const line = visibleCursor(cursor.pos, ui.activeFile) ? cursor.lineText() : null;
       if (line === null) return lsp.notify(NOTHING_TO_COPY_NOTICE);
       void copy(line, COPIED_LINE_NOTICE);
     },

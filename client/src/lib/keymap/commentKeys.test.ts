@@ -115,7 +115,7 @@ function harness(list: Comment[], pos: CursorPos | null, lineText: string | null
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { clipboard: { writeText } });
   const commentFocus = createCommentFocus({ comments: () => list, pos: () => pos });
-  const actions = createCommentActions({ ui, comments, cursor: { lineText: () => lineText }, commentFocus, lsp } as unknown as AppState);
+  const actions = createCommentActions({ ui, comments, cursor: { pos, lineText: () => lineText }, commentFocus, lsp } as unknown as AppState);
   return { ui, comments, lsp, writeText, actions };
 }
 
@@ -137,6 +137,29 @@ describe("comment actions", () => {
     const h = harness([c("one", {})], at(5));
     h.actions["comment.delete"](null);
     expect(h.comments.remove).toHaveBeenCalledWith("one");
+  });
+
+  it("delete offers the undo toast, which puts the comment back", async () => {
+    const target = c("one", {});
+    const h = harness([target], at(5));
+    h.actions["comment.delete"](null);
+    await vi.waitFor(() => expect(h.ui.undo).not.toBeNull());
+    h.ui.runUndo();
+    expect(h.comments.add).toHaveBeenCalledWith(target);
+  });
+
+  it("edit on an inline comment expands its file first", () => {
+    const h = harness([c("one", {})], at(5));
+    h.actions["comment.edit"](null);
+    expect(h.ui.openRequest).toEqual({ path: "a.ts" });
+  });
+
+  it("yy without a comment copies nothing when the cursor is in a file that is not on screen", () => {
+    const h = harness([], at(5));
+    h.ui.followFile("other.ts");
+    h.actions["comment.copy"](null);
+    expect(h.writeText).not.toHaveBeenCalled();
+    expect(h.lsp.notify).toHaveBeenCalled();
   });
 
   it("resolve toggles by the comment's state", () => {
