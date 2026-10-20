@@ -1,6 +1,7 @@
 <script lang="ts">
   import X from "@lucide/svelte/icons/x";
   import { getAppState } from "$lib/state/context";
+  import { focusDiff } from "$lib/diff/focusDiff";
 
   // the in-file search row, between the top bar and the diff. it takes its space only while search
   // is open, so nothing moves while typing. Esc is handled by the keymap (one layer per press).
@@ -33,7 +34,7 @@
     if (event.shiftKey) search.prev();
     else search.next();
     // hand the keyboard back to the diff so n and N work; stay put when there is nothing to step to
-    if (search.total > 0) input?.blur();
+    if (search.total > 0) focusDiff();
   }
 </script>
 
