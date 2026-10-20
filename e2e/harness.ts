@@ -18,6 +18,8 @@ export interface FixtureOptions {
 export interface PreviewOptions {
   // write the current what's-new version into the isolated home's state.json so the modal never opens.
   seenWhatsNew?: boolean;
+  // extra cli flags, e.g. ["--port", "4123"] to restart on the same origin.
+  args?: string[];
 }
 
 // one file in the fixture repo: `base` is committed (omit for an added file), `work` is the
@@ -90,7 +92,7 @@ function isolatedEnv(fixture: string): NodeJS.ProcessEnv {
 // launch the real bun backend in the fixture and return the review url it prints.
 export function startPreview(fixture: string, options: PreviewOptions = {}): { server: ChildProcess; url: Promise<string> } {
   if (options.seenWhatsNew) seedState(homeFor(fixture));
-  const server = spawn("bun", [join(REPO_ROOT, "src", "index.ts"), "--no-open"], {
+  const server = spawn("bun", [join(REPO_ROOT, "src", "index.ts"), "--no-open", ...(options.args ?? [])], {
     cwd: fixture,
     env: isolatedEnv(fixture),
     stdio: ["ignore", "pipe", "pipe"],

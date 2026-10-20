@@ -1,4 +1,5 @@
 import type { ApiError } from "$types";
+import { reportReachable, reportUnreachable } from "./serverLink";
 
 // a non-2xx answer. message is the server's { error } text; body keeps the whole envelope for
 // callers that read more of it (the lsp routes add code, state and hint).
@@ -23,16 +24,29 @@ async function failure(res: Response): Promise<ApiRequestError> {
   return new ApiRequestError(`request failed (${res.status})`, res.status, null);
 }
 
+// fetch that tells the connection store whether the server answered. an abort is ours, not a failure.
+async function send(path: string, init: RequestInit): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(path, init);
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === "AbortError")) reportUnreachable();
+    throw err;
+  }
+  reportReachable();
+  return res;
+}
+
 // typed GET. throws ApiRequestError (message = serverErrorText) on non-2xx; an abort signal cancels stale work.
 export async function apiGet<T>(path: string, signal?: AbortSignal, headers?: HeadersInit): Promise<T> {
-  const res = await fetch(path, { signal, headers });
+  const res = await send(path, { signal, headers });
   if (!res.ok) throw await failure(res);
   return (await res.json()) as T;
 }
 
 // typed JSON POST, same error contract as apiGet.
 export async function apiPost<T>(path: string, body: unknown, signal?: AbortSignal, headers?: HeadersInit): Promise<T> {
-  const res = await fetch(path, {
+  const res = await send(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),

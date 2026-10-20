@@ -8,7 +8,8 @@
   // the review outcome form: guidance, the agent's latest update, the reviewer summary and the
   // outcome actions. shared by the review menu popover and its expanded modal.
   let { summary = $bindable(), expanded = false, onDone }: { summary: string; expanded?: boolean; onDone: () => void } = $props();
-  const { review, comments, ui } = getAppState();
+  const { review, comments, ui, connection } = getAppState();
+  const blocked = $derived(connection.blockedReason);
 
   let copied = $state<"" | "json" | "md">("");
 
@@ -69,10 +70,11 @@
   class="mb-2 max-h-[60vh] w-full resize-y rounded-md border border-border bg-surface-2 p-2 text-sm text-text outline-none placeholder:text-dim focus:border-focus disabled:opacity-50 {expanded ? 'min-h-[10rem]' : 'min-h-[3rem]'}"
 ></textarea>
 <div class="flex gap-2">
-  <button class="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40" onclick={() => act("feedback")} disabled={!canReturn}>Return Feedback</button>
-  <button class="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-2 disabled:opacity-40" onclick={() => act("approved")} disabled={!awaiting}>Approve</button>
-  <button class="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-2 disabled:opacity-40" onclick={() => act("cancelled")} disabled={terminal}>Cancel</button>
+  <button class="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground disabled:opacity-40" onclick={() => act("feedback")} disabled={!canReturn || !!blocked} title={blocked ?? undefined} aria-describedby={blocked ? "outcome-blocked" : undefined}>Return Feedback</button>
+  <button class="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-2 disabled:opacity-40" onclick={() => act("approved")} disabled={!awaiting || !!blocked} title={blocked ?? undefined} aria-describedby={blocked ? "outcome-blocked" : undefined}>Approve</button>
+  <button class="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-2 disabled:opacity-40" onclick={() => act("cancelled")} disabled={terminal || !!blocked} title={blocked ?? undefined} aria-describedby={blocked ? "outcome-blocked" : undefined}>Cancel</button>
 </div>
+{#if blocked}<p id="outcome-blocked" class="mt-2 text-xs text-destructive">{blocked}</p>{/if}
 <div class="mt-2 flex gap-3 text-xs text-muted">
   <button class="hover:text-text" onclick={() => copyFeedback("json")}>{copied === "json" ? "Copied" : "Copy JSON"}</button>
   <button class="hover:text-text" onclick={() => copyFeedback("md")}>{copied === "md" ? "Copied" : "Copy Markdown"}</button>
