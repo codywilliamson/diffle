@@ -5,11 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "bun";
 import type { SearchResponse } from "../src/types";
-import { MAX_CONCURRENT_SEARCHES, MAX_QUEUED_SEARCHES, SEARCH_TOTAL_BUDGET_MS } from "../src/core/searchRunner";
+import { MAX_CONCURRENT_SEARCHES, MAX_QUEUED_SEARCHES, SEARCH_TOTAL_BUDGET_MS, WORKER_STARTUP_LIMIT_MS } from "../src/core/searchRunner";
 import { createServer } from "../src/server/router";
 import { directoryAssets } from "../src/server/assetSource";
 import { parseDiff } from "../src/core/diffParser";
 import { collectDiff } from "../src/utils/git";
+
+// covers the worker startup allowance plus the search budget
+const TEST_TIMEOUT_MS = 30_000;
 
 let repo: string;
 let clientDir: string;
@@ -166,19 +169,19 @@ describe("GET /api/search", () => {
   it("kills a pathological regex at the budget, keeps partial results, and the server stays responsive", async () => {
     const started = performance.now();
     const { status, body } = await search({ q: "needle|(a|a)*$", regex: "1" });
-    expect(performance.now() - started).toBeLessThan(SEARCH_TOTAL_BUDGET_MS + 3000);
+    expect(performance.now() - started).toBeLessThan(WORKER_STARTUP_LIMIT_MS + SEARCH_TOTAL_BUDGET_MS + 3000);
     expect(status).toBe(200);
     expect(body.truncated).toBe(true);
     expect(body.results.map((h) => h.path)).toContain("added.txt");
     expect((await search({ q: "needle" })).status).toBe(200);
-  }, 15000);
+  }, TEST_TIMEOUT_MS);
 
   it("returns 422 with a readable message when nothing came back before the budget", async () => {
     const { status, body } = await search({ q: "^(a|a)*$", regex: "1" });
     expect(status).toBe(422);
     expect(body.error).toMatch(/took too long/);
     expect((await search({ q: "needle" })).status).toBe(200);
-  }, 15000);
+  }, TEST_TIMEOUT_MS);
 
   it("runs ordinary regexes through the worker", async () => {
     const found = await hits({ q: "ne+dle\\s+two", regex: "1" });
