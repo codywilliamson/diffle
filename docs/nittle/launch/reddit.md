@@ -23,7 +23,7 @@ You leave comments on lines, ranges or whole files, then press Return Feedback. 
 
 The server behind it is `nittle mcp serve`. The tools Claude sees are start_review, get_review, get_scorecard, reply_to_comment, mark_comment_addressed, request_rereview and cancel_review. There's also a `nittle hook stop` for Claude Code that keeps a review open until you resolve it.
 
-Things worth knowing:
+A few notes:
 
 - Keyboard review: j/k, J/K for files, ] and [ for hunks, c to comment, V for a range, / to search, gd for definitions. ? shows all of it.
 - A scorecard that flags removed public API, missing tests and dependency changes before you read the diff. Fixed rules, no model.
@@ -36,7 +36,7 @@ Repo: https://github.com/codywilliamson/diffle (moving to codywilliamson/nittle)
 
 Screenshots to attach: 03-review-panel-return-feedback.png, 04-agent-reply-thread.png, 10-claude-code-session.png.
 
-What I'd like to know: how do you review what Claude Code writes today? Reading the diff in the terminal, a PR, something else?
+How do you review what Claude Code writes today? Terminal, a PR, something else?
 
 ## r/ChatGPTCoding
 
@@ -63,14 +63,14 @@ If your agent doesn't speak MCP, there's a plain version:
 
 That opens the review and blocks until you return feedback, then prints the compiled prompt on stdout. Exit codes tell a script what happened: 0 feedback or approved, 2 cancelled, 3 tab closed with nothing returned.
 
-Everything runs on your machine. No account, no hosted model, comments are JSON under ~/.nittle/reviews. Single binary for macOS, Linux and Windows, x64 and arm64.
+Everything runs on your machine, with no account and no hosted model. Comments are JSON under ~/.nittle/reviews. Single binary for macOS, Linux and Windows, x64 and arm64.
 
 Install:
 
     curl -fsSL https://nittle.dev/install | sh
     irm https://nittle.dev/install.ps1 | iex
 
-Honest limits: seven language servers for go-to-definition today (TypeScript/JS, C#, Python, Go, Rust, Vue, Svelte), no GitHub PR export, and images show a binary notice. There's a similar tool called diffle by someone else that does GitHub PR export and covers more languages. I wrote up where each of us is ahead.
+Limits: seven language servers for go-to-definition today (TypeScript/JS, C#, Python, Go, Rust, Vue, Svelte), no GitHub PR export, and images show a binary notice. There's a similar tool called diffle by someone else that does GitHub PR export and covers more languages. I wrote up where each of us is ahead.
 
 Docs: https://nittle.dev
 
