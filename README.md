@@ -106,6 +106,7 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `C` | Comment on the cursor's file |
 | `e` | Edit the comment on the cursor line |
 | `dd` | Delete the comment on the cursor line |
+| `u` | Undo the last comment delete (offered for 8 seconds) |
 | `R` | Resolve or reopen that comment |
 | `yy` | Copy that comment, or the cursor line when it has none |
 | `}` | Next comment on the cursor line |

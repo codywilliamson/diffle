@@ -9,6 +9,7 @@ import { isEditable } from "./editable";
 import { createActions } from "./actions";
 import { escEndsVisual } from "./escapeLayer";
 import { EMPTY_STATE, step } from "./parser";
+import { repeatAllowed } from "./repeat";
 import type { KeyInput } from "./types";
 
 // right after a sidebar selection the pane is still smooth-scrolling to it, so trust the
@@ -108,6 +109,11 @@ export function useKeymap(): Keymap {
       editable: isEditable(event.target),
     };
     const { state: next, outcome } = step(state, input, cursor.visual ? "visual" : "normal", performance.now());
+    // a held key repeats only for motions; a swallowed repeat leaves the parser where it was
+    if (event.repeat && !repeatAllowed(outcome)) {
+      event.preventDefault();
+      return;
+    }
     state = next;
     switch (outcome.kind) {
       case "ignored":
