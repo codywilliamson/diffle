@@ -72,6 +72,27 @@ describe("resolving", () => {
     expect(spec?.env?.PATH?.split(delimiter)[0]).toBe(join(venv, WIN ? "Scripts" : "bin"));
   });
 
+  it("the venv exemption does not cover a command outside the venv bin dir", () => {
+    const repo = tempDir("repo");
+    const venv = join(repo, ".venv");
+    const venvBin = join(venv, WIN ? "Scripts" : "bin");
+    const planted = shim(join(repo, "tools"), "x");
+    const inside = shim(venvBin, "pyrefly");
+    const environment = { VIRTUAL_ENV: venv };
+    const make = (command: string) => track(new ServerResolver({ root: repo, searchPath: "", excludeRoots: [repo], environment, overrides: { python: command } }));
+    expect(make(planted).resolve("python")).toBeUndefined(); // in the checkout, not in the venv bin
+    expect(make(inside).resolve("python")?.command).toBe(inside); // the venv's own binary is fine
+  });
+
+  it("every candidate is searched in the venv before PATH", () => {
+    const bin = tempDir("bin");
+    shim(bin, "pyrefly");
+    const venv = tempDir("venv");
+    const venvBased = shim(join(venv, WIN ? "Scripts" : "bin"), "basedpyright-langserver");
+    const spec = track(resolverOn(bin, { environment: { VIRTUAL_ENV: venv }, excludeRoots: [venv] })).resolve("python");
+    expect(spec?.command).toBe(venvBased);
+  });
+
   it("ignores VIRTUAL_ENV for languages that do not use one", () => {
     const bin = tempDir("bin");
     shim(bin, "gopls");
@@ -152,6 +173,8 @@ describe("cli", () => {
     expect(parseCliArgs(["lsp", "set", "go", ""]).lspTarget).toEqual({ language: "go", command: "" });
     expect(parseCliArgs(["lsp", "unset", "go"])).toMatchObject({ lspAction: "unset", lspTarget: { language: "go" } });
     expect(parseCliArgs(["lsp", "--help"]).help).toBe(true);
+    expect(parseCliArgs(["lsp", "--version"]).version).toBe(true);
+    expect(parseCliArgs(["lsp", "--license"]).license).toBe(true);
   });
 
   it("rejects bad lsp arguments", () => {

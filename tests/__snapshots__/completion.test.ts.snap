@@ -47,7 +47,7 @@ _nittle() {
     'update') flags="-v --version --license --check -h --help" ;;
     'doctor') flags="-v --version --license --yes --fix -h --help" ;;
     'setup') flags="-v --version --license --agents --remove --yes -h --help" ;;
-    'lsp') flags="-h --help" ;;
+    'lsp') flags="-v --version --license -h --help" ;;
     'lsp set') flags="-v --version --license -h --help" ;;
     'lsp unset') flags="-v --version --license -h --help" ;;
     'completion') flags="-v --version --license --shell -h --help" ;;
@@ -136,7 +136,7 @@ _nittle() {
     'update') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--check:only report whether a newer release exists' '-h:show help' '--help:show help') ;;
     'doctor') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--yes:skip the confirmation prompt' '--fix:run the repair commands through the \`claude\` cli' '-h:show help' '--help:show help') ;;
     'setup') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--agents:comma-separated agent ids, skips the prompt (e.g. claude,cursor)' '--remove:unwire nittle instead' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help') ;;
-    'lsp') flags_=('-h:show help' '--help:show help') ;;
+    'lsp') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'lsp set') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'lsp unset') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'completion') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--shell:shell to generate for: bash, zsh, fish, powershell' '-h:show help' '--help:show help') ;;
@@ -328,6 +328,8 @@ complete -c nittle -n '__nittle_scope_is "setup"' -l agents -x -a '(__nittle_lis
 complete -c nittle -n '__nittle_scope_is "setup"' -l remove -d 'unwire nittle instead'
 complete -c nittle -n '__nittle_scope_is "setup"' -l yes -d 'skip the confirmation prompt'
 complete -c nittle -n '__nittle_scope_is "setup"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "lsp"' -s v -l version -d 'print the installed version'
+complete -c nittle -n '__nittle_scope_is "lsp"' -l license -d 'print the bundled MIT license notice'
 complete -c nittle -n '__nittle_scope_is "lsp"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_scope_is "lsp set"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "lsp set"' -l license -d 'print the bundled MIT license notice'
@@ -378,7 +380,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'update' = @('-v', '--version', '--license', '--check', '-h', '--help')
     'doctor' = @('-v', '--version', '--license', '--yes', '--fix', '-h', '--help')
     'setup' = @('-v', '--version', '--license', '--agents', '--remove', '--yes', '-h', '--help')
-    'lsp' = @('-h', '--help')
+    'lsp' = @('-v', '--version', '--license', '-h', '--help')
     'lsp set' = @('-v', '--version', '--license', '-h', '--help')
     'lsp unset' = @('-v', '--version', '--license', '-h', '--help')
     'completion' = @('-v', '--version', '--license', '--shell', '-h', '--help')
