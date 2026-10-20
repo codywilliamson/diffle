@@ -5,6 +5,7 @@ import { createUiStore, type UiStore } from "./ui.svelte";
 import { createDiffStore, type DiffStore } from "./diff.svelte";
 import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
+import { createDraftsStore, type DraftsStore } from "./drafts.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createCommentFocus, type CommentFocus } from "./commentFocus.svelte";
@@ -26,6 +27,7 @@ export interface AppState {
   diff: DiffStore;
   review: ReviewStore;
   comments: CommentsStore;
+  drafts: DraftsStore;
   analysis: AnalysisStore;
   cursor: CursorStore;
   search: SearchStore;
@@ -54,6 +56,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     return state.status === "ready" ? state.diff : null;
   };
   const comments = createCommentsStore(review, currentDiff);
+  const drafts = createDraftsStore();
   const analysis = createAnalysisStore();
   const cursor = createCursorStore({
     files: () => (prefs.fileOrder === "review" ? reviewOrder(diff.files, analysis.scorecard) : diff.files),
@@ -85,9 +88,12 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
   const connection = createConnectionStore({
     probe: probeServer,
     pageReviewId: () => review.reviewId,
-    onRecover: () => void review.poll(),
+    onRecover: () => {
+      void review.poll();
+      void drafts.flush();
+    },
   });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, connection, commentFocus, filePicker };
+  return { prefs, ui, diff, review, comments, drafts, analysis, cursor, search, searchAll, lsp, connection, commentFocus, filePicker };
 }
 
 // for leaf components that also render without an app root (unit tests).

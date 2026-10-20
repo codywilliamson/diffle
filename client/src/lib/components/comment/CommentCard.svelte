@@ -4,6 +4,7 @@
   import type { Comment } from "$types";
   import { getAppState } from "$lib/state/context";
   import { deleteCommentWithUndo } from "$lib/state/deleteComment";
+  import { editDraftKey, replyDraftKey } from "$lib/state/draftKeys";
   import { relativeTime } from "$lib/format";
   import CommentEditor from "./CommentEditor.svelte";
   import CommentReplies from "./CommentReplies.svelte";
@@ -47,6 +48,7 @@
     initial={comment.text}
     initialTag={comment.tag}
     suggest={suggestSource}
+    draftKey={editDraftKey(comment.id)}
     onSave={async (text, tag) => {
       const error = await comments.edit(comment.id, { text, tag });
       if (!error) ui.stopEdit(comment.id);
@@ -78,7 +80,7 @@
     {/each}
     {#if comment.replies?.length}<CommentReplies replies={comment.replies} from={comment.file} />{/if}
     {#if replying && !resolved}
-      <ReplyComposer onSend={(text) => comments.reply(comment.id, text)} onDone={() => (replying = false)} />
+      <ReplyComposer draftKey={replyDraftKey(comment.id)} onSend={(text) => comments.reply(comment.id, text)} onDone={() => (replying = false)} />
     {/if}
   </div>
 {/if}

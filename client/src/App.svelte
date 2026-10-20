@@ -46,6 +46,7 @@
   onMount(() => {
     void diff.load();
     void app.review.load();
+    void app.drafts.load();
     app.review.startPolling();
     // auto-open what's new once per unseen version.
     getState()
@@ -58,11 +59,14 @@
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) app.connection.verify();
     };
+    const onPageHide = () => void app.drafts.flush();
     window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("pagehide", onPageHide);
     return () => {
       app.review.stopPolling();
       unlink();
       window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("pagehide", onPageHide);
       setMutationBlock(() => null);
       app.connection.dispose();
     };

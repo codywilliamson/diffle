@@ -4,6 +4,7 @@
   import MessagePlus from "@lucide/svelte/icons/message-square-plus";
   import type { CommentTag, DiffFile } from "$types";
   import { getAppState } from "$lib/state/context";
+  import { addDraftKey } from "$lib/state/draftKeys";
   import { changeBadge } from "$lib/format";
   import { fileAnchorId } from "$lib/diff/tree";
   import { fileComments, newComment } from "$lib/diff/threads";
@@ -229,6 +230,7 @@
         {#if fileLevel.length > 0}<CommentThread comments={fileLevel} />{/if}
         {#if addingFile}
           <CommentEditor
+            draftKey={addDraftKey({ file: file.path, line: null })}
             onSave={saveFileComment}
             onCancel={() => ui.cancelAdd()}
           />

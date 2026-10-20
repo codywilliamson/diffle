@@ -12,10 +12,12 @@
     initial = "",
     initialTag,
     suggest,
+    draftKey,
     onSave,
     onCancel,
   }: {
     initial?: string;
+    draftKey?: string; // where the unsent text is kept; closing the box keeps it, Cancel and a save drop it
     initialTag?: CommentTag;
     suggest?: SuggestSource; // new-side lines under a line or range comment; enables Suggest change
     onSave: (text: string, tag?: CommentTag) => Promise<string | null>;
@@ -26,13 +28,22 @@
   const TAGS: CommentTag[] = ["nit", "issue", "question", "praise"];
   const SUGGEST_KEY = "g";
   const hintId = $props.id();
-  // seed once from the props; the editor is mounted fresh per add/edit.
-  let text = $state(untrack(() => initial));
+  const drafts = tryGetAppState()?.drafts;
+  const key = untrack(() => draftKey); // the anchor at mount: extending the range later must not move the draft
+  // seed once from the props (or the saved draft); the editor is mounted fresh per add/edit.
+  let text = $state(untrack(() => (key && drafts?.get(key)) || initial));
+  let remembered = untrack(() => text);
   let tag = $state<CommentTag | undefined>(untrack(() => initialTag));
   let ta = $state<HTMLTextAreaElement>();
   let saving = $state(false);
   let saveError = $state<string | null>(null);
 
+  // every change goes to the draft store (it debounces the server write); the original text is no draft
+  $effect(() => {
+    if (!key || text === remembered) return;
+    remembered = text;
+    drafts?.set(key, text === initial ? "" : text);
+  });
   // grow the textarea with its content, and focus it on mount.
   $effect(() => {
     void text;
@@ -50,9 +61,14 @@
   });
 
   // closing hands focus back to the diff, so the keys work again and the cursor is where it was
-  function cancel(): void {
+  function close(): void {
     onCancel();
     focusDiff();
+  }
+  // the Cancel button throws the draft away; Escape only closes the box
+  function discard(): void {
+    if (key) drafts?.clear(key);
+    close();
   }
 
   async function submit(): Promise<void> {
@@ -62,7 +78,10 @@
     saveError = null;
     try {
       saveError = await onSave(trimmed, tag);
-      if (!saveError) focusDiff();
+      if (!saveError) {
+        if (key) drafts?.clear(key);
+        focusDiff();
+      }
     } catch (error) {
       saveError = error instanceof Error ? error.message : String(error);
     } finally {
@@ -94,7 +113,7 @@
     } else if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      cancel();
+      close();
     } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       void submit();
@@ -115,7 +134,7 @@
   ></textarea>
   <div class="mt-2 flex flex-wrap items-center gap-2">
     <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving || !!blocked} title={blocked ?? undefined} aria-describedby={blocked ? `${hintId}-gone` : undefined}>{saving ? "Saving…" : "Save"}</button>
-    <button class="comment-btn" onclick={cancel}>Cancel</button>
+    <button class="comment-btn" onclick={discard}>Cancel</button>
     {#if suggest?.lines}
       <button type="button" class="comment-btn" onclick={() => void suggestChange()} aria-keyshortcuts="Control+G">Suggest change</button>
     {:else if suggest?.blocked}
