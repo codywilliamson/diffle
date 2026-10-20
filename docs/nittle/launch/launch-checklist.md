@@ -18,13 +18,13 @@ Draft for Cody. Nothing here has been done, posted or opened. State below was re
 
 ## List submissions
 
-None of these are opened. Open them only after step 1, since entries should use the final repo URL.
+Nothing below is submitted yet. Do these only after step 1, since entries should use the final repo URL.
 
 ### awesome-claude-code
 
 Target: https://github.com/hesreallyhim/awesome-claude-code
 
-This one is not a PR. CONTRIBUTING.md says recommendations must go through the web issue form (https://github.com/hesreallyhim/awesome-claude-code/issues/new?template=recommend-resource.yml), that it is not possible with the `gh` CLI, and that a human has to submit it. Rules: the project must be at least 14 days old with continued commits, or have 100 stars (nittle's first commit is 2026-06-02). One recommendation at a time. The description is a one-line description, not a pitch, with no emoji.
+This one isn't a PR. CONTRIBUTING.md says recommendations must go through the web issue form (https://github.com/hesreallyhim/awesome-claude-code/issues/new?template=recommend-resource.yml), that it is not possible with the `gh` CLI, and that a human has to submit it. Rules: the project must be at least 14 days old with continued commits, or have 100 stars (nittle's first commit is 2026-06-02). One recommendation at a time. The description is a one-line description, not a pitch, with no emoji.
 
 Entry text:
 
