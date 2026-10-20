@@ -9,6 +9,7 @@ import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
+import { createConnectionStore, probeServer, type ConnectionStore } from "./connection.svelte";
 import { navigationStamp } from "$lib/lsp/stamp";
 import { createLspStore, type LspStore } from "$lib/lsp/lsp.svelte";
 import { reviewOrder } from "$lib/diff/reviewOrder";
@@ -27,6 +28,7 @@ export interface AppState {
   search: SearchStore;
   searchAll: SearchAllStore;
   lsp: LspStore;
+  connection: ConnectionStore;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -71,7 +73,20 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
       searchAll.close();
     },
   });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp };
+  // when the server comes back, reload what the page was showing.
+  const connection = createConnectionStore({
+    probe: probeServer,
+    onRecover: () => {
+      void diff.refresh();
+      void review.load();
+    },
+  });
+  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, connection };
+}
+
+// for leaf components that also render without an app root (unit tests).
+export function tryGetAppState(): AppState | undefined {
+  return getContext<AppState | undefined>(KEY);
 }
 
 // call during component init at the app root.

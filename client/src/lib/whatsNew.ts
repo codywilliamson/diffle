@@ -10,6 +10,7 @@ export const WHATS_NEW = {
   version: "0.30.0",
   highlights: [
     `Same app, new name: ${PRODUCT.name}, ${PRODUCT.lineage}. You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
+    `If the ${PRODUCT.name} server stops while a review is open, the page now says so, turns off sending and saving, and reconnects by itself when the same review comes back on the same port.`,
     `Code navigation: gd goes to a definition, gh shows hover docs, gA lists references, gs and gS search symbols, on added and removed lines alike. Needs a language server installed: TypeScript, C#, Python, Go, Rust, Vue and Svelte. Run ${PRODUCT.name} lsp to see what's found.`,
     "Search every changed file with g/: hits are grouped by file, Enter jumps to the line, Ctrl+o comes back.",
     "Suggest a change: in a line or range comment, Suggest change inserts the lines to edit. Agents get the original and suggested text as structured data.",

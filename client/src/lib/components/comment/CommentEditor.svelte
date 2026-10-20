@@ -2,6 +2,7 @@
   import { tick, untrack } from "svelte";
   import Check from "@lucide/svelte/icons/check";
   import type { CommentTag } from "$types";
+  import { tryGetAppState } from "$lib/state/context";
   import ComposerHint from "./ComposerHint.svelte";
   import { focusDiff, revealInDiff } from "$lib/diff/focusDiff";
   import { suggestionFence } from "$lib/suggestions";
@@ -21,6 +22,7 @@
     onCancel: () => void;
   } = $props();
 
+  const blocked = $derived(tryGetAppState()?.connection.blockedReason ?? null);
   const TAGS: CommentTag[] = ["nit", "issue", "question", "praise"];
   const SUGGEST_KEY = "g";
   const hintId = $props.id();
@@ -55,7 +57,7 @@
 
   async function submit(): Promise<void> {
     const trimmed = text.trim();
-    if (!trimmed || saving) return;
+    if (!trimmed || saving || blocked) return;
     saving = true;
     saveError = null;
     try {
@@ -112,7 +114,7 @@
     class="composer-input"
   ></textarea>
   <div class="mt-2 flex flex-wrap items-center gap-2">
-    <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving}>{saving ? "Saving…" : "Save"}</button>
+    <button class="comment-btn comment-btn-primary" onclick={() => void submit()} disabled={!text.trim() || saving || !!blocked} title={blocked ?? undefined} aria-describedby={blocked ? `${hintId}-gone` : undefined}>{saving ? "Saving…" : "Save"}</button>
     <button class="comment-btn" onclick={cancel}>Cancel</button>
     {#if suggest?.lines}
       <button type="button" class="comment-btn" onclick={() => void suggestChange()} aria-keyshortcuts="Control+G">Suggest change</button>
@@ -129,5 +131,6 @@
       {/each}
     </div>
   </div>
+  {#if blocked}<p id="{hintId}-gone" class="mt-2 text-xs text-destructive">{blocked}</p>{/if}
   {#if saveError}<p role="alert" class="mt-2 text-xs text-destructive">{saveError}</p>{/if}
 </div>
