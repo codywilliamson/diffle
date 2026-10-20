@@ -9,7 +9,7 @@ nittle can talk to a language server for the languages in your diff. It is optio
 
 ## How servers start
 
-Servers start lazily. Opening a review starts nothing. A server for a language starts the first time something asks it a question, and only for languages that appear in the diff. Servers stay warm for the rest of the run and shut down when nittle exits. A normal review keeps running until you press ctrl+c or run `nittle cleanup`, and closing the last browser tab does not end it. With `--wait`, closing the last tab ends the process, and so do its other exit paths.
+Servers start lazily. Opening a review starts nothing. A server for a language starts the first time something asks it a question, and only for languages that appear in the diff. Servers stay warm for the rest of the run and shut down when nittle exits. A normal review keeps running until you press ctrl+c, or until `nittle cleanup --all` stops it. Bare `nittle cleanup` stops only finished sessions. Closing the last browser tab does not end the review. With `--wait`, closing the last tab ends the process, and so do its other exit paths.
 
 Pass `--no-lsp` to start none at all. The flag works on the default command and on `nittle show`.
 
@@ -20,7 +20,7 @@ nittle show HEAD~2 --no-lsp
 
 ## Language servers are your binaries
 
-Language servers are programs you install yourself. nittle runs the binary it finds on your `PATH`, with your user rights, in the repository root, and talks to it over stdio. It never downloads one for you, and nothing listens beyond nittle's existing localhost server. Treat a language server like any other tool you run in a checkout: only install ones you trust.
+Language servers are programs you install yourself. nittle runs the binary it finds on your `PATH`, with your user rights, in a temp log directory, and talks to it over stdio. The review root reaches the server through the LSP initialize request, not as the working directory. It never downloads one for you, and nothing listens beyond nittle's existing localhost server. Treat a language server like any other tool you run in a checkout: only install ones you trust.
 
 nittle does not write into your checkout. Server logs and caches go to a temp directory that is removed on exit. For C#, nittle asks the Roslyn server not to run automatic restore, which would otherwise create `obj/` folders.
 
@@ -60,7 +60,7 @@ When a lookup returns several definitions, a picker lets you choose one. A targe
 
 ## Navigation endpoints
 
-These routes sit behind the same loopback Origin and Host checks as the status route. The three POST routes take a JSON body `{ path, side, line, character }`. `symbols` and `file` take query parameters instead. `line` is 1-based and `character` is a 0-based JavaScript string offset. nittle converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Every range in a response uses the same client coordinates.
+These routes sit behind the same loopback Origin and Host checks as the status route. The three POST routes take a JSON body `{ path, side, line, character }`. `symbols` and `file` take query parameters instead. `line` is 1-based and `character` is a 0-based JavaScript string offset. When nittle can read the target's text, it converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Ranges then use the same client coordinates. The text is read only for files up to 2 MiB. For any other target, the server's character offsets pass through unchanged, which is exact only for UTF-16 servers.
 
 - `POST /api/lsp/definition` returns `targets` (`uri`, `path`, `absolutePath`, `range`, `inRepo`, `inDiff`) from a Location, Location[] or LocationLink[] answer. `kind: "typeDefinition"` asks for the type instead. `onDefinition: true` means the cursor already sits on the declaration, so the client shows references instead. Targets outside the repository (the standard library, `node_modules`, site-packages) come back with `inRepo: false` and `path: null`.
 - `POST /api/lsp/hover` returns markdown in `contents`, empty when the server has nothing to say. A newer hover from the same client (the `x-client-id` header) cancels the one still waiting on the server, and so does closing the connection.
@@ -70,7 +70,7 @@ These routes sit behind the same loopback Origin and Host checks as the status r
 
 A review with no base commit (browse mode) has no old side. Requests for that side answer `409` with `code: "old-side-unsupported"`.
 
-`GET /api/lsp/status` always answers `200`. The navigation routes answer `409` with `code: "server-unavailable"` and the server's `state` when no server can answer. The `hint` field appears only sometimes, and `stderr` appears when the server printed any. `GET /api/lsp/file` returns the text, or a validation error for a bad `uri`, or `403` for a path that no navigation answer returned.
+`GET /api/lsp/status` always answers `200`. The navigation routes answer `409` with `code: "server-unavailable"` and the server's `state` when no server can answer. The `hint` field appears only sometimes, and `stderr` appears when the server printed any. `GET /api/lsp/file` returns the text, or a validation error for a bad `uri`, `403` for a path that no navigation answer returned, and `404` with `code: "file-not-found"` for an authorized target that can't be read or is over 2 MiB.
 
 The first request after a server starts waits for the server to finish loading the project, because answers before that are unreliable. The wait is bounded. If the server reports progress, the request waits for that progress to end. If no progress starts within 2 seconds, it goes ahead. It never waits longer than 20 seconds.
 
