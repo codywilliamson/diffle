@@ -48,7 +48,7 @@ Under `--no-lsp` the response is `{ "enabled": false, "languages": [] }`.
 
 ## Keys and the mouse
 
-Code navigation works from the keyboard and the pointer. The keys act on the word under the cursor.
+Code navigation works from the keyboard and the pointer. The keyboard moves a row cursor, not a column, so a key acts on the word the pointer last rested on in the cursor's row. With no such word, it uses the row's first identifier.
 
 - `gd` goes to the definition. On a definition it lists the references instead. `gy` goes to the type definition.
 - `gh` shows the hover docs for the cursor word in a card.
@@ -60,7 +60,7 @@ When a lookup returns several definitions, a picker lets you choose one. A targe
 
 ## Navigation endpoints
 
-These routes sit behind the same loopback Origin and Host checks as the status route. Each request body is `{ path, side, line, character }`. `line` is 1-based and `character` is a 0-based JavaScript string offset. nittle converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Every range in a response uses the same client coordinates.
+These routes sit behind the same loopback Origin and Host checks as the status route. The three POST routes take a JSON body `{ path, side, line, character }`. `symbols` and `file` take query parameters instead. `line` is 1-based and `character` is a 0-based JavaScript string offset. nittle converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Every range in a response uses the same client coordinates.
 
 - `POST /api/lsp/definition` returns `targets` (`uri`, `path`, `absolutePath`, `range`, `inRepo`, `inDiff`) from a Location, Location[] or LocationLink[] answer. `kind: "typeDefinition"` asks for the type instead. `onDefinition: true` means the cursor already sits on the declaration, so the client shows references instead. Targets outside the repository (the standard library, `node_modules`, site-packages) come back with `inRepo: false` and `path: null`.
 - `POST /api/lsp/hover` returns markdown in `contents`, empty when the server has nothing to say. A newer hover from the same client (the `x-client-id` header) cancels the one still waiting on the server, and so does closing the connection.
@@ -70,18 +70,20 @@ These routes sit behind the same loopback Origin and Host checks as the status r
 
 A review with no base commit (browse mode) has no old side. Requests for that side answer `409` with `code: "old-side-unsupported"`.
 
-When no server is usable, every route answers `409` with `{ code: "server-unavailable", state, hint }`. It is never a 500, and nothing is logged as an error. The first request after a server starts also waits for the server to finish loading the project, because answers before that are unreliable.
+`GET /api/lsp/status` always answers `200`. The navigation routes answer `409` with `code: "server-unavailable"` and the server's `state` when no server can answer. The `hint` field appears only sometimes, and `stderr` appears when the server printed any. `GET /api/lsp/file` returns the text, or a validation error for a bad `uri`, or `403` for a path that no navigation answer returned.
+
+The first request after a server starts waits for the server to finish loading the project, because answers before that are unreliable. The wait is bounded. If the server reports progress, the request waits for that progress to end. If no progress starts within 2 seconds, it goes ahead. It never waits longer than 20 seconds.
 
 ## Revisions other than your checkout
 
-A language server reads files from disk, so it can only answer for a revision that is on disk. nittle never checks a revision out in your repository to get there. Each side of the review gets a root, and for anything that isn't your checkout, that root is a detached git worktree in your system temp directory.
+A language server reads files from disk, so it can only answer for a revision that is on disk. nittle never checks a revision out in your repository to get there. Each side of the review gets a root. For a side that isn't your clean checkout at its commit, that root is a detached git worktree in your system temp directory.
 
 ### Which root each side gets
 
 - Working-tree and staged reviews use your repository.
-- A review whose new side is the commit your checkout is already on, with a clean `git status`, also uses your repository.
-- Everything else gets a worktree at the new side's commit: a branch, a range, `nittle show <commit>`, or a branch review while you have uncommitted edits.
-- The old side gets its own worktree at the base commit. That is what makes go-to-definition and hover work on removed lines. Browse mode has no base commit, so it has no old side.
+- A side whose commit is the one your checkout is on, with a clean `git status`, uses your repository. This applies to either side, so an old side at HEAD gets no worktree either.
+- Everything else gets a worktree at that side's commit. The new side of a branch, a range, `nittle show <commit>`, or a branch review with uncommitted edits all fall here.
+- The old side gets a worktree at the base commit in the other cases. That is what makes go-to-definition and hover work on removed lines. Browse mode has no base commit, so it has no old side.
 
 Each request only talks to the servers rooted where its side lives. A workspace symbol search from the working tree never reaches the servers of an old-side worktree.
 
@@ -107,7 +109,9 @@ The server can read, and in principle write, through that link into your real `n
 
 ### Cleanup
 
-Closing the review removes its worktrees on every exit path: approve, cancel, `--wait` exits, Ctrl+C and MCP shutdown. Removal unlinks the dependency links, runs `git worktree remove --force` on each temp path, and removes that worktree's entry under `.git/worktrees/` if git left one behind. It never runs a repository-wide `git worktree prune`. The temp directory is removed only when it is empty.
+Approve and cancel in a normal review do not remove the worktrees. They only update the review record. With `--wait`, the process removes them when it exits after the outcome. Otherwise they go when the session ends, or with `nittle cleanup`.
 
-A hard kill (SIGKILL, power loss) leaves the worktrees behind. `nittle cleanup` lists them and removes them after confirmation. It only touches a worktree that is registered in the current repository, sits in a `new` or `old` directory under `<temp dir>/nittle-lsp-wt-<pid>-*/`, and has an `owner.json` that names this repository, this worktree and a process that is no longer running. Run it from inside the repository. A leftover without a readable `owner.json` is left alone.
+Removal unlinks the dependency links, runs `git worktree remove --force` on each temp path, and removes that worktree's entry under `.git/worktrees/` if git left one behind. It never runs a repository-wide `git worktree prune`. The temp directory is removed only when it is empty.
+
+A hard kill (SIGKILL, power loss) leaves the worktrees behind. `nittle cleanup` lists them and removes them after confirmation. It only touches a `new` or `old` directory under `<temp dir>/nittle-lsp-wt-<pid>-*/` whose `owner.json` names this repository, this worktree and a process that is no longer running. A worktree that git still lists is removed through git. A directory that git doesn't list, such as one left by a creation that was interrupted, is removed only when it is empty. Run it from inside the repository. A leftover without a readable `owner.json` is left alone.
 
