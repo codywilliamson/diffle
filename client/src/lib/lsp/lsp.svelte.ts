@@ -24,6 +24,8 @@ export interface LspDeps {
   files: () => DiffFile[];
   goToHit: (hit: SearchHit) => void;
   markJump: () => void; // remember the cursor before leaving it for the viewer
+  // move the line cursor onto a clicked row (no jump recorded), so a jump from it remembers that row
+  placeCursor?: (hit: CodeHit) => void;
   closeSearch: () => void; // the search docks share the strip under the top bar
   // where the reader is (cursor moves, file selection): a definition answer is stale once it changes
   stamp?: () => readonly unknown[];
@@ -189,6 +191,8 @@ export function createLspStore(deps: LspDeps) {
     },
     // Ctrl/Cmd+click
     definitionAtHit(hit: CodeHit): void {
+      // before the stamp is taken: the move bumps the cursor's reveal counter
+      deps.placeCursor?.(hit);
       void definitionAt(hit, "definition");
     },
     hoverAtCursor(): void {

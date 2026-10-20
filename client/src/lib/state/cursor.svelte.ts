@@ -281,6 +281,15 @@ export function createCursorStore(deps: CursorDeps) {
       pendingFrom = from;
       deps.follow(file.path); // single-file view only mounts the active file
     },
+    // rest on a rendered row without recording a jump (a Ctrl+click), so the jump that follows
+    // remembers the clicked row. false when that row is not a stop (collapsed, outside the view).
+    placeAt(path: string, side: Side, line: number): boolean {
+      if (visualAnchor) return false; // the range head stays where the reader put it
+      const stop = ownStops(snapshot().index, path).find((s) => s.side === side && s.line === line);
+      if (!stop) return false;
+      commit({ path, side, line }, base(path), { reveal: "line" });
+      return true;
+    },
     // remember where the reader is before they leave the diff for something that is not a cursor
     // position (the read-only file viewer), so Ctrl+o has somewhere to return to
     markJump(seed: string | undefined): void {
