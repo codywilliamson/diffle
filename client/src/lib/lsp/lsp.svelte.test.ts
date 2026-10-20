@@ -28,8 +28,9 @@ function setup(files: DiffFile[] = [file("src/greeter.ts", [3, 4])]) {
   const goToHit = vi.fn();
   const markJump = vi.fn();
   const closeSearch = vi.fn();
-  const lsp = createLspStore({ files: () => files, goToHit, markJump, closeSearch });
-  return { lsp, goToHit, markJump, closeSearch };
+  const moved = { count: 0 }; // bumped by a test to stand for a cursor move, search jump or file pick
+  const lsp = createLspStore({ files: () => files, goToHit, markJump, closeSearch, stamp: () => [moved.count] });
+  return { lsp, goToHit, markJump, closeSearch, moved };
 }
 
 const answer = (targets: LspTarget[], onDefinition = false): LspDefinitionResponse => ({ targets, onDefinition });
@@ -171,6 +172,59 @@ describe("lsp store: definition", () => {
       await flush();
       expect(goToHit).not.toHaveBeenCalled();
     }
+  });
+
+  it("a slow definition is inert once the reader moved: search hit, keyboard move, file pick", async () => {
+    const { lsp, goToHit, moved } = setup();
+    api.lspFile.mockResolvedValue({ content: "x" });
+    let slow!: (r: LspDefinitionResponse) => void;
+    api.lspDefinition.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+    lsp.definitionAtHit(hit());
+    await flush();
+    moved.count++;
+    slow(answer([target("src/greeter.ts", 3, { inDiff: true })]));
+    await flush();
+    expect(goToHit).not.toHaveBeenCalled();
+    expect(lsp.viewer).toBeNull();
+    expect(lsp.picker).toBeNull();
+    expect(lsp.notice).toBeNull();
+  });
+
+  it("a definition that was not overtaken still jumps (its own jump does not cancel itself)", async () => {
+    const { lsp, goToHit } = setup();
+    api.lspDefinition.mockResolvedValue(answer([target("src/greeter.ts", 3, { inDiff: true })]));
+    lsp.definitionAtHit(hit());
+    await flush();
+    expect(goToHit).toHaveBeenCalledOnce();
+  });
+
+  it("Esc cancels a pending definition even when it closes nothing, or only a panel", async () => {
+    const { lsp, goToHit } = setup();
+    api.lspFile.mockResolvedValue({ content: "x" });
+    let slow!: (r: LspDefinitionResponse) => void;
+    api.lspDefinition.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+    lsp.definitionAtHit(hit());
+    await flush();
+    expect(lsp.closeTopmost()).toBe(true);
+    slow(answer([target("src/other.ts", 3)]));
+    await flush();
+    expect(goToHit).not.toHaveBeenCalled();
+    expect(lsp.viewer).toBeNull();
+    expect(lsp.closeTopmost()).toBe(false);
+  });
+
+  it("Esc with references open also cancels the pending definition", async () => {
+    const { lsp } = setup();
+    api.lspFile.mockResolvedValue({ content: "x" });
+    vi.spyOn(lsp.references, "close").mockReturnValue(true);
+    let slow!: (r: LspDefinitionResponse) => void;
+    api.lspDefinition.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+    lsp.definitionAtHit(hit());
+    await flush();
+    lsp.closeTopmost();
+    slow(answer([target("src/other.ts", 3)]));
+    await flush();
+    expect(lsp.viewer).toBeNull();
   });
 
   it("opening references drops a pending definition", async () => {
