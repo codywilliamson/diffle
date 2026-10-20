@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { REVIEW_SCHEMA_VERSION } from "$types";
 import type { Comment, DiffFile, DiffResult, ReviewFile, ReviewRecord } from "$types";
-import { createReviewStore } from "./review.svelte";
+import { createReviewStore, RESYNC_TIMEOUT_MS } from "./review.svelte";
 import { createCommentsStore, WRITE_TIMEOUT_MS, type CommentsDeps } from "./comments.svelte";
 
 const rec = (over: Partial<ReviewRecord> = {}): ReviewRecord => ({
@@ -281,6 +281,59 @@ describe("comments store — delete safety", () => {
       expect(await hung).toBe("The server did not answer in time.");
       expect(await next).toBeNull();
       expect(store.comments.map((c) => c.id)).toEqual(["A", "C"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("comments store — timeouts reach the request", () => {
+  it("aborts the record-mutation request itself when it times out", async () => {
+    vi.useFakeTimers();
+    try {
+      const review = seeded(rec({ comments: [cmt("1")] }));
+      let seen: AbortSignal | undefined;
+      const store = createCommentsStore(review, () => null, cdeps({
+        resolveReviewComment: (_id, _cid, _status, signal) => {
+          seen = signal;
+          return new Promise(() => {});
+        },
+      }));
+      const pending = store.resolve("1");
+      await vi.advanceTimersByTimeAsync(0);
+      expect(seen?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(WRITE_TIMEOUT_MS);
+      expect(await pending).toBe("The server did not answer in time.");
+      expect(seen?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a hung re-read fails the resync, so the next write is refused instead of stalling the queue", async () => {
+    vi.useFakeTimers();
+    try {
+      let hangReads = false;
+      let readSignal: AbortSignal | undefined;
+      const review = createReviewStore({
+        getComments: (signal) => {
+          if (!hangReads) return Promise.resolve(rec({ comments: [cmt("A")] }));
+          readSignal = signal;
+          return new Promise(() => {});
+        },
+        getReview: async () => rec(),
+        submitReviewOutcome: async () => rec(),
+        importLegacyReview: async () => rec(),
+        ignoreLegacyReview: async () => ({ legacy: true, ignored: true }),
+        removeLegacyReview: async () => ({ removed: true }),
+      });
+      review.adopt(rec({ comments: [cmt("A")] }));
+      const store = createCommentsStore(review, () => null, cdeps({ saveComments: async () => { hangReads = true; throw new Error("lost"); } }));
+      expect(await store.remove("A")).toBe("lost");
+      const next = store.add(cmt("B"));
+      await vi.advanceTimersByTimeAsync(RESYNC_TIMEOUT_MS);
+      expect(await next).toMatch(/Could not confirm/);
+      expect(readSignal?.aborted).toBe(true);
     } finally {
       vi.useRealTimers();
     }

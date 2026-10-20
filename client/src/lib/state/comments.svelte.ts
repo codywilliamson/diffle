@@ -6,29 +6,17 @@ import type { Comment, DiffResult } from "$types";
 import { saveComments, saveViewed, type CommentsResponse } from "$lib/api/comments";
 import { resolveReviewComment, replyToReviewComment } from "$lib/api/review";
 import { partitionComments } from "$lib/anchor";
+import { withTimeout } from "./withTimeout";
 import { isRecord, isResolved, commentsOf, errorMessage } from "./reviewRecord";
 import type { ReviewStore } from "./review.svelte";
 
 const EMPTY_DIFF: DiffResult = { ref: "", files: [] };
 export const WRITE_TIMEOUT_MS = 15_000;
-const TIMEOUT_MESSAGE = "The server did not answer in time.";
 const RESYNC_FAILED_MESSAGE = "Could not confirm the latest comments with the server. Try again.";
 
 export interface RemoveResult {
   error: string | null;
   removed: Comment | null; // the comment as the write that deleted it saw it
-}
-
-// a write that never settles must not stall the queue behind it
-function withTimeout<T>(run: (signal: AbortSignal) => Promise<T>): Promise<T> {
-  const controller = new AbortController();
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      controller.abort();
-      reject(new Error(TIMEOUT_MESSAGE));
-    }, WRITE_TIMEOUT_MS);
-    run(controller.signal).then(resolve, reject).finally(() => clearTimeout(timer));
-  });
 }
 
 export interface CommentsDeps {
@@ -79,7 +67,7 @@ export function createCommentsStore(
   async function persistNow(build: (current: Comment[]) => Comment[]): Promise<string | null> {
     error = null;
     try {
-      review.adopt(await withTimeout((signal) => deps.saveComments(build(comments()), signal)));
+      review.adopt(await withTimeout(WRITE_TIMEOUT_MS, (signal) => deps.saveComments(build(comments()), signal)));
       return null;
     } catch (e) {
       stale = true;
@@ -99,7 +87,7 @@ export function createCommentsStore(
     else set.add(path);
     error = null;
     try {
-      review.adopt(await withTimeout((signal) => deps.saveViewed([...set], signal)));
+      review.adopt(await withTimeout(WRITE_TIMEOUT_MS, (signal) => deps.saveViewed([...set], signal)));
     } catch (e) {
       stale = true;
       error = errorMessage(e);
@@ -112,11 +100,11 @@ export function createCommentsStore(
     return isRecord(r) ? r.id : null;
   }
 
-  function viaRecord(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
+  function viaRecord(run: (id: string, signal: AbortSignal) => Promise<CommentsResponse>): Promise<string | null> {
     return inOrder(() => viaRecordNow(run), (message) => (error = message));
   }
 
-  async function viaRecordNow(run: (id: string) => Promise<CommentsResponse>): Promise<string | null> {
+  async function viaRecordNow(run: (id: string, signal: AbortSignal) => Promise<CommentsResponse>): Promise<string | null> {
     const id = recordId();
     if (id == null) {
       error = "not available on a legacy review";
@@ -124,7 +112,7 @@ export function createCommentsStore(
     }
     error = null;
     try {
-      review.adopt(await withTimeout(() => run(id)));
+      review.adopt(await withTimeout(WRITE_TIMEOUT_MS, (signal) => run(id, signal)));
       return null;
     } catch (e) {
       stale = true;
@@ -176,9 +164,9 @@ export function createCommentsStore(
       persist((current) => current.map((c) => (c.id === id ? { ...c, ...patch } : c))),
     remove: (id: string) => removeComment(id).then((result) => result.error),
     removeComment,
-    resolve: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "resolved")),
-    reopen: (commentId: string) => viaRecord((id) => deps.resolveReviewComment(id, commentId, "open")),
-    reply: (commentId: string, text: string) => viaRecord((id) => deps.replyToReviewComment(id, commentId, text)),
+    resolve: (commentId: string) => viaRecord((id, signal) => deps.resolveReviewComment(id, commentId, "resolved", signal)),
+    reopen: (commentId: string) => viaRecord((id, signal) => deps.resolveReviewComment(id, commentId, "open", signal)),
+    reply: (commentId: string, text: string) => viaRecord((id, signal) => deps.replyToReviewComment(id, commentId, text, signal)),
   };
 }
 
