@@ -124,7 +124,7 @@ strip_block() {
     { flush_blanks(); print }
     END { flush_blanks() }
   '
-  mv -f "$strip_tmp" "$strip_rc"
+  cat "$strip_tmp" > "$strip_rc"; rm -f "$strip_tmp" # in place: keeps mode, owner and symlinks
   log OK "removed the PATH block ($strip_start) from $strip_rc"
 }
 
@@ -199,6 +199,9 @@ has_terminal() {
   [ -t 1 ] && [ -r /dev/tty ] && ( : </dev/tty ) 2>/dev/null
 }
 
+FISH_MARKER="# installed by nittle"
+# only a file carrying our first-line marker is ours to overwrite or remove
+fish_file_is_ours() { [ "$(head -n 1 "$1" | tr -d '\r')" = "$FISH_MARKER" ]; }
 fish_completions_file() { printf '%s' "${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions/$NAME.fish"; }
 
 # agent configs point at the binary, so unregister them while it still exists. releases before
@@ -288,7 +291,10 @@ uninstall_nittle() {
     strip_block "$rc_candidate" "$LEGACY_MARKER_START" "$LEGACY_MARKER_END"
   done
   remove_file "$BIN_DIR/$NAME"
-  remove_file "$(fish_completions_file)"
+  if [ -f "$(fish_completions_file)" ]; then
+    if fish_file_is_ours "$(fish_completions_file)"; then remove_file "$(fish_completions_file)"
+    else log INFO "$(fish_completions_file) was not written by this installer; leaving it"; fi
+  fi
   remove_file "$LEGACY_BIN_DIR/$LEGACY_NAME"
   rm -f "$BIN_DIR"/."$NAME".new-* "$LEGACY_BIN_DIR"/."$LEGACY_NAME".new-* 2>/dev/null || true
   remove_empty_dir "$BIN_DIR"
@@ -530,7 +536,11 @@ read_completion_answer() {
 wire_fish_completions() {
   fish_file="$(fish_completions_file)"
   mkdir -p "${fish_file%/*}"
-  if "$BIN_DIR/$NAME" completion --shell fish > "$fish_file.tmp.$$"; then
+  if [ -e "$fish_file" ] && ! fish_file_is_ours "$fish_file"; then
+    log WARN "$fish_file exists and was not written by this installer; leaving it alone"
+    return 0
+  fi
+  if { printf '%s\n' "$FISH_MARKER"; "$BIN_DIR/$NAME" completion --shell fish; } > "$fish_file.tmp.$$"; then
     mv -f "$fish_file.tmp.$$" "$fish_file"
     log OK "fish completions written to $fish_file"
   else
@@ -554,7 +564,7 @@ wire_rc_completions() {
       { print }
       END { exit (state < 2) ? 2 : (dup ? 3 : 0) }
     ' && completion_status=0 || completion_status=$?
-    if [ "$completion_status" -eq 0 ]; then mv -f "$completion_tmp" "$RC_FILE"; else rm -f "$completion_tmp"; fi
+    if [ "$completion_status" -eq 0 ]; then cat "$completion_tmp" > "$RC_FILE"; rm -f "$completion_tmp"; else rm -f "$completion_tmp"; fi
   fi
   if [ "$completion_status" -eq 0 ]; then
     log OK "completions added to the $NAME block in $RC_FILE (open a new shell)"

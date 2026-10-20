@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ASSET, createInstallSandbox, type InstallSandbox, type SandboxOptions } from "./helpers/installSh";
 
@@ -258,11 +258,35 @@ describe.skipIf(!sh)("install.sh completions offer", () => {
     const box = open();
     await box.run([], { ...answer(box, "y\n"), SHELL: "/usr/bin/fish" });
     const file = join(box.home, ".config", "fish", "completions", "nittle.fish");
-    expect(read(file)).toBe("# fake fish completions\n");
+    expect(read(file)).toBe("# installed by nittle\n# fake fish completions\n");
     expect(read(join(box.home, ".config", "fish", "config.fish"))).not.toContain("completion");
     const gone = await box.run(["--uninstall"], { SHELL: "/usr/bin/fish" });
     expect(gone.code).toBe(0);
     expect(existsSync(file)).toBe(false);
+  });
+
+  test("a nittle.fish the user wrote is neither overwritten nor removed", async () => {
+    const box = open();
+    const file = join(box.home, ".config", "fish", "completions", "nittle.fish");
+    write(file, "# mine\ncomplete -c nittle\n");
+    const env = { SHELL: "/usr/bin/fish" };
+    await box.run([], { ...answer(box, "y\n"), ...env });
+    expect(read(file)).toBe("# mine\ncomplete -c nittle\n");
+    await box.run(["--uninstall"], env);
+    expect(read(file)).toBe("# mine\ncomplete -c nittle\n");
+  });
+
+  // ntfs has no posix modes, so this only means something off windows
+  test.skipIf(process.platform === "win32")("a 600 rc stays 600 after the completion line is added and removed", async () => {
+    const box = open();
+    const rc = join(box.home, ".zshrc");
+    write(rc, "alias a=b\n");
+    chmodSync(rc, 0o600);
+    await box.run([], answer(box, "y\n"));
+    expect(statSync(rc).mode & 0o777).toBe(0o600);
+    expect(read(rc)).toContain("completion --shell zsh");
+    await box.run(["--uninstall"]);
+    expect(statSync(rc).mode & 0o777).toBe(0o600);
   });
 
   test("without a nittle block in the rc the line is printed, never written", async () => {
