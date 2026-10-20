@@ -110,7 +110,7 @@ describe("commentFocus", () => {
 
 function harness(list: Comment[], pos: CursorPos | null, lineText: string | null = "const x = 1;") {
   const ui = createUiStore();
-  const comments = { remove: vi.fn(), resolve: vi.fn(), reopen: vi.fn() };
+  const comments = { remove: vi.fn().mockResolvedValue(null), add: vi.fn().mockResolvedValue(null), resolve: vi.fn(), reopen: vi.fn() };
   const lsp = { notify: vi.fn() };
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { clipboard: { writeText } });

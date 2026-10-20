@@ -46,6 +46,7 @@ export const BINDINGS: Binding[] = [
   bind("C", "Comment", "Comment on the cursor's file", "comment.file"),
   bind("e", "Comment", "Edit the comment on the cursor line", "comment.edit"),
   bind("dd", "Comment", "Delete the comment on the cursor line", "comment.delete"),
+  bind("u", "Comment", "Undo the last comment delete (offered for 8 seconds)", "comment.undo"),
   bind("R", "Comment", "Resolve or reopen that comment", "comment.resolve"),
   bind("yy", "Comment", "Copy that comment, or the cursor line when it has none", "comment.copy"),
   bind("}", "Comment", "Next comment on the cursor line", "comment.next"),

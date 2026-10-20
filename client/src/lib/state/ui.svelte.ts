@@ -3,6 +3,14 @@
 
 import type { AddTarget, SelectTarget, Side } from "$lib/diff/threads";
 
+export const UNDO_MS = 8000;
+
+export interface UndoOffer {
+  text: string;
+  run: () => void;
+  seq: number;
+}
+
 export type OverlayName = "help" | "whatsNew" | "compile" | "scorecard";
 
 export function createUiStore() {
@@ -18,6 +26,9 @@ export function createUiStore() {
   let adding = $state<AddTarget | null>(null);
   let selecting = $state<SelectTarget | null>(null);
   let editingComment = $state<string | null>(null);
+  let undo = $state<UndoOffer | null>(null);
+  let undoSeq = 0;
+  let undoTimer: ReturnType<typeof setTimeout> | undefined;
 
   return {
     get activeOverlay(): OverlayName | null {
@@ -88,8 +99,26 @@ export function createUiStore() {
     startEdit(id: string): void {
       editingComment = id;
     },
-    stopEdit(): void {
-      editingComment = null;
+    // only closes the editor it names: a save finishing for one comment must not close another's
+    stopEdit(id: string): void {
+      if (editingComment === id) editingComment = null;
+    },
+    // a short-lived "Undo" offer (a comment was just deleted)
+    get undo(): UndoOffer | null {
+      return undo;
+    },
+    offerUndo(text: string, run: () => void): void {
+      clearTimeout(undoTimer);
+      undo = { text, run, seq: ++undoSeq };
+      undoTimer = setTimeout(() => (undo = null), UNDO_MS);
+    },
+    runUndo(): boolean {
+      const offer = undo;
+      if (!offer) return false;
+      clearTimeout(undoTimer);
+      undo = null;
+      offer.run();
+      return true;
     },
     startLineAdd(file: string, side: Side, line: number): void {
       adding = { file, side, line, endLine: line };
