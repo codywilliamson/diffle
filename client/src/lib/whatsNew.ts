@@ -19,7 +19,7 @@ export const WHATS_NEW = {
     "When an agent sends changes back after your feedback, files that changed show a \"Changed since last review\" chip and can show only what's new since your last round.",
     "Keyboard review: j and k now move a line cursor (10j works), J and K move between files, ] and [ jump hunks, gg and G go to the top and bottom, Ctrl+o jumps back. Moved keys: scorecard is now gc, feedback preview is now P, What's new is now gw.",
     "Comment from the keyboard: c on the cursor line, V then j or k then c for a range, C for the whole file.",
-    "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it, R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
+    "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it (u undoes within a few seconds), R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
     "Move around faster: gf jumps to a file path on the cursor line, Ctrl+p opens a fuzzy file picker, zo and zc expand or collapse the current file (zO and zC all of them), and gv reselects the last visual range.",
     "Search the current file with /: matches are highlighted on both sides, n and N step through them, Esc clears.",
     "Search every changed file with g/: hits are grouped by file, Enter jumps to the line, Ctrl+o comes back.",
