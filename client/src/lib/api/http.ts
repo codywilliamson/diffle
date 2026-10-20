@@ -1,5 +1,5 @@
 import type { ApiError } from "$types";
-import { reportReachable, reportUnreachable } from "./serverLink";
+import { mutationBlockedReason, reportReachable, reportUnreachable } from "./serverLink";
 
 // a non-2xx answer. message is the server's { error } text; body keeps the whole envelope for
 // callers that read more of it (the lsp routes add code, state and hint).
@@ -46,6 +46,8 @@ export async function apiGet<T>(path: string, signal?: AbortSignal, headers?: He
 
 // typed JSON POST, same error contract as apiGet.
 export async function apiPost<T>(path: string, body: unknown, signal?: AbortSignal, headers?: HeadersInit): Promise<T> {
+  const blocked = mutationBlockedReason();
+  if (blocked) throw new Error(blocked);
   const res = await send(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },

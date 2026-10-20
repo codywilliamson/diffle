@@ -25,30 +25,81 @@ async function openEditor(page: Page): Promise<void> {
   await page.getByRole("textbox", { name: "Comment text" }).fill("draft stays put");
 }
 
-test("warns when the server stops, blocks saving, and recovers on restart", async ({ page }) => {
+const reviewIdOf = (url: string): string => new URL(url).searchParams.get("review") ?? "";
+
+test("warns when the server stops, blocks writes, and recovers when the same review returns", async ({ page }) => {
   const fixture = makeFixture(FILES);
   const port = await freePort();
   const args = ["--port", String(port)];
   let { server, url } = startPreview(fixture, { seenWhatsNew: true, args });
   try {
-    await gotoApp(page, await url);
+    const first = await url;
+    const reviewId = reviewIdOf(first);
+    await gotoApp(page, first);
     await expect(page.getByTestId("server-gone")).toHaveCount(0);
+
+    // one saved comment, then an open editor with unsent text
+    await openEditor(page);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("draft stays put")).toBeVisible();
     await openEditor(page);
     const save = page.getByRole("button", { name: "Save" });
     await expect(save).toBeEnabled();
 
     await stop(server);
 
-    const banner = page.getByRole("alert").filter({ hasText: "server is gone" });
+    const banner = page.getByTestId("server-gone");
     await expect(banner).toBeVisible({ timeout: BANNER_TIMEOUT_MS });
-    await expect(banner).toContainText(`--port ${port}`);
+    await expect(banner).toHaveAttribute("role", "alert");
+    await expect(banner).toContainText(`--review-id ${reviewId} --port ${port}`);
     await expect(save).toBeDisabled();
     await expect(save).toHaveAttribute("title", /server is gone/i);
+    await expect(page.getByRole("button", { name: "Resolve", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Delete" })).toBeDisabled();
 
-    ({ server, url } = startPreview(fixture, { seenWhatsNew: true, args }));
+    // the same review comes back: recover, keep the unsent text, banner gone
+    ({ server, url } = startPreview(fixture, { seenWhatsNew: true, args: [...args, "--review-id", reviewId] }));
     await url;
     await expect(banner).toBeHidden({ timeout: BANNER_TIMEOUT_MS });
     await expect(save).toBeEnabled();
+    await expect(page.getByRole("textbox", { name: "Comment text" })).toHaveValue("draft stays put");
+  } finally {
+    await stop(server);
+    cleanup(fixture);
+  }
+});
+
+test("a different review on the same port stays blocked until the page is reloaded", async ({ page }) => {
+  const fixture = makeFixture(FILES);
+  const port = await freePort();
+  const args = ["--port", String(port)];
+  let { server, url } = startPreview(fixture, { seenWhatsNew: true, args });
+  try {
+    const first = await url;
+    await gotoApp(page, first);
+    await openEditor(page);
+    const save = page.getByRole("button", { name: "Save" });
+
+    await stop(server);
+    await expect(page.getByTestId("server-gone")).toBeVisible({ timeout: BANNER_TIMEOUT_MS });
+
+    // no --review-id: this starts a brand new review on the same origin
+    let second: string;
+    ({ server, url } = startPreview(fixture, { seenWhatsNew: true, args }));
+    second = await url;
+    expect(reviewIdOf(second)).not.toBe(reviewIdOf(first));
+
+    const banner = page.getByTestId("server-mismatch");
+    await expect(banner).toBeVisible({ timeout: BANNER_TIMEOUT_MS });
+    await expect(banner).toContainText("A different review is running on this port");
+    await expect(save).toBeDisabled();
+    await page.waitForTimeout(4_000);
+    await expect(banner).toBeVisible();
+    await expect(save).toBeDisabled();
+
+    await banner.getByRole("link", { name: /Reload/ }).click();
+    await expect(page).toHaveURL(new RegExp(`review=${reviewIdOf(second)}`));
+    await expect(page.getByTestId("server-mismatch")).toHaveCount(0);
   } finally {
     await stop(server);
     cleanup(fixture);

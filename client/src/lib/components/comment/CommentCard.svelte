@@ -14,7 +14,8 @@
   import { suggestionForRange } from "$lib/diff/threads";
 
   let { comment }: { comment: Comment } = $props();
-  const { comments, review, diff } = getAppState();
+  const { comments, review, diff, connection } = getAppState();
+  const blocked = $derived(connection.blockedReason);
 
   let editing = $state(false);
   let replying = $state(false);
@@ -58,11 +59,11 @@
       {#if comment.tag}<span class="comment-chip comment-chip-tag">{comment.tag}</span>{/if}
       <time datetime={comment.createdAt}>{relativeTime(comment.createdAt)}</time>
       <span class="-mr-2 ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5">
-        <button class="comment-btn" onclick={() => (resolved ? comments.reopen(comment.id) : comments.resolve(comment.id))}>{resolved ? "Reopen" : "Resolve"}</button>
+        <button class="comment-btn" disabled={!!blocked} title={blocked ?? undefined} onclick={() => (resolved ? comments.reopen(comment.id) : comments.resolve(comment.id))}>{resolved ? "Reopen" : "Resolve"}</button>
         {#if !resolved}<button class="comment-btn" onclick={() => (editing = true)}>Edit</button>{/if}
         {#if !review.isLegacy && !resolved}<button class="comment-btn" onclick={() => (replying = true)}>Reply</button>{/if}
         <span class="mx-1 h-4 w-px bg-border" aria-hidden="true"></span>
-        <button class="comment-btn comment-btn-danger" onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
+        <button class="comment-btn comment-btn-danger" disabled={!!blocked} title={blocked ?? undefined} onclick={() => comments.remove(comment.id)}><Trash size={12} aria-hidden="true" />Delete</button>
       </span>
     </div>
     {#each segments as segment, i (i)}
