@@ -7,9 +7,10 @@ import { PRODUCT } from "$product";
 const cmd = (args: string) => `"${PRODUCT.name} ${args}"`;
 
 export const WHATS_NEW = {
-  version: "0.30.0",
+  version: "0.31.0",
   highlights: [
     `Same app, new name: ${PRODUCT.name}, ${PRODUCT.lineage}. You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
+    "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it (u undoes within a few seconds), R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
     `If the ${PRODUCT.name} server stops while a review is open, the page now says so, turns off sending and saving, and reconnects by itself when the same review comes back on the same port.`,
     `Code navigation: gd goes to a definition, gh shows hover docs, gA lists references, gs and gS search symbols, on added and removed lines alike. Needs a language server installed: TypeScript, C#, Python, Go, Rust, Vue and Svelte. Run ${PRODUCT.name} lsp to see what's found.`,
     "Search every changed file with g/: hits are grouped by file, Enter jumps to the line, Ctrl+o comes back.",
@@ -24,7 +25,6 @@ export const WHATS_NEW = {
     "When an agent sends changes back after your feedback, files that changed show a \"Changed since last review\" chip and can show only what's new since your last round.",
     "Keyboard review: j and k now move a line cursor (10j works), J and K move between files, ] and [ jump hunks, gg and G go to the top and bottom, Ctrl+o jumps back. Moved keys: scorecard is now gc, feedback preview is now P, What's new is now gw.",
     "Comment from the keyboard: c on the cursor line, V then j or k then c for a range, C for the whole file.",
-    "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it (u undoes within a few seconds), R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
     "Search the current file with /: matches are highlighted on both sides, n and N step through them, Esc clears.",
   ],
 };
