@@ -254,8 +254,10 @@ describe.skipIf(!winPowerShell)("install.ps1 under windows powershell 5.1", () =
     const env = { ...process.env, HOME: home, USERPROFILE: home, NITTLE_INSTALL_DIR: bin, NITTLE_PATH_SCOPE_FILE: scope };
     const proc = Bun.spawn([winPowerShell!, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script], { stdout: "pipe", stderr: "pipe", cwd: dir, env });
     const [stdout, stderr] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
-    await proc.exited;
+    const code = await proc.exited;
     const out = stdout + stderr;
+    expect(code).not.toBe(0);
+    expect(out).toContain("nittle needs PowerShell 7 or later");
     expect(out).toContain("PowerShell 7 or newer is required");
     expect(out).toContain("winget install --id Microsoft.PowerShell --source winget");
     expect(out).toContain('pwsh -NoProfile -c "irm https://nittle.dev/install.ps1 | iex"');

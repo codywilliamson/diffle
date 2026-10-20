@@ -13,8 +13,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
   Write-Host "[ERROR] $Name install: PowerShell 7 or newer is required (found $($PSVersionTable.PSVersion))." -ForegroundColor Red
   Write-Host '  install it:  winget install --id Microsoft.PowerShell --source winget'
   Write-Host "  then rerun:  pwsh -NoProfile -c `"irm https://$Name.dev/install.ps1 | iex`""
-  $global:LASTEXITCODE = 1
-  return
+  throw "$Name needs PowerShell 7 or later"
 }
 
 & {
