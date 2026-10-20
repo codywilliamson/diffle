@@ -21,7 +21,7 @@ Post this as soon as the submission is up. Replace [COMPARISON_URL] with whereve
 
 Hi HN. I'm Cody. nittle is a local git diff viewer built for reviewing what coding agents write.
 
-You run `nittle` in a repo and it opens the diff in your browser. You comment on a line, a range, or a whole file. Then the comments go back to the agent as a structured prompt, either by copy and paste, over a local MCP server, or on stdout with `nittle --wait`. The agent can reply in the thread, mark a comment addressed, and ask for another pass. You refresh the diff and look at what it changed. Nothing leaves your machine. No forge, no account, no hosted model.
+You run `nittle` in a repo and it opens the diff in your browser. You comment on a line, a range, or a whole file. The comments go back to the agent as a structured prompt. You paste it, send it over a local MCP server, or read it on stdout with `nittle --wait`. The agent can reply in the thread, mark a comment addressed, and ask for another pass. You refresh the diff and look at what it changed. Nothing leaves your machine. No forge, no account, no hosted model.
 
 Install:
 
@@ -30,9 +30,9 @@ Install:
 
 Then `nittle setup` wires it into the agents you have: Claude Code and Codex (as plugins), plus Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed and GitHub Copilot CLI (as MCP config entries). It shows you the plan and asks before it touches a file.
 
-Why line-level review. When an agent reviews its own work, it reads the same context it wrote from, so it tends to agree with itself. A human pointing at line 48 and saying "this swallows the error" is cheaper and more exact than any amount of "review your changes". That is the whole bet. I wrote it up here: [BLOG_URL]
+Why line-level review. When an agent reviews its own work, it reads the same context it wrote from, so it tends to agree with itself. A human pointing at line 48 and saying "this swallows the error" is cheaper and more exact than any amount of "review your changes". That's the bet. I wrote it up here: [BLOG_URL]
 
-The name needs explaining. This project was called diffle until the rename, and loupe before that. I started it in June as loupe and moved to diffle in September. moritzwilksch/diffle is a different project with the same name. It was already public, and it had its own Show HN earlier this month. They had the name first, we built independently, and we kept colliding in search, package names and "which diffle?" threads. I'd rather be the one who moves than make everyone disambiguate, so we moved. The first run of nittle migrates a diffle install in one pass and removes the leftovers. There's a page on it: https://nittle.dev/guides/migrating-from-diffle/
+Naming is the messy part. This project was called diffle until the rename, and loupe before that. I started it in June as loupe and moved to diffle in September. moritzwilksch/diffle is a different project with the same name. It was already public, and it had its own Show HN earlier this month. They had the name first, we built independently, and we kept colliding in search, package names and "which diffle?" threads. I'd rather be the one who moves than make everyone sort out which diffle they mean, so we moved. The first run of nittle migrates a diffle install in one pass and removes the leftovers. There's a page on it: https://nittle.dev/guides/migrating-from-diffle/
 
 The old name had a backronym, the Deterministic Inspection & Feedback Framework for Language-model Engineering. It's in ADR 0004 in the repo. We stand by it, and `nittle --version` still prints the lineage on its second line.
 
