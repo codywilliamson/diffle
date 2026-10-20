@@ -103,6 +103,19 @@
     });
   });
 
+  // zo / zc / zO / zC. a request made before this file mounted is not replayed onto it.
+  let foldSeen = untrack(() => ui.foldRequest?.seq ?? 0);
+  $effect(() => {
+    const request = ui.foldRequest;
+    if (!request || request.seq === foldSeen) return;
+    foldSeen = request.seq;
+    if (request.path !== null && request.path !== untrack(() => file.path)) return;
+    untrack(() => {
+      setCollapsed(request.collapsed);
+      if (!request.collapsed) mounted = true;
+    });
+  });
+
   // noise files start collapsed once the scorecard knows about them, unless the reader already chose.
   $effect(() => {
     if (noise && !untrack(() => touched)) collapsed = true;

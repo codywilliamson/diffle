@@ -52,7 +52,7 @@ describe("counts", () => {
   });
 
   it("drops a count followed by an unbound key", () => {
-    const { outcomes, state } = run(["3", "z", "j"]);
+    const { outcomes, state } = run(["3", "q", "j"]);
     expect(outcomes[1]!.kind).toBe("dropped");
     expect(dispatched(last(outcomes))?.count).toBeNull();
     expect(state).toEqual(EMPTY_STATE);

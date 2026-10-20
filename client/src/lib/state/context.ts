@@ -8,6 +8,7 @@ import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
 import { createCommentFocus, type CommentFocus } from "./commentFocus.svelte";
+import { createFilePicker, type FilePicker } from "./filePicker.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
 import { navigationStamp } from "$lib/lsp/stamp";
@@ -29,6 +30,7 @@ export interface AppState {
   searchAll: SearchAllStore;
   lsp: LspStore;
   commentFocus: CommentFocus;
+  filePicker: FilePicker;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -74,7 +76,8 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     },
   });
   const commentFocus = createCommentFocus({ comments: () => comments.anchored, pos: () => cursor.pos });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, commentFocus };
+  const filePicker = createFilePicker({ files: () => diff.files.map((file) => file.path), jump: cursor.goToFile });
+  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, commentFocus, filePicker };
 }
 
 // call during component init at the app root.
