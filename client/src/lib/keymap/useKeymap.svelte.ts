@@ -7,6 +7,7 @@ import { currentFile } from "$lib/diff/currentFile";
 import { ROW_HEIGHT } from "$lib/diff/metrics";
 import { isEditable } from "./editable";
 import { createActions } from "./actions";
+import { escEndsVisual } from "./escapeLayer";
 import { EMPTY_STATE, step } from "./parser";
 import type { KeyInput } from "./types";
 
@@ -69,7 +70,10 @@ export function useKeymap(): Keymap {
     const pending = state.count !== "" || state.prefix !== null;
     // a pending count or chord goes first; otherwise Esc closes the topmost layer: an open dialog
     // sits above visual mode, so visual mode only ends once no dialog is open
-    if (!pending && !(cursor.visual && !ui.activeOverlay && !isEditable(event.target))) return;
+    const endsVisual = escEndsVisual({
+      pending, visual: cursor.visual, dialogOpen: !!ui.activeOverlay, codeLayerOpen: app.lsp.hasLayer, inField: isEditable(event.target),
+    });
+    if (!pending && !endsVisual) return;
     state = EMPTY_STATE;
     if (!pending) exitVisual();
     if (isEditable(event.target)) return;
