@@ -46,7 +46,7 @@ export function createSymbolsStore(deps: SymbolsDeps) {
       selected = 0;
       status = "ready";
     },
-    onError: (error) => {
+    onError: (_query, error) => {
       status = "error";
       deps.onError(error);
     },

@@ -107,6 +107,15 @@ describe("symbols store", () => {
     expect(workspaceCalls[2]!.signal.aborted).toBe(true);
   });
 
+  it("hands the real workspace error, not the query, to onError", async () => {
+    const onError = vi.fn();
+    const failure = new Error("typescript server is missing");
+    const store = createSymbolsStore({ document: async (path) => ({ path, symbols: [] }), workspace: () => Promise.reject(failure), jump: vi.fn(), onError });
+    store.openWorkspace();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onError).toHaveBeenCalledWith(failure);
+  });
+
   it("closes and reports when the outline cannot load", async () => {
     const onError = vi.fn();
     const store = createSymbolsStore({ document: () => Promise.reject(new Error("no server")), workspace: async () => ({ symbols: [], total: 0, truncated: false }), jump: vi.fn(), onError });
