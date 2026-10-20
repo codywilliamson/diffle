@@ -60,9 +60,44 @@ A review with no base commit (browse mode) has no old side. Requests for that si
 
 When no server is usable, every route answers `409` with `{ code: "server-unavailable", state, hint }`. It is never a 500, and nothing is logged as an error. The first request after a server starts also waits for the server to finish loading the project, because answers before that are unreliable.
 
-## Limits today
+## Revisions other than your checkout
 
-Language servers read your checkout from disk. For a branch, range or commit review, answers that point into other files can reflect the checked-out files instead of the reviewed revision. The old side of a diff can't be navigated at all. Both limits stay until nittle can serve those revisions from a detached worktree (tracked in issue 186), and it will never switch your checkout to do it.
+A language server reads files from disk, so it can only answer for a revision that is on disk. nittle never checks a revision out in your repository to get there. Each side of the review gets a root, and for anything that isn't your checkout, that root is a detached git worktree in your system temp directory.
+
+### Which root each side gets
+
+- Working-tree and staged reviews use your repository.
+- A review whose new side is the commit your checkout is already on, with a clean `git status`, also uses your repository.
+- Everything else gets a worktree at the new side's commit: a branch, a range, `nittle show <commit>`, or a branch review while you have uncommitted edits.
+- The old side gets its own worktree at the base commit. That is what makes go-to-definition and hover work on removed lines. Browse mode has no base commit, so it has no old side.
+
+Each request only talks to the servers rooted where its side lives. A workspace symbol search from the working tree never reaches the servers of an old-side worktree.
+
+### Where it is
+
+```
+<temp dir>/nittle-lsp-wt-<pid>-<random>/new
+<temp dir>/nittle-lsp-wt-<pid>-<random>/old
+<temp dir>/nittle-lsp-wt-<pid>-<random>/owner.json
+```
+
+`<temp dir>` is `%TEMP%` on Windows and `$TMPDIR` (or `/tmp`) elsewhere. The worktrees are detached, so no branch is created and nothing is written to your HEAD, index or working tree. Git lists them under `.git/worktrees/` while they exist. They are created on the first request that needs one, with hooks disabled. `owner.json` records the process id, the repository, and the worktree and link paths, so cleanup can prove a leftover is nittle's.
+
+### When the review moves
+
+Each request checks which commit its side should be at, once per diff refresh. When the review moves, the worktree runs `git checkout --detach`, but only while its own `git status --porcelain` is clean. If it isn't clean, or the checkout fails, the side answers `409` with `code: "worktree-blocked"`, and `GET /api/lsp/status` reports the reason in `blocker`. nittle never answers from the wrong revision. Commit or discard the changes in the temp worktree and the next refresh moves it.
+
+### Installed dependencies
+
+A temp worktree holds tracked files only, so a TypeScript server there wouldn't see your packages. For the repository root and each package directory with a tracked `package.json` (up to 50), nittle links your `node_modules` into the worktree when your checkout has one. The link is a junction on Windows and a symlink elsewhere. If a directory has no `node_modules`, or the link can't be made, navigation still works for the repository's own files and `GET /api/lsp/status` carries `limited: "dependencies unavailable"`.
+
+The server can read, and in principle write, through that link into your real `node_modules`. nittle turns off automatic typings acquisition for TypeScript servers and points server logs at a separate temp directory. It has no switch that makes a server read-only. Removal never follows the link: it is unlinked first, and if that fails the worktree is left alone.
+
+### Cleanup
+
+Closing the review removes its worktrees on every exit path: approve, cancel, `--wait` exits, Ctrl+C and MCP shutdown. Removal unlinks the dependency links, runs `git worktree remove --force` on each temp path, and removes that worktree's entry under `.git/worktrees/` if git left one behind. It never runs a repository-wide `git worktree prune`. The temp directory is removed only when it is empty.
+
+A hard kill (SIGKILL, power loss) leaves the worktrees behind. `nittle cleanup` lists them and removes them after confirmation. It only touches a worktree that is registered in the current repository, sits in a `new` or `old` directory under `<temp dir>/nittle-lsp-wt-<pid>-*/`, and has an `owner.json` that names this repository, this worktree and a process that is no longer running. Run it from inside the repository. A leftover without a readable `owner.json` is left alone.
 
 ## Coming next
 
