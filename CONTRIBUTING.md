@@ -11,7 +11,7 @@ Open the local URL printed by the server. If the client is blank, check the Vite
 
 ## Running from source
 
-Bun loads `.env` from the current directory before any code runs, and nittle's cwd is the repository being reviewed. Use `bun start`, `bun run dev` or `bun run mcp:serve`, which pass `--no-env-file`. If you run `bun src/index.ts` by hand in a repository you do not trust, pass `--no-env-file` yourself; the script cannot do it for you.
+Bun loads `.env` and `bunfig.toml` (whose `preload` runs code) from the current directory before any code runs, and nittle's cwd is the repository being reviewed. Use `bun start`, `bun run dev` or `bun run mcp:serve`, which pass `--no-env-file --config=bunfig.toml`. If you run `bun src/index.ts` by hand in a repository you do not trust, pass `--no-env-file --config=<checkout>/bunfig.toml` yourself; the script cannot do it for you.
 
 ## Check your change
 

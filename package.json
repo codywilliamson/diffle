@@ -10,9 +10,9 @@
     "nittle": "src/index.ts"
   },
   "scripts": {
-    "start": "bun run client:build && bun --no-env-file src/index.ts",
-    "dev": "bun --no-env-file scripts/dev.ts",
-    "preview": "bun run client:build && bun --no-env-file src/index.ts",
+    "start": "bun run client:build && bun --no-env-file --config=bunfig.toml src/index.ts",
+    "dev": "bun --no-env-file --config=bunfig.toml scripts/dev.ts",
+    "preview": "bun run client:build && bun --no-env-file --config=bunfig.toml src/index.ts",
     "test": "bun test",
     "client:build": "vite build",
     "client:test": "vitest run",
@@ -24,7 +24,7 @@
     "test:e2e:docker:update": "bun scripts/e2e-docker.ts --update",
     "build:binary": "bun scripts/build-binary.ts",
     "build:release": "bun scripts/build-release.ts",
-    "mcp:serve": "bun --no-env-file src/mcp/index.ts",
+    "mcp:serve": "bun --no-env-file --config=bunfig.toml src/mcp/index.ts",
     "mcpb:stage": "bun run build:binary && bun scripts/stage-mcpb.ts",
     "mcpb:validate": "bun run mcpb:stage && mcpb validate mcpb/manifest.json",
     "mcpb:pack": "bun run mcpb:stage && mcpb pack mcpb dist/nittle.mcpb"
