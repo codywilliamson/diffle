@@ -16,7 +16,7 @@ export interface FlagSpec {
 }
 
 const REVIEW_AND_SHOW: readonly CliCommand[] = ["review", "show"];
-const EVERY_COMMAND: readonly CliCommand[] = ["review", "show", "mcp", "hook", "sessions", "cleanup", "update", "doctor", "setup", "completion"];
+const EVERY_COMMAND: readonly CliCommand[] = ["review", "show", "mcp", "hook", "sessions", "cleanup", "update", "doctor", "setup", "lsp", "completion"];
 
 export const FLAG_SPECS: readonly FlagSpec[] = [
   { names: ["-p", "--port"], valueName: "n", description: "serve on a fixed port (default: any free port)", commands: REVIEW_AND_SHOW },
@@ -24,6 +24,7 @@ export const FLAG_SPECS: readonly FlagSpec[] = [
   { names: ["--wait"], description: "block until feedback is returned, then print the prompt on stdout", commands: ["review"] },
   { names: ["--json"], description: "with --wait, print the review record as JSON instead of the prompt", commands: ["review"] },
   { names: ["--no-lsp"], description: "start no language servers", commands: REVIEW_AND_SHOW },
+  { names: ["--lsp"], valueName: "lang=command", description: "use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)", commands: REVIEW_AND_SHOW },
   { names: ["--review-id"], valueName: "id", description: "open an existing durable Review Record", commands: ["review"] },
   { names: ["-v", "--version"], description: "print the installed version", commands: EVERY_COMMAND },
   { names: ["--license"], description: "print the bundled MIT license notice", commands: EVERY_COMMAND },

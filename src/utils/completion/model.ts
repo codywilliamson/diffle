@@ -3,7 +3,7 @@
 
 import { COMMAND_HELP, type HelpTopic } from "../usage/commandHelp";
 import { FLAG_SPECS, flagAccepted, type FlagSpec } from "../cliFlags";
-import { COMMANDS, HOOK_SUBCOMMANDS, MCP_ACTIONS } from "../cliVocabulary";
+import { COMMANDS, HOOK_SUBCOMMANDS, LSP_ACTIONS, MCP_ACTIONS } from "../cliVocabulary";
 
 export interface CompletionFlag {
   names: string[]; // e.g. ["-p", "--port"]
@@ -32,7 +32,7 @@ export interface CompletionCommand {
 export const REF_LIST_ARGS = ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes", "refs/tags"] as const;
 
 const REF_WORDS: Partial<Record<HelpTopic, readonly string[]>> = { review: ["staged", "browse"] };
-const SUBCOMMANDS: Partial<Record<HelpTopic, readonly string[]>> = { mcp: MCP_ACTIONS, hook: HOOK_SUBCOMMANDS };
+const SUBCOMMANDS: Partial<Record<HelpTopic, readonly string[]>> = { mcp: MCP_ACTIONS, hook: HOOK_SUBCOMMANDS, lsp: LSP_ACTIONS };
 const REF_COMMANDS: readonly HelpTopic[] = ["review", "show"];
 
 const toFlag = (spec: FlagSpec): CompletionFlag => ({

@@ -3,8 +3,10 @@
 
 export { USAGE, helpFor } from "./usage";
 import { COMMIT_SPEC_SUFFIX } from "./commitTarget";
-import { COMPLETION_SHELLS, HOOK_AGENTS, HOOK_SUBCOMMANDS, MCP_ACTIONS, type CliCommand, type CompletionShell, type HookAgent, type McpAction } from "./cliVocabulary";
+import { COMPLETION_SHELLS, HOOK_AGENTS, HOOK_SUBCOMMANDS, LSP_ACTIONS, MCP_ACTIONS, type CliCommand, type CompletionShell, type HookAgent, type LspAction, type McpAction } from "./cliVocabulary";
 import { findFlag, flagAccepted } from "./cliFlags";
+import { parseOverrideFlag, type LspOverrides } from "../core/lsp/overrides";
+import { parseLspTarget, type LspTarget } from "./cliLsp";
 
 export type { McpAction };
 
@@ -20,6 +22,9 @@ export interface CliOptions {
   wait: boolean; // review: block until the reviewer hands off, then print the result on stdout
   json: boolean; // review --wait: print the get_review structure instead of the prompt
   lsp: boolean; // start language servers for code navigation; --no-lsp turns it off
+  lspOverrides: LspOverrides | undefined; // --lsp <lang>=<command>, repeatable; "" disables the language for this run
+  lspAction: LspAction | undefined; // lsp only: set or unset; absent = print the status
+  lspTarget: LspTarget | undefined; // lsp set/unset: the language and its command
   yes: boolean; // cleanup/doctor/setup/mcp restart: skip the confirmation prompt
   all: boolean; // cleanup: also stop active (not just finished/stale) sessions
   fix: boolean; // doctor: apply the repair plan
@@ -54,10 +59,14 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args[0] === "update" ? "update" :
     args[0] === "doctor" ? "doctor" :
     args[0] === "setup" ? "setup" :
+    args[0] === "lsp" ? "lsp" :
     args[0] === "completion" ? "completion" : "review";
-  const hasSubcommands = command === "mcp" || command === "hook";
+  const hasSubcommands = command === "mcp" || command === "hook" || command === "lsp";
   let subcommand: string | undefined;
-  if (hasSubcommands) {
+  if (command === "lsp") {
+    args.shift();
+    if (LSP_ACTIONS.includes(args[0] as LspAction)) subcommand = args.shift(); // bare `lsp` prints the status
+  } else if (hasSubcommands) {
     args.shift();
     const helpOnly = args[0] === "-h" || args[0] === "--help"; // `mcp --help` needs no subcommand
     subcommand = helpOnly ? undefined : args.shift();
@@ -67,7 +76,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
     args.shift();
   }
   const mcpAction = MCP_ACTIONS.find((action) => command === "mcp" && action === argv[1]);
-  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, lsp: true, yes: false, all: false, fix: false, check: false, remove: false, shell: undefined, agents: undefined, help: false, version: false, license: false };
+  const opts: CliOptions = { command, mcpAction, agent: undefined, spec: undefined, scope: undefined, reviewId: undefined, port: 0, open: true, wait: false, json: false, lsp: true, lspOverrides: undefined, lspAction: subcommand as LspAction | undefined, lspTarget: undefined, yes: false, all: false, fix: false, check: false, remove: false, shell: undefined, agents: undefined, help: false, version: false, license: false };
+  const lspArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] as string;
     if (arg.startsWith("-")) {
@@ -83,6 +93,10 @@ export function parseCliArgs(argv: string[]): CliOptions {
     else if (arg === "--license") opts.license = true;
     else if (arg === "--no-open") opts.open = false;
     else if (arg === "--no-lsp") opts.lsp = false;
+    else if (arg === "--lsp") {
+      const [language, command] = parseOverrideFlag(args[++i]);
+      opts.lspOverrides = { ...opts.lspOverrides, [language]: command };
+    }
     else if (Object.hasOwn(BOOLEAN_FIELDS, arg)) opts[BOOLEAN_FIELDS[arg]!] = true;
     else if (arg === "--agents") {
       const list = args[++i];
@@ -112,6 +126,8 @@ export function parseCliArgs(argv: string[]): CliOptions {
         throw new Error(`--port needs a number between 1 and ${MAX_PORT} (got ${raw ?? "nothing"})`);
       }
       opts.port = port;
+    } else if (opts.command === "lsp") {
+      lspArgs.push(arg);
     } else if (opts.command !== "review" && opts.command !== "show") {
       throw new Error(`unexpected argument: ${arg} (${opts.command} accepts options only)`);
     } else if (opts.spec === undefined) {
@@ -123,6 +139,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     }
   }
   if (opts.command === "show") opts.spec = `${opts.spec ?? "HEAD"}${COMMIT_SPEC_SUFFIX}`;
+  if (opts.command === "lsp" && !opts.help) opts.lspTarget = parseLspTarget(opts.lspAction, lspArgs);
   if (opts.json && !opts.wait) throw new Error("--json needs --wait");
   return opts;
 }
