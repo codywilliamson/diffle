@@ -53,7 +53,7 @@ Markdown files show their diff like any other file, plus a per-file **Preview** 
 
 ## Keyboard shortcuts
 
-Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord starting with `g`. `10j` moves ten lines. A count waits until the next key or `Esc`. A half-typed `g` chord is dropped after 1 second, and so is a chord with an unknown second key, without running anything. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
+Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord such as `gg`, `dd` or `yy`. `10j` moves ten lines. A count waits until the next key or `Esc`. A half-typed chord is dropped after 1 second, and so is a chord with an unknown second key, without running anything. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
 
 ### Move
 
@@ -67,6 +67,11 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `[` | Previous hunk (takes a count) |
 | `gg` | First line of the file |
 | `G` | Last line of the file, or line N with a count (takes a count) |
+| `gf` | Go to the file path on the cursor line |
+| `zo` | Expand the current file |
+| `zc` | Collapse the current file |
+| `zO` | Expand every file |
+| `zC` | Collapse every file |
 | `Ctrl+d` | Half a page down (takes a count) |
 | `Ctrl+u` | Half a page up (takes a count) |
 | `h` | Side-by-side: old side |
@@ -82,11 +87,20 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `V` | Start a visual range (j k ] [ extend it, Esc cancels) |
 | `c` | Visual range: comment on the range |
 | `C` | Comment on the cursor's file |
+| `gv` | Reselect the last visual range |
+| `e` | Edit the comment on the cursor line |
+| `dd` | Delete the comment on the cursor line |
+| `u` | Undo the last comment delete (offered for 8 seconds) |
+| `R` | Resolve or reopen that comment |
+| `yy` | Copy that comment, or the cursor line when it has none |
+| `}` | Next comment on the cursor line |
+| `{` | Previous comment on the cursor line |
 
 ### Search
 
 | key | action |
 | --- | --- |
+| `Ctrl+p` | Go to a changed file (fuzzy) |
 | `/` | Search the file |
 | `n` | Next match (takes a count) |
 | `N` | Previous match (takes a count) |
@@ -135,6 +149,8 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 The cursor is the highlighted row. Collapsed, binary and not-yet-loaded large files have no lines to rest on, so `j` and `k` skip them and `J` and `K` park on the file header.
 
 Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.
+
+Comment keys act on the comment under the cursor. `dd` deletes it and shows an Undo toast for 8 seconds. `u` also undoes the delete while that toast is up. Holding a key doesn't repeat `dd` or other destructive actions, so a held key can't keep deleting. Only plain motions such as `j` and `k` repeat. `Ctrl+p` (`Cmd+p` on macOS) opens "Go to file".
 
 ## Next steps
 
