@@ -52,38 +52,6 @@ The installer downloads the binary for your OS and architecture, verifies its SH
   `install.ps1` needs PowerShell 7 or newer. It edits only your user `PATH`, never the machine scope and never the merged process value. It backs the old value up to a timestamped file in your temp directory first, keeps every existing entry (`%VAR%` tokens included), and does nothing if `~\.nittle\bin` is already there. Set `NITTLE_NO_MODIFY_PATH` to install without touching `PATH`, `NITTLE_NO_SETUP` to skip the agent setup prompt, or `NITTLE_DRY_RUN` to print the plan and write nothing.
 </Aside>
 
-## Package managers (coming soon)
-
-The curl and irm installers above stay the default. If you would rather use a package manager, the same release binary is also published to npm, Homebrew and Scoop.
-
-### npm
-
-```sh
-npx nittle --version
-npm i -g nittle
-```
-
-npm picks the binary for your platform through optional dependencies (`nittle-linux-x64`, `nittle-darwin-arm64`, `nittle-win32-x64` and so on). Keep optional dependencies enabled. On a platform without a prebuilt binary, the launcher exits with an error that points at the curl and irm installer.
-
-### Homebrew (macOS and Linux)
-
-```sh
-brew install codywilliamson/tap/nittle
-brew upgrade nittle
-```
-
-### Scoop (Windows)
-
-```powershell
-scoop bucket add nittle https://github.com/codywilliamson/scoop-bucket
-scoop install nittle/nittle
-scoop update nittle
-```
-
-### Updating
-
-`nittle update` does not replace a binary that a package manager owns. It detects npm, Homebrew and Scoop installs and prints the command to run instead.
-
 ## If you have a diffle install
 
 Run the same installer. After it installs nittle, it runs `nittle --version` once, and the binary's own first-run migration moves everything over: the data directory, the install directory and `PATH` entry, the agent plugins and MCP configs, and the browser prefs. Then it removes the diffle leftovers.
