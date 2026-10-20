@@ -26,5 +26,8 @@
     "remotion": "^4.0.527",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "source-map-js": "^1.2.2"
   }
 }
