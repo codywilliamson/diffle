@@ -111,6 +111,18 @@ Press `?` in the UI for this list at any time; it is generated from the same key
 | `P` | Preview review feedback |
 | `gc` | Open the review scorecard |
 
+### Code
+
+| key | action |
+| --- | --- |
+| `gd` | Go to definition (on a definition: list references) |
+| `gy` | Go to type definition |
+| `gh` | Hover docs for the cursor word |
+| `gA` | List references |
+| `gs` | Symbols in this file |
+| `gS` | Symbols in the repository |
+| `Ctrl/⌘ + click` | Go to definition of the word under the pointer. Resting the pointer on a word shows its hover docs. |
+
 ### Help
 
 | key | action |
