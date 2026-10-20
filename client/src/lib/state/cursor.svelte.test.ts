@@ -138,4 +138,16 @@ describe("placeAt", () => {
     expect(cursor.placeAt("a.ts", "new", 99)).toBe(false);
     expect(cursor.pos).toEqual({ path: "a.ts", side: "new", line: 1 });
   });
+
+  it("switches panes for a click on the other side of a split file", () => {
+    const S = file("s.ts", [hunk(ctx(1), del(2), add(2), ctx(3))]);
+    const cursor = store(() => [S, B], true);
+    cursor.lines("s.ts", 1); // new pane
+    expect(cursor.placeAt("s.ts", "old", 2)).toBe(true);
+    expect(cursor.side).toBe("old");
+    expect(cursor.pos).toEqual({ path: "s.ts", side: "old", line: 2 });
+    cursor.goToLine("b.ts", 2, 2);
+    cursor.back("b.ts");
+    expect(cursor.pos).toEqual({ path: "s.ts", side: "old", line: 2 });
+  });
 });
