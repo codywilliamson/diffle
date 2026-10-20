@@ -99,7 +99,7 @@ Each request only talks to the servers rooted where its side lives. A workspace 
 
 ### When the review moves
 
-Each request checks which commit its side should be at, once per diff refresh. When the review moves, the worktree runs `git checkout --detach`, but only while its own `git status --porcelain` is clean. If it isn't clean, or the checkout fails, the side answers `409` with `code: "worktree-blocked"`, and `GET /api/lsp/status` reports the reason in `blocker`. nittle never answers from the wrong revision. Commit or discard the changes in the temp worktree and the next refresh moves it.
+Each request checks which commit its side should be at, once per diff refresh. When the review moves, the worktree runs `git checkout --detach`, but only while its own `git status --porcelain` is clean. If it isn't clean, or the checkout fails, the side answers `409` with `code: "worktree-blocked"`, and `GET /api/lsp/status` reports the reason in `blocker`. A worktree side never answers from a revision other than the one it was last moved to. A side that uses your checkout is different. The clean check for that side is cached until the next refresh (Re-run, or `r`), so edits you make in the checkout before refreshing can show up in answers. Refresh after editing. Commit or discard the changes in the temp worktree and the next refresh moves it.
 
 ### Installed dependencies
 
