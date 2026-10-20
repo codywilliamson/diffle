@@ -7,6 +7,7 @@ import { createReviewStore, type ReviewStore } from "./review.svelte";
 import { createCommentsStore, type CommentsStore } from "./comments.svelte";
 import { createAnalysisStore, type AnalysisStore } from "./analysis.svelte";
 import { createCursorStore, type CursorStore } from "./cursor.svelte";
+import { createCommentFocus, type CommentFocus } from "./commentFocus.svelte";
 import { createSearchAllStore, type SearchAllStore } from "./searchAll.svelte";
 import { createSearchStore, type SearchStore } from "./search.svelte";
 import { navigationStamp } from "$lib/lsp/stamp";
@@ -27,6 +28,7 @@ export interface AppState {
   search: SearchStore;
   searchAll: SearchAllStore;
   lsp: LspStore;
+  commentFocus: CommentFocus;
 }
 
 const KEY = Symbol("nittle-app-state");
@@ -71,7 +73,8 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
       searchAll.close();
     },
   });
-  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp };
+  const commentFocus = createCommentFocus({ comments: () => comments.anchored, pos: () => cursor.pos });
+  return { prefs, ui, diff, review, comments, analysis, cursor, search, searchAll, lsp, commentFocus };
 }
 
 // call during component init at the app root.
