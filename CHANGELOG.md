@@ -2,6 +2,56 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.30.0](https://github.com/codywilliamson/diffle/compare/v0.29.0...v0.30.0) (2026-10-20)
+
+
+### Features
+
+* **build:** stage npm packages and render brew and scoop files ([894e7c1](https://github.com/codywilliamson/diffle/commit/894e7c1563de6ea23f14bf013a850ca5eb7c5236))
+* **cli:** add lsp status command, set/unset and --lsp override ([1061fa5](https://github.com/codywilliamson/diffle/commit/1061fa544ad4ed260a403f52ca8d1e04cd3dee35))
+* **cli:** detect npm installs and point update at npm i -g ([f3e1d92](https://github.com/codywilliamson/diffle/commit/f3e1d92a1a4ed652b76783d228bffbaf442d3edb))
+* **client:** suggest a change in line comments and render it as a diff ([ebce154](https://github.com/codywilliamson/diffle/commit/ebce154af472edc477346ccbd2a3cbb1bf669bb9))
+* **client:** typed lsp api adapters keeping the error envelope ([679b2cc](https://github.com/codywilliamson/diffle/commit/679b2ccaf0c64f839506c543fa840f343d59ab58))
+* **compiler:** expand suggestion blocks in the prompt and get_review ([52fe7bc](https://github.com/codywilliamson/diffle/commit/52fe7bc14bb6b00e6ae998301f429afe29747808))
+* **server:** add python, go, rust, vue and svelte language servers ([f8952d9](https://github.com/codywilliamson/diffle/commit/f8952d9e6c886354e7052753bc7657481a00edf2))
+* **server:** serve non-checked-out revisions from detached worktrees ([ade30ee](https://github.com/codywilliamson/diffle/commit/ade30eed06c9a1e1936808ca8ac6ceb27e8d9e83)), closes [#186](https://github.com/codywilliamson/diffle/issues/186)
+* **store:** code navigation state, hover, references and symbols ([a71ac00](https://github.com/codywilliamson/diffle/commit/a71ac00ce8b079ae6371c4e10eb937168de632bf))
+* **store:** cross-file search state and cursor jump to a hit ([cc50a4a](https://github.com/codywilliamson/diffle/commit/cc50a4a4c3a202bc81dfe51026f3954b7528bee5))
+* **ui:** g/ search panel across all changed files ([238a6f5](https://github.com/codywilliamson/diffle/commit/238a6f5193d8019abf5323286ed0da871088e624))
+* **ui:** gd gy gh gA gs gS panels, hover card and read-only viewer ([e9fe0d1](https://github.com/codywilliamson/diffle/commit/e9fe0d12fc52359ebefa09a6f75937d795ac1696))
+
+
+### Bug Fixes
+
+* add the missing space in the tap-publish step if ([0c35435](https://github.com/codywilliamson/diffle/commit/0c3543514d2911effd368970b6cb649be570dfec))
+* **build:** fail site probes on curl errors, keep loupe route ([b739e84](https://github.com/codywilliamson/diffle/commit/b739e84ec4f106e78d056f0606ec3034843c278b))
+* **build:** mark brew formula urls nounzip for raw binaries ([7f95200](https://github.com/codywilliamson/diffle/commit/7f95200d920a80063cd96b5c3931e3fa2d5ac1a8))
+* **build:** protect every source entrypoint from the cwd .env ([fa1a25d](https://github.com/codywilliamson/diffle/commit/fa1a25dd1efd6cf75e98e93783951e58c7439ee1))
+* **build:** stop compiled binaries loading .env from the cwd ([2aee4e1](https://github.com/codywilliamson/diffle/commit/2aee4e1c33659a11c9e93641d85161db218a8d76))
+* **build:** stop compiled binaries loading bunfig from the cwd ([8388781](https://github.com/codywilliamson/diffle/commit/838878107da7119e2e4db00e96eaefba0b26c27a))
+* **cli:** check npm paths before brew and scoop heuristics ([c4ca38a](https://github.com/codywilliamson/diffle/commit/c4ca38a79632493f60e7f8002e50f8d51cabc3c2))
+* **cli:** give pnpm and yarn their own update hints ([dba9b88](https://github.com/codywilliamson/diffle/commit/dba9b8838e791f88be715797d00e020b782474f1))
+* **cli:** spawn the source-mode hook child without .env loading ([39672b4](https://github.com/codywilliamson/diffle/commit/39672b491bd0045b6ee4503cf5a29d20b2dbb5c8))
+* **compiler:** harden suggestion fences, spans, deletes and specs ([008aa0e](https://github.com/codywilliamson/diffle/commit/008aa0ed26442ef29a805f2897d5799369705476))
+* installers notice DIFFLE_* fallbacks ([704abe1](https://github.com/codywilliamson/diffle/commit/704abe1cff6dedd17f7d00be7adac56eadfbde4d))
+* normalize user PATH entries in the installer and migration ([ea74cf9](https://github.com/codywilliamson/diffle/commit/ea74cf962af87d1f36d1bcefbd5f8169ef009457))
+* park conflicting legacy review records so the old data dir can go ([e359957](https://github.com/codywilliamson/diffle/commit/e359957afc9d18affddceb66828d47649c9b077b))
+* refuse to park through links and allow partial-delete retries ([0a2868b](https://github.com/codywilliamson/diffle/commit/0a2868bf12ec473e1dc86f0260ba9eb80538bc65))
+* **server:** block stale worktrees, scope roots, link dependencies ([e9ef293](https://github.com/codywilliamson/diffle/commit/e9ef2938152f696800d3fe176ae71bfb3dc5f161))
+* **server:** confine the venv exemption to the venv bin dir ([32bbd08](https://github.com/codywilliamson/diffle/commit/32bbd0863571b874420ab7cebe8d1fab9301b8bd))
+* **server:** disable fsmonitor, write the cleanup note before creating ([e5972b0](https://github.com/codywilliamson/diffle/commit/e5972b040a6b7afb1e35120d36fcd9154128d599))
+* **server:** launch venv overrides by their absolute real path ([8988f2e](https://github.com/codywilliamson/diffle/commit/8988f2e25b1b77eb85f1f384fd097e8a91233496))
+* **server:** match recorded links to their worktree by real path ([b607355](https://github.com/codywilliamson/diffle/commit/b6073559ee8c18e4e35c96acd34d5239430bb1d4))
+* **server:** start the regex search budget when the worker is up ([a77e597](https://github.com/codywilliamson/diffle/commit/a77e59746e3159b2ddb3e57740e2e6023bd183cf))
+* **store:** a definition answer is inert once the reader moved ([b80e247](https://github.com/codywilliamson/diffle/commit/b80e247b4032ac76807da9654ca7d646769c70ff))
+* **store:** superseding navigation aborts a pending definition ([aa29ab0](https://github.com/codywilliamson/diffle/commit/aa29ab041ebbcf51333f263a480b6d2865664a70))
+* **store:** workspace symbol errors keep their hint ([875e456](https://github.com/codywilliamson/diffle/commit/875e45607dd9423dff7f1e5e6c181f524875a249))
+* **tests:** compare worktree paths by their real long form ([9f43bbc](https://github.com/codywilliamson/diffle/commit/9f43bbc78d107bcf2d4f966aa55fd4a32cc39176))
+* **ui:** always open a hit's file, one handler per result row ([790a54d](https://github.com/codywilliamson/diffle/commit/790a54ddf557bc726b91dee9506c96e28891c23b))
+* **ui:** Esc closes code panels before ending visual mode ([db7c1fd](https://github.com/codywilliamson/diffle/commit/db7c1fdd710dcf3fcc7747d272368728c312dafd))
+* **ui:** open hits across single-file view, park pure renames ([f25e91c](https://github.com/codywilliamson/diffle/commit/f25e91c3a7b18224c21dcc246bc3ea786b7d64ec))
+* **ui:** silence the row click a11y warning ([b301e56](https://github.com/codywilliamson/diffle/commit/b301e5633a6f17f793c14376e73dba19a001684d))
+
 ## [0.29.0](https://github.com/codywilliamson/diffle/compare/v0.28.1...v0.29.0) (2026-10-19)
 
 
