@@ -12,6 +12,7 @@ export const WHATS_NEW = {
     `Same app, new name: ${PRODUCT.name}, ${PRODUCT.lineage}. You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
     "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it (u undoes within a few seconds), R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
     "Move around faster: gf jumps to a file path on the cursor line, Ctrl+p opens a fuzzy file picker, zo and zc expand or collapse the current file (zO and zC all of them), and gv reselects the last visual range.",
+    "Unsent comments are kept: close a comment box with Esc or reload the page and your text comes back when you reopen it. Cancel throws the draft away, and sending clears it.",
     `If the ${PRODUCT.name} server stops while a review is open, the page now says so, turns off sending and saving, and reconnects by itself when the same review comes back on the same port.`,
     `Code navigation: gd goes to a definition, gh shows hover docs, gA lists references, gs and gS search symbols, on added and removed lines alike. Needs a language server installed: TypeScript, C#, Python, Go, Rust, Vue and Svelte. Run ${PRODUCT.name} lsp to see what's found.`,
     "Search every changed file with g/: hits are grouped by file, Enter jumps to the line, Ctrl+o comes back.",
