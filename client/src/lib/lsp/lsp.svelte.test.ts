@@ -24,12 +24,12 @@ function hit(side: "old" | "new" = "new"): CodeHit {
   return { path: "src/main.ts", side, line: 6, root: document.querySelector<HTMLElement>(".code-inner")!, token: { start: 0, end: 5, text: "greet" } };
 }
 
-function setup(files: DiffFile[] = [file("src/greeter.ts", [3, 4])]) {
+function setup(files: DiffFile[] = [file("src/greeter.ts", [3, 4])], placeCursor?: (hit: CodeHit) => void) {
   const goToHit = vi.fn();
   const markJump = vi.fn();
   const closeSearch = vi.fn();
   const moved = { count: 0 }; // bumped by a test to stand for a cursor move, search jump or file pick
-  const lsp = createLspStore({ files: () => files, goToHit, markJump, closeSearch, stamp: () => [moved.count] });
+  const lsp = createLspStore({ files: () => files, goToHit, markJump, closeSearch, placeCursor, stamp: () => [moved.count] });
   return { lsp, goToHit, markJump, closeSearch, moved };
 }
 
@@ -51,6 +51,26 @@ describe("lsp store: definition", () => {
     lsp.definitionAtHit(hit());
     await flush();
     expect(api.lspDefinition).toHaveBeenCalledWith({ path: "src/main.ts", side: "new", line: 6, character: 0 }, "definition", expect.any(AbortSignal));
+  });
+
+  it("Ctrl+click moves the cursor to the clicked row first, and its own answer is not stale", async () => {
+    const order: string[] = [];
+    const placed: CodeHit[] = [];
+    const ctx = setup(undefined, (h) => {
+      order.push("place");
+      placed.push(h);
+      ctx.moved.count++; // the real cursor bumps revealSeq on every move
+    });
+    ctx.goToHit.mockImplementation(() => order.push("jump"));
+    api.lspDefinition.mockImplementation(async () => {
+      order.push("ask");
+      return answer([target("src/greeter.ts", 3, { inDiff: true })]);
+    });
+    const clicked = hit();
+    ctx.lsp.definitionAtHit(clicked);
+    await flush();
+    expect(placed).toEqual([clicked]);
+    expect(order).toEqual(["place", "ask", "jump"]);
   });
 
   it("one target inside the diff moves the cursor there", async () => {
