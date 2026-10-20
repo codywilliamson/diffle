@@ -346,7 +346,7 @@ function Edit-ProfileBlock {
   $line = Get-CompletionLine
   $eol = if ($lines[$start].EndsWith("`r`n")) { "`r`n" } else { "`n" }
   if ($Mode -eq 'Add') {
-    for ($i = $start + 1; $i -lt $end; $i++) { if ($lines[$i].Contains('completion --shell powershell')) { return 'Unchanged' } }
+    for ($i = $start + 1; $i -lt $end; $i++) { if ($lines[$i].Contains('completion --shell powershell') -and $lines[$i] -notmatch '^\s*#') { return 'Unchanged' } }
     $lines.Insert($end, "$line$eol")
   }
   else {
@@ -364,23 +364,29 @@ function Edit-ProfileBlock {
 # git ref. bounded, so a hung binary can't stall the installer
 function Test-CompletionSupport {
   $exe = if ($ProbeOverride) { $ProbeOverride } else { $Target }
-  $scratch = [IO.Path]::GetTempFileName()
   $process = $null
   try {
-    $process = Start-Process -FilePath $exe -ArgumentList 'completion', '--shell', 'powershell' -NoNewWindow -PassThru `
-      -RedirectStandardInput $scratch -RedirectStandardOutput "$scratch.out" -RedirectStandardError "$scratch.err"
+    # System.Diagnostics.Process directly: Start-Process -PassThru can hand back a null ExitCode
+    # for a fast child on Linux. output is drained so a big script can't fill the pipe
+    $start = [Diagnostics.ProcessStartInfo]::new($exe)
+    foreach ($argument in 'completion', '--shell', 'powershell') { $start.ArgumentList.Add($argument) }
+    $start.UseShellExecute = $false
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::Start($start)
+    $process.StandardInput.Close()
+    $drained = @($process.StandardOutput.ReadToEndAsync(), $process.StandardError.ReadToEndAsync())
     if (-not $process.WaitForExit($ProbeTimeoutSeconds * 1000)) {
       $process.Kill($true)
       Write-Log INFO "'$Name completion' did not answer within ${ProbeTimeoutSeconds}s; skipping completions"
       return $false
     }
+    $process.WaitForExit()
     return $process.ExitCode -eq 0
   }
   catch { return $false }
-  finally {
-    if ($process) { $process.Dispose() }
-    Remove-Item -LiteralPath $scratch, "$scratch.out", "$scratch.err" -Force -ErrorAction SilentlyContinue
-  }
+  finally { if ($process) { $process.Dispose() } }
 }
 
 function Invoke-CompletionOffer {

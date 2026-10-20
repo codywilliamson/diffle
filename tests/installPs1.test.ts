@@ -294,6 +294,17 @@ describe.skipIf(!pwsh)("install.ps1 completions offer", () => {
     expect(read(result.dir)).toBe(`${COMPLETION_LINE}\n${WITH_LINE}`);
   });
 
+  test("a commented-out completion line inside the block does not count as wired", async () => {
+    const text = "# >>> nittle >>>\n# nittle completion --shell powershell\n# <<< nittle <<<\n";
+    const result = await run({ env: offer("y"), before: prepare(text) });
+    expect(read(result.dir)).toBe(`# >>> nittle >>>\n# nittle completion --shell powershell\n${COMPLETION_LINE}\n# <<< nittle <<<\n`);
+  });
+
+  test("a profile whose last line has no newline keeps it that way", async () => {
+    const result = await run({ env: offer("y"), before: prepare(`${BLOCK}$x = 1`) });
+    expect(read(result.dir)).toBe(`${WITH_LINE}$x = 1`);
+  });
+
   test("rerunning does not duplicate the line", async () => {
     const first = await run({ env: offer("y"), before: prepare(seeded) });
     await run({ env: offer("y"), reuse: first.dir });
