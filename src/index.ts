@@ -13,6 +13,7 @@ import { launchUpdateNotice } from "./core/updateNotice";
 import { runCleanupCommand, runSessionsCommand } from "./utils/sessionsCli";
 import { runDoctorCommand } from "./utils/doctorCli";
 import { runSetup } from "./utils/setupCli";
+import { runLspCommand } from "./utils/lspCli";
 import { runMcpListCommand, runMcpRestartCommand } from "./utils/mcpCli";
 import { hasStaleLegacyPlugin, readClaudePluginState } from "./utils/claudePlugins";
 import { classifySessions } from "./core/sessions";
@@ -77,6 +78,7 @@ export async function main(): Promise<void> {
   if (opts.command === "sessions") return runSessionsCommand();
   if (opts.command === "cleanup") return runCleanupCommand({ yes: opts.yes, all: opts.all });
   if (opts.command === "doctor") return runDoctorCommand({ fix: opts.fix, yes: opts.yes }, productRoot);
+  if (opts.command === "lsp") return runLspCommand(opts.lspAction, opts.lspTarget);
   if (opts.command === "setup") {
     const code = await runSetup({ remove: opts.remove, agents: opts.agents, yes: opts.yes });
     if (code !== 0) process.exit(code);
@@ -92,7 +94,7 @@ export async function main(): Promise<void> {
   try {
     launch = launchReview({
       cwd, productRoot, spec: opts.spec, scope: opts.scope, reviewId: opts.reviewId,
-      policy: "handoff", port: opts.port, open: opts.open, lsp: opts.lsp, host,
+      policy: "handoff", port: opts.port, open: opts.open, lsp: opts.lsp, lspOverrides: opts.lspOverrides, host,
     });
   } catch (err) {
     fail(err instanceof Error ? err.message : `port ${opts.port} is already in use`);

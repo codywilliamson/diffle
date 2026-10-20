@@ -18,7 +18,7 @@ _nittle() {
   COMPREPLY=()
   if (( COMP_CWORD > 1 )); then
     case "\${COMP_WORDS[1]}" in
-      show|mcp|hook|sessions|cleanup|update|doctor|setup|completion) cmd="\${COMP_WORDS[1]}"; lead=1 ;;
+      show|mcp|hook|sessions|cleanup|update|doctor|setup|lsp|completion) cmd="\${COMP_WORDS[1]}"; lead=1 ;;
     esac
   fi
   case "$cmd" in
@@ -28,11 +28,14 @@ _nittle() {
     hook)
       subs="stop"
       if (( COMP_CWORD > 2 )); then case "\${COMP_WORDS[2]}" in stop) sub="\${COMP_WORDS[2]}"; lead=2 ;; esac; fi ;;
+    lsp)
+      subs="set unset"
+      if (( COMP_CWORD > 2 )); then case "\${COMP_WORDS[2]}" in set|unset) sub="\${COMP_WORDS[2]}"; lead=2 ;; esac; fi ;;
   esac
   scope="$cmd\${sub:+ $sub}"
   case "$scope" in
-    'review') flags="-p --port --no-open --wait --json --no-lsp --review-id -v --version --license -h --help" ;;
-    'show') flags="-p --port --no-open --no-lsp -v --version --license -h --help" ;;
+    'review') flags="-p --port --no-open --wait --json --no-lsp --lsp --review-id -v --version --license -h --help" ;;
+    'show') flags="-p --port --no-open --no-lsp --lsp -v --version --license -h --help" ;;
     'mcp') flags="-h --help" ;;
     'mcp serve') flags="-v --version --license -h --help" ;;
     'mcp list') flags="-v --version --license -h --help" ;;
@@ -44,6 +47,9 @@ _nittle() {
     'update') flags="-v --version --license --check -h --help" ;;
     'doctor') flags="-v --version --license --yes --fix -h --help" ;;
     'setup') flags="-v --version --license --agents --remove --yes -h --help" ;;
+    'lsp') flags="-h --help" ;;
+    'lsp set') flags="-v --version --license -h --help" ;;
+    'lsp unset') flags="-v --version --license -h --help" ;;
     'completion') flags="-v --version --license --shell -h --help" ;;
   esac
   case "$cmd" in
@@ -52,6 +58,7 @@ _nittle() {
   esac
   case "$prev" in
     -p|--port) return ;;
+    --lsp) return ;;
     --review-id) return ;;
     --agent) for word in codex claude-code; do _nittle_offer "$word"; done; return ;;
     --agents) for word in claude codex cursor gemini vscode windsurf opencode zed copilot; do _nittle_offer_list "$word"; done; return ;;
@@ -61,7 +68,7 @@ _nittle() {
     word="\${COMP_WORDS[i]}"
     if (( skip )); then skip=0; continue; fi
     case "$word" in
-      -p|--port|--review-id|--agent|--agents|--shell) skip=1 ;;
+      -p|--port|--lsp|--review-id|--agent|--agents|--shell) skip=1 ;;
       -*) ;;
       *) npos=$(( npos + 1 )) ;;
     esac
@@ -75,7 +82,7 @@ _nittle() {
     return
   fi
   if (( COMP_CWORD == 1 )); then
-    for word in show mcp hook sessions cleanup update doctor setup completion; do _nittle_offer "$word"; done
+    for word in show mcp hook sessions cleanup update doctor setup lsp completion; do _nittle_offer "$word"; done
   fi
   if (( COMP_CWORD == 2 )); then
     for word in $subs; do _nittle_offer "$word"; done
@@ -97,10 +104,10 @@ exports[`completion scripts zsh output matches the snapshot 1`] = `
 _nittle() {
   local cmd=review sub="" scope lead=0 npos=0 skip=0 wantsrefs=0 word i
   local -a flags_ subs_ words_ refs cmds_
-  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'setup:wire nittle into your coding agents (plugin or MCP config)' 'completion:print a tab-completion script for your shell')
+  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'setup:wire nittle into your coding agents (plugin or MCP config)' 'lsp:show which language server each language gets, and override it' 'completion:print a tab-completion script for your shell')
   if (( CURRENT > 2 )); then
     case "\${words[2]}" in
-      show|mcp|hook|sessions|cleanup|update|doctor|setup|completion) cmd="\${words[2]}"; lead=1 ;;
+      show|mcp|hook|sessions|cleanup|update|doctor|setup|lsp|completion) cmd="\${words[2]}"; lead=1 ;;
     esac
   fi
   case "$cmd" in
@@ -110,11 +117,14 @@ _nittle() {
     hook)
       subs_=(stop)
       if (( CURRENT > 3 )); then case "\${words[3]}" in stop) sub="\${words[3]}"; lead=2 ;; esac; fi ;;
+    lsp)
+      subs_=(set unset)
+      if (( CURRENT > 3 )); then case "\${words[3]}" in set|unset) sub="\${words[3]}"; lead=2 ;; esac; fi ;;
   esac
   scope="$cmd\${sub:+ $sub}"
   case "$scope" in
-    'review') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--no-lsp:start no language servers' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
-    'show') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--no-lsp:start no language servers' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'review') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--wait:block until feedback is returned, then print the prompt on stdout' '--json:with --wait, print the review record as JSON instead of the prompt' '--no-lsp:start no language servers' '--lsp:use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)' '--review-id:open an existing durable Review Record' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'show') flags_=('-p:serve on a fixed port (default: any free port)' '--port:serve on a fixed port (default: any free port)' '--no-open:don'\\''t open the browser automatically' '--no-lsp:start no language servers' '--lsp:use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)' '-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'mcp') flags_=('-h:show help' '--help:show help') ;;
     'mcp serve') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'mcp list') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
@@ -126,6 +136,9 @@ _nittle() {
     'update') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--check:only report whether a newer release exists' '-h:show help' '--help:show help') ;;
     'doctor') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--yes:skip the confirmation prompt' '--fix:run the repair commands through the \`claude\` cli' '-h:show help' '--help:show help') ;;
     'setup') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--agents:comma-separated agent ids, skips the prompt (e.g. claude,cursor)' '--remove:unwire nittle instead' '--yes:skip the confirmation prompt' '-h:show help' '--help:show help') ;;
+    'lsp') flags_=('-h:show help' '--help:show help') ;;
+    'lsp set') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
+    'lsp unset') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '-h:show help' '--help:show help') ;;
     'completion') flags_=('-v:print the installed version' '--version:print the installed version' '--license:print the bundled MIT license notice' '--shell:shell to generate for: bash, zsh, fish, powershell' '-h:show help' '--help:show help') ;;
   esac
   case "$cmd" in
@@ -134,6 +147,7 @@ _nittle() {
   esac
   case "\${words[CURRENT-1]}" in
     -p|--port) return 0 ;;
+    --lsp) return 0 ;;
     --review-id) return 0 ;;
     --agent) compadd -- codex claude-code; return 0 ;;
     --agents) compset -P '*,'; compadd -- claude codex cursor gemini vscode windsurf opencode zed copilot; return 0 ;;
@@ -143,7 +157,7 @@ _nittle() {
     word="\${words[i]}"
     if (( skip )); then skip=0; continue; fi
     case "$word" in
-      -p|--port|--review-id|--agent|--agents|--shell) skip=1 ;;
+      -p|--port|--lsp|--review-id|--agent|--agents|--shell) skip=1 ;;
       -*) ;;
       *) npos=$(( npos + 1 )) ;;
     esac
@@ -180,7 +194,7 @@ exports[`completion scripts fish output matches the snapshot 1`] = `
 function __nittle_cmd
     set -l words (commandline -opc)
     set -e words[1]
-    if set -q words[1]; and contains -- $words[1] show mcp hook sessions cleanup update doctor setup completion
+    if set -q words[1]; and contains -- $words[1] show mcp hook sessions cleanup update doctor setup lsp completion
         echo $words[1]
     else
         echo review
@@ -194,6 +208,9 @@ function __nittle_scope
         echo "$cmd $words[2]"; return
     end
     if test "$cmd" = hook; and set -q words[2]; and contains -- $words[2] stop
+        echo "$cmd $words[2]"; return
+    end
+    if test "$cmd" = lsp; and set -q words[2]; and contains -- $words[2] set unset
         echo "$cmd $words[2]"; return
     end
     echo $cmd
@@ -214,7 +231,7 @@ function __nittle_args
         test $seen -le $lead; and continue
         if test $skip -eq 1
             set skip 0
-        else if contains -- $word -p --port --review-id --agent --agents --shell
+        else if contains -- $word -p --port --lsp --review-id --agent --agents --shell
             set skip 1
         else if not string match -q -- '-*' $word
             echo $word
@@ -253,12 +270,14 @@ complete -c nittle -n '__nittle_at_start' -a cleanup -d 'stop stale sessions and
 complete -c nittle -n '__nittle_at_start' -a update -d 'download and install the latest release'
 complete -c nittle -n '__nittle_at_start' -a doctor -d 'check the Claude Code plugin install for stale diffle leftovers'
 complete -c nittle -n '__nittle_at_start' -a setup -d 'wire nittle into your coding agents (plugin or MCP config)'
+complete -c nittle -n '__nittle_at_start' -a lsp -d 'show which language server each language gets, and override it'
 complete -c nittle -n '__nittle_at_start' -a completion -d 'print a tab-completion script for your shell'
 complete -c nittle -n '__nittle_scope_is "review"' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
 complete -c nittle -n '__nittle_scope_is "review"' -l no-open -d 'don\\'t open the browser automatically'
 complete -c nittle -n '__nittle_scope_is "review"' -l wait -d 'block until feedback is returned, then print the prompt on stdout'
 complete -c nittle -n '__nittle_scope_is "review"' -l json -d 'with --wait, print the review record as JSON instead of the prompt'
 complete -c nittle -n '__nittle_scope_is "review"' -l no-lsp -d 'start no language servers'
+complete -c nittle -n '__nittle_scope_is "review"' -l lsp -x -d 'use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)'
 complete -c nittle -n '__nittle_scope_is "review"' -l review-id -x -d 'open an existing durable Review Record'
 complete -c nittle -n '__nittle_scope_is "review"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "review"' -l license -d 'print the bundled MIT license notice'
@@ -266,6 +285,7 @@ complete -c nittle -n '__nittle_scope_is "review"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_scope_is "show"' -s p -l port -x -d 'serve on a fixed port (default: any free port)'
 complete -c nittle -n '__nittle_scope_is "show"' -l no-open -d 'don\\'t open the browser automatically'
 complete -c nittle -n '__nittle_scope_is "show"' -l no-lsp -d 'start no language servers'
+complete -c nittle -n '__nittle_scope_is "show"' -l lsp -x -d 'use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)'
 complete -c nittle -n '__nittle_scope_is "show"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "show"' -l license -d 'print the bundled MIT license notice'
 complete -c nittle -n '__nittle_scope_is "show"' -s h -l help -d 'show help'
@@ -308,12 +328,20 @@ complete -c nittle -n '__nittle_scope_is "setup"' -l agents -x -a '(__nittle_lis
 complete -c nittle -n '__nittle_scope_is "setup"' -l remove -d 'unwire nittle instead'
 complete -c nittle -n '__nittle_scope_is "setup"' -l yes -d 'skip the confirmation prompt'
 complete -c nittle -n '__nittle_scope_is "setup"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "lsp"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "lsp set"' -s v -l version -d 'print the installed version'
+complete -c nittle -n '__nittle_scope_is "lsp set"' -l license -d 'print the bundled MIT license notice'
+complete -c nittle -n '__nittle_scope_is "lsp set"' -s h -l help -d 'show help'
+complete -c nittle -n '__nittle_scope_is "lsp unset"' -s v -l version -d 'print the installed version'
+complete -c nittle -n '__nittle_scope_is "lsp unset"' -l license -d 'print the bundled MIT license notice'
+complete -c nittle -n '__nittle_scope_is "lsp unset"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_scope_is "completion"' -s v -l version -d 'print the installed version'
 complete -c nittle -n '__nittle_scope_is "completion"' -l license -d 'print the bundled MIT license notice'
 complete -c nittle -n '__nittle_scope_is "completion"' -l shell -x -a 'bash zsh fish powershell' -d 'shell to generate for: bash, zsh, fish, powershell'
 complete -c nittle -n '__nittle_scope_is "completion"' -s h -l help -d 'show help'
 complete -c nittle -n '__nittle_needs_sub mcp' -a 'serve list restart'
 complete -c nittle -n '__nittle_needs_sub hook' -a 'stop'
+complete -c nittle -n '__nittle_needs_sub lsp' -a 'set unset'
 complete -c nittle -n '__nittle_wants_review_word' -a 'staged browse'
 complete -c nittle -n '__nittle_wants_ref' -a '(__nittle_refs)'
 "
@@ -333,11 +361,12 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'update' = 'download and install the latest release'
     'doctor' = 'check the Claude Code plugin install for stale diffle leftovers'
     'setup' = 'wire nittle into your coding agents (plugin or MCP config)'
+    'lsp' = 'show which language server each language gets, and override it'
     'completion' = 'print a tab-completion script for your shell'
   }
   $scopes = @{
-    'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--no-lsp', '--review-id', '-v', '--version', '--license', '-h', '--help')
-    'show' = @('-p', '--port', '--no-open', '--no-lsp', '-v', '--version', '--license', '-h', '--help')
+    'review' = @('-p', '--port', '--no-open', '--wait', '--json', '--no-lsp', '--lsp', '--review-id', '-v', '--version', '--license', '-h', '--help')
+    'show' = @('-p', '--port', '--no-open', '--no-lsp', '--lsp', '-v', '--version', '--license', '-h', '--help')
     'mcp' = @('-h', '--help')
     'mcp serve' = @('-v', '--version', '--license', '-h', '--help')
     'mcp list' = @('-v', '--version', '--license', '-h', '--help')
@@ -349,11 +378,15 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     'update' = @('-v', '--version', '--license', '--check', '-h', '--help')
     'doctor' = @('-v', '--version', '--license', '--yes', '--fix', '-h', '--help')
     'setup' = @('-v', '--version', '--license', '--agents', '--remove', '--yes', '-h', '--help')
+    'lsp' = @('-h', '--help')
+    'lsp set' = @('-v', '--version', '--license', '-h', '--help')
+    'lsp unset' = @('-v', '--version', '--license', '-h', '--help')
     'completion' = @('-v', '--version', '--license', '--shell', '-h', '--help')
   }
   $subcommands = @{
     'mcp' = @('serve', 'list', 'restart')
     'hook' = @('stop')
+    'lsp' = @('set', 'unset')
   }
   $tips = @{
     '-p' = 'serve on a fixed port (default: any free port)'
@@ -362,6 +395,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     '--wait' = 'block until feedback is returned, then print the prompt on stdout'
     '--json' = 'with --wait, print the review record as JSON instead of the prompt'
     '--no-lsp' = 'start no language servers'
+    '--lsp' = 'use this server for one language this run; an empty command disables it (e.g. rust=rust-analyzer)'
     '--review-id' = 'open an existing durable Review Record'
     '-v' = 'print the installed version'
     '--version' = 'print the installed version'
@@ -382,7 +416,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
     '--agents' = @('claude', 'codex', 'cursor', 'gemini', 'vscode', 'windsurf', 'opencode', 'zed', 'copilot')
     '--shell' = @('bash', 'zsh', 'fish', 'powershell')
   }
-  $freeValue = @('-p', '--port', '--review-id')
+  $freeValue = @('-p', '--port', '--lsp', '--review-id')
   $refCommands = @('review', 'show')
   $reviewWords = @('staged', 'browse')
 
