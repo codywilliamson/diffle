@@ -77,6 +77,7 @@ export function createAppState(reviewId = reviewIdFromUrl()): AppState {
     files: () => diff.files,
     goToHit: cursor.goToHit,
     markJump: () => cursor.markJump(undefined),
+    placeCursor: (hit) => void cursor.placeAt(hit.path, hit.side, hit.line),
     stamp: () => navigationStamp(cursor, ui),
     closeSearch: () => {
       search.close();

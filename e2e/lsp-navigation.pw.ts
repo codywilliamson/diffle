@@ -11,6 +11,7 @@ import { findLanguageServer, makeLspFixture } from "./lspFixture";
 
 const server = findLanguageServer();
 const COLD_START_MS = 60_000;
+const CLICKED_LINE = "6"; // every Ctrl+click below lands on main.ts line 6, and Ctrl+o returns there
 
 test("the language server is installed where it is required", () => {
   if (process.env.REQUIRE_REAL_LSP) expect(server).toBeDefined();
@@ -104,18 +105,27 @@ test.describe("code navigation (real typescript-language-server)", () => {
   }
 
   test("Ctrl+click goes to a definition in another changed file, and Ctrl+o returns", async ({ page }) => {
-    const start = await startInMain(page);
+    await startInMain(page);
     await ctrlClick(page, "src/main.ts", 6, "greet");
     await cursorIs(page, "src/greeter.ts", "4");
     await page.keyboard.press("Control+o");
-    await cursorIs(page, "src/main.ts", start);
+    await cursorIs(page, "src/main.ts", CLICKED_LINE);
+  });
+
+  test("Ctrl+click on a row other than the cursor's makes that row the Ctrl+o origin", async ({ page }) => {
+    await startInMain(page);
+    await moveCursorTo(page, "src/main.ts", "5");
+    await ctrlClick(page, "src/main.ts", 6, "greet");
+    await cursorIs(page, "src/greeter.ts", "4");
+    await page.keyboard.press("Control+o");
+    await cursorIs(page, "src/main.ts", CLICKED_LINE);
   });
 
   test("Ctrl+click maps to the right word on a wrapped line", async ({ page }) => {
     await page.setViewportSize({ width: 520, height: 800 });
     await page.keyboard.press("w");
     await expect(page.locator(".diff-scroll.wrap").first()).toBeVisible();
-    const start = await startInMain(page);
+    await startInMain(page);
     // `label` sits on the second visual line of main.ts line 6
     const label = await wordPoint(page, "src/main.ts", 6, "label");
     const first = await wordPoint(page, "src/main.ts", 6, "console");
@@ -123,11 +133,11 @@ test.describe("code navigation (real typescript-language-server)", () => {
     await ctrlClick(page, "src/main.ts", 6, "label");
     await expect(page.locator("[data-lsp-viewer] [data-target-line]")).toContainText("export const label");
     await page.keyboard.press("Control+o");
-    await cursorIs(page, "src/main.ts", start);
+    await cursorIs(page, "src/main.ts", CLICKED_LINE);
   });
 
   test("a definition in an unchanged repo file opens the read-only view with the line marked", async ({ page }) => {
-    const start = await startInMain(page);
+    await startInMain(page);
     await ctrlClick(page, "src/main.ts", 6, "label");
     const viewer = page.locator("[data-lsp-viewer]");
     await expect(viewer).toBeVisible();
@@ -137,7 +147,7 @@ test.describe("code navigation (real typescript-language-server)", () => {
     // Ctrl+o closes it and returns to the cursor
     await page.keyboard.press("Control+o");
     await expect(viewer).toHaveCount(0);
-    await cursorIs(page, "src/main.ts", start);
+    await cursorIs(page, "src/main.ts", CLICKED_LINE);
   });
 
   test("in visual mode the first Esc closes the viewer, the next ends the range", async ({ page }) => {

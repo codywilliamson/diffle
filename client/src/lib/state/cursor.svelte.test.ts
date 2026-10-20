@@ -115,3 +115,27 @@ describe("goToHit", () => {
     expect(cursor.pos).toMatchObject({ path: "a.ts", line: 1 });
   });
 });
+
+describe("placeAt", () => {
+  const A = file("a.ts", [hunk(ctx(1), ctx(2), ctx(3), ctx(4))]);
+  const B = file("b.ts", [hunk(ctx(1), ctx(2))]);
+
+  it("moves without recording, so a later jump remembers the clicked row", () => {
+    const cursor = store(() => [A, B], false);
+    cursor.lines("a.ts", 1); // line 1
+    const seq = cursor.revealSeq;
+    expect(cursor.placeAt("a.ts", "new", 3)).toBe(true);
+    expect(cursor.revealSeq).toBeGreaterThan(seq);
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "new", line: 3 });
+    cursor.goToLine("b.ts", 2, 2);
+    cursor.back("b.ts");
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "new", line: 3 });
+  });
+
+  it("refuses a row that is not a stop", () => {
+    const cursor = store(() => [A], false);
+    cursor.lines("a.ts", 1);
+    expect(cursor.placeAt("a.ts", "new", 99)).toBe(false);
+    expect(cursor.pos).toEqual({ path: "a.ts", side: "new", line: 1 });
+  });
+});
