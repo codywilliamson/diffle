@@ -1,13 +1,15 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { INITIALIZE_TIMEOUT_MS } from "../src/core/lsp/bridge";
 import { PROGRESS_MAX_WAIT_MS } from "../src/core/lsp/idle";
+import { MAX_RESTARTS } from "../src/core/lsp/pool";
+import { createServer } from "../src/server/router";
 import { BUN_MAX_IDLE_TIMEOUT_S, SERVER_IDLE_TIMEOUT_S } from "../src/server/idleTimeout";
 
 const BUN_DEFAULT_IDLE_S = 10;
 const HOLD_PAST_DEFAULT_MS = (BUN_DEFAULT_IDLE_S + 1) * 1000;
 
 test("idle timeout covers the lsp waits and stays under bun's max", () => {
-  expect(SERVER_IDLE_TIMEOUT_S * 1000).toBeGreaterThan(INITIALIZE_TIMEOUT_MS + PROGRESS_MAX_WAIT_MS);
+  expect(SERVER_IDLE_TIMEOUT_S * 1000).toBeGreaterThan((1 + MAX_RESTARTS) * INITIALIZE_TIMEOUT_MS + PROGRESS_MAX_WAIT_MS);
   expect(SERVER_IDLE_TIMEOUT_S).toBeLessThanOrEqual(BUN_MAX_IDLE_TIMEOUT_S);
 });
 
@@ -28,3 +30,15 @@ test("a response held past bun's 10s default still arrives", async () => {
     await server.stop(true);
   }
 }, 20_000);
+
+test("createServer passes the idle timeout to Bun.serve", () => {
+  const spy = spyOn(Bun, "serve");
+  let server: ReturnType<typeof createServer> | undefined;
+  try {
+    server = createServer({} as Parameters<typeof createServer>[0]);
+    expect(spy.mock.calls[0]?.[0]).toMatchObject({ idleTimeout: SERVER_IDLE_TIMEOUT_S });
+  } finally {
+    void server?.stop(true);
+    spy.mockRestore();
+  }
+});
