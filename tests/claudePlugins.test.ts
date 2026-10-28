@@ -93,7 +93,7 @@ describe("diagnoseClaudePlugins", () => {
 
   it("reports a healthy install with an empty plan", () => {
     const dir = healthyConfigDir();
-    expect(levels(dir, "/bin/nittle")).toEqual(["ok", "ok", "ok", "ok", "ok", "ok"]);
+    expect(levels(dir, "/bin/nittle")).toEqual(["ok", "ok", "ok", "ok", "ok", "ok", "ok"]);
     expect(commands(dir, "/bin/nittle")).toEqual([]);
   });
 
@@ -119,5 +119,20 @@ describe("diagnoseClaudePlugins", () => {
     const { checks, ok } = diagnoseClaudePlugins(readClaudePluginState(missing), "/bin/nittle");
     expect(ok).toBe(true);
     expect(checks.filter((c) => c.detail.startsWith("could not read"))).toHaveLength(3);
+  });
+
+  it("flags our marketplace registered at the old slug and plans a move", () => {
+    const dir = healthyConfigDir();
+    writeFile(join(dir, "plugins", "known_marketplaces.json"), {
+      "nittle-local": { source: { source: "github", repo: "codywilliamson/diffle" }, installLocation: join(dir, "m"), lastUpdated: "2026-01-01T00:00:00.000Z" },
+    });
+    const { checks, plan } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/nittle");
+    expect(checks.find((c) => c.label === "marketplace source")!.level).toBe("warn");
+    expect(plan.map((step) => step.args.join(" ")).slice(0, 3)).toEqual([
+      "plugin marketplace remove nittle-local",
+      "plugin marketplace add codywilliamson/nittle",
+      "plugin install nittle-review@nittle-local --scope user",
+    ]);
+    expect(commands(healthyConfigDir(), "/bin/nittle")).toEqual([]);
   });
 });

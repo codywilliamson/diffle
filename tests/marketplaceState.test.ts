@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { hasOurMarketplace, marketplaceState, normalizeRepo } from "../src/core/marketplaceState";
-import { PRODUCT, repositorySlug } from "../src/core/product";
+import { legacyRepositorySlug, PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
 afterEach(cleanupTempDirs);
@@ -72,4 +72,12 @@ test("teardown sees ours in any source, even next to a conflicting one", () => {
   expect(hasOurMarketplace([foreign, ours])).toBe(true);
   expect(hasOurMarketplace([foreign])).toBe(false);
   expect(hasOurMarketplace([join(tempDir(), "none.json")])).toBe(false);
+});
+
+test("a marketplace still registered at the old repo slug is outdated, not foreign", () => {
+  const old = legacyRepositorySlug();
+  expect(marketplaceState([file("k.json", JSON.stringify({ [NAME]: github(old) }))])).toBe("outdated");
+  expect(marketplaceState([file("k2.json", JSON.stringify({ [NAME]: github(`https://github.com/${old}.git`) }))])).toBe("outdated");
+  expect(hasOurMarketplace([file("k3.json", JSON.stringify({ [NAME]: github(old) }))])).toBe(true);
+  expect(marketplaceState([file("k4.json", JSON.stringify({ [NAME]: github("someone/diffle") }))])).toBe("foreign");
 });

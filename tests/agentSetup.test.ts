@@ -2,8 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { applyAgent, pluginStepArgs, type RunCommand } from "../src/core/agentSetup";
-import { agentTargets, MCP_SERVER_NAME, type AgentTarget } from "../src/core/agentTargets";
-import { PRODUCT, repositorySlug } from "../src/core/product";
+import { agentTargets, isMarketplaceRegistered, MCP_SERVER_NAME, type AgentTarget } from "../src/core/agentTargets";
+import { legacyRepositorySlug, PRODUCT, repositorySlug } from "../src/core/product";
 import { cleanupTempDirs, tempDir } from "./helpers/claudeConfig";
 
 afterEach(cleanupTempDirs);
@@ -159,4 +159,21 @@ test("removing from a non-json config that still has the entry fails, so uninsta
   writeFileSync(path, original);
   expect(applyAgent(zed, "remove", true)[0]).toMatchObject({ status: "failed", text: expect.stringContaining("by hand") });
   expect(readFileSync(path, "utf8")).toBe(original);
+});
+
+test("setup moves a marketplace registered at the old slug before re-adding it", () => {
+  const { calls, run } = recorder();
+  const results = applyAgent(claudeWithMarketplace(legacyRepositorySlug()), "install", false, run);
+  expect(calls.slice(0, 2).map((c) => c.slice(2, 4).join(" "))).toEqual(["marketplace remove", "marketplace add"]);
+  expect(calls[1]!.at(-1)).toBe(repositorySlug());
+  expect(results.map((r) => r.status)).toEqual(["ok", "ok", "ok"]);
+});
+
+test("remove still sees an old-slug marketplace as ours and cleans it up", () => {
+  const claude = claudeWithMarketplace(legacyRepositorySlug());
+  if (claude.integration.kind !== "plugin") throw new Error("expected plugin");
+  expect(isMarketplaceRegistered(claude.integration)).toBe(true);
+  const { calls, run } = recorder();
+  applyAgent(claude, "remove", false, run);
+  expect(calls.map((c) => c.slice(2, 4).join(" "))).toContain("marketplace remove");
 });
