@@ -21,7 +21,7 @@ export const PRODUCT = {
   author: { name: "Cody Williamson", url: "https://github.com/codywilliamson" },
   site: "https://nittle.dev", // docs site + the `curl https://nittle.dev/install | sh` host
   // flips to the nittle slug after the github repo rename (old urls redirect; the new slug 404s until then)
-  repository: "https://github.com/codywilliamson/diffle",
+  repository: "https://github.com/codywilliamson/nittle",
   // second line of `--version`; the first line stays `<name> v<version>` for parsers
   lineage:
     "fka diffle (the Deterministic Inspection & Feedback Framework for Language-model Engineering, per ADR 0004, which we stand by), fka loupe",

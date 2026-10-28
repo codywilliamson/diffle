@@ -8,7 +8,7 @@ import { EXE, run, WINDOWS, type Sandbox } from "./sandbox";
 
 export const OLD_VERSION = "0.28.1";
 const OLD_TAG = `v${OLD_VERSION}`;
-const RAW = `https://raw.githubusercontent.com/codywilliamson/diffle/${OLD_TAG}`;
+const RAW = `https://raw.githubusercontent.com/codywilliamson/nittle/${OLD_TAG}`;
 const LATEST = "releases/latest";
 const PINNED = `releases/tags/${OLD_TAG}`;
 

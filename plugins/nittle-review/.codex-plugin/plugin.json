@@ -4,7 +4,7 @@
   "description": "Review local Git changes in nittle and return structured feedback to Codex.",
   "author": { "name": "Cody Williamson", "url": "https://github.com/codywilliamson" },
   "homepage": "https://nittle.dev",
-  "repository": "https://github.com/codywilliamson/diffle",
+  "repository": "https://github.com/codywilliamson/nittle",
   "keywords": ["code-review", "git", "mcp"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",

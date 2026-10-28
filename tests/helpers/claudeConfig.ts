@@ -39,11 +39,11 @@ export function staleConfigDir(opts: StaleOptions = {}): string {
 
   writeFile(join(dir, "plugins", "installed_plugins.json"), { version: 1, plugins });
   writeFile(join(dir, "plugins", "known_marketplaces.json"), {
-    [marketplace]: { ...githubSource("codywilliamson/diffle"), installLocation: join(dir, "plugins", "marketplaces", marketplace), lastUpdated: "2026-01-01T00:00:00.000Z" },
+    [marketplace]: { ...githubSource("codywilliamson/nittle"), installLocation: join(dir, "plugins", "marketplaces", marketplace), lastUpdated: "2026-01-01T00:00:00.000Z" },
   });
   writeFile(join(dir, "settings.json"), {
     enabledPlugins: { [`diffle-review@${marketplace}`]: true, ...(withProduct ? { "nittle-review@nittle-local": true } : {}) },
-    extraKnownMarketplaces: { [marketplace]: githubSource("codywilliamson/diffle") },
+    extraKnownMarketplaces: { [marketplace]: githubSource("codywilliamson/nittle") },
   });
   writeFile(join(cache("diffle-review", "0.1.1"), ".mcp.json"), { mcpServers: { diffle: { command: "diffle", args: ["mcp", "serve"] } } });
   return dir;
@@ -56,7 +56,7 @@ export function healthyConfigDir(): string {
     plugins: { "nittle-review@nittle-local": [{ version: "0.2.0", scope: "user", installPath: join(dir, "plugins", "cache", "nittle-local", "nittle-review", "0.2.0") }] },
   });
   writeFile(join(dir, "plugins", "known_marketplaces.json"), {
-    "nittle-local": { ...githubSource("codywilliamson/diffle"), installLocation: join(dir, "plugins", "marketplaces", "nittle-local"), lastUpdated: "2026-01-01T00:00:00.000Z" },
+    "nittle-local": { ...githubSource("codywilliamson/nittle"), installLocation: join(dir, "plugins", "marketplaces", "nittle-local"), lastUpdated: "2026-01-01T00:00:00.000Z" },
   });
   writeFile(join(dir, "settings.json"), { enabledPlugins: { "nittle-review@nittle-local": true } });
   return dir;

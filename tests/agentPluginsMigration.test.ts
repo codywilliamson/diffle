@@ -113,7 +113,7 @@ describe("agent plugin migration", () => {
       "[mcp_servers.diffle.env]", "FOO = \"1\"", "",
       "[plugins.\"diffle-review@diffle-local\"]", "enabled = true", "",
       "[plugins.\"loupe-review@loupe-local\"]", "enabled = true", "",
-      "[marketplaces.diffle-local]", "source = \"https://github.com/codywilliamson/diffle\"", "",
+      "[marketplaces.diffle-local]", "source = \"https://github.com/codywilliamson/nittle\"", "",
     ].join("\n");
     mkdirSync(join(home, ".codex"), { recursive: true });
     writeFileSync(config, before);
@@ -124,7 +124,7 @@ describe("agent plugin migration", () => {
     expect(after).toContain("model = \"gpt\"\n\n[mcp_servers.other]\ncommand = \"other\"\n");
     expect(after).not.toContain("mcp_servers.diffle");
     expect(result.calls).toEqual([
-      "codex plugin marketplace add codywilliamson/diffle",
+      "codex plugin marketplace add codywilliamson/nittle",
       "codex plugin add nittle-review@nittle-local",
       "codex plugin remove diffle-review@diffle-local",
       "codex plugin remove loupe-review@loupe-local",
@@ -163,7 +163,7 @@ describe("agent plugin migration", () => {
     migrate(home, claudeDir, (_cli, args) => (args.includes("install") ? 1 : 0));
     const known = join(claudeDir, "plugins", "known_marketplaces.json");
     const registered = readJson(known);
-    registered["nittle-local"] = { source: { source: "github", repo: "codywilliamson/diffle" } };
+    registered["nittle-local"] = { source: { source: "github", repo: "codywilliamson/nittle" } };
     writeFile(known, registered);
     const retry = migrate(home, claudeDir, (_cli, args) => (args[1] === "marketplace" && args[2] === "add" ? 1 : 0));
     const installAt = retry.calls.findIndex((call) => call.includes("plugin install nittle-review"));

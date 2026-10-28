@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PRODUCT } from "../src/core/product";
+import { PRODUCT, repositorySlug } from "../src/core/product";
 import { assetName } from "../src/core/updateTarget";
 import { productEnv } from "../src/utils/env";
 import { isProductBinary } from "../src/utils/installRoot";
@@ -14,6 +14,11 @@ describe("product identity derives from PRODUCT", () => {
   it("is nittle, with diffle as the migration-only legacy identity", () => {
     expect(PRODUCT.name).toBe("nittle");
     expect(PRODUCT.legacyName).toBe("diffle");
+  });
+
+  it("points at the renamed repo", () => {
+    expect(PRODUCT.repository).toBe("https://github.com/codywilliamson/nittle");
+    expect(repositorySlug()).toBe("codywilliamson/nittle");
   });
 
   it("derives binary, asset, plugin, env and data dir names from the name", () => {

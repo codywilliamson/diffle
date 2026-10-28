@@ -39,7 +39,7 @@ describe("nittle doctor", () => {
       "claude plugin uninstall diffle-review@diffle-local",
       "claude plugin uninstall diffle-review-hook@diffle-local",
       "claude plugin marketplace remove diffle-local",
-      "claude plugin marketplace add codywilliamson/diffle",
+      "claude plugin marketplace add codywilliamson/nittle",
       "claude plugin install nittle-review@nittle-local --scope user",
     ]) expect(out).toContain(command);
   });
@@ -65,7 +65,7 @@ describe("nittle doctor", () => {
     expect(code).toBe(0);
     const calls = logLines(log);
     expect(calls).toHaveLength(5);
-    expect(calls[0]).toContain("plugin marketplace add codywilliamson/diffle");
+    expect(calls[0]).toContain("plugin marketplace add codywilliamson/nittle");
     expect(calls[1]).toContain("plugin install nittle-review@nittle-local --scope user --yes");
     expect(calls[2]).toContain("plugin uninstall diffle-review@diffle-local");
     expect(calls[4]).toContain("plugin marketplace remove diffle-local");
