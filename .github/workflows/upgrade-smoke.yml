@@ -8,8 +8,9 @@ name: upgrade-smoke
 #   the 0.28.1 updater does with it (write it over ~/.diffle/bin/diffle, then run the printed
 #   `diffle --version`). works before any release carries a diffle-<os>-<arch> asset.
 # live (release published, workflow_dispatch): runs the real `diffle update` against GitHub. it only
-#   passes once a published release carries the diffle-named transition asset, i.e. one of the first
-#   TRANSITION_ASSET_RELEASES releases after 0.28.1 (src/core/transitionAssets.ts).
+#   passes once a published release carries the diffle-named transition asset. every release
+#   carries it until TRANSITION_ASSETS_UNTIL (src/core/transitionAssets.ts), so inside that window a
+#   latest release without it fails the job; after the cutoff the live upgrade is skipped.
 #
 # the windows user PATH is a scope file in simulated mode (the runner's registry is not touched,
 # same seam the installer tests use) and the real registry in live mode on the disposable runner.
@@ -72,7 +73,8 @@ jobs:
         run: |
           exe=""; if [ "$RUNNER_OS" = Windows ]; then exe=".exe"; fi
           bun scripts/upgrade-smoke.ts --mode simulated --binary "dist/nittle$exe"
-      # past the transition window a release has no diffle-named asset, and 0.28.x can no longer update to it
+      # inside the window a missing diffle asset is a failure, past the cutoff it skips; the rule lives
+      # in src/core/transitionAssets.ts and scripts/transitionSmokeDecision.ts applies it
       - name: Does the latest release carry the transition assets
         id: carry
         if: ${{ env.MODE == 'live' }}
@@ -85,11 +87,15 @@ jobs:
             echo "::error::could not look up the latest release assets (gh failed); not guessing, failing the job"
             exit 1
           fi
-          if grep -qx 'diffle-linux-x64' <<<"$assets"; then
+          has=false
+          if grep -qx 'diffle-linux-x64' <<<"$assets"; then has=true; fi
+          # exits 1 (job fails) when the window is open and the assets are missing
+          decision=$(bun scripts/transitionSmokeDecision.ts "$has")
+          if [ "$decision" = run ]; then
             echo "carry=true" >> "$GITHUB_OUTPUT"
           else
             echo "carry=false" >> "$GITHUB_OUTPUT"
-            echo "latest release has no diffle-named assets (past the transition window); skipping the live upgrade"
+            echo "latest release has no diffle-named assets (past the transition cutoff); skipping the live upgrade"
           fi
       - name: Upgrade smoke (live)
         if: ${{ env.MODE == 'live' && steps.carry.outputs.carry == 'true' }}
