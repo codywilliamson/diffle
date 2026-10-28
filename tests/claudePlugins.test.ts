@@ -121,18 +121,31 @@ describe("diagnoseClaudePlugins", () => {
     expect(checks.filter((c) => c.detail.startsWith("could not read"))).toHaveLength(3);
   });
 
-  it("flags our marketplace registered at the old slug and plans a move", () => {
+  it("reports an old-slug nittle-local as ok and plans no repair", () => {
+    const dir = healthyConfigDir();
+    writeFile(join(dir, "plugins", "known_marketplaces.json"), { "nittle-local": { source: { source: "github", repo: "codywilliamson/diffle" } } });
+    const { checks, plan } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/nittle");
+    expect(checks.find((c) => c.label === "marketplace source")!.level).toBe("ok");
+    expect(plan).toEqual([]);
+    expect(readClaudePluginState(dir).legacyMarketplaces).toEqual([]);
+  });
+
+  it("classifies a foreign nittle-local even when a stale settings entry is ours", () => {
+    const dir = healthyConfigDir();
+    writeFile(join(dir, "plugins", "known_marketplaces.json"), { "nittle-local": { source: { source: "github", repo: "someone/else" } } });
+    writeFile(join(dir, "settings.json"), { extraKnownMarketplaces: { "nittle-local": { source: { source: "github", repo: "codywilliamson/diffle" } } } });
+    const state = readClaudePluginState(dir);
+    expect(state.marketplace).toBe("foreign");
+    expect(diagnoseClaudePlugins(state, "/bin/nittle").checks.find((c) => c.label === "marketplace source")!.level).toBe("warn");
+  });
+
+  it("keeps someone/diffle out of the legacy marketplaces", () => {
     const dir = healthyConfigDir();
     writeFile(join(dir, "plugins", "known_marketplaces.json"), {
-      "nittle-local": { source: { source: "github", repo: "codywilliamson/diffle" }, installLocation: join(dir, "m"), lastUpdated: "2026-01-01T00:00:00.000Z" },
+      "nittle-local": { source: { source: "github", repo: "codywilliamson/nittle" } },
+      theirs: { source: { source: "github", repo: "someone/diffle" } },
+      redirected: { source: { source: "git", url: "git@github.com:codywilliamson/diffle.git" } },
     });
-    const { checks, plan } = diagnoseClaudePlugins(readClaudePluginState(dir), "/bin/nittle");
-    expect(checks.find((c) => c.label === "marketplace source")!.level).toBe("warn");
-    expect(plan.map((step) => step.args.join(" ")).slice(0, 3)).toEqual([
-      "plugin marketplace remove nittle-local",
-      "plugin marketplace add codywilliamson/nittle",
-      "plugin install nittle-review@nittle-local --scope user",
-    ]);
-    expect(commands(healthyConfigDir(), "/bin/nittle")).toEqual([]);
+    expect(readClaudePluginState(dir).legacyMarketplaces).toEqual(["redirected"]);
   });
 });

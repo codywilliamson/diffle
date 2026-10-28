@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { isLegacyRepo } from "../core/marketplaceState";
+import { isLegacyRepo, marketplaceState, type MarketplaceState } from "../core/marketplaceState";
 import { PRODUCT, repositorySlug } from "../core/product";
 import { isRetiredCommand } from "../core/migration/retiredCommand";
 
@@ -16,7 +16,7 @@ export interface ClaudePluginState {
   legacy: InstalledPlugin[];
   legacyEnabled: string[];
   legacyMarketplaces: string[];
-  staleSlug: boolean; // our marketplace is still registered under the pre-rename repo slug
+  marketplace: MarketplaceState; // how our marketplace is registered, via the same classifier setup uses
   legacyMcpServers: LegacyMcpServer[];
   product: InstalledPlugin[];
   productEnabled: string[];
@@ -81,16 +81,16 @@ function enabledMatching(settings: Json | undefined, pluginNames: readonly strin
   const pattern = keyPattern(pluginNames);
   return Object.entries(enabled).filter(([key, on]) => on === true && pattern.test(key)).map(([key]) => key);
 }
-
-// a marketplace is legacy when it carries the old name or points at the old repo. the current
-// marketplace is never legacy here; an old-slug registration of it is reported as staleSlug.
+// legacy = the old name or exactly the old repo; our own marketplace is reported via `marketplace`
+// marketplace is never legacy here; how it is registered is reported through `marketplace`.
 function legacyMarketplaces(known: Json | undefined, settings: Json | undefined): string[] {
   const extra = asObject(settings?.extraKnownMarketplaces) ?? {};
   const names = new Set<string>();
   for (const [name, entry] of [...Object.entries(known ?? {}), ...Object.entries(extra)]) {
-    const repo = str(asObject(asObject(entry)?.source)?.repo) ?? "";
+    const source = asObject(asObject(entry)?.source);
+    const repo = str(source?.repo) ?? str(source?.url) ?? "";
     if (name === PRODUCT.plugin.marketplace) continue;
-    if (RETIRED_MARKETPLACES.includes(name) || repo.endsWith(`/${PRODUCT.legacyName}`)) names.add(name);
+    if (RETIRED_MARKETPLACES.includes(name) || isLegacyRepo(repo)) names.add(name);
   }
   return [...names];
 }
@@ -121,7 +121,7 @@ export function readClaudePluginState(configDir = claudeConfigDir()): ClaudePlug
     configDir, legacy,
     legacyEnabled: enabledMatching(settings, RETIRED_PLUGIN_NAMES),
     legacyMarketplaces: legacyMarketplaces(known, settings),
-    staleSlug: [known?.[PRODUCT.plugin.marketplace], asObject(settings?.extraKnownMarketplaces)?.[PRODUCT.plugin.marketplace]].some((entry) => isLegacyRepo(str(asObject(asObject(entry)?.source)?.repo) ?? "")),
+    marketplace: marketplaceState([join(configDir, "plugins", "known_marketplaces.json"), join(configDir, "settings.json")]),
     legacyMcpServers: legacyMcpServers(legacy),
     product: collect(plugins, [PRODUCT.plugin.name]),
     productEnabled: enabledMatching(settings, [PRODUCT.plugin.name]),
@@ -142,9 +142,8 @@ function uniqueKeys(plugins: InstalledPlugin[]): string[] {
 function buildPlan(state: ClaudePluginState): RepairStep[] {
   // install first: a failed install must leave the retired plugin in place (callers stop at the first failure)
   const steps: RepairStep[] = [];
-  if (state.product.length === 0 || state.staleSlug) {
+  if (state.product.length === 0) {
     const plugin = `${PRODUCT.plugin.name}@${PRODUCT.plugin.marketplace}`;
-    if (state.staleSlug) steps.push({ args: ["plugin", "marketplace", "remove", PRODUCT.plugin.marketplace], describe: "drop the marketplace registered at the old repo slug" });
     steps.push({ args: ["plugin", "marketplace", "add", repositorySlug()], describe: `register the ${PRODUCT.name} marketplace` });
     steps.push({ args: ["plugin", "install", plugin, "--scope", "user"], describe: `install ${plugin}` });
   }
@@ -177,9 +176,11 @@ export function diagnoseClaudePlugins(
     state.legacyMarketplaces.length > 0
       ? { level: "warn", label: "legacy marketplace", detail: `${state.legacyMarketplaces.join(", ")} still registered` }
       : { level: "ok", label: "legacy marketplace", detail: "none registered" },
-    state.staleSlug
-      ? { level: "warn", label: "marketplace source", detail: `${PRODUCT.plugin.marketplace} still points at ${PRODUCT.legacyRepository}; repair re-registers it at ${repositorySlug()}` }
-      : { level: "ok", label: "marketplace source", detail: "not on the old repo slug" },
+    state.marketplace === "foreign"
+      ? { level: "warn", label: "marketplace source", detail: `${PRODUCT.plugin.marketplace} points at another source, not ${repositorySlug()}` }
+      : state.marketplace === "unknown"
+        ? { level: "info", label: "marketplace source", detail: `${PRODUCT.plugin.marketplace} registration could not be read` }
+        : { level: "ok", label: "marketplace source", detail: state.marketplace === "ours" ? `${PRODUCT.plugin.marketplace} registered` : "not registered" },
     state.legacyMcpServers.length > 0
       ? { level, label: "legacy MCP server", detail: state.legacyMcpServers.map((s) => `${s.server} (${s.plugin}) runs \`${PRODUCT.legacyName}\``).join(", ") }
       : { level: "ok", label: "legacy MCP server", detail: `no \`${PRODUCT.legacyName}\` server wired` },

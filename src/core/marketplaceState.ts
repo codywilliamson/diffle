@@ -5,11 +5,10 @@ import { readFileSync } from "node:fs";
 import { isMissingFile } from "./mcpConfigFile";
 import { legacyRepositorySlug, PRODUCT, repositorySlug } from "./product";
 
-// "outdated" = ours, but registered under the pre-rename repo slug
-export type MarketplaceState = "absent" | "ours" | "outdated" | "foreign" | "unknown";
+export type MarketplaceState = "absent" | "ours" | "foreign" | "unknown";
 
 const NAME: string = PRODUCT.plugin.marketplace;
-const PRECEDENCE: MarketplaceState[] = ["foreign", "unknown", "outdated", "ours", "absent"];
+const PRECEDENCE: MarketplaceState[] = ["foreign", "unknown", "ours", "absent"];
 
 type Json = Record<string, unknown>;
 const asObject = (value: unknown): Json | undefined =>
@@ -26,7 +25,7 @@ export function normalizeRepo(source: string): string {
     .replace(/\.git$/, "");
 }
 
-// true when a source points at the pre-rename repo slug
+// true when a source is exactly the pre-rename repo (owner/name, any url form)
 export const isLegacyRepo = (source: string): boolean => normalizeRepo(source) === legacyRepositorySlug().toLowerCase();
 
 // exact match only — a substring check would accept owner/nittle-anything
@@ -34,7 +33,7 @@ function classify(source: Source): MarketplaceState {
   if (source === undefined) return "absent";
   if (source === null) return "foreign";
   if (normalizeRepo(source) === repositorySlug().toLowerCase()) return "ours";
-  return isLegacyRepo(source) ? "outdated" : "foreign";
+  return isLegacyRepo(source) ? "ours" : "foreign"; // the old slug redirects, so it stays ours
 }
 
 const str = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
@@ -81,5 +80,5 @@ export function marketplaceState(sources: string[]): MarketplaceState {
 
 // teardown's view: any source still ours (or unreadable) means there's something left to remove
 export function hasOurMarketplace(sources: string[]): boolean {
-  return sources.map(stateOf).some((state) => state === "ours" || state === "outdated" || state === "unknown");
+  return sources.map(stateOf).some((state) => state === "ours" || state === "unknown");
 }
