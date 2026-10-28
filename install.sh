@@ -10,7 +10,7 @@
 #      each NITTLE_* falls back to its deprecated DIFFLE_* twin
 set -eu
 
-REPO="codywilliamson/diffle" # the github repo keeps its old slug until it is renamed
+REPO="codywilliamson/nittle"
 NAME="nittle"
 LEGACY_NAME="diffle"
 

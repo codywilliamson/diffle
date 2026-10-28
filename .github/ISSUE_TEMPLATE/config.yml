@@ -4,5 +4,5 @@ contact_links:
     url: https://nittle.dev
     about: Installation, review workflows, CLI, and MCP reference
   - name: Report a vulnerability privately
-    url: https://github.com/codywilliamson/diffle/security/advisories/new
+    url: https://github.com/codywilliamson/nittle/security/advisories/new
     about: Use private vulnerability reporting for security issues

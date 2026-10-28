@@ -1,6 +1,6 @@
 # nittle
 
-[![CI](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/diffle/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/codywilliamson/diffle)](https://github.com/codywilliamson/diffle/releases/latest) [![License: MIT](https://img.shields.io/github/license/codywilliamson/diffle)](LICENSE) [![Docs](https://img.shields.io/badge/docs-nittle.dev-blue)](https://nittle.dev)
+[![CI](https://github.com/codywilliamson/nittle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/nittle/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/codywilliamson/nittle)](https://github.com/codywilliamson/nittle/releases/latest) [![License: MIT](https://img.shields.io/github/license/codywilliamson/nittle)](LICENSE) [![Docs](https://img.shields.io/badge/docs-nittle.dev-blue)](https://nittle.dev)
 
 Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
 
@@ -214,11 +214,11 @@ Or install the plugins by hand:
 
 ```sh
 # Claude Code
-claude plugin marketplace add codywilliamson/diffle
+claude plugin marketplace add codywilliamson/nittle
 claude plugin install nittle-review@nittle-local --scope user
 
 # Codex
-codex plugin marketplace add codywilliamson/diffle
+codex plugin marketplace add codywilliamson/nittle
 codex plugin add nittle-review@nittle-local
 ```
 
@@ -228,9 +228,7 @@ maintenance notes live in [`integrations/`](integrations/README.md); see the [ag
 
 ## Upgrading from diffle
 
-nittle was called diffle until 2026-10-17 (see [ADR 0008](docs/adr/0008-rename-diffle-to-nittle.md)). There is no `diffle` alias. Run `diffle update` once on a 0.28.x install and it lands on nittle. The first nittle run then moves `~/.diffle` to `~/.nittle`, moves the install dir, fixes your PATH entry, rewires agent plugins and MCP configs, and removes the old diffle files. Review records are moved, never deleted before they are confirmed at the new location. `DIFFLE_*` environment variables are still read as a fallback, and nittle prints a one-time note saying which to rename. Your shell profile is not edited.
 
-The repo stays at `codywilliamson/diffle` until the GitHub rename. Old URLs keep redirecting afterwards.
 
 ## Releases
 

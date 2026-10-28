@@ -22,7 +22,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 
-$Repo = 'codywilliamson/diffle' # the github repo keeps its old slug until it is renamed
+$Repo = 'codywilliamson/nittle'
 $LegacyName = 'diffle'
 
 # NITTLE_<name>, else the deprecated DIFFLE_<name>

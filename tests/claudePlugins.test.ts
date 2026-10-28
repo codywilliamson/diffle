@@ -71,7 +71,7 @@ describe("diagnoseClaudePlugins", () => {
     expect(checks.find((c) => c.label === "legacy plugins")!.detail).toContain("diffle-review@diffle-local v0.1.1");
     expect(checks.find((c) => c.label === "legacy MCP server")!.level).toBe("fail");
     expect(commands(dir, "/bin/nittle")).toEqual([
-      "plugin marketplace add codywilliamson/diffle",
+      "plugin marketplace add codywilliamson/nittle",
       "plugin install nittle-review@nittle-local --scope user",
       "plugin uninstall diffle-review@diffle-local",
       "plugin uninstall diffle-review-hook@diffle-local",

@@ -18,15 +18,15 @@ active Review Record prevents duplicate launches.
 Register the marketplace, then install the explicit review plugin:
 
 ```text
-codex plugin marketplace add codywilliamson/diffle
+codex plugin marketplace add codywilliamson/nittle
 codex plugin add nittle-review@nittle-local
 
-claude plugin marketplace add codywilliamson/diffle
+claude plugin marketplace add codywilliamson/nittle
 claude plugin install nittle-review@nittle-local --scope user
 ```
 
 
-The plugin was called `diffle-review` before the rename (formerly diffle). nittle replaces it on first run. The marketplace slug stays `codywilliamson/diffle` until the GitHub repo is renamed.
+The plugin was called `diffle-review` before the rename (formerly diffle). nittle replaces it on first run.
 
 Newly installed Codex plugins load in a new task. Claude Code loads them in a new
 session or after `/reload-plugins`.

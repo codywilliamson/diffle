@@ -14,7 +14,7 @@ export default defineConfig({
     starlight({
       title: "nittle",
       description: "Local git diff review with inline comments and structured feedback for coding agents.",
-      social: [{ icon: "github", label: "GitHub", href: "https://github.com/codywilliamson/diffle" }],
+      social: [{ icon: "github", label: "GitHub", href: "https://github.com/codywilliamson/nittle" }],
       customCss: ["./src/styles/nittle.css"],
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",

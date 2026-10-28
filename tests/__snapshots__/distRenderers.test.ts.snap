@@ -8,22 +8,22 @@ exports[`homebrew formula matches the snapshot 1`] = `
 
   on_macos do
     on_arm do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-arm64", using: :nounzip
+      url "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-darwin-arm64", using: :nounzip
       sha256 "4444444444444444444444444444444444444444444444444444444444444444"
     end
     on_intel do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-darwin-x64", using: :nounzip
+      url "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-darwin-x64", using: :nounzip
       sha256 "3333333333333333333333333333333333333333333333333333333333333333"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-arm64", using: :nounzip
+      url "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-linux-arm64", using: :nounzip
       sha256 "2222222222222222222222222222222222222222222222222222222222222222"
     end
     on_intel do
-      url "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-linux-x64", using: :nounzip
+      url "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-linux-x64", using: :nounzip
       sha256 "1111111111111111111111111111111111111111111111111111111111111111"
     end
   end
@@ -47,31 +47,31 @@ exports[`scoop manifest matches the snapshot 1`] = `
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-windows-x64.exe#/nittle.exe",
+      "url": "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-windows-x64.exe#/nittle.exe",
       "hash": "5555555555555555555555555555555555555555555555555555555555555555"
     },
     "arm64": {
-      "url": "https://github.com/codywilliamson/diffle/releases/download/v1.2.3/nittle-windows-arm64.exe#/nittle.exe",
+      "url": "https://github.com/codywilliamson/nittle/releases/download/v1.2.3/nittle-windows-arm64.exe#/nittle.exe",
       "hash": "6666666666666666666666666666666666666666666666666666666666666666"
     }
   },
   "bin": "nittle.exe",
   "checkver": {
-    "github": "https://github.com/codywilliamson/diffle"
+    "github": "https://github.com/codywilliamson/nittle"
   },
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/nittle-windows-x64.exe#/nittle.exe",
+        "url": "https://github.com/codywilliamson/nittle/releases/download/v$version/nittle-windows-x64.exe#/nittle.exe",
         "hash": {
-          "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/checksums.txt",
+          "url": "https://github.com/codywilliamson/nittle/releases/download/v$version/checksums.txt",
           "regex": "$sha256\\\\s+nittle-windows-x64\\\\.exe"
         }
       },
       "arm64": {
-        "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/nittle-windows-arm64.exe#/nittle.exe",
+        "url": "https://github.com/codywilliamson/nittle/releases/download/v$version/nittle-windows-arm64.exe#/nittle.exe",
         "hash": {
-          "url": "https://github.com/codywilliamson/diffle/releases/download/v$version/checksums.txt",
+          "url": "https://github.com/codywilliamson/nittle/releases/download/v$version/checksums.txt",
           "regex": "$sha256\\\\s+nittle-windows-arm64\\\\.exe"
         }
       }
@@ -89,7 +89,7 @@ exports[`npm packages renders the main package.json 1`] = `
   "homepage": "https://nittle.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codywilliamson/diffle.git"
+    "url": "git+https://github.com/codywilliamson/nittle.git"
   },
   "author": "Cody Williamson",
   "publishConfig": {
@@ -128,7 +128,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
@@ -153,7 +153,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
@@ -178,7 +178,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
@@ -203,7 +203,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
@@ -228,7 +228,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
@@ -253,7 +253,7 @@ exports[`npm packages renders one package.json per platform with os and cpu 1`] 
     "homepage": "https://nittle.dev",
     "repository": {
       "type": "git",
-      "url": "git+https://github.com/codywilliamson/diffle.git"
+      "url": "git+https://github.com/codywilliamson/nittle.git"
     },
     "author": "Cody Williamson",
     "publishConfig": {
