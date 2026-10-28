@@ -2,6 +2,18 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.32.1](https://github.com/codywilliamson/nittle/compare/v0.32.0...v0.32.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **build:** date-based window for the diffle transition assets ([73bb24d](https://github.com/codywilliamson/nittle/commit/73bb24d8aebcb2960cb1eb8e58e8e5074e1f5a27))
+* **build:** take smoke error names from product config ([b89b791](https://github.com/codywilliamson/nittle/commit/b89b791777b7d4b9660194b3bd17418085ca0500))
+* **client:** anchor the section lookup to the real file list ([d3bc76a](https://github.com/codywilliamson/nittle/commit/d3bc76aa27a94349374a5546d9afe65b9e3a4de8))
+* **client:** only count direct file sections as the current file ([bfe86b3](https://github.com/codywilliamson/nittle/commit/bfe86b3e1a9b5063b1e0b9be9fad489cd02b588d))
+* recognise marketplaces registered at the old repo slug ([67dea2b](https://github.com/codywilliamson/nittle/commit/67dea2b539b59ca39d3cb95af37b48e026dd68a2))
+* treat the old repo slug as ours instead of moving it ([3d8eedc](https://github.com/codywilliamson/nittle/commit/3d8eedcb17f90e554d28ce35f43d36ff40470b22))
+
 ## [0.32.0](https://github.com/codywilliamson/diffle/compare/v0.31.0...v0.32.0) (2026-10-20)
 
 
