@@ -83,7 +83,7 @@ Client work for #181 to #184 (keys `gd gy gh gA gs gS`, hover card, pickers, rea
 - D7 full rip-and-ship authority within the run brief.
 - D8 no diffle or loupe alias (Cody, epic #206 update).
 - D9 atomic rename to `~/.nittle`, merge records by id if both exist, delete `~/.diffle` only after the data is confirmed (Cody, #208 update).
-- D10 how many releases keep the `diffle-*` transition assets: set to 3 (`TRANSITION_ASSET_RELEASES`, PR #241).
+- D10 how long the `diffle-*` transition assets ship: until 2027-04-20 (`TRANSITION_ASSETS_UNTIL`), a date and not a release count. The count (3) was spent in a day when 0.29.0 to 0.32.0 shipped, so v0.32.0 had no diffle copies and every 0.28.x `diffle update` failed; hot-patched by hand on 2026-10-28. Release builds publish the copies on every release before the cutoff, upgrade-smoke fails (not skips) while the window is open and a latest release lacks them, and a test fails within 30 days of the cutoff until `TRANSITION_CUTOFF_DECISION` records what happens next.
 - D11 only the installer's marker block in the shell rc file is replaced; nothing else in a profile is touched.
 - D12 `PRODUCT.repository` stays `codywilliamson/diffle` until the repo is renamed (#214), then a one-line PR flips it.
 - D13 no release until set R is merged and nittle.dev is live. Followed: release #248 merged 2026-10-19T21:34Z.
@@ -193,7 +193,7 @@ Distribution enable steps. Nothing publishes until these are done. Four release 
 - A conflicting legacy record is kept in `~/.diffle` instead of moving under `~/.nittle`, so `~/.diffle` cannot be fully removed. Tracked in #266, fix in #269.
 - Detached worktrees for #186 link the user's `node_modules` (D34). A language server could in theory write through the link. Mitigated, not eliminated.
 - Flaky tests under load: split-panes 390px drag e2e, bash completion tests on Git Bash, lspNavigation, an MCP stdio timeout. Cap concurrent workers at about 4 until the hunt lands.
-- `diffle-*` transition assets must keep shipping for 3 releases or 0.28.x updaters strand.
+- `diffle-*` transition assets must keep shipping on every release until 2027-04-20 or 0.28.x updaters strand (see D10).
 - Published demo media still shows the diffle wordmark until the render (D30).
 - The repo slug is still `codywilliamson/diffle`; the old name clash on #126 stays until the rename.
 

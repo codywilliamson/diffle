@@ -50,12 +50,10 @@ jobs:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
       # cross-compiles all six targets to dist/release/* and writes checksums.txt. the first
-      # TRANSITION_ASSET_RELEASES releases after 0.28.1 (src/core/transitionAssets.ts) also get
-      # byte-identical diffle-<os>-<arch>[.exe] copies so 0.28.x `diffle update` finds an asset;
-      # the 4th release after 0.28.1 is the first without them. the window counts published
-      # releases (read-only GitHub API call with GH_TOKEN), never tags, so a failed or draft
-      # release can't use it up; if the API is unreadable the copies are published. the step
-      # reports `transition=true|false` for the jobs that depend on the diffle assets.
+      # every release before TRANSITION_ASSETS_UNTIL (src/core/transitionAssets.ts) also gets
+      # byte-identical diffle-<os>-<arch>[.exe] copies so 0.28.x `diffle update` finds an asset.
+      # the window is a date, not a release count, so a burst of releases can't use it up. the
+      # step reports `transition=true|false` for the jobs that depend on the diffle assets.
       - name: Build target binaries + checksum manifest
         id: build
         run: bun scripts/build-release.ts
