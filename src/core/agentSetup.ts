@@ -56,22 +56,10 @@ function stepFailure(integration: PluginIntegration, step: string[], text: strin
     : { status: "skipped", text: `${text} (failed — already removed)` };
 }
 
-const isMarketplaceAdd = (args: string[]) => isMarketplaceStep(args) && args[2] === "add";
-
-// a marketplace registered under the pre-rename slug is dropped first, so the add re-registers it at the new one
-function moveOutdatedMarketplace(integration: PluginIntegration, run: RunCommand): StepResult[] {
-  if (marketplaceState(integration.marketplaceSources) !== "outdated") return [];
-  const step = integration.remove.find(isMarketplaceStep);
-  if (!step) return [];
-  const text = renderCommand(integration.cli, step);
-  return [exitCodeOf(run, integration.cli, step) === 0 ? { status: "ok", text } : { status: "skipped", text: `${text} (failed — moving on)` }];
-}
-
 function applyPlugin(integration: PluginIntegration, mode: SetupMode, yes: boolean, run: RunCommand): StepResult[] {
   const { cli } = integration;
   const results: StepResult[] = [];
   for (const step of mode === "install" ? integration.install : integration.remove) {
-    if (mode === "install" && isMarketplaceAdd(step)) results.push(...moveOutdatedMarketplace(integration, run));
     const args = pluginStepArgs(cli, step, yes);
     const text = renderCommand(cli, args);
     const result = exitCodeOf(run, cli, args) === 0 ? { status: "ok" as const, text } : stepFailure(integration, step, text, mode);

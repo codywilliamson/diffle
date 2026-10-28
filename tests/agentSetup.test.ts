@@ -161,15 +161,14 @@ test("removing from a non-json config that still has the entry fails, so uninsta
   expect(readFileSync(path, "utf8")).toBe(original);
 });
 
-test("setup moves a marketplace registered at the old slug before re-adding it", () => {
-  const { calls, run } = recorder();
+test("setup leaves an old-slug marketplace alone: no remove, no failed add", () => {
+  const { calls, run } = recorder((args) => (args[1] === "marketplace" ? 1 : 0));
   const results = applyAgent(claudeWithMarketplace(legacyRepositorySlug()), "install", false, run);
-  expect(calls.slice(0, 2).map((c) => c.slice(2, 4).join(" "))).toEqual(["marketplace remove", "marketplace add"]);
-  expect(calls[1]!.at(-1)).toBe(repositorySlug());
-  expect(results.map((r) => r.status)).toEqual(["ok", "ok", "ok"]);
+  expect(calls.filter((c) => c[3] === "remove")).toEqual([]);
+  expect(results[0]).toMatchObject({ status: "skipped" });
 });
 
-test("remove still sees an old-slug marketplace as ours and cleans it up", () => {
+test("remove cleans up an old-slug marketplace, since it is ours", () => {
   const claude = claudeWithMarketplace(legacyRepositorySlug());
   if (claude.integration.kind !== "plugin") throw new Error("expected plugin");
   expect(isMarketplaceRegistered(claude.integration)).toBe(true);

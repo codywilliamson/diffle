@@ -56,7 +56,7 @@ export function planPluginSwap(target: AgentTarget): PluginSwapStep[] {
 // a retry re-adds a marketplace the first pass already registered. that failure is fine when the
 // registered entry is verifiably ours; a foreign or unreadable registration still stops the swap.
 export function marketplaceAlreadyOurs(integration: PluginIntegration, args: string[]): boolean {
-  return args[1] === "marketplace" && args[2] === "add" && ["ours", "outdated"].includes(marketplaceState(integration.marketplaceSources));
+  return args[1] === "marketplace" && args[2] === "add" && marketplaceState(integration.marketplaceSources) === "ours";
 }
 
 // runs the steps in plan order; stops at the first failing step, leaving later removals undone

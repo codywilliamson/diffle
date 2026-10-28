@@ -74,10 +74,19 @@ test("teardown sees ours in any source, even next to a conflicting one", () => {
   expect(hasOurMarketplace([join(tempDir(), "none.json")])).toBe(false);
 });
 
-test("a marketplace still registered at the old repo slug is outdated, not foreign", () => {
+test("the old repo slug redirects, so it counts as ours in repo, https and ssh forms", () => {
   const old = legacyRepositorySlug();
-  expect(marketplaceState([file("k.json", JSON.stringify({ [NAME]: github(old) }))])).toBe("outdated");
-  expect(marketplaceState([file("k2.json", JSON.stringify({ [NAME]: github(`https://github.com/${old}.git`) }))])).toBe("outdated");
-  expect(hasOurMarketplace([file("k3.json", JSON.stringify({ [NAME]: github(old) }))])).toBe(true);
-  expect(marketplaceState([file("k4.json", JSON.stringify({ [NAME]: github("someone/diffle") }))])).toBe("foreign");
+  const asUrl = (url: string) => ({ source: { source: "git", url } });
+  const forms = [github(old), github(old.toUpperCase()), asUrl(`https://github.com/${old}`), asUrl(`https://github.com/${old}.git`), asUrl(`git@github.com:${old}.git`)];
+  forms.forEach((form, i) => {
+    const path = file(`old${i}.json`, JSON.stringify({ [NAME]: form }));
+    expect(marketplaceState([path])).toBe("ours");
+    expect(hasOurMarketplace([path])).toBe(true);
+  });
+});
+
+test("lookalike owners stay foreign for both slugs", () => {
+  for (const repo of ["someone/diffle", "someone/nittle", `${legacyRepositorySlug()}-fork`]) {
+    expect(marketplaceState([file("f.json", JSON.stringify({ [NAME]: github(repo) }))])).toBe("foreign");
+  }
 });
