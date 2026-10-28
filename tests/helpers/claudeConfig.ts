@@ -39,11 +39,11 @@ export function staleConfigDir(opts: StaleOptions = {}): string {
 
   writeFile(join(dir, "plugins", "installed_plugins.json"), { version: 1, plugins });
   writeFile(join(dir, "plugins", "known_marketplaces.json"), {
-    [marketplace]: { ...githubSource("codywilliamson/nittle"), installLocation: join(dir, "plugins", "marketplaces", marketplace), lastUpdated: "2026-01-01T00:00:00.000Z" },
+    [marketplace]: { ...githubSource("codywilliamson/diffle"), installLocation: join(dir, "plugins", "marketplaces", marketplace), lastUpdated: "2026-01-01T00:00:00.000Z" },
   });
   writeFile(join(dir, "settings.json"), {
     enabledPlugins: { [`diffle-review@${marketplace}`]: true, ...(withProduct ? { "nittle-review@nittle-local": true } : {}) },
-    extraKnownMarketplaces: { [marketplace]: githubSource("codywilliamson/nittle") },
+    extraKnownMarketplaces: { [marketplace]: githubSource("codywilliamson/diffle") },
   });
   writeFile(join(cache("diffle-review", "0.1.1"), ".mcp.json"), { mcpServers: { diffle: { command: "diffle", args: ["mcp", "serve"] } } });
   return dir;
