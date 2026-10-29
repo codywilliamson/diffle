@@ -205,7 +205,7 @@ Real result, trimmed to two categories:
 | `commentId` | `string` | yes | 1 to 200 chars |
 | `text` | `string` | yes | 1 to 20,000 chars, markdown |
 
-Returns `{ review }`. The reply is authored as `agent`. The reviewer sees it live in the thread.
+Returns `{ review }`. The reply is authored as `agent`. The reviewer sees it live in the thread. Resolved comments take replies too. Once the review is approved or cancelled, the call fails with `review record is terminal`.
 
 ## `mark_comment_addressed`
 
