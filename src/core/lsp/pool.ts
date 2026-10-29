@@ -5,6 +5,7 @@
 import type { LspLanguageStatus, LspState } from "../../types";
 import { LspBridge } from "./bridge";
 import type { LspOverrides } from "./overrides";
+import { killTreesNow } from "./processGroup";
 import type { LanguageEntry, LspLanguage } from "./registry";
 import { ServerResolver, type ServerSpec } from "./serverResolver";
 import { LspWorkspace } from "./workspace";
@@ -123,7 +124,8 @@ export class LspPool implements LspHandle {
   // synchronous and abrupt, for exit handlers that cannot await.
   killAll(): void {
     this.markStopped();
-    for (const slot of this.slots.values()) slot.bridge?.kill();
+    const pids = [...this.slots.values()].map((slot) => slot.bridge?.markKilled()).filter((pid): pid is number => pid !== undefined);
+    killTreesNow(pids);
     this.cleanup();
   }
 

@@ -131,11 +131,17 @@ export class LspBridge {
 
   // synchronous and blunt: used on exit paths that cannot await. kills the whole tree.
   kill(): void {
+    const pid = this.markKilled();
+    if (pid !== undefined) killTreeNow(pid);
+  }
+
+  // marks the stop as intentional and returns the pid whose tree needs killing, so a pool can kill
+  // every server in one batch instead of one process start each.
+  markKilled(): number | undefined {
     this.stopping = true;
     const pid = this.proc?.pid;
     // a dead pid may be reused on windows, where there is no group to fall back on
-    if (pid === undefined || (this.exited && !usesProcessGroups)) return;
-    killTreeNow(pid);
+    return pid === undefined || (this.exited && !usesProcessGroups) ? undefined : pid;
   }
 
   private initializeParams(): unknown {
