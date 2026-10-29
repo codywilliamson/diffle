@@ -110,7 +110,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     related: ["mcp", "doctor"],
   },
   doctor: {
-    summary: `check the Claude Code plugin install for stale ${PRODUCT.legacyName} leftovers`,
+    summary: "check for stale agent plugins, old MCP configs, and an unfinished migration",
     usage: [`${n} doctor [--fix] [--yes]`],
     options: optionsFor("doctor"),
     examples: [`${n} doctor`, `${n} doctor --fix`],
