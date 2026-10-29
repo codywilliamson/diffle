@@ -18,6 +18,6 @@ This mostly bites in the second and later rounds, after the agent has made chang
 
 ## Recommendation
 
-Do option 1 now. It turns a silent wrong answer into a visible stale comment, it's a few lines in one pure module, and it reuses the existing stale UI and prompt filtering. Records written before `lineContent` existed (`null`) keep today's behavior.
+Done: option 1 shipped in `fix(store): mark comments stale when their line content moves`. It turns a silent wrong answer into a visible stale comment, it's a few lines in one pure module, and it reuses the existing stale UI and prompt filtering. Records written before `lineContent` existed (`null`) keep today's behavior.
 
 Do option 2 later, server-side in the Review Record layer, only once real use shows that shifted comments going stale is annoying. It touches the record shape, suggestions and the MCP output, so it deserves its own change and tests for ranges and duplicate lines.
