@@ -32,6 +32,18 @@ async function twoServers(root: string, ts: object, go: object, diff: string[]) 
 }
 
 describe("workspace symbols across ready servers", () => {
+  searchTest("servers on different position encodings dedupe on the converted range", async () => {
+    const root = tempDir("ws2");
+    writeFiles(root, { "a.ts": "\u{1F600} Name\n" }); // the emoji is 2 utf-16 units and 4 utf-8 bytes
+    const uri = fileUri(root, "a.ts");
+    const utf16 = { ...answers(sym("Name", uri, 0, 3)), encoding: "utf-16" };
+    const utf8 = { ...answers(sym("Name", uri, 0, 5)), encoding: "utf-8" };
+    const { search } = await twoServers(root, utf16, utf8, ["a.ts"]);
+    const body = await search("Name");
+    expect(body).toMatchObject({ total: 1, truncated: false });
+    expect(body.symbols.map((s: any) => s.range)).toEqual([{ start: { line: 1, character: 3 }, end: { line: 1, character: 7 } }]);
+  });
+
   searchTest("a go server that is ready but not in the diff still contributes", async () => {
     const root = tempDir("ws2");
     writeFiles(root, { "a.ts": "x\n", "util.go": "package util\n" });

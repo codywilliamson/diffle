@@ -85,15 +85,14 @@ export async function handleLspWorkspaceSymbols(base: ServerContext, query: stri
       const reason = failures[0]?.reason;
       return lspError("request-failed", reason instanceof Error ? reason.message : "workspace symbol search failed", 502);
     }
-    // locate, dedupe, rank and cap first; only the kept symbols get their ranges converted
+    // locate, convert, dedupe, rank and cap
     const sources: SymbolSource[] = [];
     answers.forEach((answer, index) => {
       if (answer.status === "fulfilled") sources.push({ symbols: normalizeWorkspaceSymbols(answer.value), resolver: new TargetResolver(ctx, bridges[index]!.encoding) });
     });
     const found = mergeWorkspaceSymbols(sources, query);
-    const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map(({ symbol, location, resolver }) => ({
-      ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}),
-      range: resolver.range(location, symbol.range),
+    const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map(({ symbol, location, range }) => ({
+      ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}), range,
     }));
     return json({ symbols, total: found.length, truncated: found.length > MAX_WORKSPACE_SYMBOLS } satisfies LspWorkspaceSymbolsResponse);
   });

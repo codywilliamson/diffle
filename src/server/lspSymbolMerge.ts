@@ -3,11 +3,11 @@
 // repo's; ties keep server order. leading with exact matches means a chatty fuzzy server cannot
 // push the one symbol the reviewer typed out past the cap.
 
-import type { LspLocation } from "../types";
+import type { LspLocation, LspRange } from "../types";
 import type { WireWorkspaceSymbol } from "../core/lsp/symbols";
 import { pathKey, type TargetResolver } from "./lspTargets";
 
-export interface FoundSymbol { symbol: WireWorkspaceSymbol; location: LspLocation; resolver: TargetResolver }
+export interface FoundSymbol { symbol: WireWorkspaceSymbol; location: LspLocation; range: LspRange }
 export interface SymbolSource { symbols: WireWorkspaceSymbol[]; resolver: TargetResolver }
 
 const locationRank = (location: LspLocation): number => (location.inDiff ? 0 : location.inRepo ? 1 : 2);
@@ -20,11 +20,13 @@ function locateAndDedupe(sources: SymbolSource[]): FoundSymbol[] {
     for (const symbol of symbols) {
       const location = resolver.locate(symbol.uri);
       if (!location) continue;
-      const { start, end } = symbol.range;
+      // client coordinates: servers on different position encodings spell one symbol differently
+      const range = resolver.range(location, symbol.range);
+      const { start, end } = range;
       const key = [pathKey(location.absolutePath), symbol.name, start.line, start.character, end.line, end.character].join(":");
       if (seen.has(key)) continue;
       seen.add(key);
-      found.push({ symbol, location, resolver });
+      found.push({ symbol, location, range });
     }
   }
   return found;
