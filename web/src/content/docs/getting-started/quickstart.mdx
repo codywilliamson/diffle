@@ -1,54 +1,112 @@
 ---
 title: Quickstart
-description: Run your first nittle review — open a diff, leave an inline comment, and export structured feedback.
+description: Review a change in nittle, comment on a line, and hand the feedback to your coding agent in about five minutes.
 sidebar:
   order: 2
 ---
 
-import { Steps, Aside } from "@astrojs/starlight/components";
+import { Steps } from "@astrojs/starlight/components";
 
-This walks through a first review of your own uncommitted changes. It assumes nittle is [installed](/getting-started/installation/) and on your `PATH`.
+In this tutorial you review a small change in your browser, leave a comment on one line, and hand that comment to a coding agent as a ready-made prompt. It takes about five minutes and works with any agent you can paste text into.
 
-![The nittle review view: a file tree, a syntax-highlighted diff, and an open inline comment](/media/comment.png)
+You need nittle [installed](/getting-started/installation/) and a git repository you can change.
 
 <Steps>
 
-1. **Make a change**, then from that git repository run:
+1. Make a change to review.
+
+   Edit any tracked file in the repository, or ask your coding agent to make a small change. Then check git sees it:
 
    ```sh
-   nittle
+   git status --short
    ```
 
-   With no argument, nittle compares your working tree against `HEAD` (untracked files included) and opens the review in your browser.
+   ```
+    M src/greet.ts
+   ```
 
-2. **Read the diff.** Use the file tree on the left to move between files, or press `J` / `K`. Toggle side-by-side with `s` and line wrapping from the toolbar. Press `v` to mark a file viewed.
+2. Start a review that waits for your feedback.
 
-3. **Leave a comment.** Hover a line and click the comment bubble, or click a line number. Drag across line numbers (or shift-click a second line) to comment on a range. Type your note and save.
+   From the repository, run:
 
-4. **Export the feedback.** Press `P` (or open the review panel) to preview the compiled feedback, then copy it — paste it to any agent, or use the [MCP integration](/guides/agent-feedback/) to return it automatically.
+   ```sh
+   nittle --wait > feedback.md
+   ```
+
+   The terminal prints the review URL and then waits:
+
+   ```
+   [nittle] v0.32.1 — reviewing working tree (1 file changed)
+     http://127.0.0.1:47123/?review=8e27d1e1-43ea-419f-8235-1378e5e6606b  (ctrl+c to stop)
+   [nittle] waiting for feedback on review 8e27d1e1-43ea-419f-8235-1378e5e6606b (ctrl+c to stop)
+   ```
+
+   Your browser opens on the diff: changed files on the left, your edit highlighted on the right. Leave this terminal running.
+
+3. Comment on a line.
+
+   Hover a changed line and click the comment bubble, or click its line number. Type a note, for example `Debug log left in, please remove it.`, click the `nit` tag, and press `Ctrl`+`Enter` (`Cmd`+`Enter` on macOS) to save.
+
+   The comment appears as a card under that line.
+
+   <video src="/media/takes/comment.mp4" poster="/media/takes/comment.jpg" autoplay muted loop playsinline width="1280" height="800" aria-label="Clicking a line number in the nittle diff, typing a comment, tagging it nit and saving it as a card under the line"></video>
+
+4. Send the feedback.
+
+   Click Review in the top bar. Optionally type a summary in the box, then click Return Feedback.
+
+   Back in your terminal, nittle prints one more line and exits:
+
+   ```
+   [nittle] review sent back with feedback
+   ```
+
+5. Read what your agent will get.
+
+   ```sh
+   cat feedback.md
+   ```
+
+   ````md
+   ## Code Review — working tree — 2026-10-29
+
+   ---
+
+   ### src/greet.ts — Line 2
+
+   ```
+       1 | export function greet(name: string) {
+     > 2 | +  console.log(name);
+       3 |   return `hi ${name}`;
+       4 | }
+   ```
+
+   **[nit]** Debug log left in, please remove it.
+
+   ---
+
+   ## Summary: 1 comment(s) across 1 file(s)
+   ````
+
+   Each comment carries its file, line and a few lines of surrounding code, so the agent doesn't have to guess what you meant.
+
+6. Hand it to your agent.
+
+   Paste the contents of `feedback.md` into your agent's chat, or tell it:
+
+   ```
+   Apply the code review in feedback.md.
+   ```
+
+   The agent removes the line you flagged. Run `nittle` again to check its work.
 
 </Steps>
 
-![The feedback preview: each comment rendered with its code context, ready to copy as Markdown](/media/feedback.png)
+You just ran a full review round with nothing but a shell command. To let the agent start reviews itself, read your comments, reply in threads and ask you to look again, wire it up over MCP with `nittle setup`. That loop is in [Agent feedback](/guides/agent-feedback/).
 
-## Review something specific
+## Where to go next
 
-```sh
-nittle staged            # staged changes only
-nittle main              # current branch vs main
-nittle v1.0..v1.1        # a commit range
-nittle browse            # the whole codebase
-nittle browse src/       # scoped to a subtree
-```
-
-See the [CLI reference](/reference/cli/) for every command and flag.
-
-<Aside type="tip">
-  Comments are saved to durable Review Records under your data directory — they survive restarts and re-runs. Press `r` to re-run the diff after the code changes.
-</Aside>
-
-## Next steps
-
-- [Reviewing changes](/guides/reviewing-changes/) — reading modes, viewed state, and re-running.
-- [Inline comments](/guides/inline-comments/) — ranges, threads, resolve/reopen, and orphaned comments.
-- [Agent feedback](/guides/agent-feedback/) — close the loop with Claude Code or Codex over MCP.
+- [How nittle works](/concepts/how-nittle-works/) explains where reviews live and how comments survive a refresh.
+- [Reviewing changes](/guides/reviewing-changes/) covers other refs (`nittle staged`, `nittle main`, `nittle show`) and the reading modes.
+- [Suggested changes](/guides/suggested-changes/) lets you propose the exact replacement lines instead of describing them.
+- [Keyboard review](/guides/keyboard-review/) walks through reviewing without the mouse.
