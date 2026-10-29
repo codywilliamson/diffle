@@ -26,7 +26,7 @@ Cap the backoff so attempt 5 doesn't sleep for 1.6s.
 ```
 ````
 
-The saved comment shows each suggestion as a small diff titled "Suggested change": the current lines with `−`, your replacement with `+`. Prose around the fence renders as normal markdown.
+The saved comment shows each suggestion as a small diff titled Suggested change: the current lines with `−`, your replacement with `+`. Prose around the fence renders as normal markdown.
 
 ![A comment card with a sentence of explanation above a Suggested change block showing one removed line and one added line](/media/gallery/suggestion.png)
 

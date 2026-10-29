@@ -19,7 +19,7 @@ Boolean variables marked `1` must be exactly `1`. Variables marked "any value" a
 | `NITTLE_ROOT` | the directory `nittle mcp serve` started in | MCP server | the one approved root; `start_review` rejects a `cwd` outside it with `cwd must be inside an approved MCP root` |
 | `NITTLE_NO_OPEN` | unset | MCP `start_review`, `nittle hook stop` | `1` = don't open a browser. Plain `nittle` ignores it; use `--no-open` |
 | `NITTLE_HOOK_NO_SPAWN` | unset | `nittle hook stop` | `1` = create the Review Record but spawn no review process |
-| `NITTLE_NO_UPDATE_CHECK` | unset | launch notice, `nittle doctor` | any value = no new-release line at launch and no release check in doctor. The launch notice is also off when `CI` is set or when running from source |
+| `NITTLE_NO_UPDATE_CHECK` | unset | launch notice, `nittle doctor` | any value = no new-release line at launch and no release check in doctor. The launch notice is also off when `CI` is set or when running from source. It doesn't turn off the update badge in the browser tab, which still asks GitHub Releases every 10 minutes while the tab is open |
 | `NITTLE_INSTALL_DIR` | `~/.nittle/bin` | installers and the binary | where the binary lives. The binary reads it to resolve the command it writes into agent MCP configs, and where the migration copies itself |
 | `NITTLE_SESSION_HOST` | unset | review launch | internal: `hook` marks a session as hook-hosted, otherwise it is `cli`. The stop hook sets it on the process it spawns |
 | `VIRTUAL_ENV` | unset | Python language server lookup | its `bin` (`Scripts` on Windows) is searched before `PATH`, and the server starts with that environment |
@@ -38,6 +38,22 @@ Boolean variables marked `1` must be exactly `1`. Variables marked "any value" a
 | `NITTLE_UNINSTALL` | unset | any value = uninstall instead of install |
 | `GITHUB_TOKEN` | unset | authenticates the release lookup, which avoids the anonymous rate limit |
 | `NO_COLOR` | unset | `install.sh` prints without color |
+
+### PATH changes made by the installers
+
+On macOS and Linux, `install.sh` appends a marked block to your login shell's rc file: `.zshrc` for zsh (under `ZDOTDIR` if set), `.bashrc` for bash (plus a `.bash_profile` that sources it on macOS), `config.fish` for fish, `.profile` for anything else.
+
+```sh
+# >>> nittle >>>
+export PATH="$HOME/.nittle/bin:$PATH"
+# <<< nittle <<<
+```
+
+Nothing else in the file is reordered or rewritten. Each edit first copies the file to `<rc>.nittle.bak-<timestamp>`, so one install can leave more than one backup. Running the installer again changes nothing. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `nittle` right away.
+
+On Windows, `install.ps1` edits only your user `PATH`, never the machine scope and never the merged process value. It backs the old value up to a timestamped file in your temp directory first, keeps every existing entry (`%VAR%` tokens included), and does nothing if `~\.nittle\bin` is already there.
+
+`NITTLE_NO_MODIFY_PATH` skips the edit on both (`install.sh` prints the `export` line instead), and `NITTLE_DRY_RUN` logs every intended change without writing anything.
 
 Every `NITTLE_*` variable falls back to its deprecated `DIFFLE_*` twin (`NITTLE_*` wins when both are set), and the first launch that uses one prints a one-time rename notice such as `DIFFLE_DATA_DIR -> NITTLE_DATA_DIR`. `LOUPE_*` is not read.
 
@@ -124,4 +140,5 @@ A repo `.env` could otherwise set `NITTLE_*`, `VIRTUAL_ENV` or `PATH` for nittle
 | MCP servers | stops servers still on the old binary, unless a review session is live; agents relaunch them on reconnect |
 | package manager install | refuses and prints that manager's command |
 | launch notice | one line when a newer release exists, checked at most once per 24 hours, off with `NITTLE_NO_UPDATE_CHECK` or `CI` |
+| update badge | the open tab asks GitHub Releases every 10 minutes and shows a badge when a newer release exists; `NITTLE_NO_UPDATE_CHECK` doesn't turn it off |
 | offline | checks fail quietly |

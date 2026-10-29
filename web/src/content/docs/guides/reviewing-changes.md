@@ -53,7 +53,7 @@ $ nittle show nosuchrev
 
 ## Move through the files
 
-The sidebar lists every changed file. Type in the **Filter files…** box to narrow it by path. The **Tree** / **Review order** toggle under it (or `m`) switches between the folder tree and the review order described in the [review scorecard](/guides/review-scorecard/#review-order) guide.
+The sidebar lists every changed file. Type in the Filter files… box to narrow it by path. The Tree / Review order toggle under it (or `m`) switches between the folder tree and the review order described in the [review scorecard](/guides/review-scorecard/#review-order) guide.
 
 Every changed file shows on one scrolling page by default. Press `o` to switch to single-file view, which shows only the file you pick in the sidebar. Press `o` again to go back.
 
@@ -65,7 +65,7 @@ To review without the mouse, see [Keyboard review](/guides/keyboard-review/).
 
 Press `s` to switch between unified (one column) and side-by-side (old left, new right). Added and deleted files always render unified, since they have no second side. Browse mode is always unified.
 
-A file header carries its own **Unified** / **Side-by-side** button that overrides the global view for that file only. Pressing `s` again clears every per-file override.
+A file header carries its own Unified / Side-by-side button that overrides the global view for that file only. Pressing `s` again clears every per-file override.
 
 Each side of a side-by-side file scrolls horizontally on its own. Use a trackpad swipe or `Shift` + wheel over a pane. Drag the divider to resize the panes. You can also `Tab` to it and use the arrow keys (`Shift` for bigger steps), `Home` and `End`. Double-click it or press `Enter` to reset to equal widths.
 
@@ -81,18 +81,16 @@ Code is highlighted with VS Code's TextMate grammars, including Svelte, Vue and 
 
 ## Files that start collapsed or hidden
 
-Some files don't open with their lines showing:
-
 - Deleted files start collapsed. Click the chevron in the header to read them.
-- Lockfiles and generated files collapse with a "Lockfile — collapsed" or "Generated file — collapsed" note and an **Expand** button. The [review scorecard](/guides/review-scorecard/#noise) guide lists what counts.
-- A file whose diff has more than 2000 lines shows "Large diff — hidden to keep things fast." Click **Load diff** to render it.
+- Lockfiles and generated files collapse with a "Lockfile — collapsed" or "Generated file — collapsed" note and an Expand button. The [review scorecard](/guides/review-scorecard/#noise) guide lists what counts.
+- A file whose diff has more than 2000 lines shows "Large diff — hidden to keep things fast." Click Load diff to render it.
 - Binary files show "Binary file — no textual diff."
 
 `zo` and `zc` open and close the cursor's file from the keyboard, and `zO` and `zC` do every file.
 
 ## Read markdown rendered
 
-A changed markdown file has a **Diff** / **Preview** button in its header. Preview renders the new version of the file, with relative images loaded from the repository. The HTML is sanitized, so scripts and event handlers in a reviewed `.md` never run. Deleted markdown files have no preview.
+A changed markdown file has a Diff / Preview button in its header. Preview renders the new version of the file, with relative images loaded from the repository. The HTML is sanitized, so scripts and event handlers in a reviewed `.md` never run. Deleted markdown files have no preview.
 
 ## Spot whitespace and moved code
 
@@ -106,9 +104,9 @@ When a run of three or more lines is deleted in one place and added in another, 
 
 ## Refresh after the code changes
 
-nittle re-runs `git diff` when you press `r` or click **Re-run the diff** (the circular arrow) in the top bar. The review, your comments and the cursor carry over.
+nittle re-runs `git diff` when you press `r` or click Re-run the diff (the circular arrow) in the top bar. The review, your comments and the cursor carry over.
 
-A comment whose line or file leaves the diff moves to a **From earlier reviews** section at the top of the page, and the feedback leaves it out. See [Stale comments](/guides/inline-comments/#stale-comments).
+A comment whose line or file leaves the diff moves to a From earlier reviews section at the top of the page, and the feedback leaves it out. See [Stale comments](/guides/inline-comments/#stale-comments).
 
 ## When the server stops
 
@@ -120,13 +118,13 @@ nittle --review-id <id> --port 4400
 
 Run it from the same repository and the page reconnects by itself.
 
-If a different review is now running on that port, the banner reads "A different review is running on this port." instead. Writes stay off on that page, and **Reload to open it** loads the other review.
+If a different review is now running on that port, the banner reads "A different review is running on this port." instead. Writes stay off on that page, and Reload to open it loads the other review.
 
 ## Update from the top bar
 
-When a newer release exists, an **Update** badge with the version appears in the top bar. It checks every 10 minutes and links to the release notes. Run `nittle update` to install it. See [Installation](/getting-started/installation/).
+When a newer release exists, an Update badge with the version appears in the top bar. It checks every 10 minutes and links to the release notes. Run `nittle update` to install it. See [Installation](/getting-started/installation/).
 
-## Next steps
+## Related pages
 
 - Learn the keys in [Keyboard review](/guides/keyboard-review/), or look one up in [Keyboard shortcuts](/reference/keyboard-shortcuts/).
 - Leave feedback with [Inline comments](/guides/inline-comments/).

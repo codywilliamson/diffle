@@ -84,7 +84,7 @@ Reviews live outside the repo in `~/.nittle/reviews/<id>/review.json`, and nittl
 | `nittle completion --shell <shell>` | tab completion for bash, zsh, fish or PowerShell |
 | `nittle sessions` / `nittle cleanup` | list running reviews / stop stale and finished ones |
 | `nittle mcp serve` | the stdio MCP server agents launch |
-| `nittle doctor` | check the agent plugin install for leftovers (`--fix` to repair) |
+| `nittle doctor` | check agent plugin installs, leftover migrations and the release channel (`--fix` to repair) |
 
 Every flag and the `--wait` exit codes are in the [CLI reference](https://nittle.dev/reference/cli/). `nittle <command> --help` prints the same.
 
