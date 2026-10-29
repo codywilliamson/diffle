@@ -104,7 +104,7 @@ exports[`completion scripts zsh output matches the snapshot 1`] = `
 _nittle() {
   local cmd=review sub="" scope lead=0 npos=0 skip=0 wantsrefs=0 word i
   local -a flags_ subs_ words_ refs cmds_
-  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:agent stop hook that keeps a review open until it is resolved' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'setup:wire nittle into your coding agents (plugin or MCP config)' 'lsp:show which language server each language gets, and override it' 'completion:print a tab-completion script for your shell')
+  cmds_=('show:review one commit against its first parent' 'mcp:run or manage the local MCP server agents talk to' 'hook:experimental agent stop hook that opens a review of the working tree' 'sessions:list running review sessions (host, port, age, live/stale)' 'cleanup:stop stale sessions and finished reviews' 'update:download and install the latest release' 'doctor:check the Claude Code plugin install for stale diffle leftovers' 'setup:wire nittle into your coding agents (plugin or MCP config)' 'lsp:show which language server each language gets, and override it' 'completion:print a tab-completion script for your shell')
   if (( CURRENT > 2 )); then
     case "\${words[2]}" in
       show|mcp|hook|sessions|cleanup|update|doctor|setup|lsp|completion) cmd="\${words[2]}"; lead=1 ;;
@@ -264,7 +264,7 @@ end
 complete -c nittle -f
 complete -c nittle -n '__nittle_at_start' -a show -d 'review one commit against its first parent'
 complete -c nittle -n '__nittle_at_start' -a mcp -d 'run or manage the local MCP server agents talk to'
-complete -c nittle -n '__nittle_at_start' -a hook -d 'agent stop hook that keeps a review open until it is resolved'
+complete -c nittle -n '__nittle_at_start' -a hook -d 'experimental agent stop hook that opens a review of the working tree'
 complete -c nittle -n '__nittle_at_start' -a sessions -d 'list running review sessions (host, port, age, live/stale)'
 complete -c nittle -n '__nittle_at_start' -a cleanup -d 'stop stale sessions and finished reviews'
 complete -c nittle -n '__nittle_at_start' -a update -d 'download and install the latest release'
@@ -357,7 +357,7 @@ Register-ArgumentCompleter -Native -CommandName nittle, nittle.exe -ScriptBlock 
   $commands = @{
     'show' = 'review one commit against its first parent'
     'mcp' = 'run or manage the local MCP server agents talk to'
-    'hook' = 'agent stop hook that keeps a review open until it is resolved'
+    'hook' = 'experimental agent stop hook that opens a review of the working tree'
     'sessions' = 'list running review sessions (host, port, age, live/stale)'
     'cleanup' = 'stop stale sessions and finished reviews'
     'update' = 'download and install the latest release'
