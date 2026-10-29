@@ -1,13 +1,13 @@
 ---
 title: Agent feedback loop
-description: Drive a nittle review from Codex or Claude Code over a local MCP server and return structured feedback.
+description: Send your review comments to a coding agent over MCP or stdout, and review its fixes round by round.
 sidebar:
-  order: 3
+  order: 5
 ---
 
 import { Tabs, TabItem, Steps, Aside } from "@astrojs/starlight/components";
 
-nittle ships explicit review skills for **Codex** and **Claude Code** that drive a review through a local MCP server. It can also register that server with Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed, and GitHub Copilot CLI. All integrations need the `nittle` command on your `PATH` — see [Installation](/getting-started/installation/).
+Get your review comments into a coding agent and review what it changes in response. Agents with MCP support drive the whole loop through nittle's local MCP server. Any other agent that can run a shell command uses `nittle --wait`. Both need the `nittle` command on your `PATH` (see [Installation](/getting-started/installation/)).
 
 ## Set up your agents
 
@@ -15,27 +15,25 @@ nittle ships explicit review skills for **Codex** and **Claude Code** that drive
 nittle setup
 ```
 
-`nittle setup` detects the coding agents you have installed (a binary on `PATH` or a config directory), then shows a checkbox list: `↑↓` move, `space` select, `a` all, `enter` confirm. Detected agents are listed first and pre-checked. It prints a plan of every command it will run and file it will touch, asks `Proceed? [y/N]`, then applies. Re-running is safe; already-configured agents report `unchanged`. Restart the agent or start a new session afterwards.
+`nittle setup` detects the coding agents you have installed: an agent counts when its binary is on `PATH` or its config directory exists. It then shows a checkbox list with detected agents listed first and pre-checked (`↑↓` move, `space` select, `a` all, `enter` confirm). It prints every command it will run and every file it will touch, asks `Proceed? [y/N]`, then applies. Running it again is safe, and agents that are already set up report `unchanged`. Restart the agent or start a new session afterwards.
 
 | agent | id | what setup does |
 | --- | --- | --- |
-| Claude Code | `claude` | installs the `nittle-review` plugin |
-| Codex | `codex` | installs the `nittle-review` plugin |
+| Claude Code | `claude` | installs the `nittle-review` plugin (skill + MCP server) |
+| Codex | `codex` | installs the `nittle-review` plugin (skill + MCP server) |
 | Cursor | `cursor` | adds a `nittle` MCP server to `~/.cursor/mcp.json` |
 | Gemini CLI | `gemini` | adds it to `~/.gemini/settings.json` |
 | VS Code | `vscode` | adds it to the user `mcp.json` |
 | Windsurf | `windsurf` | adds it to `~/.codeium/windsurf/mcp_config.json` |
-| OpenCode | `opencode` | adds it to `~/.config/opencode/opencode.json` |
+| OpenCode | `opencode` | adds it to `~/.config/opencode/opencode.json` (or `opencode.jsonc` if that exists) |
 | Zed | `zed` | adds it to Zed's `settings.json` |
 | GitHub Copilot CLI | `copilot` | adds it to `~/.copilot/mcp-config.json` |
 
-The MCP entry runs `nittle mcp serve` and every other setting in the file is preserved. If a config file isn't plain JSON (comments are common in Zed and VS Code), setup never rewrites it and prints the snippet to paste by hand instead.
+The MCP entry runs `nittle mcp serve`, written with the absolute path of your installed binary so agents launched from a GUI find it without your shell's `PATH`. Every other setting in the file is kept. If a config file isn't plain JSON (comments are common in Zed and VS Code), setup never rewrites it and prints the snippet to paste by hand instead.
 
-To skip the prompts, pass `--agents claude,codex` to select agents and `--yes` to skip the confirmation. Without a terminal and without `--agents`, setup exits 1 with a hint. Undo it with `nittle setup --remove`, which pre-checks every agent nittle is currently set up in. The installer offers to run `nittle setup` when it finishes; set `NITTLE_NO_SETUP=1` to skip that. See the [CLI reference](/reference/cli/).
+To skip the prompts, pass `--agents claude,codex` to pick agents and `--yes` to skip the confirmation. Without a terminal and without `--agents`, setup exits 1 and prints the agents it detected and the valid ids. `nittle setup --remove` undoes it and pre-checks every agent nittle is currently set up in.
 
-## Manual setup
-
-Prefer to install the plugin yourself? Run the commands for your agent.
+### Manual plugin install
 
 <Tabs syncKey="agent">
   <TabItem label="Claude Code">
@@ -44,7 +42,7 @@ Prefer to install the plugin yourself? Run the commands for your agent.
     claude plugin install nittle-review@nittle-local --scope user
     ```
 
-    Then start a new Claude Code session (or run `/reload-plugins`).
+    Then start a new Claude Code session, or run `/reload-plugins`.
   </TabItem>
   <TabItem label="Codex">
     ```sh
@@ -52,78 +50,245 @@ Prefer to install the plugin yourself? Run the commands for your agent.
     codex plugin add nittle-review@nittle-local
     ```
 
-    Then start a new Codex task — existing tasks don't reload newly installed skills/MCP servers.
+    Then start a new Codex task. Existing tasks don't load newly installed skills or MCP servers.
   </TabItem>
 </Tabs>
 
-## The review loop
+## Run a review round over MCP
 
 <Steps>
 
-1. Ask the agent `Review my current changes with nittle.`
+1. Ask the agent for a review:
 
-2. Leave line/file comments and choose **Return Feedback**.
+   ```
+   Review my current changes with nittle.
+   ```
 
-3. Return to the agent and say `continue`.
+   The agent calls `start_review` with the repository path and ref `working` (tracked and untracked changes). nittle opens the review in your browser. The agent's MCP server only accepts a `cwd` inside its approved root, which is the directory the agent launched it from unless `NITTLE_ROOT` says otherwise.
 
-4. The agent replies and re-review requests appear in nittle — choose **Refresh diff** from the notice to load new changes.
+2. Comment on the lines you want changed, then click Review in the top bar and Return Feedback. Return Feedback needs at least one unresolved comment or a summary.
 
-5. Verify, reply in a thread or resolve, then approve or return more feedback. Asking for more after approval reopens the same review.
+3. Go back to the agent and say `continue`. By default the review's policy is `required`, so the `nittle-review` skill tells the agent to stop and wait for you after `start_review`.
+
+4. The agent calls `get_review`, applies each comment, replies to it with `reply_to_comment`, marks it with `mark_comment_addressed`, and calls `request_rereview`.
+
+5. Within a few seconds a notice appears at the top of the review, for example `Agent activity: 2 replies, 2 addressed, rereview requested — “Removed the debug log and capped the backoff”`. Click Refresh diff to load the agent's changes.
+
+6. Files the agent touched since your feedback show a "Changed since last review" chip. Click Show only changes since last review on a file to see just the agent's fix instead of the whole change again.
+
+   ![A file header with the Changed since last review chip and the Show only changes since last review toggle switched on, showing a two-line interdiff](/media/gallery/since-last-review.png)
+
+7. Resolve the comments that are fixed, reply in a thread to the ones that aren't, then Approve or return more feedback. Asking the agent for more after you approve reopens the same review.
 
 </Steps>
 
-![The review panel: a summary field with Return Feedback, Approve, and Cancel, above the unresolved comment thread](/media/summary.png)
+<video src="/media/takes/review.mp4" poster="/media/takes/review.jpg" autoplay muted loop playsinline width="1280" height="800" aria-label="Returning feedback from the nittle review menu, the agent activity notice appearing, and Refresh diff loading the agent's changes"></video>
 
-The review menu shows the agent's latest update rendered as Markdown. For a long update, select the expand icon in the menu's corner to open the same view in a wide dialog. Your draft summary carries over.
+Each Return Feedback records a round: nittle stores the blob hash of every file's new-side content. A file counts as changed when its content no longer matches that hash, so the chip and the interdiff always compare against the code as it was the last time you sent feedback.
 
-<Aside type="caution">
-  If the agent can't start the nittle MCP server, run `nittle --version` in the same shell. If it's missing, fix your `PATH` (re-run the installer) and start a fresh agent session. If you previously installed the `diffle-review` or `loupe-review` plugin, run `nittle doctor` — it detects the stale plugin and repairs it with `--fix`.
-</Aside>
+The review menu also shows the agent's latest `request_rereview` summary as markdown under "Agent update". For a long one, click the expand icon in the corner to read it in a wide dialog. Your draft summary carries over.
 
-## Without MCP: `nittle --wait`
+## Addressed and resolved
+
+A comment has three states, and the agent can only reach one of them.
+
+| status | who sets it | what you see | in the next prompt? |
+| --- | --- | --- | --- |
+| `open` | you, by writing or reopening it | a normal comment card | yes |
+| `addressed` | the agent, with `mark_comment_addressed` | an "Addressed" chip on the card | yes |
+| `resolved` | you, with the Resolve button (Reopen undoes it) | a "Resolved" chip and muted text | no |
+
+Addressed means the agent says it made the change. It stays unresolved until you check the code and resolve it, so it still counts toward the unresolved badge, and Approve asks `There are 2 unresolved comments. Approve anyway?`. The agent can't resolve, reopen or approve. An agent that tries to mark a resolved comment gets `resolved comments must be reopened by the reviewer`.
+
+## What the agent receives
+
+Over MCP, `get_review` returns the Review Record: status, your summary, and every comment with its file, side, line range, tag, status and reply thread. When comments contain [suggested changes](/guides/suggested-changes/), it adds a `suggestions` list so the agent can apply them without parsing comment text. This is the `suggestions` part of a real response, with the `review` object left out:
+
+```json
+{
+  "suggestions": [
+    {
+      "commentId": "c3",
+      "path": "src/retry.ts",
+      "side": "new",
+      "startLine": 8,
+      "endLine": 8,
+      "original": [
+        "      await sleep(100 * 2 ** attempt);"
+      ],
+      "suggested": [
+        "      await sleep(Math.min(100 * 2 ** attempt, 1000));"
+      ]
+    }
+  ]
+}
+```
+
+An empty `suggested` array means delete the original lines. When some suggestion can't be listed, `suggestionsError` explains why.
+
+`nittle --wait`, the feedback preview (`P`) and Copy Markdown in the review menu get the compiled markdown prompt instead. This one comes from a review with a summary, a question that has a reply thread, a nit that suggests deleting a line, and an issue that suggests a replacement:
+
+````md
+## Code Review — working tree — 2026-10-29
+
+---
+
+## Reviewer summary
+
+Retry logic looks right. Two small fixes before merge.
+
+---
+
+### src/retry.ts — Line 2
+
+```
+    1 | export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  > 2 | +  const maxAttempts = 5;
+    3 |   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    4 |     try {
+```
+
+**[question]** Make this a parameter with a default so callers can tune it.
+  - agent: Added `maxAttempts = 5` as an optional second argument.
+  - reviewer: Good, keep the default.
+
+---
+
+### src/retry.ts — Line 7
+
+```
+    5 |       return await fn();
+    6 |     } catch (err) {
+  > 7 | +      console.log("retrying", err);
+    8 |       await sleep(100 * 2 ** attempt);
+    9 |     }
+```
+
+**[nit]** Debug logging left in.
+
+
+Suggested change to src/retry.ts, line 7:
+
+ORIGINAL
+```
+      console.log("retrying", err);
+```
+
+SUGGESTED (delete these lines)
+```
+```
+
+---
+
+### src/retry.ts — Line 8
+
+```
+     6 |     } catch (err) {
+     7 |       console.log("retrying", err);
+  >  8 | +      await sleep(100 * 2 ** attempt);
+     9 |     }
+    10 |   }
+```
+
+**[issue]** Cap the backoff so attempt 5 doesn't sleep for 1.6s.
+
+
+Suggested change to src/retry.ts, line 8:
+
+ORIGINAL
+```
+      await sleep(100 * 2 ** attempt);
+```
+
+SUGGESTED
+```
+      await sleep(Math.min(100 * 2 ** attempt, 1000));
+```
+
+---
+
+## Summary: 3 comment(s) across 1 file(s)
+````
+
+Lines marked `>` are the ones you commented on, with two lines of context either side. Removed lines get an `Old line` header instead of `Line`. File-level comments get a `File-level` header and no code block. Resolved comments and comments whose lines left the diff are not in the prompt.
+
+## Hand off without MCP: `nittle --wait`
 
 Any agent that can run a shell command can ask for a review. `nittle --wait` opens the review in your browser, blocks until you send feedback, approve or cancel, then prints the compiled prompt on stdout and exits.
 
-Three lines for a harness with no MCP:
-
 ```sh
-nittle --wait > feedback.md; code=$?           # opens the review and blocks until you respond
-[ "$code" -eq 0 ] && [ -s feedback.md ] && cat feedback.md   # non-empty means there is feedback to act on
-echo "exit: $code"                             # 0 = done, 2 = cancelled, 3 = tab closed
+nittle --wait > feedback.md
 ```
 
-In practice the harness runs `nittle --wait` as one blocking command and reads stdout. Status lines (the URL, "waiting for feedback") go to stderr, so stdout carries only the prompt. Pass a ref the same way you would without `--wait`, for example `nittle --wait main` or `nittle --wait staged`. Add `--no-open` to skip launching the browser and open the printed URL yourself.
+Status lines go to stderr, so stdout carries only the prompt:
+
+```
+[nittle] v0.32.1 — reviewing working tree (1 file changed)
+  http://127.0.0.1:47123/?review=8e27d1e1-43ea-419f-8235-1378e5e6606b  (ctrl+c to stop)
+[nittle] waiting for feedback on review 8e27d1e1-43ea-419f-8235-1378e5e6606b (ctrl+c to stop)
+[nittle] review sent back with feedback
+```
+
+Pass a ref the same way you would without `--wait`, for example `nittle --wait main` or `nittle --wait staged`. Add `--no-open` to skip launching the browser and open the printed URL yourself.
+
+If the agent runs the command itself, its shell tool has to allow a command that blocks for as long as you take to review. A tool that kills commands after a timeout ends the wait early. The review record survives, so you can still finish it with `nittle --review-id <id>`.
 
 ### Exit codes
 
-| Code | Meaning | Stdout |
+| code | meaning | stdout |
 | --- | --- | --- |
-| 0 | Feedback returned | The compiled prompt (JSON with `--json`) |
-| 0 | Review approved | Empty (JSON with `--json`) |
-| 2 | Review cancelled | Empty (JSON with `--json`) |
-| 3 | Last tab closed without sending anything | Empty |
-| 4 | Session stopped from outside (for example `nittle cleanup`); the review stays open | Empty |
-| 130 | Interrupted with ctrl+c while waiting | Empty |
-| 1 | Error (bad flag, port in use, no such review) | Empty |
+| 0 | feedback returned | the compiled prompt (JSON with `--json`) |
+| 0 | review approved | empty (JSON with `--json`) |
+| 2 | review cancelled | empty (JSON with `--json`) |
+| 3 | last tab closed without sending anything | empty |
+| 4 | session stopped from outside (for example `nittle cleanup`); the review stays open | empty |
+| 130 | interrupted with ctrl+c while waiting; the review stays open | empty |
+| 1 | error (bad flag, port in use, no such review) | empty |
 
-To tell approved from feedback, check whether stdout is empty. With `--json`, stdout is always the `get_review` structure for feedback, approved and cancelled (read `review.status`), so empty stdout only applies without `--json`. A closed tab, a stop and errors print nothing either way.
+To tell approved from feedback without `--json`, check whether stdout is empty.
 
-### Closing the tab
+Closing the last tab without sending feedback is not an approval. `nittle --wait` prints nothing on stdout, exits 3 and prints `review <id> is still open. resume with: nittle --review-id <id> (or get_review over MCP)` on stderr. A page reload doesn't count: nittle waits about five seconds for a tab to come back.
 
-Closing the last tab without sending feedback is not an approval. `nittle --wait` prints nothing on stdout, exits 3 and prints a hint on stderr with the review id. A page reload does not count: nittle waits about five seconds for a tab to come back.
+### Get JSON instead of a prompt
 
-### Picking the review up later
+```sh
+nittle --wait --json > review.json
+```
 
-`--wait` creates a normal durable Review Record, so nothing is lost when it exits. Reopen it with `nittle --review-id <id>`, or call `get_review` with that id from an MCP session. To see the review as structured data instead of a prompt, run `nittle --wait --json`. It prints the same structure `get_review` returns.
+With `--json`, stdout is the same structure `get_review` returns (the record plus `suggestions`) for feedback, approved and cancelled. Read `review.status` to tell them apart: `feedback_ready`, `approved` or `cancelled`.
 
-MCP still adds the two-way loop: replies on comments, marking comments addressed and `request_rereview`. `--wait` is the one-shot version.
+`--wait` is one round. It can't receive replies, addressed marks or a rereview request, so the "Changed since last review" view only works over MCP. Each new `nittle --wait` starts a fresh review.
 
-## Running the MCP server directly
+## Open a review when the agent stops
 
-The MCP server can also be run directly:
+`nittle hook stop --agent <codex|claude-code>` is meant to run as an agent's stop hook. `nittle setup` does not install it; you add it to the agent's hook config yourself. For Claude Code, in `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "nittle hook stop --agent claude-code" }] }
+    ]
+  }
+}
+```
+
+When the agent finishes a turn, the hook reads the session id, working directory and last message the agent sends it. If a review for that session is still active, it reports `nittle <id> is still active.` and opens nothing new. If the working tree has no changes, it does nothing. Otherwise it creates a review with policy `required`, starts nittle in the background on it, and tells the agent `nittle <id> opened. Resume after reviewing, or explicitly continue without waiting.`
+
+Set `NITTLE_NO_OPEN=1` to create the review without opening the browser, or `NITTLE_HOOK_NO_SPAWN=1` to create the record without starting nittle at all.
+
+## Fix a missing MCP server
+
+<Aside type="caution">
+  If the agent can't start the nittle MCP server, run `nittle --version` in the same shell. If the command is missing, fix your `PATH` (run the installer again) and start a fresh agent session. If you installed nittle's plugin under its old name before the rename, run `nittle doctor`, which detects the stale plugin and repairs it with `--fix`.
+</Aside>
+
+After `nittle update`, idle MCP servers are stopped so agents relaunch them on the new version. In Claude Code, reconnect with `/mcp` or start a new session. `nittle mcp restart` does the same stop by hand and refuses while a review session is live.
+
+The server can also be run directly, which is what the agent config does:
 
 ```sh
 nittle mcp serve
 ```
 
-See [MCP tools](/reference/mcp-tools/) for the full tool list.
+Every tool and its parameters are in [MCP tools](/reference/mcp-tools/).
