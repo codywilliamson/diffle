@@ -12,7 +12,7 @@ const reasons = (path: string, rows: string[], kind: string): string[] =>
 
 describe("csharp adapter paths", () => {
   it("routes c# files and dotnet config to the adapter", () => {
-    for (const p of ["a/B.cs", "a/B.csproj", "x.sln", "x.slnx", "Directory.Build.props", "a/B.razor", "global.json", "appsettings.Production.json"]) {
+    for (const p of ["a/B.cs", "a/B.csproj", "x.sln", "x.slnx", "Directory.Build.props", "a/B.razor", "global.json", "appsettings.Production.json", "web.config", "src/Site/Web.Release.config"]) {
       expect(adapterFor(p).id).toBe("csharp");
     }
     expect(adapterFor("README.md").id).toBe("generic");
