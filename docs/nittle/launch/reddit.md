@@ -1,79 +1,126 @@
 # Reddit drafts
 
-Drafts for Cody. Nothing here has been posted. Check each sub's current self-promotion rules and flair requirements before posting. Both posts say plainly that Cody wrote the tool. Post them on different days and answer every comment.
+Drafts for Cody. Nothing here has been posted.
 
-## r/ClaudeAI
+Before each one, read the sub's sidebar rules that day. Most allow a project post if you say you made it, answer comments, and don't post the same thing in five subs in one day. One sub per day, in the order below. Reply to everything in the first two hours, that's when a post lives or dies.
 
-Title: I built a local diff reviewer that hands line comments back to Claude Code over MCP
+Attach the walkthrough GIF (docs/screenshots/walkthrough.gif) or a still where the sub allows images. Video posts on Reddit autoplay muted, so the GIF works better than a link.
+
+## 1. r/ClaudeAI
+
+Flair: "Built with Claude" if it's offered (the sub requires it for project posts). Say what Claude did and didn't do if their rule asks for it.
+
+Title: I made a diff viewer where you click a line to comment, and Claude Code gets the comments back over MCP
 
 Body:
 
-I got tired of typing "in the second file, around the retry loop, you swallow the error" into a chat box. So I built a diff viewer where I click the line instead, and Claude gets the comment with the file, the line and the surrounding code.
+I got tired of typing "second file, around the retry loop, you swallow the error" into Claude Code and having it fix the wrong loop. So I built a diff viewer where I click the line instead.
 
-It's called nittle. I wrote it. It's free and MIT licensed.
-
-How it works with Claude Code:
+It's called nittle. Free, MIT, runs locally.
 
     curl -fsSL https://nittle.dev/install | sh
     nittle setup
 
-`nittle setup` finds Claude Code, shows you the commands it will run, asks, then installs the nittle-review plugin. Start a new session (or /reload-plugins) and say "review my current changes with nittle". Claude starts a review, your browser opens on the diff, and Claude waits.
+`nittle setup` finds Claude Code, shows you what it's going to run, asks, then installs the plugin. Start a new session and say "review my changes with nittle". Your browser opens on the diff and Claude waits.
 
-You leave comments on lines, ranges or whole files, then press Return Feedback. Back in Claude Code you say "continue". Claude reads the comments, makes the changes, replies in each thread and marks them addressed. It then asks for another pass. You refresh the diff, check what it did, and either approve or send more.
+You leave comments on lines, ranges or whole files and hit Return Feedback. Claude reads them with the exact file, line and surrounding code, makes the changes, replies in each thread and marks them addressed. Then it asks for another round. You look at what it changed, approve, or send more.
 
-The server behind it is `nittle mcp serve`. The tools Claude sees are start_review, get_review, get_scorecard, reply_to_comment, mark_comment_addressed, request_rereview and cancel_review. There's also a stop hook, `nittle hook stop --agent claude-code`, that keeps a review open until it's resolved.
-
-A few notes:
-
-- Keyboard review: j/k, J/K for files, ] and [ for hunks, c to comment, V for a range, e/dd/R on a thread, zo/zc to fold, Ctrl+p to jump to a file, / to search, gd for definitions. ? shows all of it.
-- A scorecard that flags removed public API, missing tests and dependency changes before you read the diff. Fixed rules, no model.
-- After `nittle update`, run `nittle mcp restart` and reconnect with /mcp so Claude picks up the new version.
-
-It used to be called diffle. There's a different project with that name, they had it first, so I renamed it. The first run moves an old install's data and plugins over. If a move fails, both copies stay and it retries next run.
+Some other stuff in there: vim-ish keys (j/k, c to comment, gd for go-to-definition), a scorecard that flags removed public API and missing tests before you start reading, and suggested changes Claude can apply directly.
 
 Docs: https://nittle.dev/guides/agent-feedback/
-Repo: https://github.com/codywilliamson/nittle (formerly codywilliamson/diffle, the old URL redirects)
+Repo: https://github.com/codywilliamson/nittle
 
-Screenshots to attach: nittle-review-panel.png (in docs/nittle/launch/screenshots/). Owner to capture: the agent reply thread and a Claude Code session.
+How do you review what Claude writes right now? Terminal git diff, a PR, just trust it?
 
-How do you review what Claude Code writes today? Terminal, a PR, something else?
+## 2. r/ChatGPTCoding
 
-## r/ChatGPTCoding
-
-Title: nittle: comment on an agent's diff line by line, works with Codex, Cursor, Gemini CLI and other agents that can run a local stdio MCP server
+Title: Made a local tool for reviewing any coding agent's diff line by line (works with Codex, Cursor, Gemini CLI, or just copy-paste)
 
 Body:
 
-Disclosure: I wrote this.
+Disclosure: I made this.
 
-Whatever agent you use, the review step is the same problem. The agent says it's done, you open a diff, and you type feedback back into a prompt in prose. Line references get fuzzy and some comments get lost.
+Whatever agent you use, the review step is the same mess. It says it's done, you open a diff, and you type feedback back in prose. Line references get fuzzy and half the comments get lost.
 
-nittle is a local diff viewer for that step. Run `nittle` in a repo, it opens the diff in your browser, you comment on lines, and it compiles the comments into a prompt you can paste into anything:
+nittle is a diff viewer for that step. Run it in a repo, the diff opens in your browser, you comment on lines, and it turns the comments into a prompt with the file, line and code around each one.
 
-    nittle                  # working tree vs HEAD
-    nittle staged           # staged only
-    nittle main             # this branch vs main
-    nittle show             # the last commit
+    nittle            # working tree vs HEAD
+    nittle main       # this branch vs main
+    nittle --wait     # blocks until you return feedback, prints the prompt on stdout
 
-If your agent speaks MCP, it can do the round trip itself. `nittle setup` wires up Codex (plugin) and Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed and GitHub Copilot CLI (MCP config entries). It lists exactly which files it will touch and asks before writing. Re-running is safe, and `nittle setup --remove` undoes it.
+If your agent does MCP, it can run the whole loop itself: start a review, read your comments, reply, mark them addressed, ask for another pass. `nittle setup` wires up Codex, Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed and Copilot CLI, and shows you every file it'll touch first. `nittle setup --remove` undoes it.
 
-If your agent doesn't speak MCP, there's a plain version:
+No account, nothing hosted. Single binary for Mac, Linux and Windows.
 
-    nittle --wait > feedback.md
+https://nittle.dev
 
-That opens the review and blocks until you return feedback, then prints the compiled prompt on stdout. Exit codes tell a script what happened: 0 feedback or approved, 2 cancelled, 3 tab closed with nothing returned.
+Rough edges: no GitHub PR mode yet, images just say "binary file", and go-to-definition needs you to install the language server.
 
-nittle itself runs on your machine, with no account and no hosted model. It checks GitHub for updates, and the agent you hand the review to sees your comments. Comments are JSON under ~/.nittle/reviews. Single binary for macOS, Linux and Windows, x64 and arm64.
+Which agent are you using, and do you actually read the diff before accepting?
 
-Install:
+## 3. r/cursor
+
+Title: Line-by-line review for Cursor's agent diffs, comments go back over MCP
+
+Body:
+
+Disclosure: I built this. It's free and open source.
+
+Cursor's diff view is fine for accepting hunks, but I wanted to leave real review comments, the "this swallows the error, and this name is wrong" kind, and have the agent work through them.
+
+nittle opens the working tree diff in a browser tab. You comment on lines or ranges, then hit Return Feedback. With the MCP server set up (`nittle setup --agents cursor`), Cursor's agent can read the comments, reply to each one, mark them addressed and ask for another look.
 
     curl -fsSL https://nittle.dev/install | sh
-    pwsh -c "irm https://nittle.dev/install.ps1 | iex"    # Windows, needs PowerShell 7
+    nittle setup --agents cursor
 
-Limits: go-to-definition covers seven languages today (TypeScript/JS, C#, Python, Go, Rust, Vue, Svelte) and you install the language servers yourself, no GitHub PR export, and images show a binary notice. There's a similar tool called diffle by someone else that does GitHub PR export and covers more languages. I wrote up where each of us is ahead.
+Setup guide: https://nittle.dev/guides/agent-feedback/
 
-Docs: https://nittle.dev
+Curious whether people here review in Cursor itself or somewhere else.
 
-Screenshots to attach: nittle-diff-with-comments.png, nittle-keyboard-shortcuts.png (in docs/nittle/launch/screenshots/). Owner to capture: the setup terminal and the split view with a range comment.
+## 4. r/dotnet (or r/csharp, not both)
 
-Question for the sub: which agent are you reviewing, and do you read the diff before you accept it?
+Lead with the C# angle. This crowd is skeptical of AI posts, so make it about review, not about agents.
+
+Title: I built a local diff reviewer with C# first-class: go-to-definition in the diff, and review flags for async void, .Result, EF migrations and NuGet bumps
+
+Body:
+
+Disclosure: my project, MIT licensed.
+
+nittle is a git diff viewer that runs in your browser from the command line. I built it to review code coding agents write, but it works for any diff.
+
+The C# parts:
+
+- Go-to-definition, references and hover right in the diff, using a C# language server you have installed (`nittle lsp` shows what it found).
+- A scorecard before you read: flags `async void`, blocking waits (`.Result`, `.Wait()`, `GetAwaiter().GetResult()`), `#pragma warning disable`, skipped tests, `null!`, and changes to Program.cs, appsettings, .csproj, Directory.Build.props, web.config and EF migrations.
+- It reads PackageReference, central package versions and TargetFramework changes, so a NuGet bump shows up as its own flag.
+- Test projects are matched to what they test, so "changed code with no test change" means something.
+
+No model in any of that, it's all fixed rules.
+
+    nittle main     # review this branch against main
+
+Windows install: `pwsh -c "irm https://nittle.dev/install.ps1 | iex"` (PowerShell 7).
+
+https://nittle.dev/guides/review-scorecard/
+
+What would you want flagged that isn't there?
+
+## 5. r/SideProject
+
+Title: nittle: I spent the last few months building a diff reviewer for coding agents, launched today
+
+Body:
+
+Short version: a local git diff viewer where you comment on lines and the comments go back to your coding agent, which fixes things, replies and asks for another round.
+
+It started as "loupe" in June, became "diffle", then turned out someone else had diffle first, so now it's nittle. Single binary, MIT, works with nine agents or with copy-paste.
+
+https://nittle.dev
+
+Happy to talk about how it's built: Bun backend, Svelte 5 UI, and the demo videos are recorded by Playwright driving the real app and composited with Remotion.
+
+## Skip
+
+- r/programming: bans "I made this" posts.
+- r/webdev, r/javascript: Showoff Saturday only, and it's off-topic there anyway.
