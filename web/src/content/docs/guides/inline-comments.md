@@ -57,9 +57,9 @@ Only you resolve. An agent can address a comment, never resolve it.
 
 ## Stale comments
 
-When a re-run moves a comment's line or file out of the diff, the comment isn't lost. It moves to a From earlier reviews section at the top of the diff, labeled with where it used to be, such as `src/api.ts — line 42`. Those comments are left out of the feedback. Resolve or delete each one to clear the section.
+When a re-run moves a comment's line or file out of the diff, or the code you commented on no longer sits at that line (because the agent rewrote it, or added lines above it), the comment isn't lost. It moves to a From earlier reviews section at the top of the diff, labeled with where it used to be, such as `src/api.ts — line 42`. Those comments are left out of the feedback. Resolve or delete each one to clear the section.
 
-A range comment stays anchored as long as any line in its range is still in the diff.
+A range comment stays anchored as long as the line you opened it on is still somewhere inside its range. Changes to the line's diff marker (a context line that became an addition) and to trailing whitespace don't count.
 
 ## Where comments are kept
 

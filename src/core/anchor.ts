@@ -18,22 +18,27 @@ export function rangeEnd(c: Comment): number {
   return c.endLine != null ? Math.max(c.line as number, c.endLine) : (c.line as number);
 }
 
+const DIFF_MARKERS = "+- ";
+
+// the stored lineContent without its diff marker, so a context line that became an addition still matches.
+function storedText(lineContent: string): string {
+  const text = DIFF_MARKERS.includes(lineContent[0] ?? "") ? lineContent.slice(1) : lineContent;
+  return text.trimEnd();
+}
+
 // a comment is anchored if its file is in the diff and (for line comments) some hunk line
 // on its side still carries a number within [line, endLine]. a range counts as anchored
-// when ANY line in it survives. file-level comments are anchored iff the file is present.
+// when ANY line in it survives. when the comment stored its line's text, that text must also
+// still sit inside the range, so code shifting under a comment marks it stale instead of
+// silently pinning it to a different line. file-level comments are anchored iff the file is present.
 export function isAnchored(comment: Comment, diff: DiffResult): boolean {
   const file = diff.files.find((f) => f.path === comment.file);
   if (!file) return false;
   if (comment.line == null) return true;
-  const side = sideOf(comment);
-  const start = comment.line;
-  const end = rangeEnd(comment);
-  return file.hunks.some((h) =>
-    h.lines.some((l) => {
-      const n = numOn(l, side);
-      return n != null && n >= start && n <= end;
-    })
-  );
+  const inRange = anchoredLines(file, sideOf(comment), comment.line, rangeEnd(comment));
+  if (comment.lineContent == null) return inRange.length > 0;
+  const expected = storedText(comment.lineContent);
+  return inRange.some((content) => content.trimEnd() === expected);
 }
 
 // the text of the diff lines numbered within [start, end] on `side`, in file order.

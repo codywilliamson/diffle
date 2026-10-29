@@ -83,3 +83,27 @@ describe("partitionComments", () => {
     expect(partitionComments([], diff)).toEqual({ anchored: [], stale: [] });
   });
 });
+
+describe("isAnchored with stored line content", () => {
+  it("stays anchored when the stored line still sits at its number", () => {
+    expect(isAnchored(comment({ line: 2, lineContent: " two" }), diff)).toBe(true);
+    expect(isAnchored(comment({ line: 3, side: "old", lineContent: "-gone three" }), diff)).toBe(true);
+  });
+
+  it("goes stale when a different line now sits at its number", () => {
+    expect(isAnchored(comment({ line: 2, lineContent: " some line that moved" }), diff)).toBe(false);
+  });
+
+  it("ignores the diff marker, so a context line that became an addition still matches", () => {
+    expect(isAnchored(comment({ line: 3, lineContent: " new three" }), diff)).toBe(true);
+  });
+
+  it("anchors a range when the stored line is anywhere inside it", () => {
+    expect(isAnchored(comment({ line: 2, endLine: 4, lineContent: " four" }), diff)).toBe(true);
+    expect(isAnchored(comment({ line: 2, endLine: 4, lineContent: " five" }), diff)).toBe(false);
+  });
+
+  it("ignores trailing whitespace", () => {
+    expect(isAnchored(comment({ line: 1, lineContent: " one  " }), diff)).toBe(true);
+  });
+});
