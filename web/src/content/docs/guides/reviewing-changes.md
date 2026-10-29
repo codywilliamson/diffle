@@ -122,7 +122,7 @@ If a different review is now running on that port, the banner reads "A different
 
 ## Update from the top bar
 
-When a newer release exists, an Update badge with the version appears in the top bar. It checks every 10 minutes and links to the release notes. Run `nittle update` to install it. See [Installation](/getting-started/installation/).
+When a newer release exists, an Update badge with the version appears in the top bar. It checks every 10 minutes (never, with `NITTLE_NO_UPDATE_CHECK` set) and links to the release notes. Run `nittle update` to install it. See [Installation](/getting-started/installation/).
 
 ## Related pages
 
