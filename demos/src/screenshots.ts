@@ -5,54 +5,19 @@ import { chromium, type Browser, type Page } from "playwright";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeFixture, startBackend, stop, cleanup, type FixtureFile } from "./lib/backend";
+import type { FixtureFile } from "./lib/backend";
+import { openSession, shoot as shootTo, type Session } from "./lib/shotSession";
+import { captureFeatureStills } from "./featureShots";
 import {
   FIXTURE, BIG_FIXTURE, COMMENT_FILE, COMMENT_LINE, COMMENT_TEXT, REVIEW_SUMMARY,
   RANGE_START, RANGE_END, RANGE_TEXT,
 } from "./lib/fixture";
 
-const W = 1440;
-const H = 900;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SHOTS = join(HERE, "..", "public", "shots");
 
-interface Session {
-  page: Page;
-  teardown: () => Promise<void>;
-}
-
-async function open(browser: Browser, files: FixtureFile[]): Promise<Session> {
-  const fixture = makeFixture(files);
-  const { server, url } = startBackend(fixture);
-  const reviewUrl = await url;
-  const context = await browser.newContext({
-    viewport: { width: W, height: H },
-    deviceScaleFactor: 2,
-    reducedMotion: "reduce",
-    colorScheme: "dark",
-  });
-  const page = await context.newPage();
-  await page.goto(reviewUrl);
-  await page
-    .getByRole("dialog", { name: /What's new/ })
-    .waitFor({ state: "visible", timeout: 1500 })
-    .then(() => page.keyboard.press("Escape"))
-    .catch(() => {});
-  return {
-    page,
-    teardown: async () => {
-      await context.close();
-      await stop(server);
-      cleanup(fixture);
-    },
-  };
-}
-
-async function shoot(page: Page, id: string): Promise<void> {
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: join(SHOTS, `${id}.png`) });
-  console.log(`shot ${id}`);
-}
+const open = (browser: Browser, files: FixtureFile[]): Promise<Session> => openSession(browser, files);
+const shoot = (page: Page, id: string): Promise<void> => shootTo(page, SHOTS, id);
 
 function serverBubble(page: Page, line: number) {
   const section = page.locator("section.file-section", { has: page.getByText(COMMENT_FILE) });
@@ -60,10 +25,16 @@ function serverBubble(page: Page, line: number) {
 }
 
 async function run(): Promise<void> {
-  rmSync(SHOTS, { recursive: true, force: true });
+  // `npm run shots` = everything; `npm run shots features` = the launch stills; `npm run shots <id>` = one launch still
+  const only = process.argv[2];
+  if (!only) rmSync(SHOTS, { recursive: true, force: true });
   mkdirSync(SHOTS, { recursive: true });
   const browser = await chromium.launch();
   try {
+    if (only) {
+      await captureFeatureStills(browser, SHOTS, only === "features" ? undefined : only);
+      return;
+    }
     // ── main small-fixture flow ────────────────────────────────────────────
     {
       const { page, teardown } = await open(browser, FIXTURE);
@@ -139,6 +110,8 @@ async function run(): Promise<void> {
       await shoot(page, "file-tree-filter");
       await teardown();
     }
+
+    await captureFeatureStills(browser, SHOTS);
   } finally {
     await browser.close();
   }
