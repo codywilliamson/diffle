@@ -39,7 +39,7 @@ curl -s http://127.0.0.1:52144/api/lsp/status
 | POST | `/api/viewed` | set the viewed file list | `ViewedUpdateRequest` | `ReviewRecord` (or `ReviewFile`) | `400` `invalid json body`, `viewed must be an array` |
 | GET | `/api/compile?summary=` | the compiled review prompt; `summary` overrides the record's summary | | `CompilePromptResponse` | |
 | GET | `/api/review?id=` | a Review Record; `id` defaults to this session's review | | `ReviewRecord` | `400` `id is required`, `404` `review record not found` |
-| POST | `/api/review/outcome` | return feedback, approve or cancel | `ReviewOutcomeRequest` plus `id` | `ReviewRecord` | `400` body errors, `409` transition errors |
+| POST | `/api/review/outcome` | return feedback, approve or cancel | `ReviewOutcomeRequest` | `ReviewRecord` | `400` body errors, `409` transition errors |
 | POST | `/api/review/reply` | reply as the reviewer | `CommentReplyRequest` | `ReviewRecord` | `400`, `409` |
 | POST | `/api/review/status` | resolve or reopen a comment | `CommentStatusRequest` with `status` `resolved` or `open` | `ReviewRecord` | `400` `status must be resolved or open`, `409` |
 | GET | `/api/review/legacy` | whether a legacy `.review` file exists | | `{ present: boolean }` | |

@@ -188,6 +188,7 @@ export interface ViewedUpdateRequest {
 }
 
 export interface ReviewOutcomeRequest {
+  id: string; // the server also accepts `reviewId`
   outcome: "feedback" | "approved" | "cancelled";
   summary?: string;
   acknowledgeUnresolved?: boolean;
