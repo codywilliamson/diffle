@@ -1,66 +1,127 @@
 ---
 title: Configuration
-description: Environment variables, the data directory, and update behavior for nittle.
+description: nittle's environment variables, data directory layout, language server overrides, browser prefs and update behavior.
 sidebar:
-  order: 2
+  order: 3
 ---
+
+nittle has no config file. You configure it with environment variables, `nittle lsp set`, and CLI flags.
 
 ## Environment variables
 
-Use the `NITTLE_*` form. The old `DIFFLE_*` names are deprecated: they are still read as a fallback (`NITTLE_*` wins when both are set), and the first launch that sees one prints a one-time notice on stderr naming each var to rename, for example `DIFFLE_DATA_DIR -> NITTLE_DATA_DIR`. nittle never edits your shell profile. `LOUPE_*` is no longer read.
+Boolean variables marked `1` must be exactly `1`. Variables marked "any value" are on when set to anything non-empty.
 
-| variable | effect |
-| --- | --- |
-| `NITTLE_DATA_DIR` | override the data directory that holds Review Records + session state |
-| `NITTLE_INSTALL_DIR` | installer only — where the binary is placed (default `~/.nittle/bin`) |
-| `NITTLE_ROOT` | MCP: the approved root the server may review under |
-| `NITTLE_SESSION_HOST` | internal: which integration launched a session (`cli` / `hook`) |
-| `NITTLE_NO_OPEN` | set to `1` to suppress auto-opening the browser |
-| `NITTLE_HOOK_NO_SPAWN` | set to `1` so the completion hook doesn't spawn a review |
-| `NITTLE_NO_UPDATE_CHECK` | set to `1` to silence the new-release notice at launch (and doctor's release check) |
+### Read by the nittle binary
+
+| variable | default | read by | effect |
+| --- | --- | --- | --- |
+| `NITTLE_DATA_DIR` | `~/.nittle` | review records, session registry | moves `reviews/` and `sessions/`. `state.json`, `drafts/` and `migration-conflicts/` stay in `~/.nittle` |
+| `NITTLE_ROOT` | the directory `nittle mcp serve` started in | MCP server | the one approved root; `start_review` rejects a `cwd` outside it with `cwd must be inside an approved MCP root` |
+| `NITTLE_NO_OPEN` | unset | MCP `start_review`, `nittle hook stop` | `1` = don't open a browser. Plain `nittle` ignores it; use `--no-open` |
+| `NITTLE_HOOK_NO_SPAWN` | unset | `nittle hook stop` | `1` = create the Review Record but spawn no review process |
+| `NITTLE_NO_UPDATE_CHECK` | unset | launch notice, `nittle doctor` | any value = no new-release line at launch and no release check in doctor. The launch notice is also off when `CI` is set or when running from source |
+| `NITTLE_INSTALL_DIR` | `~/.nittle/bin` | installers and the binary | where the binary lives. The binary reads it to resolve the command it writes into agent MCP configs, and where the migration copies itself |
+| `NITTLE_SESSION_HOST` | unset | review launch | internal: `hook` marks a session as hook-hosted, otherwise it is `cli`. The stop hook sets it on the process it spawns |
+| `VIRTUAL_ENV` | unset | Python language server lookup | its `bin` (`Scripts` on Windows) is searched before `PATH`, and the server starts with that environment |
+| `CLAUDE_CONFIG_DIR` | `~/.claude` | `nittle setup`, `nittle doctor` | where to look for Claude Code |
+| `CI` | unset | launch notice | any value = no new-release line at launch |
+
+### Read by `install.sh` and `install.ps1`
+
+| variable | default | effect |
+| --- | --- | --- |
+| `NITTLE_INSTALL_DIR` | `~/.nittle/bin` | where the binary is placed |
+| `NITTLE_NO_MODIFY_PATH` | unset | any value = don't edit the shell rc file (`install.sh`) or the user `PATH` (`install.ps1`) |
+| `NITTLE_NO_SETUP` | unset | any value = skip the `nittle setup` offer, and the agent teardown on uninstall |
+| `NITTLE_NO_COMPLETIONS` | unset | any value = skip the shell completion offer |
+| `NITTLE_DRY_RUN` | unset | any value = print the plan and write nothing |
+| `NITTLE_UNINSTALL` | unset | any value = uninstall instead of install |
+| `GITHUB_TOKEN` | unset | authenticates the release lookup, which avoids the anonymous rate limit |
+| `NO_COLOR` | unset | `install.sh` prints without color |
+
+Every `NITTLE_*` variable falls back to its deprecated `DIFFLE_*` twin (`NITTLE_*` wins when both are set), and the first launch that uses one prints a one-time rename notice such as `DIFFLE_DATA_DIR -> NITTLE_DATA_DIR`. `LOUPE_*` is not read.
 
 ## Data directory
 
-nittle keeps its data in `~/.nittle`. On first run it moves an existing `~/.diffle` (and, for installs that never left it, `~/.loupe`) there: a single rename when `~/.nittle` does not exist yet, otherwise a merge that copies review records by ID without overwriting (a record already in `~/.nittle` wins and the other copy is left in place with a printed note), carries over sessions and user state that are missing, checks every file at its new location, and only then removes the old directory. If anything fails, both directories are kept, the leftover paths are printed, and the next run retries. See [Migrating from diffle](/guides/migrating-from-diffle/).
+| path | holds | moved by `NITTLE_DATA_DIR` |
+| --- | --- | --- |
+| `~/.nittle/reviews/<review-id>/review.json` | Review Records: comparison, comments, replies, comment status, summary, outcome, activity, last round | yes |
+| `~/.nittle/sessions/<session-id>.json` | the session registry `nittle sessions` and `nittle cleanup` read | yes |
+| `~/.nittle/state.json` | user state: `lspOverrides`, the dismissed what's-new version, the launch update-check cache, a pending install migration | no |
+| `~/.nittle/drafts/<hash>.json` | unsent comment drafts, one file per review | no |
+| `~/.nittle/migration-conflicts/` | old review records that clashed with different ones during the diffle migration (`nittle doctor` lists them) | no |
+| `~/.nittle/bin/nittle` (`nittle.exe` on Windows) | the installed binary | no (`NITTLE_INSTALL_DIR` moves it) |
 
-With `NITTLE_DATA_DIR` (or the deprecated `DIFFLE_DATA_DIR`) pointing somewhere other than `~/.nittle`, the home directories are left alone.
-
-Review Records live at `<data dir>/reviews/<review-id>/review.json` and keep the git comparison, comments, replies, addressed/resolved state, summary, and outcome. Approved and cancelled reviews stay local until deleted.
-
-User-level state — such as the dismissed What's-New version — lives in `<data dir>/state.json`.
-
-Legacy `.review` files in a repo are treated as legacy data: nittle leaves them untouched and offers to import, remove (with confirmation), or ignore.
+Approved and cancelled Review Records stay on disk until you delete them. The first run moves an old `~/.diffle` or `~/.loupe` into `~/.nittle`. See [Migrating from diffle](/guides/migrating-from-diffle/).
 
 ## Language servers
 
-`nittle lsp` prints one line per language: the server that would run, or `not on PATH (tried X, Y)` followed by an install hint. Stored overrides are listed after the table.
+| set with | scope | stored in |
+| --- | --- | --- |
+| `nittle lsp set <lang> "<command>"` | every run | `~/.nittle/state.json` under `lspOverrides` |
+| `nittle lsp unset <lang>` | removes the stored override | |
+| `--lsp <lang>=<command>` on `nittle` or `nittle show` | one run, repeatable, wins over a stored override | |
+| `--no-lsp` | one run, no language servers at all | |
 
-```sh
-nittle lsp
-```
-
-Override a server for good with `lsp set`. Quote the command when it has arguments, and use an empty string to disable a language. `lsp unset` drops the override.
+| rule | value |
+| --- | --- |
+| languages | `typescript`, `csharp`, `python`, `go`, `rust`, `vue`, `svelte` |
+| disable a language | empty command: `nittle lsp set rust ""` or `--lsp rust=` |
+| how the command runs | split on whitespace (quotes group), run directly with no shell, so pipes and `&&` reach the server as plain arguments |
+| refused | a server that resolves inside the repository under review |
 
 ```sh
 nittle lsp set python "basedpyright-langserver --stdio"
-nittle lsp set rust ""
-nittle lsp unset python
-```
-
-Overrides live in `<data dir>/state.json` under `lspOverrides`. For one run only, pass `--lsp <lang>=<command>` (repeatable) to `nittle` or `nittle show`; it wins over a stored override, and `--lsp rust=` disables rust for that run.
-
-```sh
 nittle --lsp rust=rust-analyzer --lsp go=
 ```
 
-The languages are `typescript`, `csharp`, `python`, `go`, `rust`, `vue` and `svelte`. A command is split into arguments and run directly, with no shell, so pipes and `&&` are passed to the server as plain arguments. Like any server, it is refused if it resolves inside the repository under review.
+## Browser prefs
 
-Python looks in an active virtualenv first: when `VIRTUAL_ENV` is set, its `bin` (`Scripts` on Windows) directory is searched before `PATH`, and the server is started with that environment so it resolves the venv's site-packages.
+Display prefs live in the browser's `localStorage` under `nittle-<name>` keys. `localStorage` is per origin, and each launch picks a random port, so these reset between launches unless you pass the same `-p, --port` every time.
+
+| key | values | default |
+| --- | --- | --- |
+| `nittle-theme` | `light`, `dark` | the OS color scheme |
+| `nittle-split` | `true`, `false` | `false` (unified) |
+| `nittle-split-ratio` | number | `50` |
+| `nittle-wrap` | `true`, `false` | `false` |
+| `nittle-view` | `single`, `all` | `all` |
+| `nittle-file-order` | `tree`, `review` | `tree` |
+| `nittle-sidebar` | width in px | |
+
+The what's-new "seen" version and language server overrides are in `~/.nittle/state.json` instead, so they survive the port change.
+
+## Legacy `.review` files
+
+| behavior | detail |
+| --- | --- |
+| file list | a `.review` file at the repo root never shows in the diff or browse file list, in any mode. There is no toggle |
+| prompt | when one exists, the review shows `A legacy .review file was found.` with Import, Remove and Ignore |
+| Import | replaces the current Review Record's comments and viewed list with the file's; the file stays |
+| Remove | deletes the file, after a confirm dialog |
+| Ignore | hides the prompt for this page and leaves the file alone |
+| git | when nittle writes one, it adds `.review` to `.git/info/exclude` (never `.gitignore`) |
+
+## Files nittle never loads from the reviewed repo
+
+nittle runs with the reviewed repository as its working directory, and does not read that repository's `.env` or `bunfig.toml`.
+
+| path | how |
+| --- | --- |
+| installed binary | compiled with `--no-compile-autoload-dotenv`, `--no-compile-autoload-bunfig`, `--no-compile-autoload-tsconfig`, `--no-compile-autoload-package-json` |
+| source checkout | `src/index.ts` and the MCP entry run under `bun --no-env-file` |
+| review spawned by the stop hook | started with `--no-env-file` and nittle's own `bunfig.toml` |
+
+A repo `.env` could otherwise set `NITTLE_*`, `VIRTUAL_ENV` or `PATH` for nittle, and a `bunfig.toml` `preload` would run the repo's code inside nittle.
 
 ## Update behavior
 
-`nittle update` checks the GitHub Releases channel against the installed version, downloads the matching asset, verifies its SHA-256 against the published `checksums.txt`, and swaps the binary. On Windows the running exe is renamed aside (`.nittle.exe.old`, removed by the next update) so the swap works even while MCP servers are running. Afterwards it stops MCP servers still on the old binary, unless a review session is live; agents relaunch them on reconnect.
-
-It refuses to self-update when a package manager owns the install, and prints that manager's command instead.
-
-Update checks are best-effort and fail quietly offline.
+| step | detail |
+| --- | --- |
+| source | GitHub Releases |
+| verify | SHA-256 against the release's `checksums.txt`; a mismatch aborts with `checksum mismatch for <asset>` |
+| swap | replaces the binary; on Windows the running exe is renamed aside as `.nittle.exe.old*` and removed by a later update |
+| MCP servers | stops servers still on the old binary, unless a review session is live; agents relaunch them on reconnect |
+| package manager install | refuses and prints that manager's command |
+| launch notice | one line when a newer release exists, checked at most once per 24 hours, off with `NITTLE_NO_UPDATE_CHECK` or `CI` |
+| offline | checks fail quietly |
