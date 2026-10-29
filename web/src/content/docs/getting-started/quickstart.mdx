@@ -45,7 +45,7 @@ You need nittle [installed](/getting-started/installation/) and a git repository
 
 3. Comment on a line.
 
-   Hover a changed line and click the comment bubble, or click its line number. Type a note, for example `Debug log left in, please remove it.`, click the `nit` tag, and press `Ctrl`+`Enter` (`Cmd`+`Enter` on macOS) to save.
+   Click the line number of the line you changed. Type a note, for example `Debug log left in, please remove it.`, click the nit tag, and press `Ctrl`+`Enter` (`Cmd`+`Enter` on macOS) to save.
 
    The comment appears as a card under that line.
 
@@ -53,7 +53,7 @@ You need nittle [installed](/getting-started/installation/) and a git repository
 
 4. Send the feedback.
 
-   Click Review in the top bar. Optionally type a summary in the box, then click Return Feedback.
+   Click Review in the top bar, then click Return Feedback.
 
    Back in your terminal, nittle prints one more line and exits:
 
@@ -92,7 +92,7 @@ You need nittle [installed](/getting-started/installation/) and a git repository
 
 6. Hand it to your agent.
 
-   Paste the contents of `feedback.md` into your agent's chat, or tell it:
+   Tell your agent:
 
    ```
    Apply the code review in feedback.md.
@@ -102,9 +102,9 @@ You need nittle [installed](/getting-started/installation/) and a git repository
 
 </Steps>
 
-You just ran a full review round with nothing but a shell command. To let the agent start reviews itself, read your comments, reply in threads and ask you to look again, wire it up over MCP with `nittle setup`. That loop is in [Agent feedback](/guides/agent-feedback/).
+To let the agent start reviews itself, read your comments, reply in threads and ask you to look again, wire it up over MCP with `nittle setup`. That loop is in [Agent feedback](/guides/agent-feedback/).
 
-## Where to go next
+## Related pages
 
 - [How nittle works](/concepts/how-nittle-works/) explains where reviews live and how comments survive a refresh.
 - [Reviewing changes](/guides/reviewing-changes/) covers other refs (`nittle staged`, `nittle main`, `nittle show`) and the reading modes.

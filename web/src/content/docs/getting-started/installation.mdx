@@ -34,27 +34,7 @@ The GitHub Releases installer is the only supported channel right now.
   nittle used to be called diffle, and running this installer over a diffle install migrates your reviews, plugins, MCP configs and `PATH` entry in one pass. If anything can't move, both copies are kept and the [migration guide](/guides/migrating-from-diffle/) covers the rest.
 </Aside>
 
-<Aside type="tip" title="Custom location">
-  Set `NITTLE_INSTALL_DIR` before running the installer to install somewhere other than `~/.nittle/bin`.
-</Aside>
-
-<Aside type="note" title="PATH on macOS / Linux">
-  The installer appends a marked block to your login shell's rc file: `.zshrc` for zsh (under `ZDOTDIR` if set), `.bashrc` for bash (plus a `.bash_profile` that sources it on macOS), `config.fish` for fish, `.profile` for anything else.
-
-  ```sh
-  # >>> nittle >>>
-  export PATH="$HOME/.nittle/bin:$PATH"
-  # <<< nittle <<<
-  ```
-
-  Nothing else in the file is reordered or rewritten. The file is copied to `<rc>.nittle.bak-<timestamp>` before the first edit, and running the installer again changes nothing. A child process can't change the shell that launched it, so run `exec $SHELL -l` (fish: `source <rc>`) to use `nittle` right away. New shells pick it up on their own.
-
-  Set `NITTLE_NO_MODIFY_PATH=1` to skip the rc edit and print the `export` line instead, `NITTLE_NO_SETUP=1` to skip the agent setup prompt, or `NITTLE_DRY_RUN=1` to log every intended change without writing anything.
-</Aside>
-
-<Aside type="note" title="PATH on Windows">
-  `install.ps1` edits only your user `PATH`, never the machine scope and never the merged process value. It backs the old value up to a timestamped file in your temp directory first, keeps every existing entry (`%VAR%` tokens included), and does nothing if `~\.nittle\bin` is already there. Set `NITTLE_NO_MODIFY_PATH` to install without touching `PATH`, `NITTLE_NO_SETUP` to skip the agent setup prompt, or `NITTLE_DRY_RUN` to print the plan and write nothing.
-</Aside>
+The installer adds `~/.nittle/bin` to your shell rc file, or to your user `PATH` on Windows, and backs up what it edits. What it changes, and the `NITTLE_*` variables that move the install or skip a step, are in [Configuration](/reference/configuration/#path-changes-made-by-the-installers).
 
 ## Shell completions
 
@@ -152,8 +132,7 @@ It removes the binary and its `PATH` entry and only removes empty directories. Y
   </TabItem>
   <TabItem label="Windows" icon="seti:powershell">
     ```powershell
-    $env:NITTLE_UNINSTALL = 1                 # the binary, and its user PATH entry (run in pwsh)
-    irm https://nittle.dev/install.ps1 | iex
+    pwsh -c '$env:NITTLE_UNINSTALL = 1; irm https://nittle.dev/install.ps1 | iex'   # binary + user PATH entry
     Remove-Item -Recurse -Force ~/.nittle     # also removes review records + settings
     ```
   </TabItem>

@@ -21,8 +21,6 @@ Keys are ignored while focus is in a field such as the filter box or a comment. 
 
 ## Jump through the change
 
-Most of a review is moving between the places that changed:
-
 - `]` and `[` go to the next and previous hunk.
 - `J` and `K` go to the next and previous file. In review order they follow that order.
 - `gg` goes to the first line of the file and `G` to the last. `42G` goes to line 42 of the new file, or the nearest line the diff shows.
@@ -35,7 +33,7 @@ Hunk, file, top and bottom moves are jumps, and so are search hits and the file 
 
 ## Get to a file by name
 
-`Ctrl+p` (`Cmd+p` on macOS) opens **Go to a changed file…**. Type part of a path, use the arrow keys, and press `Enter`.
+`Ctrl+p` (`Cmd+p` on macOS) opens the Go to a changed file… picker. Type part of a path, use the arrow keys, and press `Enter`.
 
 `gf` follows a path written on the cursor line, such as an import of `./store` or a reference like `src/api.ts:42`. It only goes to files in the diff. When the path fits more than one changed file, it opens the picker with the path filled in. With no changed path on the line, it says "No changed file path on this line."
 
@@ -49,7 +47,7 @@ For a range, press `V` on the first line. `j`, `k`, `]` and `[` extend the range
 
 `C` comments on the cursor's whole file instead of a line.
 
-`Esc` closes the comment box and keeps what you typed, so `c` on the same line brings it back. The **Cancel** button throws it away. See [Inline comments](/guides/inline-comments/#drafts) for how drafts are kept.
+`Esc` closes the comment box and keeps what you typed, so `c` on the same line brings it back. The Cancel button throws it away. See [Inline comments](/guides/inline-comments/#drafts) for how drafts are kept.
 
 ## Work on comments already there
 

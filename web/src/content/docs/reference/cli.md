@@ -23,7 +23,7 @@ Every command takes `-h, --help`, `-v, --version` and `--license`. `nittle --hel
 | [`nittle sessions`](#nittle-sessions) | list running review sessions |
 | [`nittle cleanup`](#nittle-cleanup) | stop stale sessions and finished reviews |
 | [`nittle completion`](#nittle-completion) | print a tab-completion script for your shell |
-| [`nittle hook stop`](#nittle-hook-stop) | agent stop hook that keeps a review open until it is resolved |
+| [`nittle hook stop`](#nittle-hook-stop) | experimental agent stop hook that opens a review of the working tree |
 
 ## Errors and exit codes shared by every command
 
@@ -77,9 +77,8 @@ Usage
 
 ```text
 $ nittle HEAD~1 --no-open --no-lsp
-[nittle] v0.32.1 — reviewing worktree-docs-launch → HEAD~1 (7 files changed)
-  http://127.0.0.1:33138/?review=128b4692-9962-465b-970a-7b319730e24f  (ctrl+c to stop)
-[nittle] 72 stale sessions — run nittle cleanup
+[nittle] v0.32.1 — reviewing feat/rate-limit → HEAD~1 (3 files changed)
+  http://127.0.0.1:16289/?review=072b10fc-4a59-4c39-85eb-5b91967aba6d  (ctrl+c to stop)
 ```
 
 Startup also prints one-line notices when they apply: a newer release (`NITTLE_NO_UPDATE_CHECK=1` silences it), a stale legacy plugin (`run nittle doctor`), or stale sessions (`run nittle cleanup`).
@@ -236,7 +235,7 @@ Usage
 
 ```text
 $ nittle doctor
-nittle doctor — agent plugin health (C:\Users\Cody\.claude)
+nittle doctor — agent plugin health (/home/me/.claude)
 
   OK    legacy plugins         no diffle-review / loupe-review plugin installed
   OK    legacy plugin enabled  none enabled
@@ -313,7 +312,7 @@ $ nittle lsp
 typescript  not on PATH (tried typescript-language-server)  npm install -g typescript-language-server typescript
 csharp      not on PATH (tried roslyn-language-server, csharp-ls)  dotnet tool install -g roslyn-language-server --prerelease (or: dotnet tool install -g csharp-ls)
 python      not on PATH (tried pyrefly, basedpyright-langserver)  pip install pyrefly (or: pip install basedpyright)
-go          C:\Users\Cody\go\bin\gopls.exe
+go          /home/me/go/bin/gopls
 rust        not on PATH (tried rust-analyzer)  rustup component add rust-analyzer
 vue         not on PATH (tried vue-language-server)  npm install -g @vue/language-server
 svelte      not on PATH (tried svelteserver)  npm install -g svelte-language-server
@@ -408,7 +407,7 @@ Usage
 
 ## `nittle hook stop`
 
-Stop-hook entry the Claude Code and Codex integrations call when the agent finishes a turn. It reads the hook JSON (`cwd`, `session_id`, `task_id`, `last_assistant_message`) from stdin. If that agent session already has an active review, it says so. Otherwise, when the repo has changes, it creates a Review Record with policy `required` and spawns `nittle --review-id <id>` in the background. It always prints one JSON line with a `systemMessage` and never fails the hook.
+Experimental. A stop-hook command for Claude Code or Codex. No integration calls it, and `nittle setup` doesn't wire it, so it only runs if you add it to your agent's hook config yourself. It reads the hook JSON (`cwd`, `session_id`, `task_id`, `last_assistant_message`) from stdin. If that agent session already has an active review, it says so. Otherwise, when the working tree has changes, it creates a Review Record with policy `required`, spawns `nittle --review-id <id>` in the background and returns right away. It doesn't wait for the review. It prints one JSON line with a `systemMessage`, except when there are no changes, where it prints nothing. It never fails the hook. A stop hook fires after every turn, so once you approve or cancel a review, the next turn that ends with changes in the working tree opens a new one.
 
 ```text
 Usage

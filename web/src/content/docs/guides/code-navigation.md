@@ -18,7 +18,7 @@ $ nittle lsp
 typescript  not on PATH (tried typescript-language-server)  npm install -g typescript-language-server typescript
 csharp      not on PATH (tried roslyn-language-server, csharp-ls)  dotnet tool install -g roslyn-language-server --prerelease (or: dotnet tool install -g csharp-ls)
 python      not on PATH (tried pyrefly, basedpyright-langserver)  pip install pyrefly (or: pip install basedpyright)
-go          C:\Users\Cody\go\bin\gopls.exe
+go          /home/me/go/bin/gopls
 rust        not on PATH (tried rust-analyzer)  rustup component add rust-analyzer
 vue         not on PATH (tried vue-language-server)  npm install -g @vue/language-server
 svelte      not on PATH (tried svelteserver)  npm install -g svelte-language-server
@@ -110,7 +110,7 @@ Servers start the first time something asks them a question, only for languages 
 
 The routes the browser uses for this are in the [HTTP API](/reference/http-api/) reference.
 
-## Next steps
+## Related pages
 
 - Find text instead of symbols with [Searching](/guides/searching/).
 - See every key in [Keyboard shortcuts](/reference/keyboard-shortcuts/).

@@ -11,11 +11,11 @@ Use the scorecard to see where a diff is risky before you read it, then read the
 
 ## Open the scorecard
 
-Click **Scorecard** in the top bar, or press `gc`. The dot on the button shows the worst band across all six categories.
+Click Scorecard in the top bar, or press `gc`. The dot on the button shows the worst band across all six categories.
 
-The panel opens with the totals, such as `412 effective lines · 9 files · 1830 noise lines hidden`. Below that is one row per category, each with a **Low**, **Medium** or **High** band and a one-line summary. Click a row with a chevron to see its reasons, one per file or flag, up to eight and then `+N more`.
+The panel opens with the totals, such as `412 effective lines · 9 files · 1830 noise lines hidden`. Below that is one row per category, each with a Low, Medium or High band and a one-line summary. Click a row with a chevron to see its reasons, one per file or flag, up to eight and then `+N more`.
 
-Under the categories, **Files** lists every file that has a flag, recent churn, or changes since the last review. Click a path to jump to that file.
+Under the categories, Files lists every file that has a flag, recent churn, or changes since the last review. Click a path to jump to that file.
 
 ![The review scorecard: six categories with bands, and the flagged files below](/media/gallery/scorecard.png)
 
@@ -53,11 +53,11 @@ Leftovers are added lines that look unfinished. A file reports up to five, and t
 - TypeScript and JavaScript: `console.log`, `debugger`, `.only(`, `it.skip`, `describe.skip`, `test.skip`, `@ts-ignore`, `@ts-expect-error`, `eslint-disable`, and `as any`.
 - Every language: `TODO`, `FIXME` and `HACK`.
 
-In the diff, each file header shows chips for its flags, hotspot status and test pairing. **Details** opens the full list.
+In the diff, each file header shows chips for its flags, hotspot status and test pairing. Details opens the full list.
 
 ## Review order
 
-Switch the sidebar from **Tree** to **Review order**, or press `m`, to read one project at a time in dependency order.
+Switch the sidebar from Tree to Review order, or press `m`, to read one project at a time in dependency order.
 
 ![The sidebar in review order: C# projects ordered by ProjectReference, each source file followed by its test](/media/gallery/review-order.png)
 
@@ -65,7 +65,7 @@ Switch the sidebar from **Tree** to **Review order**, or press `m`, to read one 
 - TypeScript and JavaScript: files inside a folder with its own `package.json` group under that folder. Files owned only by the root `package.json` group by top-level folder.
 - Every other language: files group by top-level folder.
 
-Groups with no dependency between them, and any reference cycle, fall back to alphabetical order. Inside a group, each source file is followed by its test, and tests with no source file in the diff come last. Lockfiles and generated files go to a final **Generated & lockfiles** group. `J` and `K` follow review order while it's on.
+Groups with no dependency between them, and any reference cycle, fall back to alphabetical order. Inside a group, each source file is followed by its test, and tests with no source file in the diff come last. Lockfiles and generated files go to a final Generated & lockfiles group. `J` and `K` follow review order while it's on.
 
 ## Noise
 
@@ -81,13 +81,13 @@ Whitespace-only hunks and moved code also stay out of the count. In the diff the
 
 ## Changed since last review
 
-Each time you return feedback, nittle saves the content of every file. On the next round, files that changed since then get a **Changed since last review** chip in their header and in the scorecard's file list. Turn on the toggle in the header to show only what changed since that round. That view is read-only, and in-file search is off while it shows.
+Each time you return feedback, nittle saves the content of every file. On the next round, files that changed since then get a Changed since last review chip in their header and in the scorecard's file list. Turn on the toggle in the header to show only what changed since that round. That view is read-only, and in-file search is off while it shows.
 
 ## Over MCP
 
 `get_scorecard` takes a `reviewId` and returns the same categories, review order, noise and flags you see. See [MCP tools](/reference/mcp-tools/).
 
-## Next steps
+## Related pages
 
 - Read the files with [Reviewing changes](/guides/reviewing-changes/) or [Keyboard review](/guides/keyboard-review/).
 - Leave feedback with [Inline comments](/guides/inline-comments/).

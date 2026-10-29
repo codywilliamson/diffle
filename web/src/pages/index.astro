@@ -15,10 +15,10 @@ const loop = [
 ];
 
 const tenets = [
-  ["Your name is on the commit.", "An agent can't be accountable. When it breaks, it's on you, so read what ships under your name."],
-  ["Unread code is unknown code.", "Every diff you skip erodes your model of the system, and with it your ability to make the critical calls: architecture, tradeoffs, what to rip out. Agent or not."],
-  ["Only you know what it's for.", "Agents optimize for passing. Intent, naming, boundaries, and what shouldn't exist at all still come from you."],
-  ["Judgment is the job now.", "Generating code got cheap. Deciding what's right didn't. Review isn't the chore to automate away; it's where the engineering happens."],
+  ["Your name is on the commit.", "When the change breaks in production, the bug is yours, whoever typed it. Read it before it merges."],
+  ["Unread code is unknown code.", "A diff you skip is code you can't explain later, and you need that picture of the system to decide what to refactor or delete."],
+  ["Only you know what it's for.", "An agent stops when the tests pass. Intent, naming, boundaries and what shouldn't exist at all still come from you."],
+  ["Writing got cheap. Reading didn't.", "An agent can produce a 600-line diff in minutes. Deciding whether it's right still takes a person reading it."],
 ];
 
 const cli = [
@@ -34,7 +34,7 @@ const cli = [
 // real compileReviewPrompt output (src/core/promptCompiler.ts) for the two comments mocked
 // above; the em dashes come from the compiler's own template, so they stay
 const prompt = [
-  "## Code Review — main — 2026-10-29",
+  "## Code Review — fix/fetch-timeout → main — 2026-10-29",
   "",
   "---",
   "",
@@ -82,12 +82,15 @@ const clips = [
   ["codenav", "Code navigation", "gd, gh and gA go to definitions, hover docs and references, once a language server is installed for TypeScript, C#, Python, Go, Rust, Vue or Svelte."],
 ];
 
+// category labels, summaries and reasons copied from src/core/analysis (scorecardBands.ts,
+// analyzeFile.ts, declDiff.ts, csharpApi.ts), in the panel's order
 const scorecard = [
-  ["high", "Public API", "removed public method GetUser(int id)"],
-  ["medium", "Dependencies", "Serilog 3.0.0 → 3.1.1"],
-  ["medium", "Tests", "OrderService.cs has no matching test"],
+  ["medium", "Size", "412 effective lines across 9 files"],
+  ["medium", "Tests", "Orders/OrderService.cs: code change with no matching test in this diff"],
+  ["high", "Public API", "Users/UserService.cs: removed public method `GetUser(int id)`"],
+  ["medium", "Dependencies", "Api/Api.csproj: changed dependency Serilog from 3.0.0 to 3.1.1"],
   ["low", "Hotspots", "no frequently changed files"],
-  ["low", "Flags", "nothing sensitive or left over"],
+  ["low", "Flags", "no sensitive paths, leftovers, or oversized files"],
 ];
 ---
 
@@ -102,9 +105,9 @@ const scorecard = [
           >
         </h1>
         <p class="lede">
-          nittle turns a local git diff into a close, exact read, the way a printer
-          proofs a page. Comment on the precise code, then return structured feedback
-          your coding agent can act on. No forge, no account, no hosted AI.
+          nittle opens your local git diff in the browser like a pull request. Comment
+          on exact lines, then hand the comments back to your coding agent as one
+          structured prompt. No forge, no account, no hosted AI.
         </p>
 
         <div class="install">
@@ -188,7 +191,7 @@ const scorecard = [
   <section class="loop wrap" data-reveal>
     <div class="loop-head">
       <span class="eyebrow">the loop</span>
-      <h2>One ritual, start to finish.</h2>
+      <h2>From diff to approval, on your machine.</h2>
     </div>
     <ol class="loop-steps" data-stagger>
       {loop.map(([verb, gloss]) => (
@@ -205,7 +208,7 @@ const scorecard = [
     <div class="why-head">
       <span class="eyebrow">why review</span>
       <h2>Read the code. <span class="accent-ink">Still.</span></h2>
-      <p>Agents write faster than ever. That's exactly why someone has to read it.</p>
+      <p>Agents write code faster than you can read it in a terminal. nittle makes the read cheap enough to do every time.</p>
     </div>
     <ol class="why-tenets" data-stagger>
       {tenets.map(([claim, gloss]) => (
@@ -354,7 +357,7 @@ const scorecard = [
     </div>
     <div class="spread-proof">
       <div class="frame md-frame">
-        <div class="frame-bar"><span class="frame-path">nittle --wait &gt; feedback.md</span><span class="frame-count">real output</span></div>
+        <div class="frame-bar"><span class="frame-path">nittle main --wait &gt; feedback.md</span><span class="frame-count">real output</span></div>
         <pre class="md">{prompt.map((line) => (
 <div class={`md-line ${promptLineClass(line)}`}>{line === "" ? " " : line}</div>
 ))}</pre>
@@ -431,9 +434,9 @@ const scorecard = [
       </div>
 
       <ul class="close-points" aria-label="What you get" data-stagger>
-        <li><strong>Stays local.</strong> No forge, no database, no hosted AI service.</li>
-        <li><strong>Always current.</strong> <code>nittle update</code> verifies and swaps in place.</li>
-        <li><strong>Yours to keep.</strong> Review Records live under your data directory.</li>
+        <li>No forge, no database, no hosted AI service.</li>
+        <li><code>nittle update</code> checks the SHA-256 and swaps the binary in place.</li>
+        <li>Review Records stay in <code>~/.nittle</code> on your machine.</li>
       </ul>
 
       <a class="btn btn-primary btn-lg" href="/getting-started/quickstart/">
@@ -1207,12 +1210,6 @@ const scorecard = [
       line-height: 1.5;
       padding-top: 0.9rem;
       border-top: 1px solid var(--border);
-    }
-    .close-points strong {
-      color: var(--text);
-      font-weight: 600;
-      display: block;
-      margin-bottom: 0.2rem;
     }
     .btn-lg {
       margin-top: 2.4rem;

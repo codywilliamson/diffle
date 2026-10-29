@@ -11,7 +11,7 @@ Find a name or a string in the diff and jump straight to it. `/` searches the fi
 
 ## Search the current file
 
-1. Press `/`. A **Search this file…** bar opens under the top bar. Text you had selected fills it in. Otherwise the last query is still there.
+1. Press `/`. A Search this file… bar opens under the top bar. Text you had selected fills it in. Otherwise the last query is still there.
 2. Type. Matches highlight on both sides of the diff as you go, and the counter shows the total.
 3. Press `Enter` to go to the first match. The keyboard goes back to the diff, and the counter changes to `3 / 17`.
 4. Press `n` for the next match and `N` for the previous one. Both take a count, so `5n` skips ahead five.
@@ -23,15 +23,15 @@ The search is literal and smart case: lowercase text matches any case, and a que
 
 It only covers lines the diff shows: changed lines and their context. To search the whole file, use `g/`.
 
-Limits:
+### Limits on /
 
 - A file stops at 5000 matches, and the counter shows `5000+` with "Match limit reached, some matches are not shown".
 - A line longer than 5000 characters is only searched in its first 5000, and the bar says so.
-- A file showing **Changed since last review** can't be searched. `/` there says "Search isn't available in the changes-since-last-review view."
+- A file showing Changed since last review can't be searched. `/` there says "Search isn't available in the changes-since-last-review view."
 
 ## Search all changed files
 
-1. Press `g/`. The **Search all changed files…** panel opens.
+1. Press `g/`. The Search all changed files… panel opens.
 2. Type a query. Results arrive after a short pause and group under each file path. Each row shows the side (`old` or `new`), the line number, and the line with the match highlighted.
 3. Use the arrow keys to pick a result and press `Enter` to jump there. Focus moves to the result list, so `j`, `k` and `Enter` keep stepping through results. `/` returns to the query box.
 4. Press `Ctrl+o` to go back to where you were before the jump.
@@ -74,7 +74,7 @@ Regex searches run in a separate worker that nittle kills when the search runs o
 - A whole regex search gets 2 seconds. Past that the worker is killed and the panel shows "pattern took too long; try a simpler regex".
 - At most two searches run at once and four more wait. Past that the server answers "too many searches running, try again".
 
-## Next steps
+## Related pages
 
 - Move around the diff with [Keyboard review](/guides/keyboard-review/).
 - Follow a name to its definition with [Code navigation](/guides/code-navigation/).
