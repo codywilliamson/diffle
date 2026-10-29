@@ -2,6 +2,34 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.33.0](https://github.com/codywilliamson/nittle/compare/v0.32.1...v0.33.0) (2026-10-29)
+
+
+### Features
+
+* **web:** add og:video for the walkthrough reel ([8557fca](https://github.com/codywilliamson/nittle/commit/8557fcadf926d887313e82bdd88b94fe82513b9c))
+
+
+### Bug Fixes
+
+* **build:** bump demos fast-uri for advisories ([ce948d1](https://github.com/codywilliamson/nittle/commit/ce948d1185940f514b1a1b52596ce123669c61d3))
+* **build:** bump dompurify, vite, mcp sdk and zod for advisories ([6d8824b](https://github.com/codywilliamson/nittle/commit/6d8824b6a34b13fedca0c1903160a6250d1b465b))
+* **build:** override @hono/node-server and node-forge for advisories ([84e5b97](https://github.com/codywilliamson/nittle/commit/84e5b9797d48c7b926c627f2eb75b35205f60957))
+* **build:** override web vite and zod for advisories ([fb97818](https://github.com/codywilliamson/nittle/commit/fb978185fa355df313d6dfa79fdd450a188d1341))
+* **build:** pin web undici to 8.12.3 for advisories ([77e7427](https://github.com/codywilliamson/nittle/commit/77e7427fcdd06bd84229488f415cadb4585d1973))
+* **client:** drop a late definition after the viewer is closed ([0fbd49a](https://github.com/codywilliamson/nittle/commit/0fbd49a85d54686998e797ee1a04f930ed522d08))
+* **client:** follow definitions inside the read-only viewer ([07354e9](https://github.com/codywilliamson/nittle/commit/07354e9005108dc62620fb4d41462dc76fabaab4)), closes [#327](https://github.com/codywilliamson/nittle/issues/327)
+* **cli:** kill all language servers in one batch on exit ([40ea5bc](https://github.com/codywilliamson/nittle/commit/40ea5bc87c72d231da127d4c1c2500ab76435e72)), closes [#328](https://github.com/codywilliamson/nittle/issues/328)
+* **cli:** run teardown on ctrl+break and console close ([8f4d85f](https://github.com/codywilliamson/nittle/commit/8f4d85f7f383248ca03b97f2072ed6146485a8ed)), closes [#328](https://github.com/codywilliamson/nittle/issues/328)
+* **deps:** raise vulnerable transitive overrides ([4e03c14](https://github.com/codywilliamson/nittle/commit/4e03c14b5c547834c31f81ea5adbd47416ce95ec)), closes [#332](https://github.com/codywilliamson/nittle/issues/332) [#334](https://github.com/codywilliamson/nittle/issues/334) [#335](https://github.com/codywilliamson/nittle/issues/335) [#336](https://github.com/codywilliamson/nittle/issues/336) [#341](https://github.com/codywilliamson/nittle/issues/341)
+* **server:** dedupe workspace symbols after range conversion ([b88009d](https://github.com/codywilliamson/nittle/commit/b88009d52f03db8cde3eaa87c88b1512f371fa08))
+* **server:** merge workspace symbols across all ready servers ([544751b](https://github.com/codywilliamson/nittle/commit/544751b24ef877d1d3c56332df4d29e05f2ad475)), closes [#326](https://github.com/codywilliamson/nittle/issues/326)
+
+
+### Performance Improvements
+
+* **server:** convert symbol ranges only for possible duplicates ([a3729a4](https://github.com/codywilliamson/nittle/commit/a3729a4353e6c95171f17575fb80e2226ff42e8c))
+
 ## [0.32.1](https://github.com/codywilliamson/nittle/compare/v0.32.0...v0.32.1) (2026-10-28)
 
 
