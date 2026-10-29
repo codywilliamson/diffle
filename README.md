@@ -2,76 +2,94 @@
 
 [![CI](https://github.com/codywilliamson/nittle/actions/workflows/ci.yml/badge.svg)](https://github.com/codywilliamson/nittle/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/codywilliamson/nittle)](https://github.com/codywilliamson/nittle/releases/latest) [![License: MIT](https://img.shields.io/github/license/codywilliamson/nittle)](LICENSE) [![Docs](https://img.shields.io/badge/docs-nittle.dev-blue)](https://nittle.dev)
 
-Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
+nittle opens your local git diff in the browser like a pull request, lets you comment on exact lines, and hands those comments back to your coding agent as one structured prompt. No account, no forge, no hosted AI. It's one binary that serves on `127.0.0.1`.
 
-**Site & docs: [nittle.dev](https://nittle.dev)**
+![Reviewing an agent's change in nittle: comments on exact lines, then feedback sent back to the agent](docs/screenshots/walkthrough.gif)
 
-Want to help? Read the [contribution guide](CONTRIBUTING.md). Please [report security issues privately](SECURITY.md).
+[Watch the MP4](docs/screenshots/walkthrough.mp4) | [Docs](https://nittle.dev) | [Contributing](CONTRIBUTING.md) | [Report a security issue](SECURITY.md)
 
-## Demo
+## Why I built this
 
-![Review an agent change with nittle](docs/screenshots/walkthrough.gif)
-
-Review a diff, comment on exact lines, and export structured feedback for your agent. [Watch the MP4](docs/screenshots/walkthrough.mp4) or read the [docs](https://nittle.dev).
-
-Side-by-side diffs have independent horizontal scrolling and a resizable divider. Line numbers and comments stay visible, and wrapped lines stay aligned across both sides. [Reviewing changes](https://nittle.dev/guides/reviewing-changes/) covers the pointer and keyboard controls.
-
-## Screenshots
-
-![nittle — a unified diff with a file tree and inline comments](docs/screenshots/overview.png)
-
-| Inline comment | Side-by-side | Structured feedback |
-| --- | --- | --- |
-| ![inline comment](docs/screenshots/comment.png) | ![side-by-side diff](docs/screenshots/side-by-side.png) | ![feedback preview](docs/screenshots/feedback.png) |
+Agents write code faster than I can read it, and the terminal is a bad place to read a diff. [TODO: the concrete moment that pushed you to build it, e.g. an unread agent change that bit you] A PR tool would do the job, but pushing a branch to a forge just to leave three comments for an agent running on my own machine is backwards. So nittle gives the local diff the PR treatment and sends the comments straight back to the agent that wrote the code.
 
 ## Install
 
-nittle ships as a single self-contained binary — no checkout, no Node, no sidecar files. It needs only **`git`** on your `PATH`.
+You need `git` on your `PATH`. Nothing else: no Node, no checkout.
+
+macOS and Linux:
 
 ```sh
-# macOS / Linux
 curl -fsSL https://nittle.dev/install | sh
 ```
 
+Windows needs PowerShell 7 (`pwsh`). Windows PowerShell 5.1 won't work, and `winget install --id Microsoft.PowerShell --source winget` gets you `pwsh`:
+
 ```powershell
-# Windows (needs PowerShell 7+)
 pwsh -c "irm https://nittle.dev/install.ps1 | iex"
 ```
 
-Windows PowerShell 5.1 is not supported. If you don't have `pwsh`, install it with `winget install --id Microsoft.PowerShell --source winget`.
-
-The installer downloads the binary for your OS/arch, verifies its SHA-256 against the published checksums, and installs it to `~/.nittle/bin`. On macOS and Linux it also adds that directory to your login shell's rc file inside a `# >>> nittle >>>` marker block — run `exec $SHELL -l` to use it in the current shell, opt out with `NITTLE_NO_MODIFY_PATH=1`, or undo it with `curl -fsSL https://nittle.dev/install | NITTLE_UNINSTALL=1 sh`. On a terminal, the installer then offers to run `nittle setup` to wire nittle into your coding agents (skip with `NITTLE_NO_SETUP=1`). Keep it current with `nittle update`. Full instructions — custom locations, uninstall, building from source — are in the [installation guide](https://nittle.dev/getting-started/installation/).
-
-## Usage
+The installer downloads the binary for your OS and arch, checks its SHA-256 against the release's `checksums.txt`, and puts it in `~/.nittle/bin`. Then wire nittle into your agents:
 
 ```sh
-nittle                  # working tree vs HEAD (untracked included)
-nittle staged           # staged changes only
-nittle <branch>         # current branch vs named branch (PR-style)
-nittle <ref1>..<ref2>   # commit range
-nittle browse           # review the whole codebase
-nittle browse src/      # scope to a subtree
-nittle mcp serve        # local MCP server for agent integrations
-nittle mcp list         # list running MCP servers
-nittle mcp restart      # stop MCP servers so agents relaunch them (e.g. after an update)
-nittle setup            # wire nittle into your coding agents (--remove to undo)
-nittle sessions         # list running nittle sessions
-nittle cleanup          # stop stale sessions and finished reviews
-nittle update           # self-update to the latest release
-nittle update --check   # only report whether a newer release exists
-nittle --license         # print the bundled MIT license notice
-nittle doctor           # check the Claude Code plugin install (--fix to repair)
+nittle setup
 ```
 
-Flags: `-p, --port <n>` fixed port, `--no-open` don't launch the browser, `--review-id <id>` reopen a record, `-v, --version`, `--license`, `-h, --help`. `cleanup` accepts `--yes` to skip its confirmation and `--all` to also stop active sessions. `doctor` accepts `--fix` to run the repair commands and `--yes` to skip its confirmation. `mcp restart` accepts `--yes`. `setup` accepts `--remove`, `--agents <id,id>`, and `--yes`. Run `nittle <command> --help` for a command's options and examples. `nittle update` finishes by listing the next steps that apply (restart open reviews, reconnect agents, `nittle mcp restart`).
+`setup` finds the agents you have installed (Claude Code, Codex, Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed, GitHub Copilot CLI), shows what it will write, and asks before it writes anything. `nittle setup --remove` undoes it. Custom locations, uninstall and building from source are in the [installation guide](https://nittle.dev/getting-started/installation/).
 
-nittle reviews whichever git repo you run it from, then prints a `http://127.0.0.1:<port>` URL and opens it in your browser — the diff renders there, not in the terminal.
+## Your first review
 
-## Review scorecard
+```sh
+cd path/to/your/repo
+nittle                        # working tree vs HEAD, untracked files included
+nittle show                   # the last commit, with its message and author
+nittle --wait > feedback.md   # block until you return feedback, then write the prompt
+```
 
-The **Scorecard** (`gc`) summarizes a diff before you read it: size, test coverage, public API, dependencies, hotspots, and risk flags. Each category is Low, Medium, or High from fixed rules, not AI. **Review order** (`m`) groups files by project, with dependencies first and each source file before its test. See [the review scorecard guide](https://nittle.dev/guides/review-scorecard/).
+nittle prints a `http://127.0.0.1:<port>` URL and opens it. With an agent wired up, skip the commands and ask it: `Review my current changes with nittle.` Leave comments, choose Return Feedback, and tell the agent to continue. The [quickstart](https://nittle.dev/getting-started/quickstart/) walks the whole loop.
 
-## Keyboard shortcuts
+## What it does
+
+Review
+- Any comparison: working tree, `staged`, a branch PR-style, a commit range, one commit with `nittle show`, or the whole codebase with `nittle browse`. Unified or side-by-side. [Reviewing changes](https://nittle.dev/guides/reviewing-changes/)
+- Keyboard-first, vim style: `j`/`k` move a line cursor, `]`/`[` jump hunks, `10j` takes a count, `?` lists every key. [Keyboard review](https://nittle.dev/guides/keyboard-review/)
+
+Comment
+- Line, range or whole-file comments, tagged nit, issue, question or praise, with threaded replies. Unsent drafts survive a reload. [Inline comments](https://nittle.dev/guides/inline-comments/)
+- Suggested changes: `Ctrl+G` in a comment drops in the lines to edit, and the agent gets the original and suggested text as structured data. [Suggested changes](https://nittle.dev/guides/suggested-changes/)
+
+Hand back to the agent
+- Over a local MCP server, the agent reads your feedback, replies in threads, marks comments addressed and asks for a re-review. Only you resolve. [Agent feedback](https://nittle.dev/guides/agent-feedback/)
+- No MCP? `nittle --wait` works with any agent that can run a shell command: it blocks until you send feedback, then prints the prompt on stdout.
+
+Triage
+- The scorecard (`gc`) bands size, tests, public API, dependencies, hotspots and risk flags from fixed rules. No AI, so the same diff gets the same score every time (boring on purpose). C# is first-class. [Review scorecard](https://nittle.dev/guides/review-scorecard/)
+- Review order (`m`) puts dependencies first and each file before its test. Lockfiles and generated files collapse, moved code is linked, and files the agent changed since your last round get a chip.
+
+Navigate
+- `Ctrl+p` jumps to a changed file, `/` searches the file, `g/` searches every changed file. [Searching](https://nittle.dev/guides/searching/)
+- Go to definition, hover docs and references (`gd`, `gh`, `gA`) on added and removed lines, once a language server is installed for TypeScript, C#, Python, Go, Rust, Vue or Svelte. [Code navigation](https://nittle.dev/guides/code-navigation/)
+
+Reviews live outside the repo in `~/.nittle/reviews/<id>/review.json`, and nittle never loads the reviewed repo's `.env` or `bunfig.toml`.
+
+## Commands
+
+| command | what it does |
+| --- | --- |
+| `nittle [ref]` | review a diff: none, `staged`, `<branch>`, `<ref1>..<ref2>`, `browse [path]` |
+| `nittle show [rev]` | review one commit against its first parent (HEAD by default) |
+| `nittle --wait [ref] [--json]` | block until feedback, print the prompt (or JSON) on stdout |
+| `nittle setup` | wire nittle into your coding agents (`--remove` to undo) |
+| `nittle update` | download, verify and install the latest release (`--check` to only look) |
+| `nittle lsp` | show which language server each language gets, and override it |
+| `nittle completion --shell <shell>` | tab completion for bash, zsh, fish or PowerShell |
+| `nittle sessions` / `nittle cleanup` | list running reviews / stop stale and finished ones |
+| `nittle mcp serve` | the stdio MCP server agents launch |
+| `nittle doctor` | check the agent plugin install for leftovers (`--fix` to repair) |
+
+Every flag and the `--wait` exit codes are in the [CLI reference](https://nittle.dev/reference/cli/). `nittle <command> --help` prints the same.
+
+<details>
+<summary>Keyboard shortcuts</summary>
 
 <!-- keymap:start (generated by scripts/keymap-docs.ts) -->
 
@@ -174,60 +192,12 @@ Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard m
 
 <!-- keymap:end -->
 
-To comment on a range, drag across the line numbers or shift-click a second line.
-
-## Review with an agent
-
-1. Ask Codex or Claude Code: `Review my current changes with nittle.`
-2. Leave line- or file-level comments in nittle and choose **Return Feedback**.
-3. Return to the agent and say `continue`.
-4. Agent replies and rereview requests appear in nittle as they happen; choose **Refresh diff** from the notice to load the new changes.
-5. Verify the changes, reply in a thread or resolve it, then approve or return more feedback. Asking the agent for more after approval reopens the same review.
-
-Install the agent integration first — see [Agent integrations](#agent-integrations).
-
-## Review records
-
-Reviews are stored outside the repository under `~/.nittle/reviews/<review-id>/review.json`. Each
-record keeps its Git comparison, comments, replies, addressed/resolved state, summary, and outcome.
-Approved and cancelled reviews remain local until explicitly deleted.
-
-**Resolve** a comment to keep it on the record but drop it from returned feedback and open-comment counts — reopen it any time.
-
-When the code moves on and a comment's line or file leaves the current diff, it becomes **orphaned** — still saved, but no longer anchored anywhere in the view. **Preview Feedback** gathers these under **From earlier reviews**, where you can resolve or delete each one, and keeps them out of current feedback.
-
-Markdown files open showing their diff; use the per-file **Preview** toggle to render them.
-
-## Agent integrations
-
-nittle ships explicit review skills for Codex and Claude Code that drive a review through the local MCP server, and can register the MCP server with Cursor, Gemini CLI, VS Code, Windsurf, OpenCode, Zed, and GitHub Copilot CLI. All need the `nittle` command from [Install](#install) on your `PATH`.
-
-The quickest route is `nittle setup`: it detects your installed agents, lets you pick which to wire up, shows exactly what it will run or write, and asks before applying. It's idempotent, and `nittle setup --remove` undoes it. Pass `--agents claude,codex` to skip the picker and `--yes` to skip the confirmation.
-
-```sh
-nittle setup
-```
-
-Or install the plugins by hand:
-
-```sh
-# Claude Code
-claude plugin marketplace add codywilliamson/nittle
-claude plugin install nittle-review@nittle-local --scope user
-
-# Codex
-codex plugin marketplace add codywilliamson/nittle
-codex plugin add nittle-review@nittle-local
-```
-
-Start a fresh agent session afterwards (or run `/reload-plugins` in Claude Code), then ask
-`Review my current changes with nittle.` The plugin is named `nittle-review`. Package sources and
-maintenance notes live in [`integrations/`](integrations/README.md); see the [agent feedback guide](https://nittle.dev/guides/agent-feedback/) for the full loop.
+</details>
 
 ## Upgrading from diffle
 
-
+The first `nittle` run moves an old diffle install over in one pass (reviews, install dir, PATH, agent plugins, MCP configs, prefs). The [migration guide](https://nittle.dev/guides/migrating-from-diffle/) covers what moves and how to retry.
 
 ## Releases
 
-See [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](CHANGELOG.md). nittle is [MIT licensed](LICENSE).
