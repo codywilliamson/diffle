@@ -4,8 +4,6 @@
 
 Local git diff viewer for focused code review. Leave inline comments on any line, then return structured feedback to an agent or copy it manually.
 
-nittle, fka diffle (the Deterministic Inspection & Feedback Framework for Language-model Engineering, per ADR 0004, which we stand by), fka loupe.
-
 **Site & docs: [nittle.dev](https://nittle.dev)**
 
 Want to help? Read the [contribution guide](CONTRIBUTING.md). Please [report security issues privately](SECURITY.md).

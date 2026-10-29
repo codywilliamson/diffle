@@ -9,7 +9,7 @@ const cmd = (args: string) => `"${PRODUCT.name} ${args}"`;
 export const WHATS_NEW = {
   version: "0.31.0",
   highlights: [
-    `Same app, new name: ${PRODUCT.name}, ${PRODUCT.lineage}. You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
+    `Same app, new name: ${PRODUCT.name} (it was ${PRODUCT.legacyName}). You do not need to do anything. The update moved your reviews, settings and agent plugin over, and the command is now ${PRODUCT.name}.`,
     "Act on comments from the keyboard: e edits the comment on the cursor line, dd deletes it (u undoes within a few seconds), R resolves or reopens it, yy copies it (or the line when there is no comment), and { and } step between several on one line.",
     "Move around faster: gf jumps to a file path on the cursor line, Ctrl+p opens a fuzzy file picker, zo and zc expand or collapse the current file (zO and zC all of them), and gv reselects the last visual range.",
     "Comment edits are more reliable: quick deletes or saves no longer race, the Delete button offers the same Undo as dd, and e on a comment in a collapsed file expands it first.",

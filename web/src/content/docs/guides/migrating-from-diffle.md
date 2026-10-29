@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-nittle used to be called diffle. The rename changed the command, the data directory, the plugin names and the environment variables. You don't have to do any of it by hand: the first time you run `nittle`, it migrates everything in one pass and then removes the diffle leftovers.
+nittle used to be called diffle (the Deterministic Inspection & Feedback Framework for Language-model Engineering, per ADR 0004, which we stand by), and before that loupe. The rename changed the command, the data directory, the plugin names and the environment variables. You don't have to do any of it by hand: the first time you run `nittle`, it migrates everything in one pass and then removes the diffle leftovers.
 
 Installs from the loupe era are migrated too, so the same applies if you skipped diffle.
 

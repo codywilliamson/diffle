@@ -23,9 +23,6 @@ export const PRODUCT = {
   repository: "https://github.com/codywilliamson/nittle",
   // marketplaces registered before the repo rename still point here; they count as ours until moved
   legacyRepository: "https://github.com/codywilliamson/diffle",
-  // second line of `--version`; the first line stays `<name> v<version>` for parsers
-  lineage:
-    "fka diffle (the Deterministic Inspection & Feedback Framework for Language-model Engineering, per ADR 0004, which we stand by), fka loupe",
   // claude code plugin identity — must match .claude-plugin/marketplace.json
   plugin: { name: `${name}-review`, marketplace: `${name}-local` },
   legacyPlugin: { name: `${legacyName}-review`, marketplace: `${legacyName}-local` },
