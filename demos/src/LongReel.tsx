@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { AbsoluteFill } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
-import { TAKES } from "./takeList";
+import { REEL, REEL_RATE } from "./takeList";
 import { Take } from "./takes/Take";
 import { TitleCard } from "./components/TitleCard";
 import { FPS, INTRO_SECONDS, OUTRO_SECONDS } from "./scenes";
@@ -13,7 +13,7 @@ import { THEME } from "./theme";
 
 const introFrames = Math.round(INTRO_SECONDS * FPS);
 const outroFrames = Math.round(OUTRO_SECONDS * FPS);
-const takeFrames = TAKES.map((t) => Math.round(t.durationSec * FPS));
+const takeFrames = REEL.map(({ take, startSec }) => Math.round(((take.durationSec - startSec) / REEL_RATE) * FPS));
 const CROSSFADE = 18; // frames of crossfade at each boundary (~0.6s)
 
 // transitions overlap adjacent segments, so the reel is shorter than the raw sum by one crossfade
@@ -33,11 +33,11 @@ export function LongReel() {
     </TransitionSeries.Sequence>,
   );
 
-  TAKES.forEach((t, i) => {
+  REEL.forEach(({ take: t, startSec }, i) => {
     children.push(transition(`x-${t.id}`));
     children.push(
       <TransitionSeries.Sequence key={t.id} durationInFrames={takeFrames[i]}>
-        <Take src={`footage/${t.id}.webm`} zooms={t.zooms} captions={t.captions} />
+        <Take src={`footage/${t.id}.webm`} zooms={t.zooms} captions={t.captions} startSec={startSec} rate={REEL_RATE} />
       </TransitionSeries.Sequence>,
     );
   });
