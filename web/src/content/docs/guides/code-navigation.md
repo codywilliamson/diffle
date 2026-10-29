@@ -65,6 +65,8 @@ Code navigation works from the keyboard and the pointer. The keyboard moves a ro
 
 When a lookup returns several definitions, a picker lets you choose one. A target outside the diff, such as a file in the standard library or `node_modules`, opens in a read-only viewer. Esc closes the topmost layer first: the hover card, the picker, the symbols, the viewer, then the references panel.
 
+Inside the viewer, `gd`, `gy` and Ctrl/Cmd+click follow definitions too, so you can keep going past the first hop. The lookup runs on the viewed file's own side, so a file opened from the old side asks about the old version. With no pointer word, `gd` uses the first identifier on the highlighted line. Ctrl+o steps back through the viewer hops, then returns to where you were in the diff. `gg` scrolls the viewer to the top. A file outside the repository can't be asked about, so a lookup there shows a notice instead.
+
 ## Navigation endpoints
 
 These routes sit behind the same loopback Origin and Host checks as the status route. The three POST routes take a JSON body `{ path, side, line, character }`. `symbols` and `file` take query parameters instead. `line` is 1-based and `character` is a 0-based JavaScript string offset. When nittle can read the target's text, it converts to the position encoding the server negotiated (UTF-8, UTF-16 or UTF-32) and back, so lines with emoji or CJK text land on the right token. Ranges then use the same client coordinates. The text is read only for files up to 2 MiB. For any other target, the server's character offsets pass through unchanged, which is exact only for UTF-16 servers.
