@@ -50,7 +50,8 @@ export function rangeFor(root: Node, start: number, end: number): Range | null {
 export function hitInRow(root: HTMLElement, token: Token): CodeHit | null {
   const side = root.dataset.lspSide;
   const line = Number(root.dataset.lspLine);
-  const path = root.closest<HTMLElement>("[data-file-path]")?.dataset.filePath;
+  // the read-only viewer names its file on the row; a diff row takes it from its file section
+  const path = root.dataset.lspPath ?? root.closest<HTMLElement>("[data-file-path]")?.dataset.filePath;
   if ((side !== "old" && side !== "new") || !Number.isInteger(line) || !path) return null;
   return { path, side, line, token, root };
 }

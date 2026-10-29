@@ -8,7 +8,8 @@ import { getFile } from "$lib/api/meta";
 import {
   isAbort, lspDefinition, lspDocumentSymbols, lspErrorOf, lspFile, lspHover, lspMessage, lspReferences, lspWorkspaceSymbols,
 } from "$lib/api/lsp";
-import { cursorHit } from "./cursorToken";
+import { JUMP_HISTORY_CAP } from "$lib/keymap/keymap";
+import { cursorHit, viewerHit } from "./cursorToken";
 import type { CodeHit } from "./domPosition";
 import { createHoverStore } from "./hover.svelte";
 import { sameStamp } from "./stamp";
@@ -18,6 +19,7 @@ import { createSymbolsStore } from "./symbols.svelte";
 
 export const NOTICE_MS = 5000;
 export const NO_WORD_NOTICE = "Move the cursor onto a line of code first (j and k), or point at a word.";
+export const OUTSIDE_REPO_NOTICE = "Definitions can only be followed from files in the repository, not from this file outside the repository.";
 const REMOVED_SIDE_FALLBACK = "Navigating the removed side needs a language server that can read the old version.";
 
 export interface LspDeps {
@@ -51,6 +53,7 @@ export function createLspStore(deps: LspDeps) {
   let pointed: CodeHit | null = null;
   let navigation: AbortController | undefined;
   let viewerLoad: AbortController | undefined;
+  let trail: JumpTarget[] = []; // viewers the reader hopped away from, newest last
 
   function notify(text: string, tone: Tone = "info"): void {
     clearTimeout(noticeTimer);
@@ -72,9 +75,23 @@ export function createLspStore(deps: LspDeps) {
     navigation = undefined;
   }
 
-  async function openViewer(target: JumpTarget): Promise<void> {
+  // the same place: path-less targets compare by absolute path
+  const sameTarget = (a: JumpTarget, b: JumpTarget): boolean => a.absolutePath === b.absolutePath && a.line === b.line && a.side === b.side;
+
+  // `from` is the viewer this jump left: the hop goes on the trail, and the cursor was already
+  // remembered when the viewer first opened. without it the reader is coming from the diff.
+  function openViewer(target: JumpTarget, from: JumpTarget | null): Promise<void> {
+    if (!from) {
+      deps.markJump();
+      trail = [];
+    } else if (!sameTarget(from, target)) {
+      trail = [...trail, from].slice(-JUMP_HISTORY_CAP);
+    }
+    return showViewer(target);
+  }
+
+  async function showViewer(target: JumpTarget): Promise<void> {
     cancelNavigation();
-    deps.markJump();
     viewerLoad?.abort();
     const controller = new AbortController();
     viewerLoad = controller;
@@ -97,14 +114,32 @@ export function createLspStore(deps: LspDeps) {
     const wasOpen = viewer !== null;
     viewerLoad?.abort();
     viewer = null;
+    trail = [];
     return wasOpen;
   }
 
   function jump(target: JumpTarget): void {
     cancelNavigation();
     viewerLoad?.abort();
+    const from = viewer?.target ?? null;
     viewer = null;
-    jumpTo({ files: deps.files, toDiff: deps.goToHit, toViewer: (t) => void openViewer(t) }, target);
+    const landed = jumpTo({ files: deps.files, toDiff: deps.goToHit, toViewer: (t) => void openViewer(t, from) }, target);
+    // the cursor history already holds where the reader started; viewer hops end where the diff begins
+    if (landed === "diff") trail = [];
+  }
+
+  // Ctrl+o inside the viewer: one hop back along the trail. false when there is none, with the
+  // viewer closed, so the caller carries on with the cursor's jump history.
+  function viewerBack(): boolean {
+    cancelNavigation();
+    const previous = trail[trail.length - 1];
+    if (!previous) {
+      closeViewer();
+      return false;
+    }
+    trail = trail.slice(0, -1);
+    void showViewer(previous);
+    return true;
   }
 
   // files no language server answers for: resting the pointer on them stops asking
@@ -157,7 +192,11 @@ export function createLspStore(deps: LspDeps) {
   }
 
   const atCursor = (): CodeHit | null => {
-    const hit = cursorHit(pointed);
+    if (viewer && !viewer.target.path) {
+      notify(OUTSIDE_REPO_NOTICE);
+      return null;
+    }
+    const hit = viewer ? viewerHit(pointed) : cursorHit(pointed);
     if (!hit) notify(NO_WORD_NOTICE);
     return hit;
   };
@@ -192,7 +231,8 @@ export function createLspStore(deps: LspDeps) {
     // Ctrl/Cmd+click
     definitionAtHit(hit: CodeHit): void {
       // before the stamp is taken: the move bumps the cursor's reveal counter
-      deps.placeCursor?.(hit);
+      // (the viewer covers the diff: a click in it must not move the cursor underneath)
+      if (!viewer) deps.placeCursor?.(hit);
       void definitionAt(hit, "definition");
     },
     hoverAtCursor(): void {
@@ -232,6 +272,7 @@ export function createLspStore(deps: LspDeps) {
       if (target) jump(targetOf(target, target.range));
     },
     jump,
+    viewerBack,
     cancelNavigation,
     // any code-navigation layer is open (Esc closes it before visual mode ends)
     get hasLayer(): boolean {

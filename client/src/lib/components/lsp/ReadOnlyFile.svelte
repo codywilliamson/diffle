@@ -5,11 +5,16 @@
   import { getAppState } from "$lib/state/context";
   import { escapeHtml } from "$lib/diff/html";
   import { highlightText } from "$lib/lsp/highlightCode";
+  import { lspPointer } from "$lib/lsp/pointer";
+  import { OUTSIDE_REPO_NOTICE } from "$lib/lsp/lsp.svelte";
+  import { CHORD_TIMEOUT_MS } from "$lib/keymap/keymap";
   import { windowAround, VIEWER_WINDOW_LINES } from "$lib/lsp/viewerWindow";
 
   // a navigation target the diff does not show: an unchanged repo file, an untouched part of a
   // changed file, or a file outside the repo (stdlib, node_modules). read-only, with the target
-  // line highlighted. Esc closes it; Ctrl+o closes it and returns to where the jump started.
+  // line highlighted. gd and Ctrl+click follow a word to its definition (asked on this file's own
+  // side and revision) and replace the viewer; Ctrl+o steps back one hop, then out of the viewer;
+  // Esc closes it.
   const { lsp } = getAppState();
   const viewer = $derived(lsp.viewer);
   let panel: HTMLElement | undefined = $state();
@@ -18,6 +23,9 @@
 
   const content = $derived(viewer?.status === "ready" ? viewer.content : null);
   const view = $derived(content === null || !viewer ? null : windowAround(content, viewer.target.line));
+  // what the language server can be asked about: a repo file, on the side it was opened from
+  const askPath = $derived(viewer?.target.path ?? undefined);
+  const askSide = $derived(viewer?.target.side ?? "new");
   const shownPath = $derived(viewer ? (viewer.target.path ?? viewer.target.absolutePath) : "");
 
   $effect(() => {
@@ -44,14 +52,25 @@
   });
 
   const SCROLL_STEP_PX = 40;
+  let chordAt = -Infinity; // when a lone g was typed: gd, gy and gg wait for the second key
   function onKeydown(event: KeyboardEvent): void {
     if (event.ctrlKey || event.metaKey || event.altKey || !body) return;
-    if (event.key === "j" || event.key === "ArrowDown") body.scrollBy({ top: SCROLL_STEP_PX });
+    const chorded = performance.now() - chordAt <= CHORD_TIMEOUT_MS;
+    chordAt = -Infinity;
+    if (chorded && event.key === "d") lsp.definitionAtCursor("definition");
+    else if (chorded && event.key === "y") lsp.definitionAtCursor("typeDefinition");
+    else if (chorded && event.key === "g") body.scrollTo({ top: 0 });
+    else if (event.key === "g") chordAt = performance.now();
+    else if (event.key === "j" || event.key === "ArrowDown") body.scrollBy({ top: SCROLL_STEP_PX });
     else if (event.key === "k" || event.key === "ArrowUp") body.scrollBy({ top: -SCROLL_STEP_PX });
-    else if (event.key === "g") body.scrollTo({ top: 0 });
     else if (event.key === "G") body.scrollTo({ top: body.scrollHeight });
     else return;
     event.preventDefault();
+  }
+
+  // Ctrl/Cmd+click in a file outside the repo has no word to ask about: say so
+  function onClick(event: MouseEvent): void {
+    if ((event.ctrlKey || event.metaKey) && !askPath) lsp.notify(OUTSIDE_REPO_NOTICE);
   }
 </script>
 
@@ -64,7 +83,9 @@
     tabindex="-1"
     data-lsp-panel
     data-lsp-viewer
+    use:lspPointer={lsp}
     onkeydown={onKeydown}
+    onclick={onClick}
   >
     <header class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface-2 px-4 py-2">
       <span class="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted"><Lock size={11} />read-only</span>
@@ -85,7 +106,7 @@
           {@const target = number === viewer.target.line}
           <div class="flex {target ? 'bg-surface-2 shadow-[inset_3px_0_0_var(--cursor)]' : ''}" data-line={number} data-target-line={target ? "" : undefined}>
             <span class="w-14 shrink-0 select-none pr-3 text-right text-dim">{number}</span>
-            <span class="whitespace-pre pr-4 text-text">{@html html?.[i] ?? escapeHtml(text)}</span>
+            <span class="whitespace-pre pr-4 text-text" data-lsp-path={askPath} data-lsp-side={askPath ? askSide : undefined} data-lsp-line={askPath ? number : undefined}>{@html html?.[i] ?? escapeHtml(text)}</span>
           </div>
         {/each}
         {#if view.last < view.total}<p class="px-4 pt-1 text-xs text-dim">Lines {view.last + 1} to {view.total} are not shown.</p>{/if}

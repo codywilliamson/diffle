@@ -35,11 +35,10 @@ export function createActions({ app, currentPath, halfPageRows }: ActionEnv): Pa
     "page.up": (c) => cursor.page(currentPath(), () => pagePosition(-1, n(c)), -halfPageRows() * n(c)),
     "side.old": () => cursor.switchTo(currentPath(), "old"),
     "side.new": () => cursor.switchTo(currentPath(), "new"),
-    // the viewer is not a cursor position: leaving it is part of going back
+    // the viewer is not a cursor position: going back steps out through its own hops first, then
+    // closes it and returns to the cursor
     "jump.back": () => {
-      lsp.cancelNavigation();
-      lsp.closeViewer();
-      cursor.back(currentPath());
+      if (!lsp.viewerBack()) cursor.back(currentPath());
     },
     "jump.forward": () => {
       lsp.cancelNavigation();

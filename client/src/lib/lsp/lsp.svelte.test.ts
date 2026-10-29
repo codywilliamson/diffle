@@ -278,3 +278,85 @@ describe("lsp store: definition", () => {
     expect(lsp.closeTopmost()).toBe(false);
   });
 });
+
+describe("lsp store: hops inside the viewer", () => {
+  const viewerHit = (path: string, side: "old" | "new" = "new"): CodeHit => ({ ...hit(side), path });
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    api.lspDefinition.mockReset();
+    api.lspFile.mockReset();
+    api.getFile.mockReset();
+    api.lspFile.mockResolvedValue({ content: "a\nb\nc" });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  async function openFirstHop() {
+    const ctx = setup();
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/env.ts", 2)]));
+    ctx.lsp.definitionAtHit(hit());
+    await flush();
+    expect(ctx.lsp.viewer?.target.path).toBe("src/env.ts");
+    return ctx;
+  }
+
+  it("asks from the viewed file's path and side, and does not move the diff cursor", async () => {
+    const placed: CodeHit[] = [];
+    const ctx = setup(undefined, (h) => placed.push(h));
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/env.ts", 2, { side: "old" })]));
+    ctx.lsp.definitionAtHit(hit("old"));
+    await flush();
+    placed.length = 0;
+    api.lspDefinition.mockResolvedValueOnce(answer([]));
+    ctx.lsp.definitionAtHit(viewerHit("src/env.ts", "old"));
+    await flush();
+    expect(api.lspDefinition).toHaveBeenLastCalledWith({ path: "src/env.ts", side: "old", line: 6, character: 0 }, "definition", expect.any(AbortSignal));
+    expect(placed).toEqual([]);
+  });
+
+  it("a second viewer hop replaces the viewer and Ctrl+o steps back to the first before leaving", async () => {
+    const { lsp, markJump } = await openFirstHop();
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/name.ts", 1)]));
+    lsp.definitionAtHit(viewerHit("src/env.ts"));
+    await flush();
+    expect(lsp.viewer?.target.path).toBe("src/name.ts");
+    expect(markJump).toHaveBeenCalledTimes(1); // only the hop out of the diff remembers the cursor
+
+    expect(lsp.viewerBack()).toBe(true);
+    await flush();
+    expect(lsp.viewer).toMatchObject({ status: "ready", target: { path: "src/env.ts", line: 2 } });
+    expect(lsp.viewerBack()).toBe(false); // nothing left in the trail: the viewer closes, the cursor history takes over
+    expect(lsp.viewer).toBeNull();
+  });
+
+  it("Esc forgets the trail", async () => {
+    const { lsp } = await openFirstHop();
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/name.ts", 1)]));
+    lsp.definitionAtHit(viewerHit("src/env.ts"));
+    await flush();
+    lsp.closeTopmost();
+    expect(lsp.viewer).toBeNull();
+    expect(lsp.viewerBack()).toBe(false);
+  });
+
+  it("a hop that lands in the diff closes the viewer and drops the trail", async () => {
+    const ctx = setup([file("src/greeter.ts", [3, 4])]);
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/env.ts", 2)]));
+    ctx.lsp.definitionAtHit(hit());
+    await flush();
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/greeter.ts", 3, { inDiff: true })]));
+    ctx.lsp.definitionAtHit(viewerHit("src/env.ts"));
+    await flush();
+    expect(ctx.goToHit).toHaveBeenCalledOnce();
+    expect(ctx.lsp.viewer).toBeNull();
+    expect(ctx.lsp.viewerBack()).toBe(false);
+  });
+
+  it("a hop onto the line already shown leaves no duplicate step", async () => {
+    const { lsp } = await openFirstHop();
+    api.lspDefinition.mockResolvedValueOnce(answer([target("src/env.ts", 2)]));
+    lsp.definitionAtHit(viewerHit("src/env.ts"));
+    await flush();
+    expect(lsp.viewerBack()).toBe(false);
+  });
+});
