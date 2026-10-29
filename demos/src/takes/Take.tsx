@@ -11,12 +11,20 @@ export interface TakeProps {
   src: string;
   zooms: ZoomSegment[];
   captions: Caption[];
+  startSec?: number; // reel cut: skip this much footage (zoom + caption times stay in footage time)
+  rate?: number; // reel pacing: footage seconds per output second
 }
 
-export function Take({ src, zooms, captions }: TakeProps) {
+// footage time at the current frame, so zooms and captions line up with a trimmed, faster cut.
+function useFootageSec(startSec: number, rate: number): number {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return startSec + (frame / fps) * rate;
+}
+
+export function Take({ src, zooms, captions, startSec = 0, rate = 1 }: TakeProps) {
   const { fps, width, height } = useVideoConfig();
-  const s = frame / fps;
+  const s = useFootageSec(startSec, rate);
 
   // combine disjoint zoom windows: each contributes 0 outside its window, so summing is safe.
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -43,19 +51,16 @@ export function Take({ src, zooms, captions }: TakeProps) {
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, overflow: "hidden" }}>
       <div style={{ width, height, transformOrigin: "0 0", transform: `translate(${tx}px, ${ty}px) scale(${scale})` }}>
-        <OffthreadVideo src={staticFile(src)} style={{ width, height }} />
+        <OffthreadVideo src={staticFile(src)} style={{ width, height }} trimBefore={Math.round(startSec * fps)} playbackRate={rate} />
       </div>
       {captions.map((c, i) => (
-        <CaptionBar key={i} caption={c} />
+        <CaptionBar key={i} caption={c} s={s} />
       ))}
     </AbsoluteFill>
   );
 }
 
-function CaptionBar({ caption }: { caption: Caption }) {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = frame / fps;
+function CaptionBar({ caption, s }: { caption: Caption; s: number }) {
   const opacity = interpolate(s, [caption.fromSec, caption.fromSec + 0.3, caption.toSec - 0.3, caption.toSec], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",

@@ -2,11 +2,12 @@
 // captions (timed from t0, measured via ctx.since). record.ts runs each in its own recording.
 import type { Page, Locator } from "playwright";
 import type { ZoomSegment, Caption, Rect } from "./meta";
-import type { FixtureFile } from "./lib/backend";
+import type { FixtureFile, FixtureOptions } from "./lib/backend";
 import {
   COMMENT_FILE, COMMENT_LINE, COMMENT_TEXT, REVIEW_SUMMARY,
   RANGE_START, RANGE_END, RANGE_TEXT, BIG_FIXTURE,
 } from "./lib/fixture";
+import { LAUNCH_DRIVERS } from "./launchDrivers";
 
 export interface DriverCtx {
   page: Page;
@@ -14,6 +15,7 @@ export interface DriverCtx {
   glideTo: (l: Locator) => Promise<void>;
   // note: glideTo takes a single locator; the page is closed over by record.ts.
   beat: (ms?: number) => Promise<void>;
+  fixture: string; // the take's repo on disk, for takes that simulate the agent's next round
 }
 
 export interface DriverResult {
@@ -24,6 +26,8 @@ export interface DriverResult {
 export interface Driver {
   id: string;
   fixture?: FixtureFile[]; // defaults to the focused rate-limiter FIXTURE in record.ts
+  fixtureOptions?: FixtureOptions;
+  warmup?: (reviewUrl: string) => Promise<void>; // runs before recording starts
   run: (ctx: DriverCtx) => Promise<DriverResult>;
 }
 
@@ -53,12 +57,12 @@ async function addComment(ctx: DriverCtx, text: string): Promise<Rect> {
   return rect;
 }
 
-export const DRIVERS: Driver[] = [
+const BASE_DRIVERS: Driver[] = [
   {
     id: "comment",
     run: async (ctx) => {
       const { since, beat } = ctx;
-      const captions: Caption[] = [{ text: "Comment on any line — or a range, or a whole file", fromSec: 0.6, toSec: 99 }];
+      const captions: Caption[] = [{ text: "Comment on any line, a range, or a whole file", fromSec: 0.6, toSec: 99 }];
       const inSec = since();
       const rect = await addComment(ctx, COMMENT_TEXT);
       const outSec = since();
@@ -71,7 +75,7 @@ export const DRIVERS: Driver[] = [
     id: "range",
     run: async (ctx) => {
       const { page, since, glideTo, beat } = ctx;
-      const captions: Caption[] = [{ text: "Comment on a range — drag across the line numbers", fromSec: 0.6, toSec: 0 }];
+      const captions: Caption[] = [{ text: "Drag across line numbers to comment on a range", fromSec: 0.6, toSec: 0 }];
       const section = serverSection(page);
       const startBubble = section.getByRole("button", { name: new RegExp(`Comment on line ${RANGE_START}`) }).first();
       const endBubble = section.getByRole("button", { name: new RegExp(`Comment on line ${RANGE_END}`) }).first();
@@ -111,7 +115,7 @@ export const DRIVERS: Driver[] = [
     run: async (ctx) => {
       const { page, since, glideTo, beat } = ctx;
       const captions: Caption[] = [];
-      captions.push({ text: "Read it your way — unified…", fromSec: 0.4, toSec: 0 });
+      captions.push({ text: "Read it unified…", fromSec: 0.4, toSec: 0 });
       await beat(700);
       captions[0].toSec = since();
 
@@ -134,7 +138,7 @@ export const DRIVERS: Driver[] = [
       await glideTo(divider);
       const handle = (await divider.boundingBox())!;
       const canvas = (await page.locator(".split-diff").first().boundingBox())!;
-      captions.push({ text: "Resize either side — wrapped lines stay aligned", fromSec: since(), toSec: 0 });
+      captions.push({ text: "Resize either side, wrapped lines stay aligned", fromSec: since(), toSec: 0 });
       await page.mouse.down();
       await page.mouse.move(canvas.x + canvas.width * 0.62, handle.y + handle.height / 2, { steps: 30 });
       await page.mouse.up();
@@ -193,7 +197,7 @@ export const DRIVERS: Driver[] = [
       const { page, since, glideTo, beat } = ctx;
       const nav = page.getByRole("navigation", { name: "Changed files" });
       const filter = nav.getByRole("searchbox", { name: /filter/i });
-      const captions: Caption[] = [{ text: "Filter and scroll large diffs — jump to any file", fromSec: 0.6, toSec: 0 }];
+      const captions: Caption[] = [{ text: "Filter big diffs and jump to any file", fromSec: 0.6, toSec: 0 }];
 
       const rect = (await nav.boundingBox()) as Rect;
       const zoomIn = since();
@@ -231,3 +235,5 @@ export const DRIVERS: Driver[] = [
     },
   },
 ];
+
+export const DRIVERS: Driver[] = [...BASE_DRIVERS, ...LAUNCH_DRIVERS];

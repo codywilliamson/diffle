@@ -26,7 +26,13 @@ and branded intro/outro                        web/public/media/walkthrough.mp4 
 - `src/drivers.ts` — one driver per take: scripts real interactions, returns zoom windows + captions.
 - `src/record.ts` — runs each driver in its own recording (fresh backend/fixture) → `public/footage/<id>.{webm,json}`.
 - `src/capture.ts` — the stills pipeline (screenshots for the docs guide images).
-- `src/lib/` — `backend.ts` (launches the real backend on a temp fixture), `fixture.ts` (the deterministic diff).
+- `src/lib/` — `backend.ts` (launches the real backend on a temp fixture, with `node_modules/.bin` on PATH so
+  `typescript-language-server` drives the code-nav take), `fixture.ts` (the deterministic diffs), `showcase.ts` (the
+  launch fixture: moved code, whitespace-only hunk, lockfile, generated file, test pairing, hotspot churn),
+  `flows.ts` + `dom.ts` (shared review flows and page helpers), `shotSession.ts` (one stills session).
+- `src/launchDrivers.ts` — keyboard, suggest, rereview, scorecard, codenav and search takes.
+- `src/featureShots.ts` — the launch feature stills (scorecard, review order, search, code nav, suggestion, …).
+- `src/takeList.ts` — every take (one short each) plus the reel's order, lead-in cuts and pace.
 - `src/meta.ts` — shared metadata shapes (rects, zoom segments, captions).
 - `src/takes/Take.tsx` — Remotion: plays a take's footage with its zooms + captions.
 - `src/LongReel.tsx` — intro + every take + outro, stitched.
@@ -48,9 +54,12 @@ Then, from `demos/`:
 ```bash
 npm run capture         # → public/captures/*.png   (stills for docs guides)
 npm run record          # → public/footage/*.{webm,json}   (real motion takes)
-npm run record comment  # …or a single take by id
-npm run render          # → out/*.mp4 shorts + out/walkthrough.{mp4,gif}
-npm run publish-media   # → copies finals into docs/screenshots/ and web/public/media/
+npm run record comment  # …or a single take by id (keeps the other takes)
+npm run shots           # → public/shots/*.png   (docs gallery, incl. the launch feature stills)
+npm run shots features  # …only the launch feature stills (or `npm run shots scorecard` for one)
+npm run render          # → out/<id>.{mp4,jpg} shorts + posters, out/walkthrough.{mp4,gif}
+npm run render -- keyboard  # …or one short + poster
+npm run publish-media   # → docs/screenshots/{,gallery/}, web/public/media/{,gallery/,takes/}
 npm run build           # all four in order
 npm run studio          # interactive Remotion preview while iterating
 ```

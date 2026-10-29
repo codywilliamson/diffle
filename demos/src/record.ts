@@ -29,8 +29,15 @@ const CURSOR = `(() => {
 })();`;
 
 async function recordTake(browser: Browser, driver: Driver): Promise<void> {
-  const fixture = makeFixture(driver.fixture ?? FIXTURE);
+  const fixture = makeFixture(driver.fixture ?? FIXTURE, driver.fixtureOptions);
   const { server, url } = startBackend(fixture);
+  // resolve the url (and warm anything slow, like a language server) before the video starts
+  const reviewUrl = await url.catch(async (error) => {
+    await stop(server);
+    cleanup(fixture);
+    throw error;
+  });
+  await driver.warmup?.(reviewUrl);
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
     colorScheme: "dark",
@@ -48,7 +55,6 @@ async function recordTake(browser: Browser, driver: Driver): Promise<void> {
   };
 
   try {
-    const reviewUrl = await url;
     await page.goto(reviewUrl);
     await page
       .getByRole("dialog", { name: /What's new/ })
@@ -57,7 +63,7 @@ async function recordTake(browser: Browser, driver: Driver): Promise<void> {
       .catch(() => {});
     await beat(900);
 
-    const { zooms, captions } = await driver.run({ page, since, glideTo: (l) => glideTo(page, l), beat });
+    const { zooms, captions } = await driver.run({ page, since, glideTo: (l) => glideTo(page, l), beat, fixture });
     const durationSec = since() + 0.4;
 
     const video = page.video();
@@ -73,9 +79,9 @@ async function recordTake(browser: Browser, driver: Driver): Promise<void> {
 }
 
 async function run(): Promise<void> {
-  rmSync(FOOTAGE, { recursive: true, force: true });
+  const only = process.argv[2]; // optional: record a single take by id (keeps the other takes)
+  if (!only) rmSync(FOOTAGE, { recursive: true, force: true });
   mkdirSync(FOOTAGE, { recursive: true });
-  const only = process.argv[2]; // optional: record a single take by id
   const takes = only ? DRIVERS.filter((d) => d.id === only) : DRIVERS;
   if (takes.length === 0) throw new Error(`no take matches "${only}"`);
   const browser = await chromium.launch();
