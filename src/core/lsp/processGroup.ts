@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 
 export const KILL_GRACE_MS = 1_000; // between SIGTERM and SIGKILL
 const POLL_MS = 25;
+const TASKKILL_TIMEOUT_MS = 2_000; // a closing windows console gives handlers about five seconds in total
 const IS_WINDOWS = process.platform === "win32";
 
 export const usesProcessGroups = !IS_WINDOWS;
@@ -22,7 +23,7 @@ export function systemTaskkill(): string {
 function taskkillTree(pid: number): void {
   const exe = systemTaskkill();
   if (!existsSync(exe)) { try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ } return; }
-  Bun.spawnSync([exe, "/PID", String(pid), "/T", "/F"], { stdout: "ignore", stderr: "ignore" });
+  Bun.spawnSync([exe, "/PID", String(pid), "/T", "/F"], { stdout: "ignore", stderr: "ignore", timeout: TASKKILL_TIMEOUT_MS });
 }
 
 // sync and blunt, for exit handlers that cannot await.

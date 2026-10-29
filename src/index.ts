@@ -23,6 +23,7 @@ import { LEGACY_MIGRATION_STEPS, runLegacyMigrations, shouldRunLegacyMigrations 
 import { productEnv } from "./utils/env";
 import { resolveLicenseText } from "./core/standalone";
 import { EXIT_INTERRUPTED } from "./core/waitExit";
+import { onShutdownSignals } from "./core/shutdownSignals";
 import { resumeHint, runWait, stoppedExit } from "./utils/waitCli";
 import { renderCompletion } from "./utils/completion";
 import { COMPLETION_SHELLS } from "./utils/cliVocabulary";
@@ -111,8 +112,7 @@ export async function main(): Promise<void> {
     process.exit(interruptCode);
   };
   if (opts.wait) launch.ctx.exitCodeOnStop = () => stoppedExit(launch.review.id, (line) => console.error(`${tag} ${line}`));
-  process.on("SIGINT", onInterrupt);
-  process.on("SIGTERM", onInterrupt);
+  onShutdownSignals(onInterrupt);
   process.on("exit", stopSelf);
 
   // with --wait stdout carries only the result, so every status line goes to stderr.
