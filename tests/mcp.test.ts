@@ -43,6 +43,16 @@ describe("Nittle MCP server", () => {
     await server.close();
   });
 
+  test("describes reply_to_comment as working on resolved comments too", async () => {
+    const { server, client } = setup();
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    const reply = (await client.listTools()).tools.find((tool) => tool.name === "reply_to_comment");
+    expect(reply?.description).not.toContain("unresolved");
+    expect(reply?.description).toContain("resolved or not");
+    await server.close();
+  });
+
   test("returns structured content and text fallback", async () => {
     const { server, client, calls } = setup();
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

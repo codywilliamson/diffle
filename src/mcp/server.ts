@@ -55,7 +55,7 @@ export function createMcpServer(operations: ReviewOperations, roots: McpRootProv
   }, async ({ reviewId }) => { try { return result({ ...await operations.getScorecard(reviewId) }); } catch (e) { return failure(e); } });
 
   server.registerTool("reply_to_comment", {
-    title: "Reply to comment", description: "Reply to an unresolved review comment as the agent.",
+    title: "Reply to comment", description: "Reply to a review comment as the agent, resolved or not, while the review is active.",
     inputSchema: { reviewId: id, commentId: id, text: z.string().trim().min(1).max(20_000) },
     annotations: { title: "Reply to comment", readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   }, async (input) => { try { return result(await operations.replyToComment(input)); } catch (e) { return failure(e); } });
