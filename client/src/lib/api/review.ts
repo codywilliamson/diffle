@@ -16,7 +16,8 @@ export function submitReviewOutcome(
   acknowledgeUnresolved = false,
   signal?: AbortSignal,
 ): Promise<ReviewRecord> {
-  return apiPost<ReviewRecord>("/api/review/outcome", { id, outcome, summary, acknowledgeUnresolved }, signal);
+  const body: ReviewOutcomeRequest = { id, outcome, summary, acknowledgeUnresolved };
+  return apiPost<ReviewRecord>("/api/review/outcome", body, signal);
 }
 
 export function resolveReviewComment(id: string, commentId: string, status: ReviewerStatus, signal?: AbortSignal): Promise<ReviewRecord> {
