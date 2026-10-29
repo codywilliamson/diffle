@@ -1,16 +1,17 @@
 // GET /api/lsp/symbols: ?path= is the document outline (a tree, with the symbols the diff touches
 // marked changed); ?query= asks every language server in the diff and merges what comes back.
 
-import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspLocation, LspRange, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
+import type { DiffFile, LspDocumentSymbolsResponse, LspLanguage, LspRange, LspSymbol, LspWorkspaceSymbol, LspWorkspaceSymbolsResponse } from "../types";
 import type { LspBridge } from "../core/lsp/bridge";
 import { languageForPath, languagesInPaths } from "../core/lsp/registry";
-import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol, type WireWorkspaceSymbol } from "../core/lsp/symbols";
+import { normalizeDocumentSymbols, normalizeWorkspaceSymbols, type WireSymbol } from "../core/lsp/symbols";
 import type { ServerContext } from "./handlers";
 import { json } from "./respond";
 import { sideContext } from "./lspSide";
 import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, sideFailure, unavailable } from "./lspSession";
 import { prepareBridge } from "./lspSync";
-import { fileUriOf, pathKey, TargetResolver } from "./lspTargets";
+import { mergeWorkspaceSymbols, type SymbolSource } from "./lspSymbolMerge";
+import { fileUriOf, TargetResolver } from "./lspTargets";
 
 export const MAX_WORKSPACE_SYMBOLS = 100;
 
@@ -56,8 +57,6 @@ export function handleLspDocumentSymbols(ctx: ServerContext, path: string, signa
   });
 }
 
-const rank = (symbol: { inDiff: boolean; inRepo: boolean }): number => (symbol.inDiff ? 0 : symbol.inRepo ? 1 : 2);
-
 export async function handleLspWorkspaceSymbols(base: ServerContext, query: string, signal: AbortSignal): Promise<Response> {
   const sided = sideContext(base, "new");
   if ("unavailable" in sided) return sideFailure("new", sided);
@@ -87,21 +86,11 @@ export async function handleLspWorkspaceSymbols(base: ServerContext, query: stri
       return lspError("request-failed", reason instanceof Error ? reason.message : "workspace symbol search failed", 502);
     }
     // locate, dedupe, rank and cap first; only the kept symbols get their ranges converted
-    const seen = new Set<string>();
-    const found: Array<{ symbol: WireWorkspaceSymbol; location: LspLocation; resolver: TargetResolver }> = [];
+    const sources: SymbolSource[] = [];
     answers.forEach((answer, index) => {
-      if (answer.status !== "fulfilled") return;
-      const resolver = new TargetResolver(ctx, bridges[index]!.encoding);
-      for (const symbol of normalizeWorkspaceSymbols(answer.value)) {
-        const location = resolver.locate(symbol.uri);
-        if (!location) continue;
-        const key = `${pathKey(location.absolutePath)}:${symbol.name}:${symbol.range.start.line}:${symbol.range.start.character}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        found.push({ symbol, location, resolver });
-      }
+      if (answer.status === "fulfilled") sources.push({ symbols: normalizeWorkspaceSymbols(answer.value), resolver: new TargetResolver(ctx, bridges[index]!.encoding) });
     });
-    found.sort((a, b) => rank(a.location) - rank(b.location));
+    const found = mergeWorkspaceSymbols(sources, query);
     const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map(({ symbol, location, resolver }) => ({
       ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}),
       range: resolver.range(location, symbol.range),
