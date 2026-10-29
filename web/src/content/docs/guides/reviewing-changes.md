@@ -1,159 +1,133 @@
 ---
 title: Reviewing changes
-description: Read a git diff in the browser, filter files, switch views, and keep track of what you've reviewed.
+description: Open a diff, a branch, a range or one commit in the browser, pick a view, and work through the files.
 sidebar:
   order: 1
 ---
 
-nittle serves your working diff as a browser UI. Point it at a ref and it runs `git diff`, parses the result, and opens a review pane.
+Run `nittle` with a ref to read that diff in the browser, one PR-style page per review.
+
+## Pick what to review
+
+Run it from inside the repository. Each form maps to one `git diff`:
 
 ```sh
-nittle HEAD~1
+nittle                # working tree vs HEAD, untracked files included
+nittle staged         # staged changes only
+nittle main           # what this branch added since main (main...HEAD)
+nittle v1.2.0..HEAD   # a commit range
+nittle browse src/    # the whole codebase under src/, no diff
 ```
 
-See the [CLI reference](/reference/cli/) for the full ref syntax.
+A branch review compares commits only (`main...HEAD`), so uncommitted edits don't show up in it. Run plain `nittle` for those.
 
-## The file tree
+A ref git doesn't know stops before anything opens:
 
-Every changed file appears in the sidebar tree. Click a file to jump to it. Filter the tree by typing in the filter box to narrow the list to matching paths — useful in large diffs. Press `m` (or use the sidebar toggle) to switch to **Review order**, which groups files by project and puts each source file before its test. See the [review scorecard](/guides/review-scorecard/).
+```
+$ nittle mian
+[nittle] unknown ref: mian
+```
 
-## Unified vs side-by-side
+The [CLI reference](/reference/cli/) lists every flag, such as `--port` and `--no-open`.
 
-Toggle between **unified** (one column, `+`/`-` markers) and **side-by-side** (old on the left, new on the right) with the `s` shortcut. Added and deleted files always render **unified** — there is no counterpart column to show.
+## Review one commit
 
-Each side scrolls horizontally on its own. Hover the old or new pane and use a horizontal trackpad swipe or `Shift` + wheel to inspect a long line. Line numbers and comment controls stay visible; vertical scrolling keeps both sides together. At a horizontal edge, `Shift` + wheel returns to vertical scrolling.
+`nittle show` reviews HEAD against its first parent. Pass a rev for any other commit:
 
-Drag the divider to give either side more room. You can also focus it with `Tab` and use the left/right arrow keys (`Shift` for larger steps), or `Home` / `End` to reach the limits. Double-click the divider or press `Enter` to restore equal widths. The width choice is remembered across files and reloads.
+```sh
+nittle show
+nittle show HEAD~2
+nittle show a1b2c3d --no-open
+```
 
-Turn on **line wrapping** to fold long lines into each pane's width. Corresponding lines stay aligned even when one side wraps more, or a comment thread expands. Inline and range comments remain attached to their own side.
+The page opens with a commit header: the short hash, the subject, the body, the author and the date. Click the hash to copy the full one. A merge commit is shown against its first parent, and the header says so. A root commit is compared with the empty tree.
 
-![A side-by-side diff: the old file on the left, the new file on the right, with an inline comment thread](/media/side-by-side.png)
+![The commit header above the diff: short hash, subject, body, author and date](/media/gallery/show-commit.png)
 
-## Syntax highlighting
+The review is pinned to the full hash, so reopening it later shows the same diff after HEAD moves. That holds as long as the commit exists. A rebase followed by `git gc` removes it.
 
-Code is highlighted with the same TextMate grammars VS Code uses, so most languages are covered, including Svelte, Vue, and Astro components, and files recognized by name such as `Dockerfile` and `Makefile`. nittle reads the surrounding file to work out where each hunk starts, so a change halfway down a `<script>` or `<style>` block, or inside a long comment, still highlights correctly. Grammars load only for the languages in your diff.
+```
+$ nittle show nosuchrev
+[nittle] unknown commit: nosuchrev
+```
 
-## Single-file vs all-files view
+## Move through the files
 
-By default nittle shows one file at a time. Switch to **all-files** view with `o` to scroll the entire diff continuously. Use single-file view to focus; use all-files to skim the whole change.
+The sidebar lists every changed file. Type in the **Filter files…** box to narrow it by path. The **Tree** / **Review order** toggle under it (or `m`) switches between the folder tree and the review order described in the [review scorecard](/guides/review-scorecard/#review-order) guide.
 
-## Marking files viewed
+Every changed file shows on one scrolling page by default. Press `o` to switch to single-file view, which shows only the file you pick in the sidebar. Press `o` again to go back.
 
-Mark the current file **viewed** with `v` (or the checkbox in its header). The **viewed progress** indicator tracks how many files you've cleared, so you can work through a large diff without losing your place.
+Each tree row has a check mark on its right. Click it, or press `v` on the cursor's file, to mark that file viewed. The counter above the tree shows how many you've cleared, for example `3/12 viewed`.
 
-## Live refresh
+To review without the mouse, see [Keyboard review](/guides/keyboard-review/).
 
-nittle re-runs `git diff` on demand — press `r` (or hit **Re-run**) after you change the code to pull the latest diff into the same session. Your [inline comments](/guides/inline-comments/) are preserved across re-runs.
+## Choose a view
 
-## Large files and markdown
+Press `s` to switch between unified (one column) and side-by-side (old left, new right). Added and deleted files always render unified, since they have no second side. Browse mode is always unified.
 
-Files above the size threshold are gated behind a **load** prompt so a huge diff doesn't stall the pane — click to load an individual file when you want it.
+A file header carries its own **Unified** / **Side-by-side** button that overrides the global view for that file only. Pressing `s` again clears every per-file override.
 
-Markdown files show their diff like any other file, plus a per-file **Preview** toggle that renders the markdown so you can see the formatted result alongside the changes.
+Each side of a side-by-side file scrolls horizontally on its own. Use a trackpad swipe or `Shift` + wheel over a pane. Drag the divider to resize the panes. You can also `Tab` to it and use the arrow keys (`Shift` for bigger steps), `Home` and `End`. Double-click it or press `Enter` to reset to equal widths.
 
-## Keyboard shortcuts
+Press `w` to wrap long lines. Rows on both sides stay aligned when one side wraps more than the other.
 
-Press `?` in the UI for this list at any time; it is generated from the same key table the app uses. Keys follow one grammar, vim style: an optional count, then a key or a two-key chord such as `gg`, `dd` or `yy`. `10j` moves ten lines. A count waits until the next key or `Esc`. A half-typed chord is dropped after 1 second, and so is a chord with an unknown second key, without running anything. `Esc` cancels a pending count or chord first, then closes the open dialog. Keys are ignored while you type in a field.
+Press `t` to switch between light and dark themes.
 
-### Move
+:::note
+View choices (theme, split, wrap, divider width, file order) live in browser storage for the page's origin. nittle picks a random port on each launch, so they reset between launches. Pass a fixed port, such as `nittle -p 4400`, to keep them.
+:::
 
-| key | action |
-| --- | --- |
-| `j` | Next line (takes a count) |
-| `k` | Previous line (takes a count) |
-| `J` | Next file (takes a count) |
-| `K` | Previous file (takes a count) |
-| `]` | Next hunk (takes a count) |
-| `[` | Previous hunk (takes a count) |
-| `gg` | First line of the file |
-| `G` | Last line of the file, or line N with a count (takes a count) |
-| `gf` | Go to the file path on the cursor line |
-| `zo` | Expand the current file |
-| `zc` | Collapse the current file |
-| `zO` | Expand every file |
-| `zC` | Collapse every file |
-| `Ctrl+d` | Half a page down (takes a count) |
-| `Ctrl+u` | Half a page up (takes a count) |
-| `h` | Side-by-side: old side |
-| `l` | Side-by-side: new side |
-| `Ctrl+o` | Jump back |
-| `Ctrl+i` | Jump forward |
+Code is highlighted with VS Code's TextMate grammars, including Svelte, Vue and Astro files and named files like `Dockerfile`. nittle reads the surrounding file to work out where a hunk starts, so a change halfway down a `<style>` block or a long comment still highlights correctly.
 
-### Comment
+## Files that start collapsed or hidden
 
-| key | action |
-| --- | --- |
-| `c` | Comment on the cursor line |
-| `V` | Start a visual range (j k ] [ extend it, Esc cancels) |
-| `c` | Visual range: comment on the range |
-| `C` | Comment on the cursor's file |
-| `gv` | Reselect the last visual range |
-| `e` | Edit the comment on the cursor line |
-| `dd` | Delete the comment on the cursor line |
-| `u` | Undo the last comment delete (offered for 8 seconds) |
-| `R` | Resolve or reopen that comment |
-| `yy` | Copy that comment, or the cursor line when it has none |
-| `}` | Next comment on the cursor line |
-| `{` | Previous comment on the cursor line |
+Some files don't open with their lines showing:
 
-### Search
+- Deleted files start collapsed. Click the chevron in the header to read them.
+- Lockfiles and generated files collapse with a "Lockfile — collapsed" or "Generated file — collapsed" note and an **Expand** button. The [review scorecard](/guides/review-scorecard/#noise) guide lists what counts.
+- A file whose diff has more than 2000 lines shows "Large diff — hidden to keep things fast." Click **Load diff** to render it.
+- Binary files show "Binary file — no textual diff."
 
-| key | action |
-| --- | --- |
-| `Ctrl+p` | Go to a changed file (fuzzy) |
-| `/` | Search the file |
-| `n` | Next match (takes a count) |
-| `N` | Previous match (takes a count) |
-| `g/` | Search all changed files |
+`zo` and `zc` open and close the cursor's file from the keyboard, and `zO` and `zC` do every file.
 
-### View
+## Read markdown rendered
 
-| key | action |
-| --- | --- |
-| `m` | File list: tree / review order |
-| `t` | Light / dark theme |
-| `s` | Side-by-side / unified |
-| `w` | Wrap long lines |
-| `o` | Single-file / all files |
-| `r` | Re-run the diff |
+A changed markdown file has a **Diff** / **Preview** button in its header. Preview renders the new version of the file, with relative images loaded from the repository. The HTML is sanitized, so scripts and event handlers in a reviewed `.md` never run. Deleted markdown files have no preview.
 
-### Review
+## Spot whitespace and moved code
 
-| key | action |
-| --- | --- |
-| `v` | Toggle viewed on the file |
-| `P` | Preview review feedback |
-| `gc` | Open the review scorecard |
+A hunk that only changes whitespace is dimmed, and its header reads `whitespace only`.
 
-### Code
+When a run of three or more lines is deleted in one place and added in another, both ends get a marker, such as `moved from Store.cs:12` on the new lines and `moved to Store.cs:40` on the old ones. A block that was moved and then changed reads `moved from Store.cs:12 (edited)`. Click the marker to jump to the other file.
 
-| key | action |
-| --- | --- |
-| `gd` | Go to definition (on a definition: list references) |
-| `gy` | Go to type definition |
-| `gh` | Hover docs for the cursor word |
-| `gA` | List references |
-| `gs` | Symbols in this file |
-| `gS` | Symbols in the repository |
-| `Ctrl/⌘ + click` | Go to definition of the word under the pointer. Resting the pointer on a word shows its hover docs. |
+![A collapsed lockfile, a dimmed whitespace-only hunk and a moved-code marker](/media/gallery/noise-moved.png)
 
-### Help
+<video src="/media/takes/modes.mp4" poster="/media/takes/modes.jpg" autoplay muted loop playsinline width="1280" height="800"></video>
 
-| key | action |
-| --- | --- |
-| `gw` | What's new |
-| `?` | Keyboard help |
-| `Esc` | Cancel a count or chord, leave the mode, close the overlay |
-| `Ctrl/⌘ + Enter` | Save the open comment |
+## Refresh after the code changes
 
-The cursor is the highlighted row. Collapsed, binary and not-yet-loaded large files have no lines to rest on, so `j` and `k` skip them and `J` and `K` park on the file header.
+nittle re-runs `git diff` when you press `r` or click **Re-run the diff** (the circular arrow) in the top bar. The review, your comments and the cursor carry over.
 
-Keys that changed: `j` / `k` used to step files (now `J` / `K`), the scorecard moved from `g` to `gc`, feedback preview from `c` to `P`, and what's new from `n` to `gw`.
+A comment whose line or file leaves the diff moves to a **From earlier reviews** section at the top of the page, and the feedback leaves it out. See [Stale comments](/guides/inline-comments/#stale-comments).
 
-Comment keys act on the comment under the cursor. `dd` deletes it and shows an Undo toast for 8 seconds. `u` also undoes the delete while that toast is up. Holding a key doesn't repeat `dd` or other destructive actions, so a held key can't keep deleting. Only plain motions such as `j` and `k` repeat. `Ctrl+p` (`Cmd+p` on macOS) opens "Go to file".
+## When the server stops
+
+The browser page needs the nittle process that served it. If that process exits, a red banner says "The nittle server is gone." Saving comments and sending feedback are off until it's back. The banner shows the command to restart it, with the review id and the port filled in:
+
+```sh
+nittle --review-id <id> --port 4400
+```
+
+Run it from the same repository and the page reconnects by itself.
+
+If a different review is now running on that port, the banner reads "A different review is running on this port." instead. Writes stay off on that page, and **Reload to open it** loads the other review.
+
+## Update from the top bar
+
+When a newer release exists, an **Update** badge with the version appears in the top bar. It checks every 10 minutes and links to the release notes. Run `nittle update` to install it. See [Installation](/getting-started/installation/).
 
 ## Next steps
 
+- Learn the keys in [Keyboard review](/guides/keyboard-review/), or look one up in [Keyboard shortcuts](/reference/keyboard-shortcuts/).
+- Leave feedback with [Inline comments](/guides/inline-comments/).
 - Triage a large change with the [Review scorecard](/guides/review-scorecard/).
-- Leave feedback on the diff with [Inline comments](/guides/inline-comments/).
-- Return your comments to an agent with [Agent feedback](/guides/agent-feedback/).
