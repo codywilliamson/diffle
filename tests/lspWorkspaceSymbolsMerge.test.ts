@@ -6,6 +6,8 @@ import { MAX_WORKSPACE_SYMBOLS } from "../src/server/lspSymbols";
 import { FAKE_LSP_PATH, fakeEntry, tempDir } from "./helpers/fakeLspPool";
 import { diffFile, fileUri, startHarness, writeFiles, type Harness } from "./helpers/lspHttp";
 
+const SEARCH_TEST_TIMEOUT_MS = 15_000;
+const searchTest = (name: string, run: () => Promise<void>) => test(name, run, SEARCH_TEST_TIMEOUT_MS);
 const harnesses: Harness[] = [];
 const pools: LspPool[] = [];
 afterEach(() => {
@@ -30,7 +32,7 @@ async function twoServers(root: string, ts: object, go: object, diff: string[]) 
 }
 
 describe("workspace symbols across ready servers", () => {
-  test("a go server that is ready but not in the diff still contributes", async () => {
+  searchTest("a go server that is ready but not in the diff still contributes", async () => {
     const root = tempDir("ws2");
     writeFiles(root, { "a.ts": "x\n", "util.go": "package util\n" });
     const ts = answers(sym("containsPath", fileUri(root, "a.ts")));
@@ -40,7 +42,7 @@ describe("workspace symbols across ready servers", () => {
     expect(body.symbols.map((s: any) => s.name).sort()).toEqual(["ContainsPath", "containsPath"]);
   });
 
-  test("a chatty server cannot push the other one's symbols past the cap", async () => {
+  searchTest("a chatty server cannot push the other one's symbols past the cap", async () => {
     const root = tempDir("ws2");
     writeFiles(root, { "a.ts": "x\n", "util.go": "package util\n" });
     const many = Array.from({ length: MAX_WORKSPACE_SYMBOLS + 20 }, (_, i) => sym(`containsPath${i}`, fileUri(root, "a.ts"), 0, i));
@@ -51,18 +53,24 @@ describe("workspace symbols across ready servers", () => {
     expect(body.symbols.map((s: any) => s.name)).toContain("ContainsPath");
   });
 
-  test("a slow server is waited for and a failing one is skipped", async () => {
+  // each cold server waits ~2s for project-load progress, so one search is ~2.5s; two in one test
+  // would brush bun's 5s default, and a timeout mid-fetch tears the harness down as ECONNRESET
+  searchTest("a slow server is waited for", async () => {
     const root = tempDir("ws2");
     writeFiles(root, { "a.ts": "x\n", "util.go": "package util\n" });
     const ts = { ...answers(sym("containsPath", fileUri(root, "a.ts"))), delay: { "workspace/symbol": 400 } };
     const { search } = await twoServers(root, ts, answers(sym("ContainsPath", fileUri(root, "util.go"))), ["a.ts", "util.go"]);
     expect((await search("ContainsPath")).symbols).toHaveLength(2);
-
-    const broken = await twoServers(root, answers(sym("containsPath", fileUri(root, "a.ts"))), {}, ["a.ts", "util.go"]);
-    expect((await broken.search("ContainsPath")).symbols.map((s: any) => s.name)).toEqual(["containsPath"]);
   });
 
-  test("the same symbol from two servers collapses on uri, range and name", async () => {
+  searchTest("a failing server is skipped", async () => {
+    const root = tempDir("ws2");
+    writeFiles(root, { "a.ts": "x\n", "util.go": "package util\n" });
+    const { search } = await twoServers(root, answers(sym("containsPath", fileUri(root, "a.ts"))), {}, ["a.ts", "util.go"]);
+    expect((await search("ContainsPath")).symbols.map((s: any) => s.name)).toEqual(["containsPath"]);
+  });
+
+  searchTest("the same symbol from two servers collapses on uri, range and name", async () => {
     const root = tempDir("ws2");
     writeFiles(root, { "a.ts": "x\n" });
     const shared = sym("Shared", fileUri(root, "a.ts"), 1, 2);
