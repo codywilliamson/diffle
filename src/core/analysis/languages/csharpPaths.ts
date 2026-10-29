@@ -4,7 +4,7 @@ import type { FileNoise } from "../../../types";
 import { baseName, dirSegments, stemOf } from "./flagHelpers";
 
 const CODE_EXTENSIONS = /\.(cs|csx|razor|cshtml|csproj|props|targets|sln|slnx)$/i;
-const DOTNET_CONFIG = /^(global\.json|nuget\.config|appsettings.*\.json)$/i;
+const DOTNET_CONFIG = /^(global\.json|nuget\.config|appsettings.*\.json|web(\.[\w-]+)?\.config)$/i;
 const GENERATED_SUFFIXES = [".g.cs", ".g.i.cs", ".designer.cs", ".generated.cs", "modelsnapshot.cs"];
 const TEST_PROJECT = /\.(tests|unittests|integrationtests|specs)$/i;
 const TEST_FILE = /(Tests?|Specs?)\.cs$/;

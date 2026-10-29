@@ -44,7 +44,7 @@ Flags counts three kinds of signal: sensitive paths, leftovers, and large files 
 
 Sensitive paths:
 
-- C#: `Program.cs`, `Startup.cs`, `appsettings*.json`, `*.csproj`, `Directory.Build.props` and `.targets`, and EF `Migrations/` folders.
+- C#: `Program.cs`, `Startup.cs`, `appsettings*.json`, `*.csproj`, `Directory.Build.props` and `.targets`, `web.config`, and EF `Migrations/` folders.
 - Any language: `.github/workflows/` and other CI pipeline files, Dockerfiles and compose files, `.env` files, migrations, and auth, authentication, authorization or security folders.
 
 Leftovers are added lines that look unfinished. A file reports up to five, and the rest show as `+N more leftovers in this file`.
