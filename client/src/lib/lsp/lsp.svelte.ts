@@ -112,6 +112,7 @@ export function createLspStore(deps: LspDeps) {
 
   function closeViewer(): boolean {
     const wasOpen = viewer !== null;
+    cancelNavigation(); // a late definition answer must not reopen what was just closed
     viewerLoad?.abort();
     viewer = null;
     trail = [];

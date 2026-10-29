@@ -12,6 +12,7 @@ vi.mock("$lib/state/context", () => ({ getAppState: () => appState }));
 const { createLspStore } = await import("$lib/lsp/lsp.svelte");
 const { default: ReadOnlyFile } = await import("./ReadOnlyFile.svelte");
 const { lspPointer } = await import("$lib/lsp/pointer");
+const { hitInRow } = await import("$lib/lsp/domPosition");
 
 const ENV = 'import { NAME } from "./name";\nexport const PRODUCT = NAME;\n';
 const NAME_TS = 'export const NAME = "nittle";\n';
@@ -119,5 +120,22 @@ describe("read-only viewer navigation", () => {
     await typeKeys("g");
     expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
     expect(api.lspDefinition).not.toHaveBeenCalled();
+  });
+
+  it("a word the pointer rested on in the previous viewer is not reused after a hop", async () => {
+    const { lsp } = mountViewer();
+    lsp.jump({ path: "src/env.ts", absolutePath: "/r/src/env.ts", inRepo: true, line: 2, character: 13 });
+    await screen.findByText(/PRODUCT/);
+    const row = section().querySelector<HTMLElement>('[data-line="1"] [data-lsp-line]')!;
+    lsp.point(hitInRow(row, { start: 9, end: 13, text: "NAME" }));
+    lsp.jump({ path: "src/name.ts", absolutePath: "/r/src/name.ts", inRepo: true, line: 1, character: 13 });
+    await waitFor(() => expect(section().getAttribute("aria-label")).toBe("Read-only file src/name.ts"));
+    await screen.findByText(/nittle/);
+    api.lspDefinition.mockResolvedValue(answer([]));
+
+    await typeKeys("g", "d");
+
+    await waitFor(() => expect(api.lspDefinition).toHaveBeenCalled());
+    expect(api.lspDefinition.mock.calls[0]![0]).toEqual({ path: "src/name.ts", side: "new", line: 1, character: 13 });
   });
 });

@@ -352,6 +352,24 @@ describe("lsp store: hops inside the viewer", () => {
     expect(ctx.lsp.viewerBack()).toBe(false);
   });
 
+  // a definition still in flight when the viewer is closed must not reopen it or grow the trail
+  const pendingHop = async (close: (lsp: Awaited<ReturnType<typeof openFirstHop>>["lsp"]) => void) => {
+    const ctx = await openFirstHop();
+    let answerLate!: (r: LspDefinitionResponse) => void;
+    api.lspDefinition.mockReturnValueOnce(new Promise<LspDefinitionResponse>((resolve) => (answerLate = resolve)));
+    ctx.lsp.definitionAtHit(viewerHit("src/env.ts"));
+    await flush();
+    close(ctx.lsp);
+    answerLate(answer([target("src/name.ts", 1)]));
+    await flush();
+    expect(ctx.lsp.viewer).toBeNull();
+    expect(ctx.lsp.viewerBack()).toBe(false);
+    expect(ctx.markJump).toHaveBeenCalledTimes(1);
+  };
+
+  it("Esc while a hop is in flight drops its late answer", () => pendingHop((lsp) => void lsp.closeTopmost()));
+  it("the close button while a hop is in flight drops its late answer", () => pendingHop((lsp) => void lsp.closeViewer()));
+
   it("a hop onto the line already shown leaves no duplicate step", async () => {
     const { lsp } = await openFirstHop();
     api.lspDefinition.mockResolvedValueOnce(answer([target("src/env.ts", 2)]));
