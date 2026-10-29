@@ -142,6 +142,7 @@ describe("parseCliArgs", () => {
     expect(USAGE).toContain("doctor");
     expect(USAGE).toContain("nittle doctor");
     expect(helpFor("doctor")).toContain("--fix");
+    expect(helpFor("doctor")).toContain("stale agent plugins, old MCP configs, and an unfinished migration");
   });
 
   test("update takes only --check", () => {
