@@ -16,11 +16,11 @@ const ids = readdirSync(footage)
   .filter((id) => !only || id === only);
 
 // remotion defaults to half the cores, each a headless chrome decoding 2x footage — enough to
-// starve the machine of memory. two tabs is slower but leaves room for everything else.
-const RENDER_CONCURRENCY = 2;
+// starve the machine of memory. one tab is slower but leaves room for everything else.
+const RENDER_CONCURRENCY = 1;
 // offthreadvideo's frame cache otherwise grows with free memory; the long reel starved the machine
 // even at concurrency 1 until this was capped.
-const VIDEO_CACHE_BYTES = 1_000_000_000;
+const VIDEO_CACHE_BYTES = 400_000_000;
 // the poster is the moment the take's first zoom has settled, else 60% through
 const ZOOM_SETTLE_SEC = 0.9;
 const POSTER_FALLBACK = 0.6;
