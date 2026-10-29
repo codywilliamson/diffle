@@ -5,7 +5,8 @@
 import { existsSync } from "node:fs";
 
 export const KILL_GRACE_MS = 1_000; // between SIGTERM and SIGKILL
-const POLL_MS = 25;const IS_WINDOWS = process.platform === "win32";
+const POLL_MS = 25;
+const IS_WINDOWS = process.platform === "win32";
 
 export const usesProcessGroups = !IS_WINDOWS;
 
@@ -18,8 +19,8 @@ export function systemTaskkill(): string {
   return `${process.env.SystemRoot ?? "C:\\Windows"}\\System32\\taskkill.exe`;
 }
 
-// one taskkill for all the pids, so n servers cost one process start, not n (a closing windows console
-// allows about five seconds in all). no spawn timeout: under bun test a sync spawn's timeout fired at once.
+// one taskkill for all the pids, so n servers cost one process start, not n. it carries on past a pid
+// that is already gone (tested). it is not time-bounded: a spawn timeout fired at once under bun test.
 function taskkillTrees(pids: readonly number[]): void {
   const exe = systemTaskkill();
   if (!existsSync(exe)) { for (const pid of pids) { try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ } } return; }
@@ -27,8 +28,8 @@ function taskkillTrees(pids: readonly number[]): void {
   Bun.spawnSync([exe, ...targets, "/T", "/F"], { stdout: "ignore", stderr: "ignore" });
 }
 
-// sync and blunt, for exit handlers that cannot await. one call for any number of servers keeps
-// the whole teardown inside the one bounded taskkill on windows.
+// sync and blunt, for exit handlers that cannot await. one call for any number of servers, so the
+// windows cost does not grow per server (a closing console allows about five seconds in all).
 export function killTreesNow(pids: readonly number[]): void {
   if (pids.length === 0) return;
   if (IS_WINDOWS) taskkillTrees(pids); else for (const pid of pids) signalGroup(pid, "SIGKILL");

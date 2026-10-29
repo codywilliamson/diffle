@@ -16,20 +16,34 @@ afterEach(() => {
   delete process.env.FAKE_LSP;
 });
 
+// a process that idles until killed; on posix it leads its own group, like a language server does
+function spawnIdle(): number {
+  const proc = Bun.spawn([process.execPath, "-e", "setInterval(() => {}, 1000)"], { stdout: "ignore", stderr: "ignore", detached: process.platform !== "win32" });
+  spawned.push(proc);
+  return proc.pid;
+}
+
 describe("killTreesNow", () => {
-  it("kills every tree in one call, within the exit budget", async () => {
-    const idle = "setInterval(() => {}, 1000)";
-    const pids = Array.from({ length: SERVERS }, () => {
-      const proc = Bun.spawn([process.execPath, "-e", idle], { stdout: "ignore", stderr: "ignore", detached: process.platform !== "win32" });
-      spawned.push(proc);
-      return proc.pid;
-    });
+  it("kills every tree in one call, in under the exit budget", async () => {
+    const pids = Array.from({ length: SERVERS }, spawnIdle);
     expect(pids.every(isAlive)).toBe(true);
     const started = Date.now();
     killTreesNow(pids);
     expect(Date.now() - started).toBeLessThan(BATCH_BUDGET_MS);
     await waitFor(() => pids.every((pid) => !isAlive(pid)), 4_000);
   });
+
+  // a server can die on its own before exit teardown; the batch must still reach the live ones
+  for (const order of ["dead pid first", "dead pid last"] as const) {
+    it(`still kills the live tree when one pid in the batch is already dead (${order})`, async () => {
+      const [dead, live] = [spawnIdle(), spawnIdle()];
+      killTreesNow([dead]);
+      await waitFor(() => !isAlive(dead), 4_000);
+      expect(isAlive(live)).toBe(true);
+      killTreesNow(order === "dead pid first" ? [dead, live] : [live, dead]);
+      await waitFor(() => !isAlive(live), 4_000);
+    });
+  }
 
   it("does nothing for an empty list", () => {
     expect(() => killTreesNow([])).not.toThrow();
