@@ -8,7 +8,7 @@ import { readReview, writeReview } from "../core/reviewStore";
 import { excludeReviewFile } from "../core/reviewFilter";
 import { compileReviewPrompt } from "../core/promptCompiler";
 import { parseDiff } from "../core/diffParser";
-import { checkForUpdate } from "../core/updateCheck";
+import { badgeUpdateStatus } from "../core/updateNotice";
 import { scanProject } from "../core/projectScan";
 import { collectDiff } from "../utils/git";
 import { apiError, json } from "./respond";
@@ -145,5 +145,5 @@ export function handleGetCompile(ctx: ServerContext, url: URL): Response {
 
 // reports whether a newer nittle release is published (best-effort, never throws).
 export async function handleGetUpdate(ctx: ServerContext): Promise<Response> {
-  return json(await checkForUpdate(ctx.productRoot));
+  return json(await badgeUpdateStatus(ctx.productRoot));
 }

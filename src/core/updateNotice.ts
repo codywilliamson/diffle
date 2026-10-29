@@ -5,7 +5,7 @@ import { basename } from "node:path";
 import { homedir } from "node:os";
 import type { UpdateStatus } from "../types";
 import { PRODUCT } from "./product";
-import { currentVersion, fetchReleaseTags, latestVersion } from "./updateCheck";
+import { checkForUpdate, currentVersion, fetchReleaseTags, latestVersion } from "./updateCheck";
 import { detectPackageManager, managerCommand } from "./updateTarget";
 import { readUserState, writeUserState } from "./userState";
 import { isProductBinary } from "../utils/installRoot";
@@ -38,6 +38,13 @@ export function updateHint(isInstalled = runningAsBinary(), execPath = process.e
   const manager = detectPackageManager(execPath);
   const command = manager ? managerCommand(manager) : `${PRODUCT.name} update`;
   return command.startsWith("use ") ? command : `run ${command}`;
+}
+
+// what the in-app badge shows. the opt-out reports "up to date" without touching the network.
+export async function badgeUpdateStatus(productRoot: string): Promise<UpdateStatus> {
+  if (!updateCheckDisabled()) return checkForUpdate(productRoot);
+  const current = currentVersion(productRoot);
+  return toStatus(current, current);
 }
 
 // live check against GitHub Releases; null when the channel is unreachable or empty.

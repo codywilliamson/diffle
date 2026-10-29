@@ -27,6 +27,6 @@ The scorecard (`gc`) is fixed arithmetic on the same diff with no model involved
 
 All of this runs on your machine. nittle has no account and no hosted service, and it sends your code to no AI model. Your diff and comments only reach an agent when you hand them over, through a pipe or a local MCP server the agent started.
 
-The only calls nittle makes on its own are release checks against GitHub Releases, and they carry nothing from your repo. One runs at launch, at most once a day. The other is the update badge in the open tab, which asks every 10 minutes while the tab is open. `NITTLE_NO_UPDATE_CHECK=1` silences the launch notice and the release check in `nittle doctor`, but the badge still polls.
+The only calls nittle makes on its own are release checks against GitHub Releases, and they carry nothing from your repo. One runs at launch, at most once a day. The other is the update badge in the open tab, which asks every 10 minutes while the tab is open. `NITTLE_NO_UPDATE_CHECK=1` turns off all three: the launch notice, the badge and the release check in `nittle doctor`.
 
 To run the loop end to end, follow the [Quickstart](/getting-started/quickstart/). The MCP side is in [Agent feedback](/guides/agent-feedback/).

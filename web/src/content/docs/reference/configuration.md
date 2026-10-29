@@ -19,7 +19,7 @@ Boolean variables marked `1` must be exactly `1`. Variables marked "any value" a
 | `NITTLE_ROOT` | the directory `nittle mcp serve` started in | MCP server | the one approved root; `start_review` rejects a `cwd` outside it with `cwd must be inside an approved MCP root` |
 | `NITTLE_NO_OPEN` | unset | MCP `start_review`, `nittle hook stop` | `1` = don't open a browser. Plain `nittle` ignores it; use `--no-open` |
 | `NITTLE_HOOK_NO_SPAWN` | unset | `nittle hook stop` | `1` = create the Review Record but spawn no review process |
-| `NITTLE_NO_UPDATE_CHECK` | unset | launch notice, `nittle doctor` | any value = no new-release line at launch and no release check in doctor. The launch notice is also off when `CI` is set or when running from source. It doesn't turn off the update badge in the browser tab, which still asks GitHub Releases every 10 minutes while the tab is open |
+| `NITTLE_NO_UPDATE_CHECK` | unset | launch notice, update badge, `nittle doctor` | any value = no new-release line at launch, no update badge in the tab, and no release check in doctor. nittle makes no release calls at all. The launch notice is also off when `CI` is set or when running from source |
 | `NITTLE_INSTALL_DIR` | `~/.nittle/bin` | installers and the binary | where the binary lives. The binary reads it to resolve the command it writes into agent MCP configs, and where the migration copies itself |
 | `NITTLE_SESSION_HOST` | unset | review launch | internal: `hook` marks a session as hook-hosted, otherwise it is `cli`. The stop hook sets it on the process it spawns |
 | `VIRTUAL_ENV` | unset | Python language server lookup | its `bin` (`Scripts` on Windows) is searched before `PATH`, and the server starts with that environment |
@@ -140,5 +140,5 @@ A repo `.env` could otherwise set `NITTLE_*`, `VIRTUAL_ENV` or `PATH` for nittle
 | MCP servers | stops servers still on the old binary, unless a review session is live; agents relaunch them on reconnect |
 | package manager install | refuses and prints that manager's command |
 | launch notice | one line when a newer release exists, checked at most once per 24 hours, off with `NITTLE_NO_UPDATE_CHECK` or `CI` |
-| update badge | the open tab asks GitHub Releases every 10 minutes and shows a badge when a newer release exists; `NITTLE_NO_UPDATE_CHECK` doesn't turn it off |
+| update badge | the open tab asks GitHub Releases every 10 minutes and shows a badge when a newer release exists, off with `NITTLE_NO_UPDATE_CHECK` |
 | offline | checks fail quietly |
