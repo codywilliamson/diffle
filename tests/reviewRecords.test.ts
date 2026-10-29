@@ -53,6 +53,14 @@ describe("review records", () => {
     expect(() => requestRereview(cancelled.id)).toThrow("terminal");
   });
 
+  it("treats a repeat cancel as a no-op, but never cancels an approved review", () => {
+    const first = cancelReview(makeRecord().id);
+    const again = cancelReview(first.id, "late");
+    expect(again.status).toBe("cancelled");
+    expect(again.activity).toHaveLength(first.activity.length);
+    expect(() => cancelReview(approveReview(makeRecord().id, true).id)).toThrow("terminal");
+  });
+
   it("scopes active lookup to the originating agent session", () => {
     const cwd = tempDir();
     const human = createReviewRecord({ target: { cwd, ref: "main" } });

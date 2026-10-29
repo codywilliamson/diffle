@@ -136,7 +136,10 @@ export function requestRereview(id: string, summary?: string): ReviewRecord {
   }
   return transition(id, "awaiting_human", "rereview_requested", "agent", summary, record.status === "approved");
 }
-export const cancelReview = (id: string, summary?: string) => transition(id, "cancelled", "review_cancelled", "reviewer", summary);
+export function cancelReview(id: string, summary?: string): ReviewRecord {
+  const record = requireRecord(id); // a repeat cancel is a no-op, so the mcp tool stays idempotent
+  return record.status === "cancelled" ? clone(record) : transition(id, "cancelled", "review_cancelled", "reviewer", summary);
+}
 
 export function approveReview(id: string, acknowledgeUnresolved = false): ReviewRecord {
   const record = requireRecord(id); assertActive(record);

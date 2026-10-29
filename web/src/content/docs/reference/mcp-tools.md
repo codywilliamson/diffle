@@ -241,7 +241,7 @@ Returns `{ review }` with `status: "awaiting_human"`. Works on `feedback_ready` 
 | `reviewId` | `string` | yes | 1 to 200 chars |
 | `summary` | `string` | no | max 10,000 chars; stored as the record's `summary` |
 
-Returns `{ review }` with `status: "cancelled"`. A second call on the same review fails with `review record is terminal`.
+Returns `{ review }` with `status: "cancelled"`. A second call on a cancelled review returns it unchanged. Cancelling an approved review fails with `review record is terminal`.
 
 ## Troubleshooting
 
