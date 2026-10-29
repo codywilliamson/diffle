@@ -10,7 +10,7 @@ import { json } from "./respond";
 import { sideContext } from "./lspSide";
 import { CANCELLED_STATUS, guarded, invalid, lspError, onDocument, sideFailure, unavailable } from "./lspSession";
 import { prepareBridge } from "./lspSync";
-import { mergeWorkspaceSymbols, type SymbolSource } from "./lspSymbolMerge";
+import { mergeWorkspaceSymbols, rangeOf, type SymbolSource } from "./lspSymbolMerge";
 import { fileUriOf, TargetResolver } from "./lspTargets";
 
 export const MAX_WORKSPACE_SYMBOLS = 100;
@@ -85,14 +85,14 @@ export async function handleLspWorkspaceSymbols(base: ServerContext, query: stri
       const reason = failures[0]?.reason;
       return lspError("request-failed", reason instanceof Error ? reason.message : "workspace symbol search failed", 502);
     }
-    // locate, convert, dedupe, rank and cap
+    // locate, dedupe, rank and cap first; ranges convert lazily (see lspSymbolMerge.ts)
     const sources: SymbolSource[] = [];
     answers.forEach((answer, index) => {
       if (answer.status === "fulfilled") sources.push({ symbols: normalizeWorkspaceSymbols(answer.value), resolver: new TargetResolver(ctx, bridges[index]!.encoding) });
     });
     const found = mergeWorkspaceSymbols(sources, query);
-    const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map(({ symbol, location, range }) => ({
-      ...location, name: symbol.name, kind: symbol.kind, ...(symbol.containerName ? { containerName: symbol.containerName } : {}), range,
+    const symbols: LspWorkspaceSymbol[] = found.slice(0, MAX_WORKSPACE_SYMBOLS).map((kept) => ({
+      ...kept.location, name: kept.symbol.name, kind: kept.symbol.kind, ...(kept.symbol.containerName ? { containerName: kept.symbol.containerName } : {}), range: rangeOf(kept),
     }));
     return json({ symbols, total: found.length, truncated: found.length > MAX_WORKSPACE_SYMBOLS } satisfies LspWorkspaceSymbolsResponse);
   });

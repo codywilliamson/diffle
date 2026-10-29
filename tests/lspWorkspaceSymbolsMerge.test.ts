@@ -1,8 +1,9 @@
 // gS across servers (#326): typescript and go both ready, and a query both of them answer.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { LspPool } from "../src/core/lsp/pool";
 import { MAX_WORKSPACE_SYMBOLS } from "../src/server/lspSymbols";
+import { TargetResolver } from "../src/server/lspTargets";
 import { FAKE_LSP_PATH, fakeEntry, tempDir } from "./helpers/fakeLspPool";
 import { diffFile, fileUri, startHarness, writeFiles, type Harness } from "./helpers/lspHttp";
 
@@ -42,6 +43,19 @@ describe("workspace symbols across ready servers", () => {
     const body = await search("Name");
     expect(body).toMatchObject({ total: 1, truncated: false });
     expect(body.symbols.map((s: any) => s.range)).toEqual([{ start: { line: 1, character: 3 }, end: { line: 1, character: 7 } }]);
+  });
+
+  searchTest("only the kept symbols get their ranges converted when nothing can be a duplicate", async () => {
+    const root = tempDir("ws2");
+    writeFiles(root, { "a.ts": "x\n" });
+    const many = Array.from({ length: MAX_WORKSPACE_SYMBOLS + 7 }, (_, i) => sym(`Unique${i}`, fileUri(root, "a.ts"), 0, 0));
+    const { search } = await twoServers(root, answers(...many), answers(), ["a.ts"]);
+    const converted = spyOn(TargetResolver.prototype, "range");
+    try {
+      const body = await search("Unique");
+      expect(body).toMatchObject({ total: MAX_WORKSPACE_SYMBOLS + 7, truncated: true });
+      expect(converted).toHaveBeenCalledTimes(MAX_WORKSPACE_SYMBOLS);
+    } finally { converted.mockRestore(); }
   });
 
   searchTest("a go server that is ready but not in the diff still contributes", async () => {
