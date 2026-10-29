@@ -78,7 +78,7 @@ export const COMMAND_HELP: Record<HelpTopic, CommandHelp> = {
     related: ["update", "sessions", "setup"],
   },
   hook: {
-    summary: "agent stop hook that keeps a review open until it is resolved",
+    summary: "experimental agent stop hook that opens a review of the working tree",
     usage: [`${n} hook stop --agent <codex|claude-code>`],
     options: optionsFor("hook"),
     examples: [`${n} hook stop --agent claude-code`],
