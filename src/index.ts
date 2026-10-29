@@ -67,7 +67,7 @@ export async function main(): Promise<void> {
     if (!result.ok) console.error(`migration ${result.name} failed: ${result.summary}`);
   }
   if (opts.help) return console.log(helpFor(opts.command, opts.spec));
-  if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(productRoot)}\n${PRODUCT.lineage}`);
+  if (opts.version) return console.log(`${PRODUCT.name} v${currentVersion(productRoot)}`);
   if (opts.license) return console.log(resolveLicenseText(productRoot).trimEnd());
   if (opts.mcpAction === "serve") return runMcpServer(cwd);
   if (opts.mcpAction === "list") return runMcpListCommand();

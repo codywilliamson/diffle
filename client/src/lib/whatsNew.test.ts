@@ -3,10 +3,8 @@ import { PRODUCT } from "$product";
 import { WHATS_NEW } from "./whatsNew";
 
 describe("what's new", () => {
-  it("leads with the rename note and tells the lineage joke exactly once", () => {
-    expect(WHATS_NEW.highlights[0]).toContain(PRODUCT.lineage);
-    const all = WHATS_NEW.highlights.join("\n");
-    expect(all.split(PRODUCT.lineage)).toHaveLength(2);
+  it("leads with a short rename note", () => {
+    expect(WHATS_NEW.highlights[0]).toContain(`it was ${PRODUCT.legacyName}`);
     expect(WHATS_NEW.highlights[0]).toContain(`the command is now ${PRODUCT.name}.`);
   });
 
