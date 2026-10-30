@@ -2,6 +2,28 @@
 
 All notable changes to nittle are documented here. This project follows [semantic versioning](https://semver.org).
 
+## [0.34.0](https://github.com/codywilliamson/nittle/compare/v0.33.0...v0.34.0) (2026-10-30)
+
+
+### Features
+
+* **build:** capture launch feature stills on a showcase fixture ([8c59d1e](https://github.com/codywilliamson/nittle/commit/8c59d1e5d57088321adad6ddc635ea264dd95b86))
+* **build:** publish launch feature stills ([885acae](https://github.com/codywilliamson/nittle/commit/885acae2f8907b5136a7a8df77f9107bb26e1b84))
+* **build:** publish the codenav short and poster ([66559e1](https://github.com/codywilliamson/nittle/commit/66559e1cd55e588f9ea8d68991b0f55e6f8c7904))
+* **build:** record launch demo takes and reorder the reel ([b486c2c](https://github.com/codywilliamson/nittle/commit/b486c2c67948325fee2a912e794009a0e464c3b3))
+
+
+### Bug Fixes
+
+* **cli:** describe the stop hook accurately in help ([8bd0785](https://github.com/codywilliamson/nittle/commit/8bd0785f221e4fc85e8b1fba9e999294b40e7bfc))
+* **cli:** describe what doctor actually checks ([46c15d1](https://github.com/codywilliamson/nittle/commit/46c15d134808d749ab3f4dca496142f68d3ade94))
+* **parser:** route web.config to the c# adapter ([4668687](https://github.com/codywilliamson/nittle/commit/46686872cb93d77fb5fa34b318fe15b068723b34))
+* **server:** describe reply_to_comment as it behaves ([f701e61](https://github.com/codywilliamson/nittle/commit/f701e61cba1b837c339c0897cb94dfcc49741b1f))
+* **server:** honor NITTLE_NO_UPDATE_CHECK in the update badge ([ea6c9d8](https://github.com/codywilliamson/nittle/commit/ea6c9d832a28d5aa3dfc4a16558d531c144125bc))
+* **store:** make a repeat cancel_review a no-op ([899a751](https://github.com/codywilliamson/nittle/commit/899a751897444dad78ac68b952a94ad3c10d668d))
+* **store:** mark comments stale when their line content moves ([321244a](https://github.com/codywilliamson/nittle/commit/321244aaac72282acbfe80ec30fdb8107b7d0cc5))
+* **types:** add the review id to ReviewOutcomeRequest ([b443d9c](https://github.com/codywilliamson/nittle/commit/b443d9cee1b3a0f88dfd17b8e52939d34680541a))
+
 ## [0.33.0](https://github.com/codywilliamson/nittle/compare/v0.32.1...v0.33.0) (2026-10-29)
 
 
